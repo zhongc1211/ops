@@ -8,6 +8,7 @@
 | Repo | Orca 项目 | 项目 ID | 路径 |
 |---|---|---|---|
 | zhongc1211/xinyue-site | xinyue-site | 099c800e-c50c-4cf1-91c6-5d6196a4d298 | ~/pi/remote/xinyue-site |
+| zhongc1211/xinyue-site（**box** Orca，orca-ide 不带 --environment） | xinyue-site | 2ce7debc-6211-416a-b5a0-81127a67f518 | /workspace/repos/xinyue-site |
 | zhongc1211/deepvision-site | site | f1681260-cc5c-456d-9b97-e9cd21e07e94 | ~/claude/site |
 | vllm-project/vllm-omni | vllm-omni · H3/C1 | b8e788b7-0343-44e2-862e-147ea20adf8f | ~/pi/remote/h3-c1-lab/repository.git |
 | deepvision-ads（本地 git） | deepvision-ads | 4e597f43-7d06-4c29-867e-0252425bbbed | ~/orca/workspaces/deepvision-ads |
@@ -24,6 +25,10 @@
 |---|---|---|---|
 | 心月网站 运维 | 心月 · PER-37 涨水爬楼（per-37-flood-climb-v2，099c800e::~/orca/workspaces/xinyue-site/per-37-flood-climb-v2；in-progress，Claude Code 在 term_8e82a2b9） | xinyue-site | PER-37 |
 | （建错，保留不用） | per-37-flood-climb（原在重复项目 0de4e55d 下，该项目已从 Orca 移除；磁盘 ~/orca/workspaces/xinyue-site/per-37-flood-climb 保留，无提交） | — | PER-37 |
+| 心月网站 运维 | **box** 心月 · PER-38 摇摇荡荡（2ce7debc::/home/box/orca/workspaces/xinyue-site/心月-PER-38-摇摇荡荡；in-progress，Claude Code 在 box term_ea25260e） | xinyue-site(box) | PER-38 |
+| （停用，保留） | iMac 旧 per-38-swing-swing（099c800e::~/orca/workspaces/xinyue-site/per-38-swing-swing；无提交，2026-10-12 迁到 box） | xinyue-site | PER-38 |
+| 心月网站 运维 | **box** 心月 · PER-39 大嘴洞洞（2ce7debc::/home/box/orca/workspaces/xinyue-site/心月-PER-39-大嘴洞洞；in-progress，Claude Code 在 box term_83a12bdf） | xinyue-site(box) | PER-39 |
+| （停用，保留） | iMac 旧 per-39-gobble-hole（099c800e::~/orca/workspaces/xinyue-site/per-39-gobble-hole；无提交，2026-10-12 迁到 box） | xinyue-site | PER-39 |
 | deepvision 运维 | dv运维 · FDV-25 本地预览和截图（fdv-16-preview，completed） | site | FDV-25 |
 | deepvision 运维 | dv运维 · FDV-16 主站改版方案（fdv-16-redesign-v2，completed） | site | FDV-16 |
 | deepvision 运维 | dv运维 · Orca 工作区整理（dv-ops-orca-tidy，completed，10-12 新建，无 Linear） | site | — |
@@ -60,3 +65,72 @@ vllm-omni 工作区已于 2026-10-12 改成新格式（orca CLI）；其他仓�
 | vllm · 主目录 | Orca 拒绝删除（受保护路径）；干净，没有未推送提交 | 要删的话需要另外批准直接删目录，或先在 Orca 里移除 repo |
 | 6 个定时任务的 projectId | 应该放在 ops（e9b33f9c） | 改到 ops 前需要确认 |
 | 现有工作区显示名 | 不符合新格式 | 由各 bot 用 worktree set 改名 |
+
+## 5. Box（Grok Bot 电脑）Orca 项目与工作区（2026-10-12 03:20 SGT 核对）
+
+Box 与 iMac 是两套独立 Orca runtime；同名仓库在 box 上另有项目 ID。
+
+### 5.1 Box Repo → Orca 项目
+
+| Repo | Orca 项目 | 项目 ID | 路径 |
+|---|---|---|---|
+| zhongc1211/deepvision-ads | deepvision-ads | d0561e2b-422a-43f1-8a0b-7c117ac910b2 | /workspace/repos/deepvision-ads |
+| zhongc1211/xinyue-site | xinyue-site | 2ce7debc-6211-416a-b5a0-81127a67f518 | /workspace/repos/xinyue-site |
+| zhongc1211/deepvision-site | deepvision-site | 6e7df308-3fb4-40a1-be00-cbe5675ea4eb | /workspace/repos/deepvision-site |
+| vllm-project/vllm-omni | vllm-omni | b0a44d4f-7c5d-49e5-9848-9e6010beeaeb | /workspace/repos/vllm-omni |
+
+### 5.2 Box 当前工作区
+
+| 工作区 | 项目 ID | 路径 | 分支 | 备注 |
+|---|---|---|---|---|
+| deepvision-ads · 主目录 | d0561e2b… | /workspace/repos/deepvision-ads | main | 主 checkout |
+| dv广告 · FDV-36 Ryze 复刻总装 | d0561e2b… | /home/box/orca/workspaces/deepvision-ads/fdv-36-build | zhongc1211/fdv-36-build | Claude Code 在此总装（iMac 卡顿迁移）；term_0f2abdaa |
+| xinyue-site · 主目录 | 2ce7debc… | /workspace/repos/xinyue-site | feat/xinyue-site | 仅主目录，无任务工作区 |
+| deepvision-site · 主目录 | 6e7df308… | /workspace/repos/deepvision-site | main | 仅主目录 |
+| vllm-omni · 主目录 | b0a44d4f… | /workspace/repos/vllm-omni | main | 仅主目录 |
+
+## 6. Claude Code ↔ Orca 工作树对齐（2026-10-12 03:20 审计）
+
+### 6.1 活跃 Claude 会话 cwd 是否等于所属 Orca 工作区
+
+| 机器 | 终端 | 标题 | Orca 工作区 | 进程 cwd | 结论 |
+|---|---|---|---|---|---|
+| box | term_0f2abdaa | FDV-36 briefs/BUILD.md 执行 | …/deepvision-ads/fdv-36-build | 同左 | ✅ 对齐 |
+| iMac | term_8e82a2b9 | Flood Climb PER-37 | …/xinyue-site/per-37-flood-climb-v2 | 同左 | ✅ 对齐 |
+| iMac | term_8578b833 | Panel title guard FDV-16 | …/site/fdv-16-redesign-v2 | 同左 | ✅ 对齐 |
+| iMac | term_56806268 | Orca 工作区 FDV-16/25 元数据 | …/site/dv-ops-orca-tidy | 同左 | ✅ 对齐 |
+| iMac | term_691ce33d | TASK.md folder task | deepvision-ads **主目录** | 同左（主目录） | ⚠ 在主目录干活，未用 FDV-35/36 任务工作区 |
+| iMac | term_e60b2461 | Cloudflare 账单刺客 | folder 上下文（无 repo 工作区） | （folder） | ⚠ 不在 git 工作区里 |
+| iMac | （无 Orca 终端） | claude PID 7049 | — | ~/claude | ⚠ 游离会话 |
+| iMac | （无 Orca 终端） | claude PID 9785 | — | ~/claude/cf（非 git） | ⚠ 游离会话 |
+
+### 6.2 git 有、Orca 原先未管理 / Claude 自建
+
+| 路径 | 状态 | 处理 |
+|---|---|---|
+| ~/.treehouse/xinyue-site-eb8bcb/2–6（挂在 firstmate 克隆上） | detached、干净、旧 Claude/treehouse | **留给 Zack**：确认不用后再删；有未推送 bundle 已存档 |
+| /private/tmp/nightly-deepvision-site、/private/tmp/nightly-xinyue-site | detached、干净；开启 external 可见后已出现在 Orca | 定时/夜间残留；无未提交改动。是否删留给运维判断 |
+| ~/pi/remote/vllm-omni 下 c4-lab/* | 非 Orca 管理；有历史 review worktree | 有真实路径，未删 |
+| /tmp/vllm-omni-review-… | prunable 失效条目 | **已 git worktree prune** |
+| ~/claude/rf/.claude/worktrees | 空目录 | 无内容 |
+| site fdv-16-redesign-v3 | 进程曾指向此路径，目录已不存在 | 无需注册 |
+
+### 6.3 Orca 自带能力（查过 agent-context / help）
+
+| 能力 | 怎么开 | 本次是否改 |
+|---|---|---|
+| `orca repo set --external-worktree-visibility show` | 让非 Orca 的 git worktree 显示在侧栏 | **已开**：box 的 xinyue/ads；iMac 的 xinyue/ads/rf |
+| `orca worktree create --agent claude` | 在新 Orca 工作区首个终端启动 Claude，cwd=该工作区 | 未改配置；这是正确用法 |
+| `orca terminal create --worktree <sel> --command claude` | 在已有 Orca 工作区开 Claude | 正确用法 |
+| `orca claude-teams …` | 仅在 Orca 终端内；队友开成 native splits，仍在当前工作区 | 未改 |
+| `project setup-update --worktree-base-path` | 新工作区落盘根目录 | 未改（当前已多在 ~/orca/workspaces/…） |
+| 收养/同步 Claude 自建 worktree（.claude/worktrees、~/.treehouse） | **无** CLI「adopt」命令；`worktree create` 只会新建 checkout | — |
+| 把 Claude 钉死在工作区、禁止它自建 | Orca **无**硬开关。Claude 的 `claude --worktree`、feature `tengu_worktree_mode`、部分 `remoteControlSpawnMode: worktree` 会自建 | **未改** Claude 全局配置（不安全乱改 GrowthBook/spawn） |
+
+### 6.4 以后怎么避免错位
+
+1. 动手只走 `orca worktree create --agent claude`（或先 create 工作区再 `terminal create --command claude`），**不要**在 shell 里 `claude --worktree`。
+2. 每个 Linear 任务一个 Orca 工作区；禁止在「主目录」开长任务（本次 TASK.md 会话是反例）。
+3. 需要看野 worktree 时，对该 repo 开 `external-worktree-visibility show`。
+4. treehouse / `.claude/worktrees` 视为 Claude 私货，有未提交内容才考虑迁入 Orca；干净的可删（要 Zack 点头）。
+
