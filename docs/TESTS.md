@@ -4,6 +4,10 @@
 
 「预期次数」只算叫醒 webhook（wake-hook 和 stuck-check-recheck），不含 agent 退出或测试结束时 notify-run 自己发的 done / failed / killed。
 
+## 真实测试 webhook 端到端（第二轮）
+
+之后用一个专用测试 webhook（只记日志、不叫醒 bot）重跑了 Claude 18 个场景（C1–C4、C6–C8、C10–C12、C14–C18、C21、C23、C24、C27 的对应场景）和 Pi 7 个场景。28 次叫醒全部 HTTP 200、第 1 次尝试成功，有效场景结果都与下表预期一致。限制：只核对了发送方的状态码，没有核对接收方记录的正文；C14 仍是注入事件模拟；webhook 不可达（C19）没有对真实 webhook 重测。测试会话用 `ORCA_WAKE_CONFIG_DIR` 指向只放行测试 bot 的名单，其余代码路径与生产相同。
+
 ## 离线测试
 
 `tests/unit.sh`：临时目录 + 本地模拟 webhook，不需要 Claude 或 Pi。最近一次：27 项全部通过。覆盖 idle 去重、后台 shell、needs_input、error、blocked、parent_mismatch、静音、影子模式、Pi send 去重、webhook 不可达后补叫醒、排队续轮（queued_followup）、等待期内新回合（superseded）、非派出会话、hook 无 stderr 输出。
