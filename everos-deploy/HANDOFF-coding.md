@@ -16,7 +16,7 @@
 | `EVEROS_USER_ID` | `zack`（用户侧；错题召回用 agent 路径） |
 
 API：`/api/v2/memory/*`。search 起步用 `"method":"keyword"`（无 embedding 时 hybrid 会 422）。
-数据根：`/var/lib/everos`。LLM 已指 magpie `http://100.64.0.4:3425/v1`（Tailscale），模型 `claude/claude-haiku-5-5`；`/add`+`/flush` 已实测可抽 episode。
+数据根：`/var/lib/everos`。LLM 已指 magpie `http://100.64.0.4:3425/v1`（Tailscale），模型 `codex/gpt-6.1-sol`；embedding 未配置（health embed=false，待有效 Qwen/DashScope key）；`/add`+`/flush` 已实测可抽 episode。
 LESSONS：**15** 条 agent_skill 已写入 `agents/coding-xinyue-site/skills/`（9 规则 + 6 done_right）；见 `IMPORT-EVIDENCE.md`。
 
 ## 2. Claude MCP JSON 片段

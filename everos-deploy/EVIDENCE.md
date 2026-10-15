@@ -137,7 +137,7 @@ $ df -h /
 
 - Did not change DNS (the `everos` A record already resolves to Cloudflare), apex/www, or the zone SSL mode.
 - Did not change automation `75b324a4`, did not attach MCP, did not import LESSONS.
-- No Mac daily backup yet (PLAN §5 step 2; not part of this brief).
+- Mac daily backup: skipped per Zack (PLAN §5 step 2).
 - No E2E with a real MCP client; only HTTP checks with curl.
 
 ## 8. Open risks
@@ -149,7 +149,7 @@ $ df -h /
 5. **The origin-tls container now returns 502 for the apex at the origin.** It proxies `deepvision.sg` on :443 to `127.0.0.1:80`, which is now the EverOS nginx and returns 444 for other hosts. The public apex is served by the Worker (307 checked), so users are not affected, but the container's job is now unclear.
 6. **Single shared bearer token.** Anyone with the token has full read/write access. There is no per-client token and no rotation process. Rotate with `openssl rand -hex 32 > /etc/everos/proxy-token`, regenerate `/etc/nginx/everos-auth.conf`, reload nginx, then update every MCP config.
 7. **Port 80 is open to the internet** (`ufw` is inactive). HANDOFF/DNS-PLAN says the DO cloud firewall `deepvision-site-origin` only allows Cloudflare IPs on 80/443; this session did not verify that firewall.
-8. No backup of `/var/lib/everos` yet.
+8. No backup of `/var/lib/everos` (Mac backup skipped per Zack).
 
 ## 9. Post-deploy: headscale restore + Tailscale + magpie LLM (2026-10-16 SGT)
 
@@ -160,7 +160,7 @@ Zack: restore headscale as control plane; put Tailscale on site/iMac/box; keep C
 | headscale restore | `cd /opt/headscale && /usr/local/bin/docker-compose up -d`; health 200 on `:8443` |
 | Nodes online | `imac 100.64.0.4`, `site 100.64.0.5`, `box 100.64.0.6` |
 | Nodes offline (kept) | `mbp 100.64.0.1`, `iphone 100.64.0.2`, `office 100.64.0.3` |
-| EverOS LLM | `EVEROS_LLM__BASE_URL=http://100.64.0.4:3425/v1`, model `claude/claude-haiku-5-5`; `/add`+`/flush` produced episode + atomic_fact |
+| EverOS LLM | `EVEROS_LLM__BASE_URL=http://100.64.0.4:3425/v1`, model `codex/gpt-6.1-sol` (Zack's decision; earlier runs used claude-haiku-5-5); `/add`+`/flush` produced episode + atomic_fact |
 | Cloudflare | `https://everos.deepvision.sg` left as-is (Zack: tunnel 留着) |
 | OPERATIONS.md | Updated on site with nodes + restore + box `/etc/hosts` caveat |
 | Mac daily backup | Skipped for now (Zack: 除了 imac 备份) |

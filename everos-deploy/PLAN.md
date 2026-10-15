@@ -160,7 +160,7 @@
 2. eggbot：Orca ops 工作区装 EverOS + 反代 + LESSONS 导入 + 交 HANDOFF — **已完成**
    - EverOS 1.4.2 health 200；Cloudflare 公网路径保留
    - headscale 已恢复（Zack 2026-10-16）；节点 online：`imac 100.64.0.4` / `site 100.64.0.5` / `box 100.64.0.6`；详见 site `/opt/headscale/OPERATIONS.md`
-   - LLM → iMac magpie `http://100.64.0.4:3425/v1`（模型 `claude/claude-haiku-5-5`）；`/add`+`/flush` 已验
+   - LLM → iMac magpie `http://100.64.0.4:3425/v1`（模型 `codex/gpt-6.1-sol`，Zack 定；embedding 未配置，health embed=false，待有效 Qwen/DashScope key）；`/add`+`/flush` 已验
    - **LESSONS 已导入（15 skills，2026-10-16）**；已叫醒 Coding助手
    - **Mac 日备**：Zack「继续搞，除了 imac 备份」— **暂缓**
 3. headscale OPERATIONS.md 已补 site/box 节点与 restore 说明（2026-10-16）
