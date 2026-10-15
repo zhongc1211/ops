@@ -48,6 +48,7 @@ import json
 import os
 import re
 import socket
+import ssl
 import subprocess
 import sys
 import time
@@ -61,6 +62,9 @@ CONFIG_DIR = os.environ.get("ORCA_WAKE_CONFIG_DIR") or os.path.join(HOME, ".conf
 WEBHOOK_DIRS = [d for d in (os.environ.get("ORCA_WAKE_WEBHOOK_DIRS")
                             or os.path.join(HOME, ".config/grokbot/webhooks")).split(":") if d]
 RETRY_DELAYS = [int(x) for x in (os.environ.get("ORCA_WAKE_RETRY_DELAYS") or "20,45").split(",") if x]
+# Idle from Stop waits this long before sending; if a new turn starts meanwhile (Claude auto-continues
+# after a background task finishes), the wake is dropped as superseded.
+SETTLE_S = float(os.environ.get("ORCA_WAKE_SETTLE_S") or "8")
 LOG_TAIL_MAX = 4000
 SENT_TTL_S = 7 * 86400
 MUTE_NAME = ".orca-wake-mute"
@@ -89,11 +93,13 @@ def ensure_dirs():
         os.makedirs(os.path.join(STATE_DIR, sub), mode=0o700, exist_ok=True)
 
 
-def log(event, **fields):
-    """Append one JSON line to wake.log. Never raises."""
+def log(event, *ctxs, **fields):
+    """Append one JSON line to wake.log. Never raises. Later keys win over earlier ones."""
     try:
         ensure_dirs()
         rec = {"ts": iso(), "event": event}
+        for c in ctxs:
+            rec.update({k: v for k, v in c.items() if v is not None})
         rec.update({k: v for k, v in fields.items() if v is not None})
         line = json.dumps(rec, ensure_ascii=False)
         with open(os.path.join(STATE_DIR, "wake.log"), "a", encoding="utf-8") as f:
@@ -112,9 +118,33 @@ def safe_name(s):
 
 
 def ppid_of(pid):
+    """Parent pid of another process, or None. Reads the kernel directly; `ps` only as a fallback
+    because it can take seconds on a loaded machine."""
     try:
-        out = subprocess.run(["ps", "-o", "ppid=", "-p", str(int(pid))], capture_output=True,
-                             text=True, timeout=5).stdout.strip()
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return None
+    if sys.platform.startswith("linux"):
+        try:
+            with open("/proc/%d/stat" % pid, "rb") as f:
+                return int(f.read().rsplit(b")", 1)[1].split()[1])
+        except (OSError, ValueError, IndexError):
+            return None
+    if sys.platform == "darwin":
+        try:
+            import ctypes
+            libproc = ctypes.CDLL("/usr/lib/libproc.dylib", use_errno=True)
+            buf = ctypes.create_string_buffer(136)  # struct proc_bsdinfo
+            n = libproc.proc_pidinfo(pid, 3, ctypes.c_uint64(0), buf, 136)  # PROC_PIDTBSDINFO
+            if n == 136:
+                return int.from_bytes(buf.raw[16:20], sys.byteorder)  # pbi_ppid
+            if n == 0 and ctypes.get_errno() == errno.ESRCH:
+                return None
+        except Exception:
+            pass
+    try:
+        out = subprocess.run(["ps", "-o", "ppid=", "-p", str(pid)], capture_output=True,
+                             text=True, timeout=20).stdout.strip()
         return int(out) if out else None
     except Exception:
         return None
@@ -151,16 +181,16 @@ def check_dispatch(env, agent_pid, ctx):
     if not bot:
         return "no_dispatch_bot"
     if not BOT_RE.match(bot):
-        log("skip", reason="bad_bot_name", bot=bot, **ctx)
+        log("skip", ctx, reason="bad_bot_name", bot=bot)
         return "bad_bot_name"
     if env["dispatch_pid"]:
         if not agent_pid:
-            log("skip", reason="no_agent_pid", bot=bot, task=env["task"], **ctx)
+            log("skip", ctx, reason="no_agent_pid", bot=bot, task=env["task"])
             return "no_agent_pid"
         parent = ppid_of(agent_pid)
         if str(parent) != str(env["dispatch_pid"]):
-            log("skip", reason="parent_mismatch", bot=bot, task=env["task"], agent_pid=int(agent_pid),
-                agent_parent=parent, dispatch_pid=env["dispatch_pid"], **ctx)
+            log("skip", ctx, reason="parent_mismatch", bot=bot, task=env["task"], agent_pid=int(agent_pid),
+                agent_parent=parent, dispatch_pid=env["dispatch_pid"])
             return "parent_mismatch"
     return None
 
@@ -239,6 +269,33 @@ def last_assistant_from_transcript(path):
     return ""
 
 
+def queued_followup(path):
+    """True if the transcript's last queue operation is an enqueue that has not been dequeued yet.
+
+    Claude Code queues task notifications (a background agent or shell finished) and messages typed
+    while it is busy; it starts a follow-up turn for them right after Stop. Undocumented transcript
+    format, so this only ever suppresses a Stop wake (idle_prompt and recheck stay as fallbacks).
+    """
+    if not path or not os.path.isfile(path):
+        return False
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - 256 * 1024))
+            lines = f.read().decode("utf-8", "replace").splitlines()
+    except OSError:
+        return False
+    for ln in reversed(lines):
+        if '"queue-operation"' not in ln:
+            continue
+        try:
+            rec = json.loads(ln)
+        except ValueError:
+            continue
+        return rec.get("operation") == "enqueue"
+    return False
+
+
 def tail(text, n=LOG_TAIL_MAX):
     text = text or ""
     return text if len(text) <= n else "…" + text[-(n - 1):]
@@ -281,6 +338,10 @@ class Session:
 
 
 def mark_woken(agent, session_id, seq, status, source):
+    # needs_input does not close a pause: after the dialog is answered or denied the session can
+    # still end up idle without another hook event, and recheck must be able to cover that.
+    if status == "needs_input":
+        return
     with Session(agent, session_id) as s:
         s.data.setdefault("woken", {})[str(seq).split(".")[0] if agent == "claude" else str(seq)] = {
             "status": status, "source": source, "ts": iso()}
@@ -320,32 +381,49 @@ def dispatch_send(job):
             log("skip", reason="inflight_race", **base)
             return
     os.close(fd)
-
-    pid = os.fork()
-    if pid:
-        os.waitpid(pid, 0)
-        return
-    # first child
+    # Hand the job to a new process (fork+exec, own session) so the hook or extension returns at once.
+    # Not a bare fork: the python.org macOS build may already run a system thread here.
+    job_file = inflight + ".job"
+    with open(job_file, "w", encoding="utf-8") as f:
+        json.dump(job, f, ensure_ascii=False)
     try:
-        os.setsid()
-        if os.fork():
-            os._exit(0)
-        # grandchild: detached from the hook / extension
-        devnull = os.open(os.devnull, os.O_RDWR)
-        for fd in (0, 1, 2):
-            os.dup2(devnull, fd)
-        with open(inflight, "w") as f:
-            f.write(str(os.getpid()))
-        try:
-            _send_now(job, sent, base)
-        finally:
+        child = subprocess.Popen([sys.executable, os.path.abspath(__file__), "_deliver", job_file],
+                                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL, start_new_session=True, close_fds=True)
+    except OSError as e:
+        log("failed", reason="spawn_failed", error=repr(e), **base)
+        for f in (job_file, inflight):
             try:
-                os.unlink(inflight)
+                os.unlink(f)
             except OSError:
                 pass
-    except Exception as e:  # never let the detached sender raise into anything
+        return
+    with open(inflight, "w") as f:
+        f.write(str(child.pid))
+
+
+def cmd_deliver(job_file):
+    """Internal: runs detached, sends one job claimed by dispatch_send."""
+    with open(job_file, encoding="utf-8") as f:
+        job = json.load(f)
+    os.unlink(job_file)
+    h = key_hash(job["dedup_key"])
+    sent = os.path.join(STATE_DIR, "sent", h)
+    inflight = os.path.join(STATE_DIR, "inflight", h)
+    base = {"key": job["dedup_key"], "bot": job["bot"], "task": job["task"], "status": job["status"],
+            "source": job["source"], "session_id": job["session_id"], "agent": job["agent"]}
+    with open(inflight, "w") as f:
+        f.write(str(os.getpid()))
+    try:
+        _send_now(job, sent, base)
+    except Exception as e:
         log("error", reason="sender_crash", error=repr(e), **base)
-    os._exit(0)
+    finally:
+        try:
+            os.unlink(inflight)
+        except OSError:
+            pass
+    return 0
 
 
 def _mark_sent(sent, job, mode, http):
@@ -354,7 +432,27 @@ def _mark_sent(sent, job, mode, http):
     mark_woken(job["agent"], job["session_id"], job["seq"], job["status"], job["source"])
 
 
+def read_state(agent, session_id):
+    try:
+        with open(os.path.join(STATE_DIR, "sessions", "%s-%s.json" % (agent, safe_name(session_id))),
+                  encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
 def _send_now(job, sent, base):
+    if job.get("settle_s"):
+        time.sleep(job["settle_s"])
+        st = read_state(job["agent"], job["session_id"])
+        turn = st.get("turn")
+        if turn is not None and str(turn) != str(job["seq"]):
+            log("skip", reason="superseded", note="turn %s started within %ss" % (turn, job["settle_s"]), **base)
+            return
+        stop = st.get("stop") or {}
+        if str(stop.get("turn")) == str(job["seq"]) and stop.get("message"):
+            # Another Stop hook may have blocked once; the later Stop of the same turn has the final text.
+            job["message"] = stop["message"]
     payload = build_payload(job)
     if not enabled_for(job["bot"]):
         _mark_sent(sent, job, "shadow", None)
@@ -371,7 +469,7 @@ def _send_now(job, sent, base):
         try:
             req = urllib.request.Request(url, data=body, method="POST", headers={
                 "Content-Type": "application/json", "Authorization": "Bearer " + keyv})
-            with urllib.request.urlopen(req, timeout=20) as r:
+            with urllib.request.urlopen(req, timeout=20, context=ssl_context()) as r:
                 code = r.status
         except urllib.error.HTTPError as e:
             code = e.code
@@ -385,6 +483,28 @@ def _send_now(job, sent, base):
         if n < tries:
             time.sleep(RETRY_DELAYS[n - 1])
     log("failed", reason="all_attempts_failed", attempts=tries, **base)
+
+
+def ssl_context():
+    """Default TLS context, plus a system CA bundle when this Python ships without one
+    (python.org builds on macOS have no CA file until "Install Certificates" is run)."""
+    ctx = ssl.create_default_context()
+    paths = ssl.get_default_verify_paths()
+    if (paths.cafile and os.path.exists(paths.cafile)) or (paths.capath and os.path.isdir(paths.capath)
+                                                          and os.listdir(paths.capath)):
+        return ctx
+    candidates = [os.environ.get("SSL_CERT_FILE", "")]
+    try:
+        import certifi
+        candidates.append(certifi.where())
+    except ImportError:
+        pass
+    candidates += ["/etc/ssl/cert.pem", "/etc/ssl/certs/ca-certificates.crt", "/etc/pki/tls/certs/ca-bundle.crt"]
+    for c in candidates:
+        if c and os.path.exists(c):
+            ctx.load_verify_locations(cafile=c)
+            break
+    return ctx
 
 
 def build_payload(job):
@@ -421,8 +541,8 @@ def make_job(st, status, seq, message, note, source="wake-hook"):
 def gate_and_send(job, ctx):
     mute = find_mute(job.get("cwd"))
     if mute:
-        log("skip", reason="muted", mute_file=mute, key=job["dedup_key"], bot=job["bot"],
-            task=job["task"], **ctx)
+        log("skip", ctx, reason="muted", mute_file=mute, key=job["dedup_key"], bot=job["bot"],
+            task=job["task"])
         return
     dispatch_send(job)
 
@@ -477,9 +597,10 @@ def cmd_claude_hook():
     ntype = ev.get("notification_type", "")
     sid = ev.get("session_id") or "unknown"
     agent_pid = os.environ.get("WAKE_AGENT_PID", "")
-    ctx = {"agent": "claude", "session_id": sid, "hook": name + ("/" + ntype if ntype else "")}
+    ctx = {"agent": "claude", "session_id": sid, "hook": name + ("/" + ntype if ntype else ""),
+           "task": env["task"]}
     if os.environ.get("ORCA_WAKE_DEBUG") == "1":
-        log("debug_input", input=ev, **ctx)
+        log("debug_input", ctx, input=ev)
     if name == "Notification" and ntype not in CLAUDE_NOTIFICATIONS:
         return 0
     if check_dispatch(env, agent_pid, ctx):
@@ -501,7 +622,7 @@ def cmd_claude_hook():
             d["perm_seq"] = 0
             d["turn_started_ts"] = now()
             d.pop("stop", None)
-            log("state", note="turn %d started" % (turn + 1), **ctx)
+            log("state", ctx, note="turn %d started" % (turn + 1))
 
         elif name == "Stop":
             tasks = active_tasks(ev.get("background_tasks"))
@@ -510,10 +631,14 @@ def cmd_claude_hook():
             d["stop"] = {"turn": turn, "ts": now(), "active_tasks": tasks, "crons": len(crons),
                          "stop_hook_active": bool(ev.get("stop_hook_active")), "message": tail(msg)}
             if tasks or crons:
-                log("skip", reason="background_work", turn=turn, active_tasks=tasks, crons=len(crons),
-                    **ctx)
+                log("skip", ctx, reason="background_work", turn=turn, active_tasks=tasks, crons=len(crons))
+            elif queued_followup(d["transcript_path"]):
+                d["stop"]["queued_followup"] = True
+                log("skip", ctx, reason="queued_followup", turn=turn,
+                    note="a queued notification or message will start another turn")
             else:
                 job = make_job(st, "idle", turn, msg, "")
+                job["settle_s"] = SETTLE_S
 
         elif name == "StopFailure":
             d["error_turn"] = turn
@@ -527,7 +652,7 @@ def cmd_claude_hook():
             d["perm_seq"] = int(d.get("perm_seq", 0)) + 1
             d["perm"] = {"tool_name": ev.get("tool_name", ""),
                          "question": format_question(ev.get("tool_name"), ev.get("tool_input"))}
-            log("state", note="permission request %d (%s)" % (d["perm_seq"], ev.get("tool_name", "")), **ctx)
+            log("state", ctx, note="permission request %d (%s)" % (d["perm_seq"], ev.get("tool_name", "")))
 
         elif name == "Notification" and ntype == "permission_prompt":
             perm = d.get("perm") or {}
@@ -538,10 +663,10 @@ def cmd_claude_hook():
         elif name == "Notification" and ntype == "idle_prompt":
             stop = d.get("stop") or {}
             if d.get("error_turn") == turn:
-                log("skip", reason="error_already_reported", turn=turn, **ctx)
+                log("skip", ctx, reason="error_already_reported", turn=turn)
             elif stop.get("turn") == turn and (shell_like(stop.get("active_tasks") or []) or stop.get("crons")):
-                log("skip", reason="background_work", turn=turn, active_tasks=stop.get("active_tasks"),
-                    crons=stop.get("crons"), **ctx)
+                log("skip", ctx, reason="background_work", turn=turn, active_tasks=stop.get("active_tasks"),
+                    crons=stop.get("crons"))
             else:
                 msg = stop.get("message") if stop.get("turn") == turn else ""
                 if not msg:
@@ -566,7 +691,7 @@ def cmd_send(a):
     if not env["bot"]:
         return 0
     msg = sys.stdin.read(4 * 1024 * 1024) if not sys.stdin.isatty() else ""
-    ctx = {"agent": a.agent, "session_id": a.session, "hook": "send/" + a.status}
+    ctx = {"agent": a.agent, "session_id": a.session, "hook": "send/" + a.status, "task": env["task"]}
     if check_dispatch(env, a.agent_pid, ctx):
         return 0
     with Session(a.agent, a.session) as st:
@@ -646,11 +771,11 @@ def cmd_recheck(a):
         if pid not in want or pid in matched:
             continue
         matched.add(pid)  # newest state for this pid wins
-        ctx = {"agent": s.get("agent"), "session_id": s.get("session_id"), "hook": "recheck"}
+        ctx = {"agent": s.get("agent"), "session_id": s.get("session_id"), "hook": "recheck", "task": s.get("task")}
         ok, why = candidate(s, a.idle_min)
         if not ok:
-            log("recheck_skip", reason=why, agent_pid=pid, bot=s.get("bot"), task=s.get("task"),
-                seq=str(s.get("turn", 0)), **ctx)
+            log("recheck_skip", ctx, reason=why, agent_pid=pid, bot=s.get("bot"), task=s.get("task"),
+                seq=str(s.get("turn", 0)))
             print("recheck: pid %s skip (%s)" % (pid, why), file=sys.stderr)
             continue
         with Session(s["agent"], s["session_id"]) as st:
@@ -714,6 +839,8 @@ def main(argv):
     r.add_argument("--list", action="store_true")
     r.add_argument("--agent-pid", action="append")
     r.add_argument("--idle-min", type=float, default=30)
+    d = sub.add_parser("_deliver")
+    d.add_argument("job_file")
     a = p.parse_args(argv)
     try:
         if a.cmd == "claude-hook":
@@ -722,6 +849,8 @@ def main(argv):
             return cmd_send(a)
         if a.cmd == "recheck":
             return cmd_recheck(a)
+        if a.cmd == "_deliver":
+            return cmd_deliver(a.job_file)
         p.print_help(sys.stderr)
         return 2
     finally:
