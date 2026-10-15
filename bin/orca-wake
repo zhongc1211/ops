@@ -41,6 +41,7 @@ count, needs_input adds .<n>); for Pi it is the session leaf entry id. A key is 
 after a 2xx; the key also goes into the webhook body (dedup_key) so the bot can drop repeats.
 """
 import argparse
+import datetime
 import errno
 import fcntl
 import hashlib
@@ -731,6 +732,33 @@ def load_sessions():
     return out
 
 
+def transcript_last_ts(tp, tail=262144):
+    """Time of the last timestamped entry in a JSONL transcript; mtime if none is found.
+
+    Claude Code appends untimestamped metadata (titles, bridge info) to the transcript
+    after a turn ends, so the file mtime can move without any agent activity.
+    """
+    try:
+        with open(tp, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            f.seek(max(0, size - tail))
+            lines = f.read().decode("utf-8", "replace").splitlines()
+    except OSError:
+        return 0
+    for line in reversed(lines):
+        m = re.search(r'"timestamp"\s*:\s*"(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?)(Z|[+-]\d\d:?\d\d)?"', line)
+        if not m:
+            continue
+        tz = m.group(2) or "Z"
+        tz = "+00:00" if tz == "Z" else (tz if ":" in tz else tz[:3] + ":" + tz[3:])
+        try:
+            return datetime.datetime.fromisoformat(m.group(1)[:26] + tz).timestamp()
+        except ValueError:
+            continue
+    return os.path.getmtime(tp)
+
+
 def candidate(s, idle_min):
     """Return (ok, reason) for a session that may need a recheck wake."""
     pid = s.get("agent_pid")
@@ -744,7 +772,7 @@ def candidate(s, idle_min):
     last = s.get("last_event_ts") or 0
     tp = s.get("transcript_path")
     if tp and os.path.exists(tp):
-        last = max(last, os.path.getmtime(tp))
+        last = max(last, transcript_last_ts(tp))
     if now() - last < idle_min * 60:
         return False, "recent_activity"
     return True, "not_woken_for_pause"

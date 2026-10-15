@@ -54,6 +54,8 @@ hook 全部 `async: true`、`timeout: 10`。orca-wake 判断完立即返回，�
 - `ctx.mode` 不是 `tui`（print、json、rpc）或会话有 `parentSession` → 跳过。
 - `agent_settled` → idle；`agent_before_settle` 给出 `outcome=error` 时改发 error。
 - 监听 `subagent:async-started` / `subagent:async-complete`：还有后台子代理在跑时只挂起；最后一个完成后等 10 秒，期间没有新的 `agent_start` 才发，否则由续轮的 `agent_settled` 负责。
+- runner 崩溃：pi-subagents 只在读到结果文件时才发 `async-complete`。runner 启动后、写出结果前就退出（例如 import 报错）时不会有结果文件，也就没有 `async-complete`。扩展同时监听 `subagent:process-terminal`（runner 进程退出时发出）：退出后 90 秒（`ORCA_WAKE_PI_EXIT_GRACE_S`）内还没等到这个 run 的 `async-complete`，就当它已结束，照常发 idle，note 写 `background subagent runner exited without a result`。90 秒是因为 pi-subagents 靠 fs.watch 加每 60 秒一次的重扫读结果。
+- 等待上限：主会话停下后，后台子代理最多等 30 分钟（`ORCA_WAKE_PI_MAX_WAIT_S`），超时照常发 idle，note 写 `background subagents still running after N min`。子代理之后完成、续轮停下时会再按新的停顿序号叫一次。
 - `ui_prompt_start` 后 6 秒仍未 `ui_prompt_end` → needs_input；6 秒内回答不发。
 - 去重序号是停顿时会话 leaf entry 的 id。
 
@@ -79,9 +81,17 @@ hook 全部 `async: true`、`timeout: 10`。orca-wake 判断完立即返回，�
 
 - 卡住检查发现 agent 停在输入框时调用 `orca-wake recheck --agent-pid <pid>`。
 - orca-wake 读会话状态：进程已不在、父进程变了、本停顿已有成功叫醒、或会话 30 分钟内有新动静 → 跳过；否则补发一次 idle（`source=stuck-check-recheck`），沿用同一个去重键。
+- 「新动静」取 hook 最后一次事件时间和 transcript 里最后一条带时间戳记录的时间，两者取较晚的。不用 transcript 的文件修改时间：Claude Code 在一轮结束后还会往 transcript 追加不带时间戳的元数据（标题、bridge 信息等），e2e 里见过 Esc 13 分钟后追加，补叫醒因此推迟了一轮检查。
 - 兜的情况：Esc 中断（没有 Stop）、按键压掉 idle_prompt、webhook 三次都失败、hook 漏发。
 - 延迟：30 分钟阈值 + 15 分钟检查周期，Esc 中断后最长约 45 分钟才补叫。
-- 卡住检查脚本的改动不在这个仓库，也还没做。
+- 卡住检查脚本不在这个仓库。接入方式：
+  - agent 停在输入框超过 30 分钟时，卡住检查先对工作区里最上层的 agent 进程调用 `orca-wake recheck --agent-pid`（远程机器上通过临时终端调用），不再自己发 agent_idle。
+  - 结果是补发或 `already_woken`：记为已处理，直到 agent 有新动作。派活 bot 不在 `enabled-bots` 里时，orca-wake 只写 `wake.log`（影子模式），卡住检查也不发。
+  - 结果全是 `no_state_for_pid` 或 `parent_changed`：orca-wake 不认识这个会话（不是经 `notify-run --tty` 起的，或 Pi 扩展还没发过任何叫醒），卡住检查按原来的 agent_idle 流程报。
+  - `recent_activity`、`agent_gone` 或调用失败：这次不报，下次检查再看。
+  - 进程没查到（例如远程机器的临时终端超时），拿不到 pid：这次不报，下次再查。按原来的流程报可能和 orca-wake 重复叫醒。
+  - Esc 中断后 Orca 的 agent 状态可能一直是 working。状态 30 分钟没变、所有终端都停在输入框时，也交给 recheck；orca-wake 不认识的会话不报（原来的检查也不报这种情况）。
+  - hook 叫醒和补叫醒用同一个去重键、写同一个 `wake.log`，同一停顿只叫一次。
 
 ## 静音与影子模式
 

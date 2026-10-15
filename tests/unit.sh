@@ -178,7 +178,20 @@ before=$(ls "$tmp/state/sessions" | wc -l)
 ev Stop s13 '"background_tasks":[]' | env -u ORCA_DISPATCH_BOT WAKE_AGENT_PID="$agent" "$WAKE" claude-hook
 expect "T13 no state written" "$(ls "$tmp/state/sessions" | wc -l)" "$before"
 
-# 14. hooks wrote nothing to stderr
+# 14. recheck idle clock: untimestamped metadata appended after the turn does not count as activity
+printf '%s\n' '{"type":"assistant","timestamp":"2020-01-02T03:04:05.678Z"}' '{"type":"bridge-session","sessionId":"x"}' >"$tmp/t14.jsonl"
+printf '%s\n' '{"type":"ai-title"}' >"$tmp/t14b.jsonl"
+got=$(python3 - "$WAKE" "$tmp/t14.jsonl" "$tmp/t14b.jsonl" <<'EOF2'
+import importlib.machinery, importlib.util, os, sys
+loader = importlib.machinery.SourceFileLoader("orca_wake", sys.argv[1])
+mod = importlib.util.module_from_spec(importlib.util.spec_from_loader("orca_wake", loader))
+loader.exec_module(mod)
+print(int(mod.transcript_last_ts(sys.argv[2])), int(mod.transcript_last_ts(sys.argv[3]) == os.path.getmtime(sys.argv[3])))
+EOF2
+)
+expect "T14 last timestamped entry, not mtime" "$got" "1577934245 1"
+
+# 15. hooks wrote nothing to stderr
 expect "no stderr from hooks" "$(wc -c <"$tmp/stderr" | tr -d ' ')" 0
 
 echo "passed $pass, failed $fail"

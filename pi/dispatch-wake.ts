@@ -6,7 +6,11 @@
 // The parent-process check, mute file, dedup and the webhook itself live in `orca-wake send`.
 //
 //   agent_settled          -> idle (or error when agent_before_settle reported outcome "error"),
-//                             unless background subagents are still running; then wait for them.
+//                             unless background subagents are still running; then wait for them
+//                             (at most ORCA_WAKE_PI_MAX_WAIT_S, default 30 min, then wake anyway).
+//   subagent:process-terminal -> the runner process of a background run exited. If that run's
+//                             subagent:async-complete has not arrived ORCA_WAKE_PI_EXIT_GRACE_S (default 90 s)
+//                             later, the run is treated as finished without a result (runner crashed).
 //   ui_prompt_start + 6 s  -> needs_input (cancelled by ui_prompt_end)
 //
 // Dedup seq is the session leaf entry id at the time of the pause, so a resumed session never reuses
@@ -19,6 +23,17 @@ const NEEDS_INPUT_DELAY_MS = 6000
 // After the last background subagent finishes, pi-subagents usually starts a follow-up turn.
 // Give it this long to start before reporting the earlier pause ourselves.
 const CHILD_DRAIN_GRACE_MS = 10000
+// A runner that exits without writing a result never sends subagent:async-complete (seen when the runner
+// crashed right after start). pi-subagents picks up results by fs.watch plus a 60 s rescan, so wait this
+// long after the runner process closed before giving up on async-complete.
+const RUNNER_EXIT_GRACE_MS = envSeconds("ORCA_WAKE_PI_EXIT_GRACE_S", 90)
+// Upper bound on holding back the wake while background subagents run.
+const MAX_CHILD_WAIT_MS = envSeconds("ORCA_WAKE_PI_MAX_WAIT_S", 30 * 60)
+
+function envSeconds(name: string, dflt: number): number {
+  const v = Number(process.env[name])
+  return (Number.isFinite(v) && v > 0 ? v : dflt) * 1000
+}
 
 type Ctx = {
   mode?: string
@@ -41,6 +56,9 @@ export default function (pi): void {
   let lastOutcome: string | undefined
   let pendingIdle: { ctx: Ctx; seq: string } | null = null
   let drainTimer: ReturnType<typeof setTimeout> | null = null
+  let capTimer: ReturnType<typeof setTimeout> | null = null
+  const exitTimers = new Map<string, ReturnType<typeof setTimeout>>() // runner exited, async-complete pending
+  const crashed = new Set<string>() // runs finished by the exit grace instead of async-complete
   let promptTimer: ReturnType<typeof setTimeout> | null = null
   let promptDepth = 0
 
@@ -110,6 +128,11 @@ export default function (pi): void {
     drainTimer = null
   }
 
+  function clearCap(): void {
+    if (capTimer) clearTimeout(capTimer)
+    capTimer = null
+  }
+
   function clearPrompt(): void {
     if (promptTimer) clearTimeout(promptTimer)
     promptTimer = null
@@ -128,25 +151,50 @@ export default function (pi): void {
     const id = runId(e)
     if (id) running.add(id)
   })
-  bus?.on?.("subagent:async-complete", (e) => {
-    const id = runId(e)
+  function finishRun(id: string): void {
+    const t = exitTimers.get(id)
+    if (t) clearTimeout(t)
+    exitTimers.delete(id)
     if (id) running.delete(id)
     if (running.size > 0 || !pendingIdle) return
     clearDrain()
+    clearCap()
     const p = pendingIdle
+    const note = crashed.size
+      ? "background subagent runner exited without a result: " + [...crashed].join(",")
+      : "background subagents finished"
     drainTimer = setTimeout(() => {
       drainTimer = null
       if (pendingIdle !== p) return
       pendingIdle = null
-      send(p.ctx, "idle", p.seq, lastAssistantText(p.ctx), "background subagents finished")
+      crashed.clear()
+      send(p.ctx, "idle", p.seq, lastAssistantText(p.ctx), note)
     }, CHILD_DRAIN_GRACE_MS)
     drainTimer.unref?.()
+  }
+
+  bus?.on?.("subagent:async-complete", (e) => {
+    finishRun(runId(e))
+  })
+  bus?.on?.("subagent:process-terminal", (e) => {
+    const id = runId(e)
+    if (!id || !running.has(id) || exitTimers.has(id)) return
+    const t = setTimeout(() => {
+      exitTimers.delete(id)
+      if (!running.has(id)) return
+      crashed.add(id)
+      finishRun(id)
+    }, RUNNER_EXIT_GRACE_MS)
+    t.unref?.()
+    exitTimers.set(id, t)
   })
 
   pi.on("agent_start", () => {
     // A new run (user input, or the follow-up turn after subagents finish) supersedes the pending pause.
     pendingIdle = null
     clearDrain()
+    clearCap()
+    crashed.clear()
     lastOutcome = undefined
   })
 
@@ -164,7 +212,18 @@ export default function (pi): void {
       return
     }
     if (running.size > 0) {
-      pendingIdle = { ctx, seq }
+      const p = { ctx, seq }
+      pendingIdle = p
+      clearCap()
+      capTimer = setTimeout(() => {
+        capTimer = null
+        if (pendingIdle !== p) return
+        pendingIdle = null
+        clearDrain()
+        send(ctx, "idle", seq, lastAssistantText(ctx), "background subagents still running after " +
+          Math.round(MAX_CHILD_WAIT_MS / 60000) + " min: " + [...running].join(","))
+      }, MAX_CHILD_WAIT_MS)
+      capTimer.unref?.()
       return
     }
     send(ctx, "idle", seq, lastAssistantText(ctx), outcome === "aborted" ? "run aborted" : "")
@@ -192,6 +251,9 @@ export default function (pi): void {
   pi.on("session_shutdown", () => {
     clearPrompt()
     clearDrain()
+    clearCap()
+    for (const t of exitTimers.values()) clearTimeout(t)
+    exitTimers.clear()
     pendingIdle = null
   })
 }

@@ -15,8 +15,42 @@ Linux（内核 6.12），系统自带 Python 3.13，Claude Code 2.1.300（另测
 - `tests/unit.sh`：27 项全部通过。
 - 专用测试 webhook 端到端：Claude 18 个场景（与上一节相同），18 次叫醒全部 HTTP 200、第 1 次尝试成功，结果都与下表预期一致；各会话退出时 notify-run 的 done 也都是 HTTP 200。父进程校验走 `/proc`，嵌套 `claude -p`、嵌套 notify-run、`bash -c "...; true"` 都正确记 `parent_mismatch`。
 - Pi 1.0.4（用 Node 22 运行；Pi 1.0.4 要求 Node 22.19 以上）：P1–P7 对应的 7 个场景都与预期一致，4 次叫醒全部 HTTP 200。安装时必须按锁定版本装依赖（`npm ci`）：用 `npm install` 时依赖会解析到更新的 1.2.x，主程序不受影响，但 pi-subagents 的后台 runner 启动即报错。
-- 已知缺口：pi-subagents 的后台 runner 启动即崩溃时，不会发出 `subagent:async-complete`，扩展会一直等，不发叫醒；这时也还没有会话状态文件，`orca-wake recheck` 记 `no_state_for_pid`。
+- 当时发现的缺口：pi-subagents 的后台 runner 启动即崩溃时，不会发出 `subagent:async-complete`，扩展会一直等，不发叫醒；这时也还没有会话状态文件，`orca-wake recheck` 记 `no_state_for_pid`。已修复，见下一节。
 - 限制同上：只核对发送方状态码；限额暂停是注入事件模拟；webhook 不可达没对真实 webhook 测；补叫醒用 `--idle-min 0` 手动触发。
+
+## Pi 后台 runner 崩溃与等待上限
+
+修复：扩展监听 `subagent:process-terminal`，runner 退出 90 秒后仍没有 `async-complete` 就照常叫醒；后台子代理最多等 30 分钟。两台机器上都用专用测试 webhook 测，扩展用 `pi -ne -e <新扩展> -e <pi-subagents>` 加载，正式安装的旧扩展作对照。崩溃用 pi-subagents 自带的 `PI_SUBAGENTS_TEST_RUNNER_EXECUTION_MODULE` 指向一个 import 时就抛错的模块，runner 在启动握手之后报 `Subagent runner startup failed`，与第二台机器上 EP2 的失败方式相同（当时是依赖版本不对导致 import 报错）。
+
+| # | 场景 | 预期 | 实际（叫醒均 HTTP 200） |
+|---|---|---|---|
+| X1 | runner 被 SIGKILL | 1 | pi-subagents 自己的过期 run 核对把 run 标为 failed 并送回结果，主会话续轮后 1 次（20 秒后）。没有走到新代码，旧扩展也能处理这种情况 |
+| X2 | 后台子代理正常完成（sleep 40） | 1 | 1 次（FINAL-DONE 之后） |
+| X3 | 等待上限设为 90 秒，子代理 sleep 200 | 2 | STARTED 后 90 秒 1 次；子代理完成、续轮后又 1 次 |
+| X4 | runner import 报错（第一台机器） | 1 | runner 失败后 1 分 42 秒 1 次 |
+| X4o | 同上，旧扩展 | 0（缺口） | 0 次，复现了缺口 |
+| X5 | runner import 报错（第二台机器） | 1 | runner 失败后 1 分 41 秒 1 次 |
+| X5o | 同上，旧扩展 | 0（缺口） | 0 次 |
+
+`tests/pi-ext.test.mjs`：7 项通过；对旧扩展跑同一测试，崩溃和上限的 3 项失败。限制：只核对发送方状态码和时间，叫醒正文里的 note 只在离线测试里核对过。
+
+## 卡住检查接入补叫醒（端到端）
+
+卡住检查（不在本仓库）按 DESIGN「补叫醒」一节接入 `orca-wake recheck`，在两台机器上用专用测试 webhook 测。会话用 `notify-run --tty -- claude --model haiku` 启动；「Esc」指让模型写长文时按 Esc 打断，这样没有 Stop，hook 不叫醒。卡住检查按正式排期的时间点（每 15 分钟）运行，第三轮漏跑了一次（见 F2）。
+
+| # | 机器 | 场景 | 预期 | 实际（叫醒均 HTTP 200） |
+|---|---|---|---|---|
+| R1 | 第一台 | 放行的 bot，Esc | Esc 后 30–45 分钟 1 次 | 42 分钟时 recheck 发 1 次，之后不再处理 |
+| R2 | 第一台 | 不在名单里的 bot，Esc | 只写 wake.log | 第一次检查漏掉（Orca 状态停在 working，见下方问题 8）。修复后 51 分钟时写 shadow，没有发送 |
+| R3 | 第一台 | hook 已叫醒过 | 不重发 | recheck 返回 `already_woken`，不发 |
+| R4 | 第一台 | 不经 notify-run 的会话 | 按卡住检查原来的方式报 | recheck 返回 `no_state_for_pid`，卡住检查按原方式发 1 次 |
+| R5 | 第一台 | 放行的 bot，Esc，13 分钟后 Claude Code 往 transcript 追加元数据 | 30–45 分钟 1 次 | 修复前：42 分钟时 `recent_activity`，57 分钟才发（问题 7） |
+| R5b | 第一台 | 同上，修复后；Esc 21 分钟后手动追加一行不带时间戳的记录 | 30–45 分钟 1 次 | 44 分钟时发 1 次。追加后立即对比：旧版本不列为候选，新版本列为候选 |
+| F1 | 第二台 | 放行的 bot，Esc | 30–45 分钟 1 次，走 recheck | 40 分钟时发 1 次，但卡住检查查进程超时，退回原来的方式发送，没经过 orca-wake（问题 9） |
+| F2 | 第二台 | 修复后重测：放行的 bot，Esc | 30–45 分钟 1 次，走 recheck | 那台机器的 Orca 断线重连后丢了所有 agent 状态，「等待输入」检测一直超时；测试循环又漏跑了一次检查。卡住检查只能按屏幕计时，54 分钟时判为 agent_silent，按原来的方式发 1 次。没走 recheck，原因在 Orca 状态，不在本仓库 |
+| F3 | 第二台 | 绕开 Orca 状态，直接调用卡住检查的查进程和 recheck 函数（Esc 后用 `--idle-min 1`） | recheck 发 1 次，再查不重发 | 不到 1 分钟时 `recent_activity`；之后发 1 次（stuck-check-recheck）；再查 `already_woken` |
+
+限制：只核对发送方状态码；「1 小时未验收」、agent_silent、agent_gone 没改，未专门重测。
 
 ## 离线测试
 
@@ -114,6 +148,9 @@ P2 Pi 后台子代理：
 4. python.org 的 macOS Python 没有 CA 证书，HTTPS webhook 会失败 → 依次尝试 `SSL_CERT_FILE`、certifi、系统证书文件。
 5. 发送进程用 fork 时，Python 报「多线程进程 fork」警告 → 改为启动独立进程。
 6. 机器负载很高时 `ps` 超时，父进程校验误判 `parent_mismatch`（C16 后段、C25 首轮）→ 改为直接从内核读父进程。
+7. 补叫醒用 transcript 的文件修改时间判断「30 分钟内有新动静」。Claude Code 在 Esc 13 分钟后往 transcript 追加了不带时间戳的元数据，补叫醒因此推迟一轮检查（R5：Esc 后 42 分钟本该发，变成 57 分钟）→ 改为取 transcript 里最后一条带时间戳记录的时间，找不到时间戳才用文件修改时间（`tests/unit.sh` T14）。
+8. Esc 中断后 Orca 记录的 agent 状态一直是 working，卡住检查原来的 agent_idle 判断不到（R2）→ 状态 30 分钟没变、所有终端都停在输入框时也交给 recheck。
+9. 卡住检查在第二台机器上查进程超时，拿不到 pid，退回原来的 agent_idle 发送，可能和 hook 重复（F1）→ 拿不到 pid 时这次不报，下次再查。
 
 ## 升级后复测
 
