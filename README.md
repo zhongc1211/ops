@@ -61,13 +61,15 @@ rm -rf ~/.local/state/orca-wake ~/.config/orca-wake      # 可选：删状态和
 
 ## 卡住检查补叫醒
 
-`orca-wake recheck --agent-pid <pid>`：调用方（卡住检查）发现 agent 停在输入框时调用。该停顿已有成功的叫醒就跳过，否则补发一次（`source=stuck-check-recheck`），默认要求会话至少 30 分钟没有新动静（`--idle-min`）。`orca-wake recheck --list` 只列出候选，不发送。卡住检查脚本本身不在这个仓库里，接入方式（包括 orca-wake 不认识的会话怎么兜底）见 DESIGN。
+`orca-wake recheck --agent-pid <pid>`：调用方（卡住检查）发现 agent 停在输入框时调用。该停顿已有成功的叫醒就跳过，否则补发一次（`source=stuck-check-recheck`），默认要求会话至少 30 分钟没有新动静（`--idle-min`）。`orca-wake recheck --waiting-pid <pid>[:<since_ms>]`：agent 停在对话框（Orca 状态 waiting）时调用，只补发该对话框的 needs_input，去重键与 hook 相同；hook 已送达时返回 `already_asked`，不重发。`orca-wake recheck --list` 只列出候选，不发送。卡住检查脚本本身不在这个仓库里，接入方式（包括 orca-wake 不认识的会话怎么兜底）见 DESIGN。
 
 ## 已知限制
 
 - Claude Code 的 `idle_prompt` 触发条件和 transcript 里的 `queue-operation` 记录都不是公开接口，Claude Code 升级后要重跑 `docs/TESTS.md` 的核心场景。已测版本：2.1.299、2.1.300。
 - Esc 中断、权限被拒这类没有 Stop 的停顿，只能靠卡住检查补叫醒，最长约 45 分钟（30 分钟阈值 + 15 分钟检查周期）。
 - 卡住检查判断「停在输入框」依赖 Orca 的 agent 状态和等待输入检测。Orca 丢了这些状态时（测试中第二台机器的 Orca 断线重连后出现过），卡住检查会把停着的 agent 当成 agent_silent，按原来的方式报，不经过 orca-wake 的去重。
+- Claude 的对话框是否还开着靠 transcript 判断（最后一条是 assistant 的 tool_use），这也不是公开接口。
+- webhook 限流时按 1、5、15 分钟退避，同一次叫醒最多等 25 分钟，之后写 `failed`，留给补叫醒。
 - 另一个 Stop hook 先 block 一次时，按「同一回合」只叫一次，正文取最后一次 Stop 的消息。
 - Pi 的 `--mode rpc` 跳过逻辑与 json/print 相同（`ctx.mode` 不是 `tui`），只实测了 json 和 print。
 

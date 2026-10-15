@@ -14,6 +14,12 @@ Usage:
   orca-wake recheck --agent-pid PID [--agent-pid PID ...] [--idle-min N]
       The caller (stuck check) has seen these agents idle at the prompt. For each one whose
       current pause has no successful wake yet, send one idle wake (source=stuck-check-recheck).
+  orca-wake recheck --waiting-pid PID[:SINCE_MS] [...] [--idle-min N]
+      The caller has seen these agents sitting in a dialog (Orca agent state "waiting", SINCE_MS =
+      Orca stateStartedAt). Re-send the dialog's needs_input with the same dedup key the hook used,
+      so it goes out only if the hook's needs_input never got a 2xx. Never sends idle (an idle key
+      sent mid-turn would swallow the real end-of-turn wake). Prints, per pid, one of
+      "send needs_input seq S", "skip (already_asked)", "skip (inflight)" or another skip reason.
 
 Only sessions started by `notify-run --tty` are handled: notify-run exports ORCA_DISPATCH_BOT,
 ORCA_TASK_ID, ORCA_DISPATCH_PID, ORCA_DISPATCH_TS and ORCA_DISPATCH_ISSUE, and the agent process
@@ -39,9 +45,16 @@ all wakes for that session (touch it when a human takes over, delete it to resum
 Dedup key = agent:session:status:seq. For Claude, seq is the turn number (UserPromptSubmit
 count, needs_input adds .<n>); for Pi it is the session leaf entry id. A key is marked sent only
 after a 2xx; the key also goes into the webhook body (dedup_key) so the bot can drop repeats.
+
+Retries: HTTP 429, or a 4xx whose body mentions "rate limit" (the platform answers its rate limit
+with 400), waits ORCA_WAKE_RL_DELAYS (default 60,300,900 s, +-10% jitter, Retry-After honoured up
+to 900 s). Other failures use ORCA_WAKE_RETRY_DELAYS (default 20,45 s). All retries of one wake stay
+within 25 minutes, and each retry first checks the session has not moved on (superseded). Every
+non-2xx answer is logged with its body (URL and KEY removed, at most 300 characters).
 """
 import argparse
 import datetime
+import random
 import errno
 import fcntl
 import hashlib
@@ -63,6 +76,9 @@ CONFIG_DIR = os.environ.get("ORCA_WAKE_CONFIG_DIR") or os.path.join(HOME, ".conf
 WEBHOOK_DIRS = [d for d in (os.environ.get("ORCA_WAKE_WEBHOOK_DIRS")
                             or os.path.join(HOME, ".config/grokbot/webhooks")).split(":") if d]
 RETRY_DELAYS = [int(x) for x in (os.environ.get("ORCA_WAKE_RETRY_DELAYS") or "20,45").split(",") if x]
+RL_DELAYS = [int(x) for x in (os.environ.get("ORCA_WAKE_RL_DELAYS") or "60,300,900").split(",") if x]
+RETRY_BUDGET_S = 25 * 60   # all retries of one wake; the stuck check's recheck threshold is 30 min
+BODY_LOG_MAX = 300
 # Idle from Stop waits this long before sending; if a new turn starts meanwhile (Claude auto-continues
 # after a background task finishes), the wake is dropped as superseded.
 SETTLE_S = float(os.environ.get("ORCA_WAKE_SETTLE_S") or "8")
@@ -464,9 +480,12 @@ def _send_now(job, sent, base):
         log("failed", reason="no_webhook_config" if not env_path else "env_missing_url_or_key", **base)
         return
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    tries = len(RETRY_DELAYS) + 1
-    for n in range(1, tries + 1):
-        code, err = None, None
+    started = now()
+    rl_used = other_used = 0
+    n = 0
+    while True:
+        n += 1
+        code, err, resp, retry_after = None, None, "", None
         try:
             req = urllib.request.Request(url, data=body, method="POST", headers={
                 "Content-Type": "application/json", "Authorization": "Bearer " + keyv})
@@ -474,16 +493,77 @@ def _send_now(job, sent, base):
                 code = r.status
         except urllib.error.HTTPError as e:
             code = e.code
+            try:
+                resp = e.read(2048).decode("utf-8", "replace")
+            except Exception:
+                resp = ""
+            retry_after = e.headers.get("Retry-After") if e.headers else None
         except Exception as e:
             err = type(e).__name__
         ok = code is not None and 200 <= code < 300
-        log("send", attempt=n, http=code, error=err, ok=ok, **base)
+        limited = code == 429 or (code is not None and 400 <= code < 500 and "rate limit" in resp.lower())
+        fields = {"attempt": n, "http": code, "error": err, "ok": ok}
+        if not ok and code is not None:
+            fields["body"] = redact(resp, url, keyv)
+        if limited:
+            fields["rate_limited"] = True
         if ok:
+            log("send", **fields, **base)
             _mark_sent(sent, job, "live", code)
             return
-        if n < tries:
-            time.sleep(RETRY_DELAYS[n - 1])
-    log("failed", reason="all_attempts_failed", attempts=tries, **base)
+        if limited:
+            delay = RL_DELAYS[rl_used] if rl_used < len(RL_DELAYS) else None
+            rl_used += 1
+            if delay is not None:
+                delay = delay * random.uniform(0.9, 1.1)
+                try:
+                    delay = max(delay, min(float(retry_after), 900.0))
+                except (TypeError, ValueError):
+                    pass
+        else:
+            delay = RETRY_DELAYS[other_used] if other_used < len(RETRY_DELAYS) else None
+            other_used += 1
+        if delay is not None and now() - started + delay > RETRY_BUDGET_S:
+            delay = None
+        if delay is None:
+            log("send", **fields, **base)
+            reason = "rate_limited" if limited else (
+                "http_4xx" if code is not None and 400 <= code < 500 else "all_attempts_failed")
+            log("failed", reason=reason, attempts=n, **base)
+            return
+        log("send", next_retry_s=int(delay), **fields, **base)
+        time.sleep(delay)
+        why = superseded(job)
+        if why:
+            log("skip", reason="superseded_during_retry", note=why, attempts=n, **base)
+            return
+
+
+def redact(text, url, keyv):
+    """Response body for wake.log: no URL, no KEY, one line, at most BODY_LOG_MAX characters."""
+    t = text or ""
+    for secret in (url, keyv):
+        if secret:
+            t = t.replace(secret, "<redacted>")
+    t = re.sub(r"https?://\S+", "<url>", t)
+    t = re.sub(r"(?i)(key|token|secret|authorization)([\"']?\s*[:=]\s*[\"']?)[^\s\"'&,}]+", r"\1\2<redacted>", t)
+    t = " ".join(t.split())
+    return t if len(t) <= BODY_LOG_MAX else t[:BODY_LOG_MAX - 1] + "…"
+
+
+def superseded(job):
+    """Before a retry: return why this wake no longer fits the session, or None if it still does."""
+    st = read_state(job["agent"], job["session_id"])
+    if not st:
+        return None
+    if job["status"] == "needs_input":
+        asked = st.get("asked") or {}
+        if str(asked.get("seq")) != str(job["seq"]):
+            return "dialog no longer open (asked=%s)" % (asked.get("seq") or "none")
+        return None
+    if str(st.get("turn")) != str(job["seq"]):
+        return "session moved on (turn %s, wake seq %s)" % (st.get("turn"), job["seq"])
+    return None
 
 
 def ssl_context():
@@ -623,6 +703,7 @@ def cmd_claude_hook():
             d["perm_seq"] = 0
             d["turn_started_ts"] = now()
             d.pop("stop", None)
+            d.pop("asked", None)
             log("state", ctx, note="turn %d started" % (turn + 1))
 
         elif name == "Stop":
@@ -631,6 +712,7 @@ def cmd_claude_hook():
             msg = ev.get("last_assistant_message") or ""
             d["stop"] = {"turn": turn, "ts": now(), "active_tasks": tasks, "crons": len(crons),
                          "stop_hook_active": bool(ev.get("stop_hook_active")), "message": tail(msg)}
+            d.pop("asked", None)
             if tasks or crons:
                 log("skip", ctx, reason="background_work", turn=turn, active_tasks=tasks, crons=len(crons))
             elif queued_followup(d["transcript_path"]):
@@ -643,6 +725,7 @@ def cmd_claude_hook():
 
         elif name == "StopFailure":
             d["error_turn"] = turn
+            d.pop("asked", None)
             err = ev.get("error") or ""
             details = ev.get("error_details") or ""
             msg = ev.get("last_assistant_message") or ""
@@ -659,9 +742,12 @@ def cmd_claude_hook():
             perm = d.get("perm") or {}
             seq = "%d.%d" % (turn, int(d.get("perm_seq", 0)))
             q = perm.get("question") or ev.get("message", "")
-            job = make_job(st, "needs_input", seq, q, "waiting on %s" % (perm.get("tool_name") or "a dialog"))
+            note = "waiting on %s" % (perm.get("tool_name") or "a dialog")
+            d["asked"] = {"seq": seq, "message": tail(q), "note": note, "ts": now()}
+            job = make_job(st, "needs_input", seq, q, note)
 
         elif name == "Notification" and ntype == "idle_prompt":
+            d.pop("asked", None)
             stop = d.get("stop") or {}
             if d.get("error_turn") == turn:
                 log("skip", ctx, reason="error_already_reported", turn=turn)
@@ -707,6 +793,10 @@ def cmd_send(a):
         d["last_event_ts"] = now()
         d["turn"] = a.seq
         d["last_message"] = tail(msg)
+        if a.status == "needs_input":
+            d["asked"] = {"seq": a.seq, "message": tail(msg), "note": a.note or "", "ts": now()}
+        else:
+            d.pop("asked", None)
         job = make_job(st, a.status, a.seq, msg, a.note or "")
     gate_and_send(job, ctx)
     return 0
@@ -759,15 +849,42 @@ def transcript_last_ts(tp, tail=262144):
     return os.path.getmtime(tp)
 
 
-def candidate(s, idle_min):
-    """Return (ok, reason) for a session that may need a recheck wake."""
+def claude_dialog_open(tp, tail=262144):
+    """True if the last timestamped user/assistant entry of a Claude transcript is an assistant
+    tool_use (the tool is waiting for permission or an answer). After Esc or a reply the transcript
+    has a tool_result / "[Request interrupted ...]" user entry instead. Unknown -> True."""
+    try:
+        with open(tp, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - tail))
+            lines = f.read().decode("utf-8", "replace").splitlines()
+    except (OSError, TypeError):
+        return True
+    for ln in reversed(lines):
+        try:
+            rec = json.loads(ln)
+        except ValueError:
+            continue
+        if rec.get("type") not in ("user", "assistant") or not rec.get("timestamp"):
+            continue
+        content = (rec.get("message") or {}).get("content")
+        if rec["type"] == "assistant":
+            return isinstance(content, list) and any(
+                isinstance(c, dict) and c.get("type") == "tool_use" for c in content)
+        return False
+    return True
+
+
+def candidate(s, idle_min, waiting=False):
+    """Return (ok, reason) for a session that may need a recheck wake. waiting=True: the agent sits
+    in a dialog, so whether the pause was already woken is decided by the needs_input key instead."""
     pid = s.get("agent_pid")
     if not pid or not pid_alive(pid):
         return False, "agent_gone"
     if s.get("dispatch_pid") and str(ppid_of(pid)) != str(s["dispatch_pid"]):
         return False, "parent_changed"
     seq = str(s.get("turn", 0))
-    if seq in (s.get("woken") or {}):
+    if not waiting and seq in (s.get("woken") or {}):
         return False, "already_woken"
     last = s.get("last_event_ts") or 0
     tp = s.get("transcript_path")
@@ -776,6 +893,30 @@ def candidate(s, idle_min):
     if now() - last < idle_min * 60:
         return False, "recent_activity"
     return True, "not_woken_for_pause"
+
+
+def key_busy(key):
+    """'sent' if the key already got a 2xx (or shadow), 'inflight' if a live sender holds it, else None."""
+    h = key_hash(key)
+    if os.path.exists(os.path.join(STATE_DIR, "sent", h)):
+        return "sent"
+    inflight = os.path.join(STATE_DIR, "inflight", h)
+    if os.path.exists(inflight):
+        try:
+            holder = int(open(inflight).read().strip() or 0)
+        except (OSError, ValueError):
+            holder = 0
+        if (holder and pid_alive(holder)) or (not holder and now() - os.path.getmtime(inflight) < 30):
+            return "inflight"
+    return None
+
+
+def parse_waiting(items):
+    out = {}
+    for it in items or []:
+        pid, _, since = str(it).partition(":")
+        out[int(pid)] = since if since.isdigit() else ""
+    return out
 
 
 def cmd_recheck(a):
@@ -789,9 +930,10 @@ def cmd_recheck(a):
                                   "seq": str(s.get("turn", 0)), "last_event": s.get("last_event")},
                                  ensure_ascii=False))
         return 0
-    want = {int(p) for p in a.agent_pid or []}
+    waiting = parse_waiting(a.waiting_pid)
+    want = {int(p) for p in a.agent_pid or []} | set(waiting)
     if not want:
-        print("recheck: give --list or at least one --agent-pid", file=sys.stderr)
+        print("recheck: give --list or at least one --agent-pid / --waiting-pid", file=sys.stderr)
         return 2
     matched = set()
     for s in sorted(sessions, key=lambda s: s.get("last_event_ts") or 0, reverse=True):
@@ -799,36 +941,87 @@ def cmd_recheck(a):
         if pid not in want or pid in matched:
             continue
         matched.add(pid)  # newest state for this pid wins
-        ctx = {"agent": s.get("agent"), "session_id": s.get("session_id"), "hook": "recheck", "task": s.get("task")}
-        ok, why = candidate(s, a.idle_min)
+        is_waiting = pid in waiting
+        ctx = {"agent": s.get("agent"), "session_id": s.get("session_id"),
+               "hook": "recheck/waiting" if is_waiting else "recheck", "task": s.get("task")}
+        ok, why = candidate(s, a.idle_min, waiting=is_waiting)
         if not ok:
             log("recheck_skip", ctx, reason=why, agent_pid=pid, bot=s.get("bot"), task=s.get("task"),
                 seq=str(s.get("turn", 0)))
             print("recheck: pid %s skip (%s)" % (pid, why), file=sys.stderr)
             continue
-        with Session(s["agent"], s["session_id"]) as st:
-            d = st.data
-            seq = d.get("turn", 0)
-            stop = d.get("stop") or {}
-            if d.get("agent") == "claude":
-                msg = stop.get("message") if stop.get("turn") == seq else last_assistant_from_transcript(
-                    d.get("transcript_path"))
-                if stop.get("turn") == seq and stop.get("active_tasks"):
-                    note = "recheck: Stop saw background work still running"
-                elif stop.get("turn") != seq:
-                    note = "recheck: turn ended without Stop (interrupted, permission denied, or hook missed)"
-                else:
-                    note = "recheck: no successful wake recorded for this pause"
-            else:
-                msg = d.get("last_message", "")
-                note = "recheck: no successful wake recorded for this pause"
-            job = make_job(st, "idle", seq, msg, note, source="stuck-check-recheck")
-        print("recheck: pid %s send idle seq %s" % (pid, seq), file=sys.stderr)
-        gate_and_send(job, ctx)
+        if is_waiting and s.get("agent") == "claude" and not claude_dialog_open(s.get("transcript_path")):
+            # Orca still says waiting, but the dialog was closed (Esc / denied) and the turn ended
+            # without Stop: handle it like an idle pause.
+            ctx["hook"] = "recheck/waiting-closed"
+            ok, why = candidate(s, a.idle_min)
+            if not ok:
+                log("recheck_skip", ctx, reason=why, agent_pid=pid, bot=s.get("bot"), task=s.get("task"),
+                    seq=str(s.get("turn", 0)), note="Orca waiting, dialog closed in transcript")
+                print("recheck: pid %s skip (%s)" % (pid, why), file=sys.stderr)
+                continue
+            is_waiting = False
+        if is_waiting:
+            _recheck_waiting(s, pid, waiting[pid], ctx)
+        else:
+            _recheck_idle(s, pid, ctx)
     for pid in want - matched:
-        log("recheck_skip", reason="no_state_for_pid", agent_pid=pid)
+        log("recheck_skip", reason="no_state_for_pid", agent_pid=pid, waiting=pid in waiting or None)
         print("recheck: pid %s skip (no_state_for_pid)" % pid, file=sys.stderr)
     return 0
+
+
+def _recheck_idle(s, pid, ctx):
+    """Send one idle wake for a pause that has none yet (the agent sits at its prompt)."""
+    with Session(s["agent"], s["session_id"]) as st:
+        d = st.data
+        seq = d.get("turn", 0)
+        stop = d.get("stop") or {}
+        if d.get("agent") == "claude":
+            msg = stop.get("message") if stop.get("turn") == seq else last_assistant_from_transcript(
+                d.get("transcript_path"))
+            if stop.get("turn") == seq and stop.get("active_tasks"):
+                note = "recheck: Stop saw background work still running"
+            elif stop.get("turn") != seq:
+                note = "recheck: turn ended without Stop (interrupted, permission denied, or hook missed)"
+            else:
+                note = "recheck: no successful wake recorded for this pause"
+        else:
+            msg = d.get("last_message", "")
+            note = "recheck: no successful wake recorded for this pause"
+        job = make_job(st, "idle", seq, msg, note, source="stuck-check-recheck")
+    if key_busy(job["dedup_key"]) == "inflight":
+        log("recheck_skip", ctx, reason="inflight", agent_pid=pid, key=job["dedup_key"], bot=job["bot"])
+        print("recheck: pid %s skip (inflight)" % pid, file=sys.stderr)
+        return
+    print("recheck: pid %s send idle seq %s" % (pid, seq), file=sys.stderr)
+    gate_and_send(job, ctx)
+
+
+def _recheck_waiting(s, pid, since, ctx):
+    """Agent sits in a dialog: re-send that dialog's needs_input under the hook's own dedup key."""
+    with Session(s["agent"], s["session_id"]) as st:
+        d = st.data
+        asked = d.get("asked") or {}
+        if asked.get("seq"):
+            seq, msg = asked["seq"], asked.get("message", "")
+            note = "recheck: dialog still open (Orca state waiting); %s" % (asked.get("note") or "")
+        else:
+            # orca-wake never saw this dialog (hook missed it): one key per Orca waiting period
+            seq = "%s.rw%s" % (str(d.get("turn", 0)).split(".")[0] if d.get("agent") == "claude"
+                               else d.get("turn", 0), since or int(now()))
+            msg = d.get("last_message", "") or last_assistant_from_transcript(d.get("transcript_path"))
+            note = "recheck: Orca state waiting, no dialog seen by the hook"
+            d["asked"] = {"seq": seq, "message": tail(msg), "note": note, "ts": now(), "source": "recheck"}
+        job = make_job(st, "needs_input", seq, msg, note.strip().rstrip(";"), source="stuck-check-recheck")
+    busy = key_busy(job["dedup_key"])
+    if busy:
+        why = "already_asked" if busy == "sent" else "inflight"
+        log("recheck_skip", ctx, reason=why, agent_pid=pid, key=job["dedup_key"], bot=job["bot"], seq=str(seq))
+        print("recheck: pid %s skip (%s)" % (pid, why), file=sys.stderr)
+        return
+    print("recheck: pid %s send needs_input seq %s" % (pid, seq), file=sys.stderr)
+    gate_and_send(job, ctx)
 
 
 # ---------------------------------------------------------------- housekeeping
@@ -866,6 +1059,7 @@ def main(argv):
     r = sub.add_parser("recheck")
     r.add_argument("--list", action="store_true")
     r.add_argument("--agent-pid", action="append")
+    r.add_argument("--waiting-pid", action="append", metavar="PID[:SINCE_MS]")
     r.add_argument("--idle-min", type=float, default=30)
     d = sub.add_parser("_deliver")
     d.add_argument("job_file")

@@ -64,7 +64,12 @@ hook 全部 `async: true`、`timeout: 10`。orca-wake 判断完立即返回，�
 - 去重键 = `agent:session_id:status:停顿序号`。Claude 的序号是回合号（needs_input 为 `回合号.第几次权限请求`）；Pi 是 leaf entry id。
 - webhook 返回 2xx 后才写已发标记（`sent/<sha1>`）。发送期间有 `inflight` 锁，防止 Stop 和 idle_prompt 同时发。
 - 去重键写进 webhook 正文的 `dedup_key`，bot 端可以据此丢弃重复。
-- 失败重试：共 3 次，间隔 20 秒、45 秒；全部失败写 `failed`，不写已发标记，留给补叫醒。
+- 失败重试：
+  - 限流（HTTP 429，或 4xx 且正文含 "rate limit"；平台对限流返回 400）：按 1、5、15 分钟退避，±10% 抖动；有 `Retry-After` 时取较大值，上限 15 分钟。
+  - 其他失败：共 3 次，间隔 20 秒、45 秒。
+  - 同一次叫醒的所有重试不超过 25 分钟。每次重试前检查会话是否已往前走（新回合或新对话框），是就记 `skip`（`superseded_during_retry`）并停止。
+  - 非 2xx 的响应正文去掉 URL/KEY、截到 300 字后记进 `wake.log` 的 `body`；`send` 行带 `next_retry_s`，`failed` 行的 `reason` 为 rate_limited、http_4xx 或 all_attempts_failed。
+  - 全部失败写 `failed`，不写已发标记，留给补叫醒。
 - 实现补充：needs_input 发出后不算「这一回合已叫醒」，否则用户在弹窗按 Esc 后，补叫醒会误认为已经叫过。
 
 ## webhook 正文
@@ -92,6 +97,11 @@ hook 全部 `async: true`、`timeout: 10`。orca-wake 判断完立即返回，�
   - 进程没查到（例如远程机器的临时终端超时），拿不到 pid：这次不报，下次再查。按原来的流程报可能和 orca-wake 重复叫醒。
   - Esc 中断后 Orca 的 agent 状态可能一直是 working。状态 30 分钟没变、所有终端都停在输入框时，也交给 recheck；orca-wake 不认识的会话不报（原来的检查也不报这种情况）。
   - hook 叫醒和补叫醒用同一个去重键、写同一个 `wake.log`，同一停顿只叫一次。
+- 对话框（Orca agent 状态 waiting）：
+  - 卡住检查只看主 agent（没有 `parentPaneKey` 的）。主 agent 状态是 waiting 且超过阈值时，调用 `orca-wake recheck --waiting-pid <pid>:<stateStartedAt>`，不再参考等待输入检测（Claude 的权限框和 AskUserQuestion 打开时，等待输入检测也返回空闲）。
+  - orca-wake 只补发 needs_input，不发 idle：idle 的去重键在回合中途发出，会吞掉回合真正结束时的叫醒。
+  - 去重键与 hook 相同：hook 写对话框时会在会话状态里记下 `asked`（序号、消息），补发沿用这个序号。hook 已送达时返回 `already_asked`，卡住检查记为已处理；发送中返回 `inflight`。没有 `asked` 记录时用序号 `<回合>.rw<stateStartedAt>`。
+  - Claude 按 Esc 关掉对话框后，Orca 状态仍是 waiting。orca-wake 读 transcript：最后一条带时间戳的记录是 assistant 的 tool_use 才算对话框还开着；否则按普通停顿处理（走 idle 补叫醒和 30 分钟阈值）。Pi 的对话框关掉后 Orca 状态会变，不需要这一步。
 
 ## 静音与影子模式
 
