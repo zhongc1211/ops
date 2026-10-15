@@ -32,7 +32,7 @@ Linux（内核 6.12），系统自带 Python 3.13，Claude Code 2.1.300（另测
 | X5 | runner import 报错（第二台机器） | 1 | runner 失败后 1 分 41 秒 1 次 |
 | X5o | 同上，旧扩展 | 0（缺口） | 0 次 |
 
-`tests/pi-ext.test.mjs`：7 项通过；对旧扩展跑同一测试，崩溃和上限的 3 项失败。限制：只核对发送方状态码和时间，叫醒正文里的 note 只在离线测试里核对过。
+限制：只核对发送方状态码和时间，叫醒正文里新加的 note 没有核对（wake.log 不记正文）。
 
 ## 卡住检查接入补叫醒（端到端）
 
@@ -148,7 +148,7 @@ P2 Pi 后台子代理：
 4. python.org 的 macOS Python 没有 CA 证书，HTTPS webhook 会失败 → 依次尝试 `SSL_CERT_FILE`、certifi、系统证书文件。
 5. 发送进程用 fork 时，Python 报「多线程进程 fork」警告 → 改为启动独立进程。
 6. 机器负载很高时 `ps` 超时，父进程校验误判 `parent_mismatch`（C16 后段、C25 首轮）→ 改为直接从内核读父进程。
-7. 补叫醒用 transcript 的文件修改时间判断「30 分钟内有新动静」。Claude Code 在 Esc 13 分钟后往 transcript 追加了不带时间戳的元数据，补叫醒因此推迟一轮检查（R5：Esc 后 42 分钟本该发，变成 57 分钟）→ 改为取 transcript 里最后一条带时间戳记录的时间，找不到时间戳才用文件修改时间（`tests/unit.sh` T14）。
+7. 补叫醒用 transcript 的文件修改时间判断「30 分钟内有新动静」。Claude Code 在 Esc 13 分钟后往 transcript 追加了不带时间戳的元数据，补叫醒因此推迟一轮检查（R5：Esc 后 42 分钟本该发，变成 57 分钟）→ 改为取 transcript 里最后一条带时间戳记录的时间，找不到时间戳才用文件修改时间（e2e R5b 验证）。
 8. Esc 中断后 Orca 记录的 agent 状态一直是 working，卡住检查原来的 agent_idle 判断不到（R2）→ 状态 30 分钟没变、所有终端都停在输入框时也交给 recheck。
 9. 卡住检查在第二台机器上查进程超时，拿不到 pid，退回原来的 agent_idle 发送，可能和 hook 重复（F1）→ 拿不到 pid 时这次不报，下次再查。
 

@@ -22,7 +22,6 @@
 | `hooks/claude-settings.example.json` | — | hook 条目示例（`orca-wake-hooks install` 写入的就是这些） |
 | `.env.example` | `~/.config/grokbot/webhooks/<bot>.env` | webhook 配置格式（与 notify-run 共用） |
 | `tests/unit.sh`、`tests/mock_webhook.py` | — | 离线测试和本地模拟 webhook |
-| `tests/pi-ext.test.mjs` | — | Pi 扩展的离线测试（假事件、假 orca-wake），`node --experimental-strip-types tests/pi-ext.test.mjs` |
 
 ## 安装
 
