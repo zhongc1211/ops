@@ -1,0 +1,12 @@
+# runtime state and test output never go into the repo
+wake.log
+*.log
+*.jsonl
+state/
+test-results/
+__pycache__/
+*.pyc
+# real webhook configs
+*.env
+!.env.example
+.orca-wake-mute

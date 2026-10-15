@@ -1,0 +1,195 @@
+#!/bin/bash
+# notify-run --bot <bot> --task "<描述>" [--issue X] [--tty|--no-tty] -- <命令...>
+# 运行命令，结束后（成功、失败、被 kill 都算）向 <bot> 的 webhook POST 一条结果。
+# 两种运行方式，按 stdout 是不是终端自动选，也可以用 --tty / --no-tty 指定：
+#   终端直通（stdout 是终端）：命令直接用当前终端的 stdin/stdout/stderr，不经过管道，
+#       claude 这类全屏 TUI 能正常显示和接收按键。这时不采集输出，log_tail 是一句说明。
+#       用来包整个 agent：notify-run --bot <bot> --task "..." -- claude --dangerously-skip-permissions ...
+#   管道（stdout 不是终端，例如 agent 的 Bash 工具里）：stdout/stderr 照常输出，同时写进临时日志，
+#       结束时取最后约 20 行放进 log_tail。
+# webhook 配置：$HOME/.config/grokbot/webhooks/<bot>.env（各台机器同一相对路径；
+# 找不到时再试 /home/<user>/.config/grokbot/webhooks/<bot>.env），内含 URL 和 KEY。
+# KEY 只经 stdin 交给 curl（-H @-），不进命令行参数、日志和输出。
+# POST 的 JSON：bot, task, issue, machine, exit_code, status, log_tail, duration_s, source（固定 notify-run）。
+# --tty 时导出 ORCA_DISPATCH_BOT / ORCA_TASK_ID / ORCA_DISPATCH_ISSUE / ORCA_DISPATCH_PID / ORCA_DISPATCH_TS
+#   给叫醒钩子 orca-wake 用（已存在时不覆盖）。
+#   status：done（退出码 0）/ failed（非 0）/ killed（notify-run 收到 INT、TERM 或 HUP）。
+# 收到 INT/TERM/HUP 时先把信号转给命令（只转给命令本身，不含它派生的进程），等它退出，
+# 再发 webhook。SIGKILL 拦不住，notify-run 自己被 kill -9 时不会发；命令被 kill -9 时照常发（failed，137）。
+# 关掉终端时 notify-run 收到 HUP，照样发。
+# webhook 收到非 2xx 或没有响应时重试，共 NOTIFY_RUN_TRIES（默认 3）次，间隔 20 秒、45 秒；成功后不再发。
+# 退出码：原样返回命令的退出码；被信号杀时返回 128+信号（HUP=129，INT=130，TERM=143）；用法错误返回 2。
+# webhook 发送结果打印到 stderr 一行，发送失败不改变退出码。
+set -u
+
+usage() {
+    echo "用法: notify-run --bot <bot> --task \"<描述>\" [--issue X] [--tty|--no-tty] -- <命令...>" >&2
+    exit 2
+}
+
+bot="" task="" issue="" tty_mode=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --bot)    [ $# -ge 2 ] || usage; bot=$2; shift 2 ;;
+        --task)   [ $# -ge 2 ] || usage; task=$2; shift 2 ;;
+        --issue)  [ $# -ge 2 ] || usage; issue=$2; shift 2 ;;
+        --tty)    tty_mode=1; shift ;;
+        --no-tty) tty_mode=0; shift ;;
+        --)       shift; break ;;
+        *)        usage ;;
+    esac
+done
+[ -n "$bot" ] && [ -n "$task" ] && [ $# -gt 0 ] || usage
+# bot 会拼进 env 文件路径，只允许文件名安全的字符。
+case "$bot" in
+    *[!A-Za-z0-9._-]*|.*) echo "notify-run: bot 名不合法: $bot" >&2; exit 2 ;;
+esac
+if [ -z "$tty_mode" ]; then
+    if [ -t 1 ]; then tty_mode=1; else tty_mode=0; fi
+fi
+
+tmpd=$(mktemp -d "${TMPDIR:-/tmp}/notify-run.XXXXXX") || exit 2
+log="$tmpd/log"
+start=$(date +%s)
+child="" cmd_rc=0 sig_num="" interrupted=0 child_ignores_int=1
+
+build_json() {
+    local tail_text
+    if [ "$tty_mode" = 1 ]; then
+        tail_text="（终端直通模式，未采集输出）"
+    else
+        tail_text=$(tail -n 20 "$log" 2>/dev/null | tail -c 4000)
+    fi
+    if command -v jq >/dev/null 2>&1; then
+        jq -n --arg bot "$bot" --arg task "$task" --arg issue "$issue" \
+            --arg machine "$machine" --arg status "$status" --arg log_tail "$tail_text" \
+            --argjson exit_code "$code" --argjson duration_s "$duration" \
+            '{bot: $bot, task: $task, issue: $issue, machine: $machine, exit_code: $exit_code,
+              status: $status, log_tail: $log_tail, duration_s: $duration_s, source: "notify-run"}'
+    else
+        python3 -c 'import json, sys
+a = sys.argv[1:]
+print(json.dumps({"bot": a[0], "task": a[1], "issue": a[2], "machine": a[3], "exit_code": int(a[4]),
+                  "status": a[5], "log_tail": a[6], "duration_s": int(a[7]),
+                  "source": "notify-run"}))' \
+            "$bot" "$task" "$issue" "$machine" "$code" "$status" "$tail_text" "$duration"
+    fi
+}
+
+# 在子 shell 里读 env 文件，KEY 不留在主进程里。
+send_webhook() (
+    set +x
+    env_file="$HOME/.config/grokbot/webhooks/$bot.env"
+    [ -r "$env_file" ] || env_file="/home/<user>/.config/grokbot/webhooks/$bot.env"
+    if [ ! -r "$env_file" ]; then
+        echo "notify-run: 找不到 $bot 的 webhook 配置，未发送" >&2
+        exit 1
+    fi
+    URL="" KEY=""
+    . "$env_file"
+    if [ -z "$URL" ] || [ -z "$KEY" ]; then
+        echo "notify-run: $env_file 缺 URL 或 KEY，未发送" >&2
+        exit 1
+    fi
+    machine=$(hostname)
+    if ! build_json >"$tmpd/payload.json"; then
+        echo "notify-run: 生成 JSON 失败（需要 jq 或 python3），未发送" >&2
+        exit 1
+    fi
+    tries=${NOTIFY_RUN_TRIES:-3}
+    n=1
+    while :; do
+        http=$(printf 'Authorization: Bearer %s\n' "$KEY" | curl -sS -o /dev/null -w '%{http_code}' \
+            --max-time 20 -X POST -H @- -H 'Content-Type: application/json' \
+            --data-binary @"$tmpd/payload.json" "$URL" 2>/dev/null)
+        echo "notify-run: webhook bot=$bot status=$status exit_code=$code http=${http:-无响应} 第${n}次" >&2
+        case "$http" in 2??) exit 0 ;; esac
+        [ "$n" -lt "$tries" ] || exit 1
+        if [ "$n" -eq 1 ]; then sleep 20; else sleep 45; fi
+        n=$((n + 1))
+    done
+)
+
+on_signal() {
+    interrupted=1
+    [ -n "$sig_num" ] || sig_num=$2
+    [ -n "$child" ] || return 0
+    kill -s "$1" "$child" 2>/dev/null
+    # 非交互 bash 的后台子进程默认忽略 INT，所以 INT 之后再补一个 TERM。
+    [ "$1" = INT ] && [ "$child_ignores_int" = 1 ] && kill -s TERM "$child" 2>/dev/null
+    return 0
+}
+
+finish() {
+    trap '' INT TERM HUP
+    trap - EXIT
+    if [ -n "$sig_num" ]; then
+        status=killed code=$((128 + sig_num))
+    elif [ "$cmd_rc" -eq 0 ]; then
+        status=done code=0
+    else
+        status=failed code=$cmd_rc
+    fi
+    duration=$(( $(date +%s) - start ))
+    send_webhook
+    rm -rf "$tmpd"
+    exit "$code"
+}
+
+trap finish EXIT
+trap 'on_signal INT 2' INT
+trap 'on_signal TERM 15' TERM
+trap 'on_signal HUP 1' HUP
+
+tee_out="" tee_err=""
+if [ "$tty_mode" = 1 ]; then
+    # 给叫醒钩子（orca-wake）用：只在终端直通模式导出；外层已导出过（嵌套 notify-run）就不覆盖。
+    # agent 必须是 notify-run 的直接子进程（不要经 bash -c），钩子靠「agent 的父进程 == ORCA_DISPATCH_PID」认派出的主会话。
+    if [ -z "${ORCA_DISPATCH_PID:-}" ]; then
+        export ORCA_DISPATCH_BOT="$bot" ORCA_TASK_ID="$task" ORCA_DISPATCH_ISSUE="$issue" \
+            ORCA_DISPATCH_PID=$$ ORCA_DISPATCH_TS="$start"
+    fi
+    # 命令留在终端的前台进程组里（非交互 bash 不做作业控制），直接读写终端。
+    # 后台启动是为了让 notify-run 在命令运行期间还能收信号；后台子进程会继承「忽略 INT/QUIT」，
+    # 用 perl 恢复成默认再 exec（/bin/bash 3.2 自己恢复不了），这样终端里按 Ctrl-C 对命令照常有效。
+    if command -v perl >/dev/null 2>&1; then
+        child_ignores_int=0
+        perl -e '$SIG{INT} = "DEFAULT"; $SIG{QUIT} = "DEFAULT"; exec { $ARGV[0] } @ARGV or exit 127' "$@" <&0 &
+    else
+        "$@" <&0 &
+    fi
+    child=$!
+else
+    mkfifo "$tmpd/out" "$tmpd/err"
+    tee -a "$log" <"$tmpd/out" &
+    tee_out=$!
+    tee -a "$log" <"$tmpd/err" >&2 &
+    tee_err=$!
+    "$@" <&0 >"$tmpd/out" 2>"$tmpd/err" &
+    child=$!
+fi
+# 信号可能在 child 赋值之前就到了，这时 on_signal 没转发，在这里补发。
+[ -z "$sig_num" ] || kill -s TERM "$child" 2>/dev/null
+
+# wait 被信号打断时会提前返回，命令还没退出，要接着等。
+while :; do
+    interrupted=0
+    wait "$child"
+    rc=$?
+    if [ "$interrupted" -eq 0 ]; then
+        cmd_rc=$rc
+        break
+    fi
+    kill -0 "$child" 2>/dev/null || { [ "$rc" -eq 127 ] || cmd_rc=$rc; break; }
+done
+
+# 等 tee 把剩余输出写完，最多 2 秒：命令留下的后台进程可能还占着管道，不能一直等。
+# 超时后不杀 tee，它会继续转发那些进程的输出，直到管道关闭。
+if [ -n "$tee_out" ]; then
+    n=0
+    while [ $n -lt 20 ] && { kill -0 "$tee_out" 2>/dev/null || kill -0 "$tee_err" 2>/dev/null; }; do
+        sleep 0.1
+        n=$((n + 1))
+    done
+fi
+exit 0
