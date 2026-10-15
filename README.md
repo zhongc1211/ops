@@ -1,6 +1,6 @@
 # orca-agent-wake
 
-> **状态：测试中。** 已在一台 macOS 机器和一台 Linux 机器上安装，并用本地模拟 webhook 和专用测试 webhook 跑过测试（Linux 机器只测了 Claude Code，没有装 Pi）。真实 bot 默认处于影子模式（只记日志、不发送），列进 `enabled-bots` 后才会真发。
+> **状态：测试中。** 已在一台 macOS 机器和一台 Linux 机器上安装，并用本地模拟 webhook 和专用测试 webhook 跑过测试。真实 bot 默认处于影子模式（只记日志、不发送），列进 `enabled-bots` 后才会真发。
 
 派活 bot 用 `notify-run --tty` 在终端里启动交互式 Claude Code 或 Pi 后，agent 做完会停在输入框，不会退出，`notify-run` 也就不会发完工通知。这个仓库在 agent 停下时直接通知派活 bot，不依赖 agent 自己记得汇报。
 

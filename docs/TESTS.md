@@ -14,7 +14,8 @@ Linux（内核 6.12），系统自带 Python 3.13，Claude Code 2.1.300（另测
 
 - `tests/unit.sh`：27 项全部通过。
 - 专用测试 webhook 端到端：Claude 18 个场景（与上一节相同），18 次叫醒全部 HTTP 200、第 1 次尝试成功，结果都与下表预期一致；各会话退出时 notify-run 的 done 也都是 HTTP 200。父进程校验走 `/proc`，嵌套 `claude -p`、嵌套 notify-run、`bash -c "...; true"` 都正确记 `parent_mismatch`。
-- 这台机器没有安装 Pi，Pi 扩展已放到位但**没有测试**。
+- Pi 1.0.4（用 Node 22 运行；Pi 1.0.4 要求 Node 22.19 以上）：P1–P7 对应的 7 个场景都与预期一致，4 次叫醒全部 HTTP 200。安装时必须按锁定版本装依赖（`npm ci`）：用 `npm install` 时依赖会解析到更新的 1.2.x，主程序不受影响，但 pi-subagents 的后台 runner 启动即报错。
+- 已知缺口：pi-subagents 的后台 runner 启动即崩溃时，不会发出 `subagent:async-complete`，扩展会一直等，不发叫醒；这时也还没有会话状态文件，`orca-wake recheck` 记 `no_state_for_pid`。
 - 限制同上：只核对发送方状态码；限额暂停是注入事件模拟；webhook 不可达没对真实 webhook 测；补叫醒用 `--idle-min 0` 手动触发。
 
 ## 离线测试
