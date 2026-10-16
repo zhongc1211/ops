@@ -1,0 +1,6 @@
+# 密钥文件一律不进仓库：只放 env-examples/**/*.env.example（只有键名）
+*.env
+.env*
+!*.env.example
+*.pem
+*.key
