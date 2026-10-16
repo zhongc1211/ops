@@ -21,6 +21,7 @@ bin/orca-wake-hooks|.local/bin/orca-wake-hooks|755
 bin/notify-run|.local/bin/notify-run|755
 pi-extensions/dispatch-wake.ts|.pi/agent/extensions/dispatch-wake.ts|644
 pi-extensions/orca-agent-status.ts|.pi/agent/extensions/orca-agent-status.ts|644
+orca-wake/enabled-bots|.config/orca-wake/enabled-bots|644
 "
 
 sha() {

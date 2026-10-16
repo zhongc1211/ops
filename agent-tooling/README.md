@@ -13,12 +13,14 @@ coding agent 停在输入框、要权限或报错时叫醒派活的 bot 的那�
 | `bin/notify-run` | `~/.local/bin/notify-run` |
 | `pi-extensions/dispatch-wake.ts` | `~/.pi/agent/extensions/dispatch-wake.ts` |
 | `pi-extensions/orca-agent-status.ts` | `~/.pi/agent/extensions/orca-agent-status.ts` |
+| `orca-wake/enabled-bots` | `~/.config/orca-wake/enabled-bots`（真发 webhook 的 bot 名单，一行一个或 `*`，`#` 开头是注释；不在名单里的 bot 只记 shadow 日志） |
 | `claude/orca-wake-hooks.settings-fragment.json` | `~/.claude/settings.json` 里 orca-wake 的 5 组 hook（只是结构，由 `orca-wake-hooks install` 写入） |
 
 不归 install.sh 管、也不进仓库的：
 
 - 密钥：`~/.config/grokbot/webhooks/<bot>.env`、`~/.config/grokbot/runpod.env`、`~/.config/everos/*.env`。仓库里只有 `env-examples/` 下的 `.example`（只有键名），`.gitignore` 挡住所有 `*.env`。新机器照 `.example` 手填，权限 600。
-- `~/.config/orca-wake/enabled-bots`（真发 webhook 的 bot 名单，其余 shadow），2026-10-16 两台都是 `coding-assistant`。
+
+`orca-wake/enabled-bots` 2026-10-16 从两台只读收来：box 与 iMac 内容一致（`coding-assistant` 一行，17 字节，sha256 `76f7f282…89d0a9`，权限 644），所以只留一份。要放开或收回某个 bot 真发，改这个文件走 PR，合并后两台跑 `install.sh`。
 
 `everos/` 暂时是空目录，等心月样板交来再收。
 
