@@ -19,43 +19,40 @@ API：`/api/v2/memory/*`。search 起步用 `"method":"keyword"`（无 embedding
 数据根：`/var/lib/everos`。LLM 已指 magpie `http://100.64.0.4:3425/v1`（Tailscale），模型 `codex/gpt-6.1-sol`；embedding 未配置（health embed=false，待有效 Qwen/DashScope key）；`/add`+`/flush` 已实测可抽 episode。
 LESSONS：**15** 条 agent_skill 已写入 `agents/coding-xinyue-site/skills/`（9 规则 + 6 done_right）；见 `IMPORT-EVIDENCE.md`。
 
-## 2. Claude MCP JSON 片段
+## 2. Claude MCP（keyword wrapper；embedding 未开时）
+
+**不要**按旧写法原样挂 `uvx everos-mcp`。everos-mcp **0.1.1** 的 `EverOSClient.search` 写死 `method="hybrid"`，服务器 embedding 未开时 hybrid 会 **HTTP 422**（`Provider 'embedding' … is not configured`）。心月冒烟证据在 box 的 `xinyue-web/everos/mcp-smoke.md`（不在本仓库）。
+
+当前做法：用本机启动脚本 **`~/.local/bin/everos-mcp-xinyue`**（box / iMac 同名；**不进仓库**）：
+
+1. 从 `~/.config/everos/xinyue.env`（mode 600）读 key 与身份变量；token **勿**写进 `.mcp.json` / 仓库。
+2. 默认把 search 改成 **`keyword`**（可用 `EVEROS_MCP_SEARCH_METHOD=hybrid` 恢复原样）。
+3. 用 `uvx --from 'everos-mcp==0.1.1'` **锁版本**（升级前先确认 `EverOSClient.search` 签名未变）。
+
+`.mcp.json` 片段（无 secret）：
 
 ```json
 {
   "mcpServers": {
     "everos": {
-      "command": "uvx",
-      "args": ["everos-mcp"],
-      "env": {
-        "EVEROS_BASE_URL": "https://everos.deepvision.sg",
-        "EVEROS_API_KEY": "<from /etc/everos/proxy-token on VPS>",
-        "EVEROS_APP_ID": "xinyue",
-        "EVEROS_PROJECT_ID": "xinyue-site",
-        "EVEROS_ASSISTANT_SENDER_ID": "coding-xinyue-site",
-        "EVEROS_USER_ID": "zack"
-      }
+      "command": "/home/box/.local/bin/everos-mcp-xinyue",
+      "args": []
     }
   }
 }
 ```
 
-CLI 等价：
+iMac 把 `command` 换成 `$HOME/.local/bin/everos-mcp-xinyue`。CLI 等价（local scope，避免其它仓库会话挂上心月 everos）：
 
 ```bash
-claude mcp add everos \
-  -e EVEROS_BASE_URL=https://everos.deepvision.sg \
-  -e EVEROS_API_KEY="<from /etc/everos/proxy-token>" \
-  -e EVEROS_APP_ID=xinyue \
-  -e EVEROS_PROJECT_ID=xinyue-site \
-  -e EVEROS_ASSISTANT_SENDER_ID=coding-xinyue-site \
-  -e EVEROS_USER_ID=zack \
-  -- uvx everos-mcp
+claude mcp add -s local everos -- "$HOME/.local/bin/everos-mcp-xinyue"
 ```
 
-**谁挂**：凡 bot 派活对着的 Orca coding 会话。子 worker 不挂；由父会话 recall 后贴进 brief。
+**谁挂**：凡 bot 派活对着的 **父** Orca coding 会话。**子 worker 不挂 MCP**；父会话用 MCP 或 curl 做 keyword recall 后贴进 brief（见 §4.3）。
 
 冒烟：新开心月小任务 → `recall_agent_experience` / `search_memory` 通；用 `app_id=deepvision` 搜应搜不到心月 skill。
+
+**开了 embedding 之后**：可去掉这层 wrapper，改回 stock `uvx everos-mcp`（hybrid）。在那之前照抄旧 JSON/CLI 会挂上一个不能用的 MCP。
 
 ## 3. LESSONS 决定
 
@@ -104,8 +101,9 @@ claude mcp add everos \
 
 ### 4.3 派活段（dev-bot-rules）
 
-- 接派活会话必须挂 everos-mcp；开工前 recall；子 worker 不挂、父贴 brief。
-- 删「动手前读 LESSONS.md」；改为 EverOS recall。
+- **父会话**：挂 §2 的 everos-mcp wrapper（或等价 curl keyword search）；开工前做 keyword recall，把结果贴进 brief。
+- **子 worker**：**不**挂 MCP、不自带 EverOS token；只读 brief 里父会话贴的 recall。
+- 删「动手前读 LESSONS.md」；改为 EverOS keyword recall（embedding 开了再考虑 hybrid）。
 
 ## 5. 你改自动化的时机
 
