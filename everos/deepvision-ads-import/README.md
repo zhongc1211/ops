@@ -16,7 +16,7 @@ sudo -u everos env EVEROS_ROOT=/var/lib/everos /opt/everos/venv/bin/python3 /tmp
 
 方法和心月的导入一样（`AgentSkillWriter.write_main`）。slug 都不超过 38 字符，不会被 sanitize 截断。`category` 取值是 `rule`（来自 AGENTS 的硬规则）或 `lessons`（踩过的坑），两类都计入 Seen×3。
 
-#15 `box-heavy-job-gate` 和 #16 `dvads-tooling-gotchas` 来自 box 上的 Claude auto-memory，不在仓库里。Zack 说不导的话，导入前先删掉这两个文件，check_recall 时加 `--skip box-heavy-job-gate,dvads-tooling-gotchas`。
+#15 `box-heavy-job-gate` 和 #16 `dvads-tooling-gotchas` 来自 box 上的 Claude auto-memory，不在仓库里。Zack 已定（2026-10-16）16 条全部导入，已导入完成；check_recall 不需要 `--skip`。
 
 ## box：导入后核对
 
