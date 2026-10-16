@@ -1,0 +1,8 @@
+b3262ca69b18af52804107be1bac023a609ffd4f25738261d1c06340b0703252  ./architecture-patterns/all-or-nothing-i18n-fallback-per-product-2026-05-03.md
+447db6de09e98ccdcdcd5859561074efad172e69bf0e7a6979a84ca98521e36b  ./architecture-patterns/pricing-compare-and-brand-logos-2026-10-15.md
+38b6fef89f655273870ebaa3323a65b239852df63e1568d063707386305eb990  ./architecture-patterns/single-flag-seed-gating-transactional-write-2026-05-03.md
+3474b707e53b14bd53187c61fbb52caf60a3fe99546f4de048f19423b0ca83da  ./architecture-patterns/single-product-site-conversion-2026-06-12.md
+af67d046bd26604735bb3638e889c80e243f4a9578d8bcb9b6a6ac5e418e40df  ./architecture-patterns/whatsapp-assistant-widget-2026-06-18.md
+426dd5e2b33d94b9474d01c44b02b68966036ba0c0d04d68f109bdf29509eba4  ./css-issues/tailwind-v4-custom-theme-tokens-2026-04-06.md
+a9680dde2e4832f5351ef9d45ed56a4f5355a7d17942b49e9c64e7dbe1988247  ./database-issues/insert-or-ignore-requires-unique-constraint-2026-05-03.md
+a436402a112b529df6ba95f36905e49a92e71fb777024c4a189bc85d0bae0789  ./security-issues/role-guard-tightening-silent-403-ui-2026-05-03.md
