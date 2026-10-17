@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+# agent-probe [--plain]: 列出本机正在跑的 coding agent 进程和 notify-run 进程，给 stuck-check.sh 用。
+# iMac 和 box 都装在 ~/.local/bin/。stuck-check.sh 在 iMac 上直接调用，在 box 上通过一个临时 Orca 终端调用。
+# 输出：@@PROBE-BEGIN / @@PROBE-END 之间是 base64(gzip(JSON))，分行不影响解析（终端折行也没关系）；
+#   --plain 直接打印 JSON，给人看。
+# JSON：{"host", "ts", "procs": [{"pid", "ppid", "kind": "agent"|"notify-run", "name", "stat", "etime_s",
+#        "cwd", "agent_anc_cwds": [祖先 agent 进程的 cwd], "wraps_agent": notify-run 的子孙里有没有 agent}]}
+#   wraps_agent 为真的 notify-run 是包住整个 agent 的那一层，不算「有长命令在跑」。
+#   notify-run 进程多一个 "bot"（它的 --bot 参数）；agent 进程多一个 "dispatch_bot"（最近一层祖先 notify-run 的 --bot），
+#   stuck-check 用它认派活的 bot（营销这类没有自己仓库的 bot 只能这样认）。没有时为 null。
+# 只读，不改任何东西。
+import base64, gzip, json, os, re, socket, subprocess, sys, time
+
+AGENTS = {"claude", "codex", "pi", "gemini", "opencode", "grok", "cursor-agent", "omp", "codebuddy"}
+RUNTIMES = {"node", "bun", "deno", "python", "python3"}
+SHELLS = {"bash", "sh", "zsh", "dash"}
+
+
+def etime_s(s):
+    days, _, rest = s.partition("-") if "-" in s else ("0", "", s)
+    parts = [int(x) for x in rest.split(":")]
+    while len(parts) < 3:
+        parts.insert(0, 0)
+    return int(days) * 86400 + parts[0] * 3600 + parts[1] * 60 + parts[2]
+
+
+def classify(args):
+    tok = args.split()
+    if not tok:
+        return None, None
+    strip = lambda t: re.sub(r"\.(?:js|mjs|cjs|py)$", "", os.path.basename(t))
+    b0 = strip(tok[0])
+    b1 = strip(tok[1]) if len(tok) > 1 else ""
+    if b0 == "notify-run" or (b0 in SHELLS and b1 == "notify-run"):
+        return "notify-run", "notify-run"
+    if b0 in AGENTS:
+        return "agent", b0
+    if b0 in RUNTIMES and b1 in AGENTS:
+        return "agent", b1
+    return None, None
+
+
+def cwds_of(pids):
+    out = {}
+    if not pids:
+        return out
+    if os.path.isdir("/proc/self"):
+        for p in pids:
+            try:
+                out[p] = os.readlink("/proc/%d/cwd" % p)
+            except OSError:
+                pass
+        return out
+    try:
+        r = subprocess.run(["lsof", "-a", "-d", "cwd", "-Fpn", "-p", ",".join(str(p) for p in pids)],
+                           capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired):
+        return out
+    cur = None
+    for ln in r.stdout.splitlines():
+        if ln.startswith("p"):
+            cur = int(ln[1:])
+        elif ln.startswith("n") and cur is not None:
+            out[cur] = ln[1:]
+    return out
+
+
+def main():
+    r = subprocess.run(["ps", "-axo", "pid=,ppid=,stat=,etime=,args="], capture_output=True, text=True, timeout=30)
+    procs = {}
+    for ln in r.stdout.splitlines():
+        f = ln.split(None, 4)
+        if len(f) < 5:
+            continue
+        try:
+            pid, ppid = int(f[0]), int(f[1])
+        except ValueError:
+            continue
+        kind, name = classify(f[4])
+        procs[pid] = {"pid": pid, "ppid": ppid, "stat": f[2], "etime_s": etime_s(f[3]), "kind": kind, "name": name}
+        if kind == "notify-run":
+            m = re.search(r"(?:^|\s)--bot\s+([A-Za-z0-9._-]+)", f[4])
+            procs[pid]["bot"] = m.group(1) if m else None
+    keep = [p for p in procs.values() if p["kind"]]
+    cwd = cwds_of([p["pid"] for p in keep])
+
+    def ancestors(pid):
+        seen, cur = set(), procs.get(pid, {}).get("ppid")
+        while cur and cur in procs and cur not in seen:
+            seen.add(cur)
+            yield procs[cur]
+            cur = procs[cur]["ppid"]
+
+    wrappers = set()
+    for p in keep:
+        p["cwd"] = cwd.get(p["pid"])
+        anc = list(ancestors(p["pid"]))
+        p["agent_anc_cwds"] = [cwd[a["pid"]] for a in anc if a["kind"] == "agent" and a["pid"] in cwd]
+        if p["kind"] == "agent":
+            wrappers.update(a["pid"] for a in anc if a["kind"] == "notify-run")
+            p["dispatch_bot"] = next((a.get("bot") for a in anc if a["kind"] == "notify-run" and a.get("bot")), None)
+    for p in keep:
+        p["wraps_agent"] = p["pid"] in wrappers
+    doc = {"host": socket.gethostname(), "ts": int(time.time()), "procs": keep}
+    if "--plain" in sys.argv[1:]:
+        print(json.dumps(doc, ensure_ascii=False, indent=1))
+        return
+    b = base64.b64encode(gzip.compress(json.dumps(doc, ensure_ascii=False).encode())).decode()
+    print("@@PROBE-BEGIN")
+    for i in range(0, len(b), 76):
+        print(b[i:i + 76])
+    print("@@PROBE-END")
+
+
+main()
