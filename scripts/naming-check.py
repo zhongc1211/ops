@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """naming-check.py — pure-script naming check across both Orca hosts (no model).
 
-Flags (1) workspaces whose display name is not "项目 · 编号 描述" (项目 in 心月/vllm/dv广告/dv运维/dv营销/ops;
+Flags (1) workspaces and Orca automations whose name is not "项目 · 编号 描述" (项目 in 心月/vllm/dv广告/dv运维/dv营销/ops;
 编号 like PER-38, FDV-36/37 or digits) and (2) terminals with no title ("untitled").
 Exempt: main/primary worktrees (isMainWorktree or name "main"), and automation run workspaces ("auto-orca-run N").
 Each violation is reported once (state: $NAMING_STATE or ~/.orca-state/naming-check/reported.json).
@@ -44,6 +44,11 @@ def check_host(label, env):
         if not NAME_RE.match(name):
             out.append({"key": "ws|%s|%s" % (label, w.get("id")), "host": label, "kind": "workspace_name",
                         "what": "工作区显示名「%s」不符合「项目 · 编号 描述」" % name, "where": w.get("path")})
+    for a in lst(orca(["automations", "list", "--json"], env), "automations"):
+        name = (a.get("name") or "").strip()
+        if not NAME_RE.match(name):
+            out.append({"key": "auto|%s|%s" % (label, a.get("id")), "host": label, "kind": "automation_name",
+                        "what": "自动任务名「%s」不符合「项目 · 编号 描述」" % name, "where": "automation %s" % (a.get("id") or "")[:8]})
     for t in term:
         if not (t.get("title") or "").strip():
             out.append({"key": "term|%s|%s" % (label, t.get("ptyId") or t.get("handle")), "host": label, "kind": "untitled_terminal",
