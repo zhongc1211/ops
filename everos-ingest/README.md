@@ -56,7 +56,7 @@ EVEROS_INGEST_ROOT=$HOME/.orca-state/bin/everos-ingest \
 ## 心月夜审写入台账 + 00:30 兜底（2026-10-17）
 
 - `nightly_addflush.py` — 夜审第 2 步写入脚本（box 上原有版本 + 写入台账）。每次 add/flush 追加一行到
-  `~/xinyue-deploy/nightly-review/$D-ledger.jsonl`（`--ledger` 可改），写前写后各 get 一次 episode 计数（含 id 列表）。
+  `~/xinyue-deploy/nightly-review/$D-xinyue-ledger.jsonl`（`--ledger` 可改），写前写后各 get 一次 episode 计数（含 id 列表）。
 - `night-review-xinyue.prompt.md` — `75b324a4` 的 prompt 全文：先写摘要骨架（状态：进行中），每步更新，第 2 步调用上面的脚本，结尾改为完成。
 - `night-review-guard-xinyue.sh` — Orca automation「心月夜审兜底」的 precheck（00:30，只读，总是 exit 1）；参数见
   `night-review-guard-xinyue.automation.md`。

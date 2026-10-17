@@ -1,8 +1,8 @@
 #!/bin/bash
 # Precheck of Orca automation「心月夜审兜底」(box, daily 00:30 SGT). Read-only check of last night's
 # 心月夜审 75b324a4 (23:30):
-#   - ~/xinyue-deploy/nightly-review/$D.md exists and has the line「状态：完成」
-#   - ~/xinyue-deploy/nightly-review/$D-ledger.jsonl has count_before and count_after (http 200, not dry-run)
+#   - ~/xinyue-deploy/nightly-review/$D-xinyue.md exists and has the line「状态：完成」
+#   - ~/xinyue-deploy/nightly-review/$D-xinyue-ledger.jsonl has count_before and count_after (http 200, not dry-run)
 #     from the same nightly_addflush.py run
 # Anything missing -> one POST status=stuck to the coding-assistant webhook (~/.config/grokbot/webhooks/coding-assistant.env).
 # Always exits 1 so the model is never started. Writes no files.
@@ -12,13 +12,13 @@ set -u
 export TZ=Asia/Singapore
 D=${D:-$(date -d '12 hours ago' +%F 2>/dev/null || date -v-12H +%F)}
 DIR=${NIGHTLY_REVIEW_DIR:-$HOME/xinyue-deploy/nightly-review}
-SUMMARY=$DIR/$D.md
-LEDGER=$DIR/$D-ledger.jsonl
+SUMMARY=$DIR/$D-xinyue.md
+LEDGER=$DIR/$D-xinyue-ledger.jsonl
 HOOK_ENV=$HOME/.config/grokbot/webhooks/coding-assistant.env
 
 problems=()
 if [ ! -f "$SUMMARY" ]; then
-  problems+=("没有摘要 $D.md")
+  problems+=("没有摘要 $D-xinyue.md")
 elif ! grep -Eq '^状态(：|:)[[:space:]]*完成' "$SUMMARY"; then
   st=$(grep -Em1 '^状态(：|:)' "$SUMMARY" | sed -E 's/^状态(：|:)[[:space:]]*//')
   step=$(grep -Em1 '^当前步骤(：|:)' "$SUMMARY" | sed -E 's/^当前步骤(：|:)[[:space:]]*//')

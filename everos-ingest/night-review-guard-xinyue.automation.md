@@ -1,4 +1,4 @@
-# Orca automation「心月夜审兜底」（box，由 Zack 建）
+# Orca automation「心月夜审兜底」（由心月网站运维 bot 用 Orca CLI 在 box 上建）
 
 只读检查前一晚 23:30 的心月夜审（`75b324a4`）有没有正常收尾。检查逻辑都在 precheck 脚本里，脚本总是 exit 1，不启动模型。不用 cron。
 
@@ -22,8 +22,8 @@
 
 - `D` 默认是 SGT「现在减 12 小时」的日期，00:30 运行时就是前一天。可用环境变量 `D=YYYY-MM-DD` 覆盖。
 - 检查：
-  1. `~/xinyue-deploy/nightly-review/$D.md` 存在，且有一行 `状态：完成`（全角或半角冒号都认）。
-  2. `~/xinyue-deploy/nightly-review/$D-ledger.jsonl` 里同一次写入运行（同一个 `run`）有 `count_before` 和 `count_after`，http 都是 200，且不是 dry-run。
+  1. `~/xinyue-deploy/nightly-review/$D-xinyue.md` 存在，且有一行 `状态：完成`（全角或半角冒号都认）。
+  2. `~/xinyue-deploy/nightly-review/$D-xinyue-ledger.jsonl` 里同一次写入运行（同一个 `run`）有 `count_before` 和 `count_after`，http 都是 200，且不是 dry-run。
 - 都满足：打印一行，exit 1，不发任何东西。
 - 任一不满足：向 `~/.config/grokbot/webhooks/coding-assistant.env` 的 URL POST 一次
   `{"bot":"coding-assistant","task":"心月夜审兜底 $D","worktree":"/workspace/repos/ops","status":"stuck","note":"<一句话>"}`，然后 exit 1。

@@ -6,7 +6,7 @@ Reads ~/.config/everos/xinyue.env; the key goes only into the Authorization head
 Only user/assistant text blocks are sent (no tool calls/results); messages that look
 like they carry a secret are dropped and counted.
 
-Ledger (default ~/xinyue-deploy/nightly-review/<date>-ledger.jsonl): one JSON line per call,
+Ledger (default ~/xinyue-deploy/nightly-review/<date>-xinyue-ledger.jsonl): one JSON line per call,
 appended and flushed right after the call returns. kind=count_before / count_after are
 /memory/get episode counts (total_count + id list) taken before the first write and after
 the last; kind=add / flush carry session_id, HTTP status, request_id and the non-text fields
@@ -156,12 +156,12 @@ def main():
     ap.add_argument("--date", required=True)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--log", required=True)
-    ap.add_argument("--ledger", help="write ledger jsonl (default ~/xinyue-deploy/nightly-review/<date>-ledger.jsonl)")
+    ap.add_argument("--ledger", help="write ledger jsonl (default ~/xinyue-deploy/nightly-review/<date>-xinyue-ledger.jsonl)")
     a = ap.parse_args()
     env = load_env("~/.config/everos/xinyue.env")
     key = env.get("EVEROS_API_KEY", "")
     scope = {"app_id": env["EVEROS_APP_ID"], "project_id": env["EVEROS_PROJECT_ID"]}
-    ledger = Ledger(a.ledger or f"~/xinyue-deploy/nightly-review/{a.date}-ledger.jsonl", key, a.dry_run)
+    ledger = Ledger(a.ledger or f"~/xinyue-deploy/nightly-review/{a.date}-xinyue-ledger.jsonl", key, a.dry_run)
     print(f"ledger: {ledger.path}", flush=True)
     before = episode_count(env, ledger, "count_before")
     base = Path(f"/var/lib/everos-ingest/xinyue/{a.date}")
