@@ -7,8 +7,8 @@
 #       用来包整个 agent：notify-run --bot <bot> --task "..." -- claude --dangerously-skip-permissions ...
 #   管道（stdout 不是终端，例如 agent 的 Bash 工具里）：stdout/stderr 照常输出，同时写进临时日志，
 #       结束时取最后约 20 行放进 log_tail。
-# webhook 配置：$HOME/.config/grokbot/webhooks/<bot>.env（各台机器同一相对路径；
-# 找不到时再试 /home/<user>/.config/grokbot/webhooks/<bot>.env），内含 URL 和 KEY。
+# webhook 配置：$HOME/.config/grokbot/webhooks/<bot>.env（iMac 和 box 同一相对路径；
+# 找不到时再试 /home/box/.config/grokbot/webhooks/<bot>.env），内含 URL 和 KEY。
 # KEY 只经 stdin 交给 curl（-H @-），不进命令行参数、日志和输出。
 # POST 的 JSON：bot, task, issue, machine, exit_code, status, log_tail, duration_s, source（固定 notify-run）。
 # --tty 时导出 ORCA_DISPATCH_BOT / ORCA_TASK_ID / ORCA_DISPATCH_ISSUE / ORCA_DISPATCH_PID / ORCA_DISPATCH_TS
@@ -80,7 +80,7 @@ print(json.dumps({"bot": a[0], "task": a[1], "issue": a[2], "machine": a[3], "ex
 send_webhook() (
     set +x
     env_file="$HOME/.config/grokbot/webhooks/$bot.env"
-    [ -r "$env_file" ] || env_file="/home/<user>/.config/grokbot/webhooks/$bot.env"
+    [ -r "$env_file" ] || env_file="/home/box/.config/grokbot/webhooks/$bot.env"
     if [ ! -r "$env_file" ]; then
         echo "notify-run: 找不到 $bot 的 webhook 配置，未发送" >&2
         exit 1
