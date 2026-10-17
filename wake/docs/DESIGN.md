@@ -89,7 +89,7 @@ hook 全部 `async: true`、`timeout: 10`。orca-wake 判断完立即返回，�
 - 「新动静」取 hook 最后一次事件时间和 transcript 里最后一条带时间戳记录的时间，两者取较晚的。不用 transcript 的文件修改时间：Claude Code 在一轮结束后还会往 transcript 追加不带时间戳的元数据（标题、bridge 信息等），e2e 里见过 Esc 13 分钟后追加，补叫醒因此推迟了一轮检查。
 - 兜的情况：Esc 中断（没有 Stop）、按键压掉 idle_prompt、webhook 三次都失败、hook 漏发。
 - 延迟：30 分钟阈值 + 15 分钟检查周期，Esc 中断后最长约 45 分钟才补叫。
-- 卡住检查脚本不在这个仓库。接入方式：
+- 卡住检查脚本是 ops 的 `scripts/stuck-check.sh`。接入方式：
   - agent 停在输入框超过 30 分钟时，卡住检查先对工作区里最上层的 agent 进程调用 `orca-wake recheck --agent-pid`（远程机器上通过临时终端调用），不再自己发 agent_idle。
   - 结果是补发或 `already_woken`：记为已处理，直到 agent 有新动作。派活 bot 不在 `enabled-bots` 里时，orca-wake 只写 `wake.log`（影子模式），卡住检查也不发。
   - 结果全是 `no_state_for_pid` 或 `parent_changed`：orca-wake 不认识这个会话（不是经 `notify-run --tty` 起的，或 Pi 扩展还没发过任何叫醒），卡住检查按原来的 agent_idle 流程报。

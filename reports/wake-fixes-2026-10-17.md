@@ -1,5 +1,7 @@
 # 叫醒系统修复（2026-10-17 晚，Zack 23:06「全部 fix 掉」）
 
+> 文件位置：notify-run、orca-wake 原在 `orca-agent-wake` 仓库（PR #1），10-17 已并入本仓库 `wake/`（`wake/bin/notify-run`）；stuck-check 在 `scripts/stuck-check.sh`，agent-probe 在 `scripts/agent-probe`，watchdog 在 `orca-remote/watchdog.sh`。安装用 `wake/install.sh`。
+
 ## 1. box Orca 一天重启 70–90 次
 - 根因：box 虚拟机在空闲时会被平台暂停、之后恢复（watchdog 日志里 guest clock STOPPED = VM paused，这一段我们控制不了）。
   但每次恢复后 watchdog 都**无条件**重启 Orca（`resume -> restart immediately`）。10-11..10-17 共 358 次重启里 294 次是 resume，

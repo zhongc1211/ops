@@ -1,6 +1,8 @@
-# orca-agent-wake
+# wake：派活 agent 叫醒
 
-> **状态：测试中。** 已在一台 macOS 机器和一台 Linux 机器上安装，并用本地模拟 webhook 和专用测试 webhook 跑过测试。真实 bot 默认处于影子模式（只记日志、不发送），列进 `enabled-bots` 后才会真发。
+> **状态：已上线（iMac + box）。** 2026-10-17 起，五个派活 bot 都已列进 `enabled-bots` 真发叫醒，不再是影子模式（之前只有 Coding助手放行）。
+>
+> 本目录原是独立仓库 `zhongc1211/orca-agent-wake`，2026-10-17 用 `git subtree` 并进 ops（保留提交历史），原仓库设为只读归档。以后只在 ops 里改、从 ops 安装。
 
 派活 bot 用 `notify-run --tty` 在终端里启动交互式 Claude Code 或 Pi 后，agent 做完会停在输入框，不会退出，`notify-run` 也就不会发完工通知。这个仓库在 agent 停下时直接通知派活 bot，不依赖 agent 自己记得汇报。
 
@@ -25,13 +27,20 @@
 
 ## 安装
 
+在 ops 仓库根目录运行（iMac、box 通用，可重复运行）：
+
 ```bash
-install -m 755 bin/orca-wake bin/orca-wake-hooks bin/notify-run ~/.local/bin/
-cp pi/dispatch-wake.ts ~/.pi/agent/extensions/          # 用 Pi 时
+wake/install.sh --check     # 只比对已装版本和仓库版本，有差异退出 1
+wake/install.sh --dry-run   # 列出会改哪些文件
+wake/install.sh             # 安装：内容相同的不动，要覆盖的先备份成 <文件>.bak-<时间戳>
+```
+
+`install.sh` 装 `bin/` 下三个脚本和 ops 的 `scripts/agent-probe` 到 `~/.local/bin/`；有 `~/.pi/agent/extensions/` 时同时装 Pi 扩展；没有 `enabled-bots` 时建一个空文件。它不改 `~/.claude/settings.json`、`enabled-bots` 内容和 webhook 配置。首次安装还要手动加 hook：
+
+```bash
 mkdir -p ~/orca-wake-backup
 orca-wake-hooks install --backup-dir ~/orca-wake-backup  # 改 settings.json 前自动备份
 orca-wake-hooks check
-mkdir -p ~/.config/orca-wake && touch ~/.config/orca-wake/enabled-bots
 ```
 
 webhook 配置沿用 notify-run 的 `~/.config/grokbot/webhooks/<bot>.env`（`URL=`、`KEY=`，权限 600）。KEY 只放在请求头里，不写进日志。
@@ -61,7 +70,9 @@ rm -rf ~/.local/state/orca-wake ~/.config/orca-wake      # 可选：删状态和
 
 ## 卡住检查补叫醒
 
-`orca-wake recheck --agent-pid <pid>`：调用方（卡住检查）发现 agent 停在输入框时调用。该停顿已有成功的叫醒就跳过，否则补发一次（`source=stuck-check-recheck`），默认要求会话至少 30 分钟没有新动静（`--idle-min`）。`orca-wake recheck --waiting-pid <pid>[:<since_ms>]`：agent 停在对话框（Orca 状态 waiting）时调用，只补发该对话框的 needs_input，去重键与 hook 相同；hook 已送达时返回 `already_asked`，不重发。`orca-wake recheck --list` 只列出候选，不发送。卡住检查脚本本身不在这个仓库里，接入方式（包括 orca-wake 不认识的会话怎么兜底）见 DESIGN。
+`orca-wake recheck --agent-pid <pid>`：调用方（卡住检查）发现 agent 停在输入框时调用。该停顿已有成功的叫醒就跳过，否则补发一次（`source=stuck-check-recheck`），默认要求会话至少 30 分钟没有新动静（`--idle-min`）。`orca-wake recheck --waiting-pid <pid>[:<since_ms>]`：agent 停在对话框（Orca 状态 waiting）时调用，只补发该对话框的 needs_input，去重键与 hook 相同；hook 已送达时返回 `already_asked`，不重发。`orca-wake recheck --list` 只列出候选，不发送。卡住检查脚本是 ops 的 `scripts/stuck-check.sh`，接入方式（包括 orca-wake 不认识的会话怎么兜底）见 DESIGN。
+
+**依赖关系：** 卡住检查读 orca-wake 的状态目录（`~/.local/state/orca-wake/sent/`，经 `orca-wake recheck`）判断一次停顿是否已叫醒过，所以改 `sent/` 的写法或去重键时要同时看 `scripts/stuck-check.sh`。注意影子模式下 `sent/` 也会写（mode=shadow），卡住检查会当成已处理；所以派活 bot 必须列在 `enabled-bots` 里，否则停顿只记日志、没人收到。
 
 ## 已知限制
 
