@@ -1,0 +1,15 @@
+## 2026-10-17 15:35:46 +08 tests from iMac (100.64.0.4)
+-- tailnet /health
+{"status":"ok","version":"1.4.2","capabilities":{"llm":true,"embed":false,"rerank":false,"multimodal_llm":false,"parser"
+-- tailnet /api/v2/memory/get without auth (expect 401)
+[401]
+-- tailnet with a wrong bearer (expect 401)
+[401]
+-- public IP 157.230.194.108 Host: anything (expect 444 = empty reply / curl 52)
+[000] curl_exit=28
+-- public IP no Host override
+[000] curl_exit=28
+-- public Cloudflare path unchanged: https://everos.deepvision.sg/health
+{"status":"ok","version":"1.4.2","capabilities":{"llm":true,"embed":false,"rerank":false,"multimodal_llm":false,"parser"
+-- public Cloudflare path without auth (expect 401 as before)
+[401]

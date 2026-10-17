@@ -1,0 +1,25 @@
+# iMac pi 1.0.4 load check, 2026-10-17 ~17:44 SGT (script: ~/agent-tools/vllm-pi-ext/pi-load-check.sh, copy in this folder)
+command: cd <cwd> && env -i HOME=$HOME PATH=$PATH LANG=C.UTF-8 TERM=dumb pi --mode rpc --no-session --tools 'codemode,mcp__everos__*'  (stdin: prompt "/mcp", get_state)
+
+## run A: cwd ~/orca/workspaces/repository/PER-40-调度开销分析 (origin vllm-project/vllm-omni, HEAD 66bb974ff81c2d1f5b4930aaad34f056ce0ef325)
+  notify: everos: connected, 3 tools (hidden)
+  response prompt True handled
+  get_state messageCount = 0 (0 = no model call)
+  stderr bytes: 0      (2 other extension_ui_request = setWidget from the Orca status extension)
+
+## run B: cwd ~/orca/workspaces/ops (unmapped)
+  notify: No MCP servers configured. Add them to /Users/jiawenwang/.pi/agent/mcp.json or .pi/mcp.json.
+  response prompt True handled
+  get_state messageCount = 0
+  stderr bytes: 0
+
+## G4 (iMac)
+743e3d27d88e7d77f3a52fac4371dbd13b95091baad84772e86453f7516214fd  ~/.pi/agent/extensions/everos.ts
+no everos-*.ts
+grep -l everos ~/.pi/agent/mcp.json + workspace .pi/mcp.json: [] (empty = pass)
+launcher ~/.local/bin/everos-mcp-vllm-omni normalized f543542d… (v2.1, 17:27, not touched by this task)
+
+## Note
+~/orca/workspaces/vllm on the iMac is upstream vllm-project/vllm (worktree PER-8-hunyuan-imac), not vllm-omni, so it is
+correctly NOT in the table. vllm-omni worktrees on the iMac live under ~/orca/workspaces/repository (mapped).
+~/orca/workspaces/vllm-omni does not exist on the iMac (the row never matches there; harmless).

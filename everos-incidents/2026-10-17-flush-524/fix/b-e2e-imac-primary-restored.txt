@@ -1,0 +1,8 @@
+session=everos-smoke-imac-primary-restored-20261017155225 base=http://100.64.0.5 (Authorization: Bearer <redacted>)
+--- POST http://100.64.0.5/api/v2/memory/add
+{"request_id":"d104e9d692624daf850d66265375a0d7","data":{"message_count":2,"status":"accumulated"}}
+[http 200 in 3.119346s]
+--- POST http://100.64.0.5/api/v2/memory/flush
+{"request_id":"a6e70c502f4b4f3fb90dbaf84266a503","data":{"status":"extracted"}}
+[http 200 in 8.876538s]
+SESSION=everos-smoke-imac-primary-restored-20261017155225

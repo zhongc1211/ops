@@ -1,0 +1,11 @@
+## MCP regression 2026-10-17 19:32:52 +08: live box launchers (unchanged), recall_agent_experience
+- xinyue
+  tool search_memory            readOnly=True destructive=None
+  tool list_memories            readOnly=True destructive=None
+  tool recall_agent_experience  readOnly=True destructive=None
+call recall_agent_experience {"task": "切流量 绑定"} isError=False skills=['check-bindings-before-shifting-production-traffic', 'check-what-a-pr-contains-before-asking-for-approva']
+- vllm-omni
+  tool search_memory            readOnly=True destructive=None
+  tool list_memories            readOnly=True destructive=None
+  tool recall_agent_experience  readOnly=True destructive=None
+call recall_agent_experience {"task": "NCCL"} isError=False skills=['secure-h100-nccl-nvls-and-pod-loss']

@@ -1,0 +1,35 @@
+Sat Oct 17 07:03:30 AM UTC 2026
+== local /health
+{"status":"ok","version":"1.4.2","capabilities":{"llm":true,"embed":false,"rerank":false,"multimodal_llm":false,"parser":true},"disabled_features":["vector_search","hybrid_search","reflection","skill_extraction","agentic_search","knowledge","multimodal_upload"],"cascade":{"healthy":true,"reasons":[],"pending":0,"failed_permanent":0,"failed_retryable":0,"drain_consecutive_failures":0,"unrecoverable_total":0,"optimize_failure_streak":0,"prune_stale_seconds":228.3}} [200 0.024700s]
+== via Cloudflare /health
+{"status":"ok","version":"1.4.2","capabilities":{"llm":true,"embed":false,"rerank":false,"multimodal_llm":false,"parser":true},"disabled_features":["vector_search","hybrid_search","reflection","skill_extraction","agentic_search","knowledge","multimodal_upload"],"cascade":{"healthy":true,"reasons":[],"pending":0,"failed_permanent":0,"failed_retryable":0,"drain_consecutive_failures":0,"unrecoverable_total":0,"optimize_failure_streak":0,"prune_stale_seconds":228.5}} [200 0.165328s]
+== magpie GET /v1/models from site, no auth (401 = reachable)
+[401 connect=0.031854s total=0.051756s]
+[401 connect=0.027368s total=0.039302s]
+[401 connect=0.012076s total=0.024144s]
+== tailscale status/ping
+100.64.0.5  site    site    linux  -                                                       
+100.64.0.6  box     box     linux  -                                                       
+100.64.0.4  imac    imac    macOS  active; direct 165.173.24.76:41641, tx 219316 rx 51948  
+pong from imac (100.64.0.4) via 165.173.24.76:41641 in 8ms
+== everos unit
+NRestarts=0
+MemoryCurrent=412839936
+MemoryHigh=524288000
+MemoryMax=734003200
+ActiveEnterTimestamp=Thu 2026-10-15 19:39:54 UTC
+               total        used        free      shared  buff/cache   available
+Mem:             957         568          62           3         326         235
+Swap:           1023         157         866
+== ingress: no cloudflared on site
+no cloudflared process
+172.67.176.55
+104.21.31.105
+8:    listen 80 default_server;
+9:    listen [::]:80 default_server;
+10:    server_name _;
+15:    listen 80;
+16:    listen [::]:80;
+17:    server_name everos.deepvision.sg;
+20:    proxy_read_timeout 400s;
+21:    proxy_send_timeout 400s;

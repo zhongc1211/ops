@@ -1,0 +1,70 @@
+--- everos-mcp-vllm-omni.v21-current	2026-10-17 20:06:26.062044892 +0800
++++ everos-mcp-vllm-omni.hybrid-draft-A	2026-10-17 20:12:15.526044892 +0800
+@@ -12,8 +12,13 @@
+ # Every request carries Host: everos.deepvision.sg, so routing never depends on the Host-less tailnet block.
+ # Read-only: the server exposes only recall_agent_experience, search_memory and list_memories; the
+ # write tools and get_profile are removed before it starts (enabling writes needs a new template).
+-# EVEROS_MCP_SEARCH_METHOD (default keyword): everos-mcp 0.1.1 hard-codes method=hybrid, which the
+-# server rejects with 422 while embedding is off. Set it to "hybrid" for the stock behaviour.
++# HYBRID PILOT (vllm-omni only, 2026-10-17, MCP standard v2 §12 step 2; not a template): searches use
++# EVEROS_MCP_SEARCH_METHOD (default here: hybrid). Agent-track search (recall_agent_experience) also sends
++# enable_llm_rerank=true (EverOS agent_hybrid requires rerank) unless EVEROS_MCP_AGENT_RERANK=0; user-track
++# search (search_memory) never sends it. Each search appends one line (no key, no headers) to
++# ~/.local/state/everos-mcp/search.log: track, method, enable_llm_rerank, HTTP outcome, latency.
++# Roll back: restore everos-mcp-vllm-omni.bak-v21-pre-hybrid (launcher v2.1).
++# Variant A (server /health capabilities.rerank=true): recall = hybrid WITHOUT enable_llm_rerank.
+ set -euo pipefail
+ N=vllm-omni
+ ENV_FILE="$HOME/.config/everos/$N.env"
+@@ -59,17 +64,44 @@
+   printf '%s everos-mcp-%s endpoint=%s url=%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$N" "$endpoint" \
+     "$EVEROS_BASE_URL" "$probe" >> "$d/endpoint.log"; } 2>/dev/null || true
+ export EVEROS_MCP_UPSTREAM_HOST="$HOST_HEADER"
+-export EVEROS_MCP_SEARCH_METHOD="${EVEROS_MCP_SEARCH_METHOD:-keyword}"
++export EVEROS_MCP_SEARCH_METHOD="${EVEROS_MCP_SEARCH_METHOD:-hybrid}"
++export EVEROS_MCP_AGENT_RERANK="${EVEROS_MCP_AGENT_RERANK:-0}"
++export EVEROS_MCP_N="$N"
++export EVEROS_MCP_SEARCH_LOG="${XDG_STATE_HOME:-$HOME/.local/state}/everos-mcp/search.log"
+ export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
+ exec uvx --quiet --from 'everos-mcp==0.1.1' python -c '
+-import os, sys
++import os, sys, time
+ from everos_mcp import client, server
+ m = os.environ["EVEROS_MCP_SEARCH_METHOD"]
+-if m != "hybrid":
+-    _orig = client.EverOSClient.search
+-    async def search(self, query, *, method="hybrid", **kw):
+-        return await _orig(self, query, method=m, **kw)
+-    client.EverOSClient.search = search
++agent_rerank = os.environ.get("EVEROS_MCP_AGENT_RERANK", "1") == "1"
++n_label = os.environ.get("EVEROS_MCP_N", "?")
++log_path = os.environ.get("EVEROS_MCP_SEARCH_LOG", "")
++def _log(line):
++    if not log_path:
++        return
++    try:
++        with open(log_path, "a") as f:
++            f.write(time.strftime("%Y-%m-%dT%H:%M:%S%z") + " everos-mcp-" + n_label + " " + line + "\n")
++    except OSError:
++        pass
++async def search(self, query, *, top_k=-1, method="hybrid", include_profile=False, agent=False):
++    payload = {**self._scope(), **self._owner(agent), "query": query, "method": m,
++               "top_k": top_k, "include_profile": include_profile}
++    if agent and agent_rerank:
++        payload["enable_llm_rerank"] = True
++    meta = "track=%s method=%s enable_llm_rerank=%s top_k=%s" % (
++        "agent" if agent else "user", m, str(payload.get("enable_llm_rerank", False)).lower(), top_k)
++    t0 = time.monotonic()
++    try:
++        data = await self._post("/api/v2/memory/search", payload)
++    except Exception as exc:
++        _log("search %s outcome=error code=%s ms=%d" % (meta, getattr(exc, "code", type(exc).__name__),
++             (time.monotonic() - t0) * 1000))
++        raise
++    counts = " ".join("%s=%d" % (k, len(data.get(k) or [])) for k in ("agent_skills", "agent_cases", "episodes"))
++    _log("search %s outcome=ok ms=%d %s" % (meta, (time.monotonic() - t0) * 1000, counts))
++    return data
++client.EverOSClient.search = search
+ host = os.environ["EVEROS_MCP_UPSTREAM_HOST"]
+ _init = client.EverOSClient.__init__
+ def init(self, *a, **kw):

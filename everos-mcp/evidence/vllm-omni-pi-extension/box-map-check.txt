@@ -1,0 +1,26 @@
+loaded OK; load-time registration at cwd=/ : none
+ok   ~/orca/workspaces/vllm-omni -> vllm-omni exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   ~/orca/workspaces/vllm-omni/vllm-FDV-1-some-task/src -> vllm-omni exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   /workspace/repos/vllm-omni -> vllm-omni exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   /workspace/repos/vllm-omni/tests -> vllm-omni exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   ~/orca/workspaces/repository -> vllm-omni exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   ~/orca/workspaces/repository/wt-1 -> vllm-omni exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   ~/orca/workspaces/vllm-omni-other -> (none)
+ok   ~/orca/workspaces/repository2 -> (none)
+ok   ~/pi/remote/vllm-omni -> (none)
+ok   ~/claude/gpu/vllm-omni -> (none)
+ok   ~/orca/workspaces/xinyue-site/x -> xinyue exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   /workspace/repos/xinyue-site -> xinyue exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   ~/pi/remote/xinyue-site -> xinyue exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   ~/pi/remote/xinyue-site-cicd -> xinyue exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   ~/pi/remote/xinyue-ci -> xinyue exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   ~/orca/workspaces/deepvision-site/a -> deepvision exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   /workspace/repos/deepvision-site -> deepvision exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   ~/orca/workspaces/site -> deepvision exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   ~/claude/site -> deepvision exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   ~/orca/workspaces/deepvision-ads/b -> dv-ads exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   /workspace/repos/deepvision-ads -> dv-ads exposure=hidden direct=recall_agent_experience,search_memory,list_memories
+ok   /workspace/ops -> (none)
+ok   ~ -> (none)
+PI_SUBAGENT_CHILD=1: registrations=0 (expect 0)
+RESULT PASS

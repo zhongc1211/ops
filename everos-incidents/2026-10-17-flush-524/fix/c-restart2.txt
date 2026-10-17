@@ -1,0 +1,8 @@
+== 16:10:55 SGT pre-restart2 check: established conns to :8000: 0
+100.64.0.6 - - [17/Oct/2026:08:09:54 +0000] "POST /api/v2/memory/add HTTP/1.1" 200 99 "-" "curl/8.14.1"
+100.64.0.6 - - [17/Oct/2026:08:10:12 +0000] "POST /api/v2/memory/flush HTTP/1.1" 200 79 "-" "curl/8.14.1"
+"pending":0
+before restart2: 2026-10-17 08:09:45.591447186 +0000 3613922 /var/lib/everos/.cache/tiktoken/fb374d419588a4632f3f557e76b4b70aebbca790
+RESTART2 issued 2026-10-17 16:10:55 SGT; healthy at 16:11:09 SGT
+NRestarts=0
+ActiveEnterTimestamp=Sat 2026-10-17 08:10:56 UTC

@@ -1,0 +1,7 @@
+## reachability from box (100.64.0.6) 2026-10-17 20:17:45 +0800
+http://100.64.0.5:8031/rerank -> http=000 connect=0.000000s
+  curl rc=7
+http://157.230.194.108:8031/rerank -> http=000 connect=0.000000s
+  curl rc=28
+http://100.64.0.5/rerank Host:dashscope-intl.aliyuncs.com -> 401
+http://100.64.0.5/rerank Host:x -> 401

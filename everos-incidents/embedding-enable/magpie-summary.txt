@@ -1,0 +1,9 @@
+magpie usage --last 40m at 19:3x SGT: total rows 18 | EverOS (agent AsyncOpenAI) rows 8
+2026-10-17T19:32:41+08:00 group/everos-llm -> gpt-6.1-sol 200 in 1411 out 39 ms 2839 false
+2026-10-17T19:32:36+08:00 group/everos-llm -> gpt-6.1-sol 200 in 3918 out 129 ms 3899 false
+2026-10-17T19:32:32+08:00 group/everos-llm -> gpt-6.1-sol 200 in 1643 out 32 ms 2066 false
+2026-10-17T19:32:25+08:00 group/everos-llm -> gpt-6.1-sol 200 in 3015 out 61 ms 3274 false
+2026-10-17T19:04:21+08:00 group/everos-llm -> gpt-6.1-sol 200 in 1353 out 152 ms 3605 false
+2026-10-17T19:04:17+08:00 group/everos-llm -> gpt-6.1-sol 200 in 1866 out 120 ms 4370 false
+2026-10-17T19:04:13+08:00 group/everos-llm -> gpt-6.1-sol 200 in 186 out 56 ms 3471 false
+2026-10-17T19:04:08+08:00 group/everos-llm -> gpt-6.1-sol 200 in 1338 out 61 ms 4685 false

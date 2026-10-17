@@ -1,0 +1,9 @@
+## step 4 smoke 2026-10-17 19:04:05 +08 via http://100.64.0.5
+session=everos-smoke-embed-on-20261017190405 base=http://100.64.0.5 (Authorization: Bearer <redacted>)
+--- POST http://100.64.0.5/api/v2/memory/add
+{"request_id":"50f4ec695e7747aaa89a2b2f56235a6a","data":{"message_count":2,"status":"accumulated"}}
+[http 200 in 8.247614s]
+--- POST http://100.64.0.5/api/v2/memory/flush
+{"request_id":"a8e2672d761b44be9f853abcf83947b9","data":{"status":"extracted"}}
+[http 200 in 8.769190s]
+SESSION=everos-smoke-embed-on-20261017190405

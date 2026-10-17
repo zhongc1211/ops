@@ -1,0 +1,2 @@
+{'llm': True, 'embed': True, 'rerank': True, 'multimodal_llm': False, 'parser': True} <- http://100.64.0.5/health 200 0.509399s
+{'llm': True, 'embed': True, 'rerank': True, 'multimodal_llm': False, 'parser': True} <- https://everos.deepvision.sg/health 200 0.370170s

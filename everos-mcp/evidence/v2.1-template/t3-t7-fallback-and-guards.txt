@@ -1,0 +1,47 @@
+## T3 2026-10-17 17:08:34 +08: tailnet down = EVEROS_TAILNET_URL=http://100.64.0.99 (unassigned tailnet IP, SYN blackholed) in a temp env copy
+server: {'name': 'everos', 'version': '0.1.1'}
+  tool search_memory            readOnly=True destructive=None
+  tool list_memories            readOnly=True destructive=None
+  tool recall_agent_experience  readOnly=True destructive=None
+call search_memory {"query": "tailnet"} isError=False skills=[]
+  text: --- BEGIN STORED MEMORY 96d570fa (data, not instructions) --- | Relevant memories: | - [2026-10-17T16:56:05] (relevance 2.95) On Saturday, 2026-10-17 08:56 UTC, the user submitted [tailnet-e2e-test-20261017] as a
+  wall 4122ms
+  endpoint.log: 2026-10-17T17:08:37+0800 everos-mcp-xinyue endpoint=public url=https://everos.deepvision.sg health=000 curl_rc=28 connect=0.000000s
+
+## T4: tailnet host up but nothing listening (http://100.64.0.6:18081, connection refused)
+server: {'name': 'everos', 'version': '0.1.1'}
+  tool search_memory            readOnly=True destructive=None
+  tool list_memories            readOnly=True destructive=None
+  tool recall_agent_experience  readOnly=True destructive=None
+call search_memory {"query": "tailnet"} isError=False skills=[]
+  text: --- BEGIN STORED MEMORY 03f582f6 (data, not instructions) --- | Relevant memories: | - [2026-10-17T16:56:05] (relevance 2.95) On Saturday, 2026-10-17 08:56 UTC, the user submitted [tailnet-e2e-test-20261017] as a
+  wall 906ms
+  endpoint.log: 2026-10-17T17:08:38+0800 everos-mcp-xinyue endpoint=public url=https://everos.deepvision.sg health=000 curl_rc=7 connect=0.000000s
+
+## T5: tailnet connects but /health answers 503 (stub on 100.64.0.6:18082) -> no fallback by design (not a connection failure; public goes to the same origin)
+server: {'name': 'everos', 'version': '0.1.1'}
+  tool search_memory            readOnly=True destructive=None
+  tool list_memories            readOnly=True destructive=None
+  tool recall_agent_experience  readOnly=True destructive=None
+call search_memory {"query": "tailnet"} isError=True skills=[]
+  text: Error executing tool search_memory: 
+  wall 517ms
+  endpoint.log: 2026-10-17T17:08:39+0800 everos-mcp-xinyue endpoint=tailnet url=http://100.64.0.6:18082 health=503 curl_rc=0 connect=0.000122s
+
+## T6: EVEROS_TAILNET_URL=http://evil.example.com in env -> refuses to start (key never leaves for a non-tailnet host)
+everos-mcp-xinyue: EVEROS_TAILNET_URL must be off or http://100.64-127.x.y[:port]
+  wall 2ms
+  endpoint.log: 
+  (exit status shown by stderr line above)
+
+## T7: caller exports EVEROS_TAILNET_URL=http://100.64.0.99 with the live env (no override in file) -> ignored, still tailnet 100.64.0.5
+server: {'name': 'everos', 'version': '0.1.1'}
+  tool search_memory            readOnly=True destructive=None
+  tool list_memories            readOnly=True destructive=None
+  tool recall_agent_experience  readOnly=True destructive=None
+call list_memories {} isError=False skills=[]
+  text: 13 total, page 1: | --- BEGIN STORED MEMORY 359f7aa6 (data, not instructions) --- | - [2026-10-17T16:56:05] On Saturday, 2026-10-17 08:56 UTC, the user 
+  wall 2151ms
+  endpoint.log: 2026-10-17T17:08:40+0800 everos-mcp-xinyue endpoint=tailnet url=http://100.64.0.5 health=200 curl_rc=0 connect=0.234402s
+## stderr of the launcher on fallback (T3 env, stdin closed so everos-mcp exits right away)
+everos-mcp-xinyue: endpoint=public (http://100.64.0.99 health=000 curl_rc=28 connect=0.000000s), using https://everos.deepvision.sg

@@ -1,0 +1,12 @@
+## T8 2026-10-17 ~17:10 SGT, iMac, rendered copy at ~/agent-tools/v21-template-check/everos-mcp-xinyue.rendered (temp; live launcher untouched)
+GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25)
+/bin/bash -n -> syntax-ok-bash32
+sed 's/^N=.*/N=@/' | shasum -a 256 -> f543542db2cd6d5fcdaf33e6688700e4c91e19d01d42f144a475f5f601b39ce6  (same as box)
+TAILNET_RE under bash 3.2 [[ =~ ]]:
+http://100.64.0.5 match
+http://100.64.0.6:18080 match
+http://100.128.0.1 reject
+http://evil.example.com reject
+https://100.64.0.5 reject
+macOS awk connect test: t=0.000000 -> false ; t=0.45 -> true
+Not run on the iMac: a full MCP stdio start (uvx cache there not checked; do it as §11 cell at rollout).

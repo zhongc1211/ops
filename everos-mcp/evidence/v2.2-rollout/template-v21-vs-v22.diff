@@ -1,0 +1,76 @@
+2c2
+< # everos-mcp-<N>: start everos-mcp for one project (EverOS MCP wiring standard v2, launcher v2.1). Linux and macOS bash 3.2.
+---
+> # everos-mcp-<N>: start everos-mcp for one project (EverOS MCP wiring standard v2, launcher v2.2). Linux and macOS bash 3.2.
+15,16c15,19
+< # EVEROS_MCP_SEARCH_METHOD (default keyword): everos-mcp 0.1.1 hard-codes method=hybrid, which the
+< # server rejects with 422 while embedding is off. Set it to "hybrid" for the stock behaviour.
+---
+> # Search (launcher v2.2): both tracks use method=hybrid (EVEROS_MCP_SEARCH_METHOD, hybrid|keyword, default
+> # hybrid). enable_llm_rerank is never sent: EverOS reranks server-side (/health capabilities.rerank=true).
+> # search_memory output lists each episode's atomic facts under it (everos-mcp 0.1.1 drops them); items whose
+> # app_id/project_id/owner differ from this file's scope are dropped. Each search appends one line (no key, no
+> # headers, no query text) to ~/.local/state/everos-mcp/search.log: track, method, outcome, latency, counts.
+62c65,69
+< export EVEROS_MCP_SEARCH_METHOD="${EVEROS_MCP_SEARCH_METHOD:-keyword}"
+---
+> export EVEROS_MCP_SEARCH_METHOD="${EVEROS_MCP_SEARCH_METHOD:-hybrid}"
+> case "$EVEROS_MCP_SEARCH_METHOD" in hybrid|keyword) ;; *)
+>   echo "everos-mcp-$N: EVEROS_MCP_SEARCH_METHOD must be hybrid or keyword" >&2; exit 1;; esac
+> export EVEROS_MCP_N="$N"
+> export EVEROS_MCP_SEARCH_LOG="${XDG_STATE_HOME:-$HOME/.local/state}/everos-mcp/search.log"
+65c72
+< import os, sys
+---
+> import os, sys, time
+68,72c75,118
+< if m != "hybrid":
+<     _orig = client.EverOSClient.search
+<     async def search(self, query, *, method="hybrid", **kw):
+<         return await _orig(self, query, method=m, **kw)
+<     client.EverOSClient.search = search
+---
+> n_label = os.environ.get("EVEROS_MCP_N", "?")
+> log_path = os.environ.get("EVEROS_MCP_SEARCH_LOG", "")
+> def _log(line):
+>     if not log_path:
+>         return
+>     try:
+>         with open(log_path, "a") as f:
+>             f.write(time.strftime("%Y-%m-%dT%H:%M:%S%z") + " everos-mcp-" + n_label + " " + line + "\n")
+>     except OSError:
+>         pass
+> def _foreign(item, want):
+>     return any(item.get(k) not in (None, "", v) for k, v in want.items())
+> async def search(self, query, *, top_k=-1, method="hybrid", include_profile=False, agent=False):
+>     scope = {**self._scope(), **self._owner(agent)}
+>     payload = {**scope, "query": query, "method": m, "top_k": top_k, "include_profile": include_profile}
+>     meta = "track=%s method=%s enable_llm_rerank=absent top_k=%s" % ("agent" if agent else "user", m, top_k)
+>     t0 = time.monotonic()
+>     try:
+>         data = await self._post("/api/v2/memory/search", payload)
+>     except Exception as exc:
+>         _log("search %s outcome=error code=%s ms=%d" % (meta, getattr(exc, "code", type(exc).__name__),
+>              (time.monotonic() - t0) * 1000))
+>         raise
+>     dropped = 0
+>     for k in ("agent_skills", "agent_cases", "episodes", "profiles"):
+>         items = data.get(k) or []
+>         keep = [i for i in items if not (isinstance(i, dict) and _foreign(i, scope))]
+>         dropped += len(items) - len(keep)
+>         if k in data:
+>             data[k] = keep
+>     facts = sum(len(e.get("atomic_facts") or []) for e in data.get("episodes") or [] if isinstance(e, dict))
+>     counts = " ".join("%s=%d" % (k, len(data.get(k) or [])) for k in ("agent_skills", "agent_cases", "episodes"))
+>     _log("search %s outcome=ok ms=%d %s atomic_facts=%d foreign_dropped=%d" % (
+>         meta, (time.monotonic() - t0) * 1000, counts, facts, dropped))
+>     return data
+> _fmt_ep = server._fmt_episode
+> def fmt_episode(ep):
+>     lines = [_fmt_ep(ep)]
+>     for a in (ep.get("atomic_facts") or [])[:8]:
+>         if isinstance(a, dict) and a.get("content"):
+>             lines.append("  - fact: " + str(a["content"]))
+>     return "\n".join(lines)
+> server._fmt_episode = fmt_episode
+> client.EverOSClient.search = search
