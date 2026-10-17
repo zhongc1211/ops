@@ -1,0 +1,1088 @@
+#!/usr/bin/env python3
+"""orca-wake: wake the dispatching bot when an interactive coding agent stops at its prompt.
+
+Usage:
+  orca-wake claude-hook
+      Read one Claude Code hook event (JSON) from stdin. Called from the hooks in
+      ~/.claude/settings.json with WAKE_AGENT_PID=$PPID (the claude process).
+  orca-wake send --agent pi --status idle|needs_input|error|blocked --session ID --seq SEQ
+                 [--agent-pid PID] [--cwd DIR] [--transcript FILE] [--note TEXT]
+      Called by the Pi extension (dispatch-wake.ts). The message text is read from stdin.
+  orca-wake recheck --list [--idle-min N]
+      Print dispatched sessions that are still alive and have not been woken for their
+      current pause (JSON, one per line). Read-only.
+  orca-wake recheck --agent-pid PID [--agent-pid PID ...] [--idle-min N]
+      The caller (stuck check) has seen these agents idle at the prompt. For each one whose
+      current pause has no successful wake yet, send one idle wake (source=stuck-check-recheck).
+  orca-wake recheck --waiting-pid PID[:SINCE_MS] [...] [--idle-min N]
+      The caller has seen these agents sitting in a dialog (Orca agent state "waiting", SINCE_MS =
+      Orca stateStartedAt). Re-send the dialog's needs_input with the same dedup key the hook used,
+      so it goes out only if the hook's needs_input never got a 2xx. Never sends idle (an idle key
+      sent mid-turn would swallow the real end-of-turn wake). Prints, per pid, one of
+      "send needs_input seq S", "skip (already_asked)", "skip (inflight)" or another skip reason.
+
+Only sessions started by `notify-run --tty` are handled: notify-run exports ORCA_DISPATCH_BOT,
+ORCA_TASK_ID, ORCA_DISPATCH_PID, ORCA_DISPATCH_TS and ORCA_DISPATCH_ISSUE, and the agent process
+must be a direct child of ORCA_DISPATCH_PID. Nested `claude -p` / `pi` runs fail that check and
+are skipped (logged).
+
+Files (override with environment variables, mainly for tests):
+  state   ${ORCA_WAKE_STATE_DIR:-~/.local/state/orca-wake}
+            sessions/<agent>-<session>.json   per-session state (turn counter, last Stop, ...)
+            sent/<sha1>                        one file per dedup key that got a 2xx (or shadow)
+            inflight/<sha1>                    a sender is working on this key
+            wake.log                           one JSON line per decision / send attempt
+  config  ${ORCA_WAKE_CONFIG_DIR:-~/.config/orca-wake}
+            enabled-bots                       bot names (one per line, or *) that really get
+                                               webhooks; every other bot runs in shadow mode
+                                               (decision logged, nothing sent)
+  webhook ${ORCA_WAKE_WEBHOOK_DIRS:-~/.config/grokbot/webhooks}   (colon-separated)
+            <bot>.env with URL=... and KEY=...  (same files notify-run uses)
+
+Mute: a file named .orca-wake-mute in the session's cwd or any parent up to the git root stops
+all wakes for that session (touch it when a human takes over, delete it to resume).
+
+Dedup key = agent:session:status:seq. For Claude, seq is the turn number (UserPromptSubmit
+count, needs_input adds .<n>); for Pi it is the session leaf entry id. A key is marked sent only
+after a 2xx; the key also goes into the webhook body (dedup_key) so the bot can drop repeats.
+
+Retries: HTTP 429, or a 4xx whose body mentions "rate limit" (the platform answers its rate limit
+with 400), waits ORCA_WAKE_RL_DELAYS (default 60,300,900 s, +-10% jitter, Retry-After honoured up
+to 900 s). Other failures use ORCA_WAKE_RETRY_DELAYS (default 20,45 s). All retries of one wake stay
+within 25 minutes, and each retry first checks the session has not moved on (superseded). Every
+non-2xx answer is logged with its body (URL and KEY removed, at most 300 characters).
+"""
+import argparse
+import datetime
+import random
+import errno
+import fcntl
+import hashlib
+import json
+import os
+import re
+import socket
+import ssl
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+
+VERSION = "0.1.0"
+HOME = os.path.expanduser("~")
+STATE_DIR = os.environ.get("ORCA_WAKE_STATE_DIR") or os.path.join(HOME, ".local/state/orca-wake")
+CONFIG_DIR = os.environ.get("ORCA_WAKE_CONFIG_DIR") or os.path.join(HOME, ".config/orca-wake")
+WEBHOOK_DIRS = [d for d in (os.environ.get("ORCA_WAKE_WEBHOOK_DIRS")
+                            or os.path.join(HOME, ".config/grokbot/webhooks")).split(":") if d]
+RETRY_DELAYS = [int(x) for x in (os.environ.get("ORCA_WAKE_RETRY_DELAYS") or "20,45").split(",") if x]
+RL_DELAYS = [int(x) for x in (os.environ.get("ORCA_WAKE_RL_DELAYS") or "60,300,900").split(",") if x]
+RETRY_BUDGET_S = 25 * 60   # all retries of one wake; the stuck check's recheck threshold is 30 min
+BODY_LOG_MAX = 300
+# Idle from Stop waits this long before sending; if a new turn starts meanwhile (Claude auto-continues
+# after a background task finishes), the wake is dropped as superseded.
+SETTLE_S = float(os.environ.get("ORCA_WAKE_SETTLE_S") or "8")
+LOG_TAIL_MAX = 4000
+SENT_TTL_S = 7 * 86400
+MUTE_NAME = ".orca-wake-mute"
+BOT_RE = re.compile(r"^[A-Za-z0-9_-][A-Za-z0-9._-]*$")
+# Background task statuses that mean "finished". Anything else counts as still running.
+DONE_STATUSES = {"completed", "complete", "done", "failed", "killed", "stopped", "cancelled",
+                 "canceled", "error", "exited", "finished"}
+# Task types that idle_prompt itself does not wait for (it does wait for subagents/teammates).
+SHELL_LIKE = ("shell", "bash", "monitor")
+CLAUDE_NOTIFICATIONS = {"idle_prompt", "permission_prompt", "quota_auto_resume_disabled",
+                        "quota_auto_resume_stale"}
+
+
+# ---------------------------------------------------------------- small helpers
+
+def now():
+    return time.time()
+
+
+def iso(ts=None):
+    return time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(ts if ts is not None else now()))
+
+
+def ensure_dirs():
+    for sub in ("sessions", "sent", "inflight"):
+        os.makedirs(os.path.join(STATE_DIR, sub), mode=0o700, exist_ok=True)
+
+
+def log(event, *ctxs, **fields):
+    """Append one JSON line to wake.log. Never raises. Later keys win over earlier ones."""
+    try:
+        ensure_dirs()
+        rec = {"ts": iso(), "event": event}
+        for c in ctxs:
+            rec.update({k: v for k, v in c.items() if v is not None})
+        rec.update({k: v for k, v in fields.items() if v is not None})
+        line = json.dumps(rec, ensure_ascii=False)
+        with open(os.path.join(STATE_DIR, "wake.log"), "a", encoding="utf-8") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            f.write(line + "\n")
+    except Exception:
+        pass
+
+
+def key_hash(key):
+    return hashlib.sha1(key.encode("utf-8")).hexdigest()
+
+
+def safe_name(s):
+    return re.sub(r"[^A-Za-z0-9._-]", "_", str(s))[:120] or "_"
+
+
+def ppid_of(pid):
+    """Parent pid of another process, or None. Reads the kernel directly; `ps` only as a fallback
+    because it can take seconds on a loaded machine."""
+    try:
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return None
+    if sys.platform.startswith("linux"):
+        try:
+            with open("/proc/%d/stat" % pid, "rb") as f:
+                return int(f.read().rsplit(b")", 1)[1].split()[1])
+        except (OSError, ValueError, IndexError):
+            return None
+    if sys.platform == "darwin":
+        try:
+            import ctypes
+            libproc = ctypes.CDLL("/usr/lib/libproc.dylib", use_errno=True)
+            buf = ctypes.create_string_buffer(136)  # struct proc_bsdinfo
+            n = libproc.proc_pidinfo(pid, 3, ctypes.c_uint64(0), buf, 136)  # PROC_PIDTBSDINFO
+            if n == 136:
+                return int.from_bytes(buf.raw[16:20], sys.byteorder)  # pbi_ppid
+            if n == 0 and ctypes.get_errno() == errno.ESRCH:
+                return None
+        except Exception:
+            pass
+    try:
+        out = subprocess.run(["ps", "-o", "ppid=", "-p", str(pid)], capture_output=True,
+                             text=True, timeout=20).stdout.strip()
+        return int(out) if out else None
+    except Exception:
+        return None
+
+
+def pid_alive(pid):
+    try:
+        os.kill(int(pid), 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except Exception:
+        return False
+
+
+def dispatch_env():
+    e = os.environ
+    return {
+        "bot": e.get("ORCA_DISPATCH_BOT", ""),
+        "task": e.get("ORCA_TASK_ID", ""),
+        "issue": e.get("ORCA_DISPATCH_ISSUE", ""),
+        "dispatch_pid": e.get("ORCA_DISPATCH_PID", ""),
+        "dispatch_ts": e.get("ORCA_DISPATCH_TS", ""),
+        "orca_worktree_id": e.get("ORCA_WORKTREE_ID", ""),
+        "orca_terminal": e.get("ORCA_TERMINAL_HANDLE", ""),
+    }
+
+
+def check_dispatch(env, agent_pid, ctx):
+    """Return None if this agent should be handled, else a skip reason (already logged)."""
+    bot = env["bot"]
+    if not bot:
+        return "no_dispatch_bot"
+    if not BOT_RE.match(bot):
+        log("skip", ctx, reason="bad_bot_name", bot=bot)
+        return "bad_bot_name"
+    if env["dispatch_pid"]:
+        if not agent_pid:
+            log("skip", ctx, reason="no_agent_pid", bot=bot, task=env["task"])
+            return "no_agent_pid"
+        parent = ppid_of(agent_pid)
+        if str(parent) != str(env["dispatch_pid"]):
+            log("skip", ctx, reason="parent_mismatch", bot=bot, task=env["task"], agent_pid=int(agent_pid),
+                agent_parent=parent, dispatch_pid=env["dispatch_pid"])
+            return "parent_mismatch"
+    return None
+
+
+def find_mute(cwd):
+    """Look for .orca-wake-mute from cwd up to the git root (inclusive)."""
+    if not cwd:
+        return None
+    d = os.path.abspath(cwd)
+    for _ in range(64):
+        p = os.path.join(d, MUTE_NAME)
+        if os.path.exists(p):
+            return p
+        if os.path.exists(os.path.join(d, ".git")):
+            return None
+        parent = os.path.dirname(d)
+        if parent == d:
+            return None
+        d = parent
+    return None
+
+
+def enabled_for(bot):
+    path = os.path.join(CONFIG_DIR, "enabled-bots")
+    try:
+        with open(path, encoding="utf-8") as f:
+            names = {ln.strip() for ln in f if ln.strip() and not ln.lstrip().startswith("#")}
+    except OSError:
+        return False
+    return "*" in names or bot in names
+
+
+def read_env_file(bot):
+    for d in WEBHOOK_DIRS:
+        path = os.path.join(d, bot + ".env")
+        if not os.access(path, os.R_OK):
+            continue
+        vals = {}
+        with open(path, encoding="utf-8") as f:
+            for ln in f:
+                m = re.match(r"\s*(?:export\s+)?(URL|KEY)\s*=\s*(.*?)\s*$", ln)
+                if m:
+                    v = m.group(2)
+                    if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
+                        v = v[1:-1]
+                    vals[m.group(1)] = v
+        return vals.get("URL", ""), vals.get("KEY", ""), path
+    return "", "", None
+
+
+def last_assistant_from_transcript(path):
+    """Text of the last assistant entry in a Claude transcript (JSONL)."""
+    if not path or not os.path.isfile(path):
+        return ""
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            f.seek(max(0, size - 512 * 1024))
+            lines = f.read().decode("utf-8", "replace").splitlines()
+    except OSError:
+        return ""
+    for ln in reversed(lines):
+        try:
+            rec = json.loads(ln)
+        except ValueError:
+            continue
+        if rec.get("type") != "assistant":
+            continue
+        content = (rec.get("message") or {}).get("content")
+        if isinstance(content, str):
+            return content
+        texts = [c.get("text", "") for c in content or [] if isinstance(c, dict) and c.get("type") == "text"]
+        if texts:
+            return "\n".join(texts)
+    return ""
+
+
+def queued_followup(path):
+    """True if the transcript's last queue operation is an enqueue that has not been dequeued yet.
+
+    Claude Code queues task notifications (a background agent or shell finished) and messages typed
+    while it is busy; it starts a follow-up turn for them right after Stop. Undocumented transcript
+    format, so this only ever suppresses a Stop wake (idle_prompt and recheck stay as fallbacks).
+    """
+    if not path or not os.path.isfile(path):
+        return False
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - 256 * 1024))
+            lines = f.read().decode("utf-8", "replace").splitlines()
+    except OSError:
+        return False
+    for ln in reversed(lines):
+        if '"queue-operation"' not in ln:
+            continue
+        try:
+            rec = json.loads(ln)
+        except ValueError:
+            continue
+        return rec.get("operation") == "enqueue"
+    return False
+
+
+def tail(text, n=LOG_TAIL_MAX):
+    text = text or ""
+    return text if len(text) <= n else "…" + text[-(n - 1):]
+
+
+# ---------------------------------------------------------------- session state
+
+class Session:
+    """Per-session state file, updated under an exclusive lock."""
+
+    def __init__(self, agent, session_id):
+        ensure_dirs()
+        self.path = os.path.join(STATE_DIR, "sessions", "%s-%s.json" % (agent, safe_name(session_id)))
+        self.lock_path = self.path + ".lock"
+        self.agent = agent
+        self.session_id = session_id
+        self.data = {}
+        self._lf = None
+
+    def __enter__(self):
+        self._lf = open(self.lock_path, "a")
+        fcntl.flock(self._lf, fcntl.LOCK_EX)
+        try:
+            with open(self.path, encoding="utf-8") as f:
+                self.data = json.load(f)
+        except (OSError, ValueError):
+            self.data = {"agent": self.agent, "session_id": self.session_id, "turn": 0, "woken": {}}
+        return self
+
+    def __exit__(self, *exc):
+        try:
+            tmp = self.path + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(self.data, f, ensure_ascii=False)
+            os.replace(tmp, self.path)
+        finally:
+            fcntl.flock(self._lf, fcntl.LOCK_UN)
+            self._lf.close()
+        return False
+
+
+def mark_woken(agent, session_id, seq, status, source):
+    # needs_input does not close a pause: after the dialog is answered or denied the session can
+    # still end up idle without another hook event, and recheck must be able to cover that.
+    if status == "needs_input":
+        return
+    with Session(agent, session_id) as s:
+        s.data.setdefault("woken", {})[str(seq).split(".")[0] if agent == "claude" else str(seq)] = {
+            "status": status, "source": source, "ts": iso()}
+
+
+# ---------------------------------------------------------------- sending
+
+def dispatch_send(job):
+    """Dedup, claim the key, then send from a fully detached process. Returns immediately."""
+    key = job["dedup_key"]
+    h = key_hash(key)
+    sent = os.path.join(STATE_DIR, "sent", h)
+    inflight = os.path.join(STATE_DIR, "inflight", h)
+    base = {"key": key, "bot": job["bot"], "task": job["task"], "status": job["status"],
+            "source": job["source"], "session_id": job["session_id"], "agent": job["agent"]}
+    if os.path.exists(sent):
+        log("skip", reason="already_sent", **base)
+        return
+    try:
+        fd = os.open(inflight, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            log("skip", reason="inflight_error", error=str(e), **base)
+            return
+        try:
+            holder = int(open(inflight).read().strip() or 0)
+        except (OSError, ValueError):
+            holder = 0
+        age = now() - os.path.getmtime(inflight) if os.path.exists(inflight) else 0
+        if (holder and pid_alive(holder)) or (not holder and age < 30):
+            log("skip", reason="inflight", holder_pid=holder or None, **base)
+            return
+        try:
+            os.unlink(inflight)
+            fd = os.open(inflight, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        except OSError:
+            log("skip", reason="inflight_race", **base)
+            return
+    os.close(fd)
+    # Hand the job to a new process (fork+exec, own session) so the hook or extension returns at once.
+    # Not a bare fork: the python.org macOS build may already run a system thread here.
+    job_file = inflight + ".job"
+    with open(job_file, "w", encoding="utf-8") as f:
+        json.dump(job, f, ensure_ascii=False)
+    try:
+        child = subprocess.Popen([sys.executable, os.path.abspath(__file__), "_deliver", job_file],
+                                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL, start_new_session=True, close_fds=True)
+    except OSError as e:
+        log("failed", reason="spawn_failed", error=repr(e), **base)
+        for f in (job_file, inflight):
+            try:
+                os.unlink(f)
+            except OSError:
+                pass
+        return
+    with open(inflight, "w") as f:
+        f.write(str(child.pid))
+
+
+def cmd_deliver(job_file):
+    """Internal: runs detached, sends one job claimed by dispatch_send."""
+    with open(job_file, encoding="utf-8") as f:
+        job = json.load(f)
+    os.unlink(job_file)
+    h = key_hash(job["dedup_key"])
+    sent = os.path.join(STATE_DIR, "sent", h)
+    inflight = os.path.join(STATE_DIR, "inflight", h)
+    base = {"key": job["dedup_key"], "bot": job["bot"], "task": job["task"], "status": job["status"],
+            "source": job["source"], "session_id": job["session_id"], "agent": job["agent"]}
+    with open(inflight, "w") as f:
+        f.write(str(os.getpid()))
+    try:
+        _send_now(job, sent, base)
+    except Exception as e:
+        log("error", reason="sender_crash", error=repr(e), **base)
+    finally:
+        try:
+            os.unlink(inflight)
+        except OSError:
+            pass
+    return 0
+
+
+def _mark_sent(sent, job, mode, http):
+    with open(sent, "w") as f:
+        json.dump({"key": job["dedup_key"], "ts": iso(), "mode": mode, "http": http}, f)
+    mark_woken(job["agent"], job["session_id"], job["seq"], job["status"], job["source"])
+
+
+def read_state(agent, session_id):
+    try:
+        with open(os.path.join(STATE_DIR, "sessions", "%s-%s.json" % (agent, safe_name(session_id))),
+                  encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def _send_now(job, sent, base):
+    if job.get("settle_s"):
+        time.sleep(job["settle_s"])
+        st = read_state(job["agent"], job["session_id"])
+        turn = st.get("turn")
+        if turn is not None and str(turn) != str(job["seq"]):
+            log("skip", reason="superseded", note="turn %s started within %ss" % (turn, job["settle_s"]), **base)
+            return
+        stop = st.get("stop") or {}
+        if str(stop.get("turn")) == str(job["seq"]) and stop.get("message"):
+            # Another Stop hook may have blocked once; the later Stop of the same turn has the final text.
+            job["message"] = stop["message"]
+    payload = build_payload(job)
+    if not enabled_for(job["bot"]):
+        _mark_sent(sent, job, "shadow", None)
+        log("shadow", note="bot not in enabled-bots; not sent", log_tail_len=len(payload["log_tail"]), **base)
+        return
+    url, keyv, env_path = read_env_file(job["bot"])
+    if not url or not keyv:
+        log("failed", reason="no_webhook_config" if not env_path else "env_missing_url_or_key", **base)
+        return
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    started = now()
+    rl_used = other_used = 0
+    n = 0
+    while True:
+        n += 1
+        code, err, resp, retry_after = None, None, "", None
+        try:
+            req = urllib.request.Request(url, data=body, method="POST", headers={
+                "Content-Type": "application/json", "Authorization": "Bearer " + keyv})
+            with urllib.request.urlopen(req, timeout=20, context=ssl_context()) as r:
+                code = r.status
+        except urllib.error.HTTPError as e:
+            code = e.code
+            try:
+                resp = e.read(2048).decode("utf-8", "replace")
+            except Exception:
+                resp = ""
+            retry_after = e.headers.get("Retry-After") if e.headers else None
+        except Exception as e:
+            err = type(e).__name__
+        ok = code is not None and 200 <= code < 300
+        limited = code == 429 or (code is not None and 400 <= code < 500 and "rate limit" in resp.lower())
+        fields = {"attempt": n, "http": code, "error": err, "ok": ok}
+        if not ok and code is not None:
+            fields["body"] = redact(resp, url, keyv)
+        if limited:
+            fields["rate_limited"] = True
+        if ok:
+            log("send", **fields, **base)
+            _mark_sent(sent, job, "live", code)
+            return
+        if limited:
+            delay = RL_DELAYS[rl_used] if rl_used < len(RL_DELAYS) else None
+            rl_used += 1
+            if delay is not None:
+                delay = delay * random.uniform(0.9, 1.1)
+                try:
+                    delay = max(delay, min(float(retry_after), 900.0))
+                except (TypeError, ValueError):
+                    pass
+        else:
+            delay = RETRY_DELAYS[other_used] if other_used < len(RETRY_DELAYS) else None
+            other_used += 1
+        if delay is not None and now() - started + delay > RETRY_BUDGET_S:
+            delay = None
+        if delay is None:
+            log("send", **fields, **base)
+            reason = "rate_limited" if limited else (
+                "http_4xx" if code is not None and 400 <= code < 500 else "all_attempts_failed")
+            log("failed", reason=reason, attempts=n, **base)
+            return
+        log("send", next_retry_s=int(delay), **fields, **base)
+        time.sleep(delay)
+        why = superseded(job)
+        if why:
+            log("skip", reason="superseded_during_retry", note=why, attempts=n, **base)
+            return
+
+
+def redact(text, url, keyv):
+    """Response body for wake.log: no URL, no KEY, one line, at most BODY_LOG_MAX characters."""
+    t = text or ""
+    for secret in (url, keyv):
+        if secret:
+            t = t.replace(secret, "<redacted>")
+    t = re.sub(r"https?://\S+", "<url>", t)
+    t = re.sub(r"(?i)(key|token|secret|authorization)([\"']?\s*[:=]\s*[\"']?)[^\s\"'&,}]+", r"\1\2<redacted>", t)
+    t = " ".join(t.split())
+    return t if len(t) <= BODY_LOG_MAX else t[:BODY_LOG_MAX - 1] + "…"
+
+
+def superseded(job):
+    """Before a retry: return why this wake no longer fits the session, or None if it still does."""
+    st = read_state(job["agent"], job["session_id"])
+    if not st:
+        return None
+    if job["status"] == "needs_input":
+        asked = st.get("asked") or {}
+        if str(asked.get("seq")) != str(job["seq"]):
+            return "dialog no longer open (asked=%s)" % (asked.get("seq") or "none")
+        return None
+    if str(st.get("turn")) != str(job["seq"]):
+        return "session moved on (turn %s, wake seq %s)" % (st.get("turn"), job["seq"])
+    return None
+
+
+def ssl_context():
+    """Default TLS context, plus a system CA bundle when this Python ships without one
+    (python.org builds on macOS have no CA file until "Install Certificates" is run)."""
+    ctx = ssl.create_default_context()
+    paths = ssl.get_default_verify_paths()
+    if (paths.cafile and os.path.exists(paths.cafile)) or (paths.capath and os.path.isdir(paths.capath)
+                                                          and os.listdir(paths.capath)):
+        return ctx
+    candidates = [os.environ.get("SSL_CERT_FILE", "")]
+    try:
+        import certifi
+        candidates.append(certifi.where())
+    except ImportError:
+        pass
+    candidates += ["/etc/ssl/cert.pem", "/etc/ssl/certs/ca-certificates.crt", "/etc/pki/tls/certs/ca-bundle.crt"]
+    for c in candidates:
+        if c and os.path.exists(c):
+            ctx.load_verify_locations(cafile=c)
+            break
+    return ctx
+
+
+def build_payload(job):
+    dur = None
+    try:
+        if job.get("dispatch_ts"):
+            dur = int(now() - int(job["dispatch_ts"]))
+    except ValueError:
+        pass
+    return {
+        "bot": job["bot"], "task": job["task"], "issue": job.get("issue", ""),
+        "machine": socket.gethostname(), "exit_code": None, "status": job["status"],
+        "log_tail": tail(job.get("message", "")), "duration_s": dur,
+        "source": job["source"], "agent": job["agent"], "session_id": job["session_id"],
+        "seq": str(job["seq"]), "dedup_key": job["dedup_key"],
+        "worktree": job.get("cwd", ""), "orca_worktree_id": job.get("orca_worktree_id", ""),
+        "orca_terminal": job.get("orca_terminal", ""), "note": job.get("note", ""),
+        "wake_version": VERSION,
+    }
+
+
+def make_job(st, status, seq, message, note, source="wake-hook"):
+    d = st.data
+    return {
+        "agent": d["agent"], "session_id": d["session_id"], "status": status, "seq": seq,
+        "dedup_key": "%s:%s:%s:%s" % (d["agent"], d["session_id"], status, seq),
+        "bot": d.get("bot", ""), "task": d.get("task", ""), "issue": d.get("issue", ""),
+        "dispatch_ts": d.get("dispatch_ts", ""), "cwd": d.get("cwd", ""),
+        "orca_worktree_id": d.get("orca_worktree_id", ""), "orca_terminal": d.get("orca_terminal", ""),
+        "message": message or "", "note": note or "", "source": source,
+    }
+
+
+def gate_and_send(job, ctx):
+    mute = find_mute(job.get("cwd"))
+    if mute:
+        log("skip", ctx, reason="muted", mute_file=mute, key=job["dedup_key"], bot=job["bot"],
+            task=job["task"])
+        return
+    dispatch_send(job)
+
+
+# ---------------------------------------------------------------- claude
+
+def active_tasks(tasks):
+    out = []
+    for t in tasks or []:
+        if not isinstance(t, dict):
+            continue
+        status = str(t.get("status") or t.get("state") or "running").lower()
+        if status in DONE_STATUSES:
+            continue
+        kind = str(t.get("type") or t.get("kind") or t.get("task_type") or "unknown").lower()
+        out.append({"type": kind, "status": status,
+                    "desc": str(t.get("description") or t.get("summary") or t.get("command") or "")[:80]})
+    return out
+
+
+def shell_like(tasks):
+    return [t for t in tasks if any(s in t["type"] for s in SHELL_LIKE)]
+
+
+def format_question(tool_name, tool_input):
+    if not isinstance(tool_input, dict):
+        return tool_name or ""
+    qs = tool_input.get("questions")
+    if isinstance(qs, list) and qs:
+        parts = []
+        for q in qs:
+            if not isinstance(q, dict):
+                continue
+            opts = [o.get("label", "") for o in q.get("options") or [] if isinstance(o, dict)]
+            parts.append(str(q.get("question", "")) + (" 选项：" + " / ".join(opts) if opts else ""))
+        return "\n".join(parts)
+    desc = tool_input.get("description") or tool_input.get("command") or json.dumps(tool_input, ensure_ascii=False)
+    return "%s: %s" % (tool_name, str(desc)[:1000])
+
+
+def cmd_claude_hook():
+    raw = sys.stdin.read(4 * 1024 * 1024)
+    env = dispatch_env()
+    if not env["bot"]:
+        return 0
+    try:
+        ev = json.loads(raw)
+    except ValueError:
+        log("error", reason="bad_hook_json", bot=env["bot"], task=env["task"])
+        return 0
+    name = ev.get("hook_event_name", "")
+    ntype = ev.get("notification_type", "")
+    sid = ev.get("session_id") or "unknown"
+    agent_pid = os.environ.get("WAKE_AGENT_PID", "")
+    ctx = {"agent": "claude", "session_id": sid, "hook": name + ("/" + ntype if ntype else ""),
+           "task": env["task"]}
+    if os.environ.get("ORCA_WAKE_DEBUG") == "1":
+        log("debug_input", ctx, input=ev)
+    if name == "Notification" and ntype not in CLAUDE_NOTIFICATIONS:
+        return 0
+    if check_dispatch(env, agent_pid, ctx):
+        return 0
+
+    job = None
+    with Session("claude", sid) as st:
+        d = st.data
+        d.update({k: v for k, v in env.items() if v})
+        d["agent_pid"] = int(agent_pid) if agent_pid.isdigit() else None
+        d["cwd"] = ev.get("cwd") or d.get("cwd", "")
+        d["transcript_path"] = ev.get("transcript_path") or d.get("transcript_path", "")
+        d["last_event"] = ctx["hook"]
+        d["last_event_ts"] = now()
+        turn = int(d.get("turn", 0))
+
+        if name == "UserPromptSubmit":
+            d["turn"] = turn + 1
+            d["perm_seq"] = 0
+            d["turn_started_ts"] = now()
+            d.pop("stop", None)
+            d.pop("asked", None)
+            log("state", ctx, note="turn %d started" % (turn + 1))
+
+        elif name == "Stop":
+            tasks = active_tasks(ev.get("background_tasks"))
+            crons = ev.get("session_crons") or []
+            msg = ev.get("last_assistant_message") or ""
+            d["stop"] = {"turn": turn, "ts": now(), "active_tasks": tasks, "crons": len(crons),
+                         "stop_hook_active": bool(ev.get("stop_hook_active")), "message": tail(msg)}
+            d.pop("asked", None)
+            if tasks or crons:
+                log("skip", ctx, reason="background_work", turn=turn, active_tasks=tasks, crons=len(crons))
+            elif queued_followup(d["transcript_path"]):
+                d["stop"]["queued_followup"] = True
+                log("skip", ctx, reason="queued_followup", turn=turn,
+                    note="a queued notification or message will start another turn")
+            else:
+                job = make_job(st, "idle", turn, msg, "")
+                job["settle_s"] = SETTLE_S
+
+        elif name == "StopFailure":
+            d["error_turn"] = turn
+            d.pop("asked", None)
+            err = ev.get("error") or ""
+            details = ev.get("error_details") or ""
+            msg = ev.get("last_assistant_message") or ""
+            note = "StopFailure: %s %s" % (err, json.dumps(details, ensure_ascii=False)[:500] if details else "")
+            job = make_job(st, "error", turn, msg, note.strip())
+
+        elif name == "PermissionRequest":
+            d["perm_seq"] = int(d.get("perm_seq", 0)) + 1
+            d["perm"] = {"tool_name": ev.get("tool_name", ""),
+                         "question": format_question(ev.get("tool_name"), ev.get("tool_input"))}
+            log("state", ctx, note="permission request %d (%s)" % (d["perm_seq"], ev.get("tool_name", "")))
+
+        elif name == "Notification" and ntype == "permission_prompt":
+            perm = d.get("perm") or {}
+            seq = "%d.%d" % (turn, int(d.get("perm_seq", 0)))
+            q = perm.get("question") or ev.get("message", "")
+            note = "waiting on %s" % (perm.get("tool_name") or "a dialog")
+            d["asked"] = {"seq": seq, "message": tail(q), "note": note, "ts": now()}
+            job = make_job(st, "needs_input", seq, q, note)
+
+        elif name == "Notification" and ntype == "idle_prompt":
+            d.pop("asked", None)
+            stop = d.get("stop") or {}
+            if d.get("error_turn") == turn:
+                log("skip", ctx, reason="error_already_reported", turn=turn)
+            elif stop.get("turn") == turn and (shell_like(stop.get("active_tasks") or []) or stop.get("crons")):
+                log("skip", ctx, reason="background_work", turn=turn, active_tasks=stop.get("active_tasks"),
+                    crons=stop.get("crons"))
+            else:
+                msg = stop.get("message") if stop.get("turn") == turn else ""
+                if not msg:
+                    msg = last_assistant_from_transcript(d.get("transcript_path"))
+                note = "" if stop.get("turn") == turn else "no Stop seen for this turn"
+                if stop.get("turn") == turn and stop.get("active_tasks"):
+                    note = "Stop saw background work, idle_prompt fired after it finished"
+                job = make_job(st, "idle", turn, msg, note)
+
+        elif name == "Notification" and ntype.startswith("quota_auto_resume"):
+            job = make_job(st, "blocked", turn, ev.get("message", ""), ntype)
+
+    if job:
+        gate_and_send(job, ctx)
+    return 0
+
+
+# ---------------------------------------------------------------- pi (and generic) send
+
+def cmd_send(a):
+    env = dispatch_env()
+    if not env["bot"]:
+        return 0
+    msg = sys.stdin.read(4 * 1024 * 1024) if not sys.stdin.isatty() else ""
+    ctx = {"agent": a.agent, "session_id": a.session, "hook": "send/" + a.status, "task": env["task"]}
+    if check_dispatch(env, a.agent_pid, ctx):
+        return 0
+    with Session(a.agent, a.session) as st:
+        d = st.data
+        d.update({k: v for k, v in env.items() if v})
+        d["agent_pid"] = int(a.agent_pid) if a.agent_pid and str(a.agent_pid).isdigit() else None
+        if a.cwd:
+            d["cwd"] = a.cwd
+        if a.transcript:
+            d["transcript_path"] = a.transcript
+        d["last_event"] = ctx["hook"]
+        d["last_event_ts"] = now()
+        d["turn"] = a.seq
+        d["last_message"] = tail(msg)
+        if a.status == "needs_input":
+            d["asked"] = {"seq": a.seq, "message": tail(msg), "note": a.note or "", "ts": now()}
+        else:
+            d.pop("asked", None)
+        job = make_job(st, a.status, a.seq, msg, a.note or "")
+    gate_and_send(job, ctx)
+    return 0
+
+
+# ---------------------------------------------------------------- recheck (stuck check)
+
+def load_sessions():
+    d = os.path.join(STATE_DIR, "sessions")
+    out = []
+    try:
+        names = os.listdir(d)
+    except OSError:
+        return out
+    for n in names:
+        if not n.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(d, n), encoding="utf-8") as f:
+                out.append(json.load(f))
+        except (OSError, ValueError):
+            continue
+    return out
+
+
+def transcript_last_ts(tp, tail=262144):
+    """Time of the last timestamped entry in a JSONL transcript; mtime if none is found.
+
+    Claude Code appends untimestamped metadata (titles, bridge info) to the transcript
+    after a turn ends, so the file mtime can move without any agent activity.
+    """
+    try:
+        with open(tp, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            f.seek(max(0, size - tail))
+            lines = f.read().decode("utf-8", "replace").splitlines()
+    except OSError:
+        return 0
+    for line in reversed(lines):
+        m = re.search(r'"timestamp"\s*:\s*"(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?)(Z|[+-]\d\d:?\d\d)?"', line)
+        if not m:
+            continue
+        tz = m.group(2) or "Z"
+        tz = "+00:00" if tz == "Z" else (tz if ":" in tz else tz[:3] + ":" + tz[3:])
+        try:
+            return datetime.datetime.fromisoformat(m.group(1)[:26] + tz).timestamp()
+        except ValueError:
+            continue
+    return os.path.getmtime(tp)
+
+
+def claude_dialog_open(tp, tail=262144):
+    """True if the last timestamped user/assistant entry of a Claude transcript is an assistant
+    tool_use (the tool is waiting for permission or an answer). After Esc or a reply the transcript
+    has a tool_result / "[Request interrupted ...]" user entry instead. Unknown -> True."""
+    try:
+        with open(tp, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - tail))
+            lines = f.read().decode("utf-8", "replace").splitlines()
+    except (OSError, TypeError):
+        return True
+    for ln in reversed(lines):
+        try:
+            rec = json.loads(ln)
+        except ValueError:
+            continue
+        if rec.get("type") not in ("user", "assistant") or not rec.get("timestamp"):
+            continue
+        content = (rec.get("message") or {}).get("content")
+        if rec["type"] == "assistant":
+            return isinstance(content, list) and any(
+                isinstance(c, dict) and c.get("type") == "tool_use" for c in content)
+        return False
+    return True
+
+
+def candidate(s, idle_min, waiting=False):
+    """Return (ok, reason) for a session that may need a recheck wake. waiting=True: the agent sits
+    in a dialog, so whether the pause was already woken is decided by the needs_input key instead."""
+    pid = s.get("agent_pid")
+    if not pid or not pid_alive(pid):
+        return False, "agent_gone"
+    if s.get("dispatch_pid") and str(ppid_of(pid)) != str(s["dispatch_pid"]):
+        return False, "parent_changed"
+    seq = str(s.get("turn", 0))
+    if not waiting and seq in (s.get("woken") or {}):
+        return False, "already_woken"
+    last = s.get("last_event_ts") or 0
+    tp = s.get("transcript_path")
+    if tp and os.path.exists(tp):
+        last = max(last, transcript_last_ts(tp))
+    if now() - last < idle_min * 60:
+        return False, "recent_activity"
+    return True, "not_woken_for_pause"
+
+
+def key_busy(key):
+    """'sent' if the key already got a 2xx (or shadow), 'inflight' if a live sender holds it, else None."""
+    h = key_hash(key)
+    if os.path.exists(os.path.join(STATE_DIR, "sent", h)):
+        return "sent"
+    inflight = os.path.join(STATE_DIR, "inflight", h)
+    if os.path.exists(inflight):
+        try:
+            holder = int(open(inflight).read().strip() or 0)
+        except (OSError, ValueError):
+            holder = 0
+        if (holder and pid_alive(holder)) or (not holder and now() - os.path.getmtime(inflight) < 30):
+            return "inflight"
+    return None
+
+
+def parse_waiting(items):
+    out = {}
+    for it in items or []:
+        pid, _, since = str(it).partition(":")
+        out[int(pid)] = since if since.isdigit() else ""
+    return out
+
+
+def cmd_recheck(a):
+    sessions = load_sessions()
+    if a.list:
+        for s in sessions:
+            ok, why = candidate(s, a.idle_min)
+            if ok:
+                print(json.dumps({"agent": s.get("agent"), "session_id": s.get("session_id"),
+                                  "agent_pid": s.get("agent_pid"), "bot": s.get("bot"), "task": s.get("task"),
+                                  "seq": str(s.get("turn", 0)), "last_event": s.get("last_event")},
+                                 ensure_ascii=False))
+        return 0
+    waiting = parse_waiting(a.waiting_pid)
+    want = {int(p) for p in a.agent_pid or []} | set(waiting)
+    if not want:
+        print("recheck: give --list or at least one --agent-pid / --waiting-pid", file=sys.stderr)
+        return 2
+    matched = set()
+    for s in sorted(sessions, key=lambda s: s.get("last_event_ts") or 0, reverse=True):
+        pid = s.get("agent_pid")
+        if pid not in want or pid in matched:
+            continue
+        matched.add(pid)  # newest state for this pid wins
+        is_waiting = pid in waiting
+        ctx = {"agent": s.get("agent"), "session_id": s.get("session_id"),
+               "hook": "recheck/waiting" if is_waiting else "recheck", "task": s.get("task")}
+        ok, why = candidate(s, a.idle_min, waiting=is_waiting)
+        if not ok:
+            log("recheck_skip", ctx, reason=why, agent_pid=pid, bot=s.get("bot"), task=s.get("task"),
+                seq=str(s.get("turn", 0)))
+            print("recheck: pid %s skip (%s)" % (pid, why), file=sys.stderr)
+            continue
+        if is_waiting and s.get("agent") == "claude" and not claude_dialog_open(s.get("transcript_path")):
+            # Orca still says waiting, but the dialog was closed (Esc / denied) and the turn ended
+            # without Stop: handle it like an idle pause.
+            ctx["hook"] = "recheck/waiting-closed"
+            ok, why = candidate(s, a.idle_min)
+            if not ok:
+                log("recheck_skip", ctx, reason=why, agent_pid=pid, bot=s.get("bot"), task=s.get("task"),
+                    seq=str(s.get("turn", 0)), note="Orca waiting, dialog closed in transcript")
+                print("recheck: pid %s skip (%s)" % (pid, why), file=sys.stderr)
+                continue
+            is_waiting = False
+        if is_waiting:
+            _recheck_waiting(s, pid, waiting[pid], ctx)
+        else:
+            _recheck_idle(s, pid, ctx)
+    for pid in want - matched:
+        log("recheck_skip", reason="no_state_for_pid", agent_pid=pid, waiting=pid in waiting or None)
+        print("recheck: pid %s skip (no_state_for_pid)" % pid, file=sys.stderr)
+    return 0
+
+
+def _recheck_idle(s, pid, ctx):
+    """Send one idle wake for a pause that has none yet (the agent sits at its prompt)."""
+    with Session(s["agent"], s["session_id"]) as st:
+        d = st.data
+        seq = d.get("turn", 0)
+        stop = d.get("stop") or {}
+        if d.get("agent") == "claude":
+            msg = stop.get("message") if stop.get("turn") == seq else last_assistant_from_transcript(
+                d.get("transcript_path"))
+            if stop.get("turn") == seq and stop.get("active_tasks"):
+                note = "recheck: Stop saw background work still running"
+            elif stop.get("turn") != seq:
+                note = "recheck: turn ended without Stop (interrupted, permission denied, or hook missed)"
+            else:
+                note = "recheck: no successful wake recorded for this pause"
+        else:
+            msg = d.get("last_message", "")
+            note = "recheck: no successful wake recorded for this pause"
+        job = make_job(st, "idle", seq, msg, note, source="stuck-check-recheck")
+    if key_busy(job["dedup_key"]) == "inflight":
+        log("recheck_skip", ctx, reason="inflight", agent_pid=pid, key=job["dedup_key"], bot=job["bot"])
+        print("recheck: pid %s skip (inflight)" % pid, file=sys.stderr)
+        return
+    print("recheck: pid %s send idle seq %s" % (pid, seq), file=sys.stderr)
+    gate_and_send(job, ctx)
+
+
+def _recheck_waiting(s, pid, since, ctx):
+    """Agent sits in a dialog: re-send that dialog's needs_input under the hook's own dedup key."""
+    with Session(s["agent"], s["session_id"]) as st:
+        d = st.data
+        asked = d.get("asked") or {}
+        if asked.get("seq"):
+            seq, msg = asked["seq"], asked.get("message", "")
+            note = "recheck: dialog still open (Orca state waiting); %s" % (asked.get("note") or "")
+        else:
+            # orca-wake never saw this dialog (hook missed it): one key per Orca waiting period
+            seq = "%s.rw%s" % (str(d.get("turn", 0)).split(".")[0] if d.get("agent") == "claude"
+                               else d.get("turn", 0), since or int(now()))
+            msg = d.get("last_message", "") or last_assistant_from_transcript(d.get("transcript_path"))
+            note = "recheck: Orca state waiting, no dialog seen by the hook"
+            d["asked"] = {"seq": seq, "message": tail(msg), "note": note, "ts": now(), "source": "recheck"}
+        job = make_job(st, "needs_input", seq, msg, note.strip().rstrip(";"), source="stuck-check-recheck")
+    busy = key_busy(job["dedup_key"])
+    if busy:
+        why = "already_asked" if busy == "sent" else "inflight"
+        log("recheck_skip", ctx, reason=why, agent_pid=pid, key=job["dedup_key"], bot=job["bot"], seq=str(seq))
+        print("recheck: pid %s skip (%s)" % (pid, why), file=sys.stderr)
+        return
+    print("recheck: pid %s send needs_input seq %s" % (pid, seq), file=sys.stderr)
+    gate_and_send(job, ctx)
+
+
+# ---------------------------------------------------------------- housekeeping
+
+def prune():
+    cutoff = now() - SENT_TTL_S
+    for sub in ("sent", "sessions"):
+        d = os.path.join(STATE_DIR, sub)
+        try:
+            for n in os.listdir(d):
+                p = os.path.join(d, n)
+                try:
+                    if os.path.getmtime(p) < cutoff:
+                        os.unlink(p)
+                except OSError:
+                    pass
+        except OSError:
+            pass
+
+
+def main(argv):
+    p = argparse.ArgumentParser(prog="orca-wake", add_help=True)
+    p.add_argument("--version", action="version", version=VERSION)
+    sub = p.add_subparsers(dest="cmd")
+    sub.add_parser("claude-hook")
+    s = sub.add_parser("send")
+    s.add_argument("--agent", required=True, choices=["pi", "claude"])
+    s.add_argument("--status", required=True, choices=["idle", "needs_input", "error", "blocked"])
+    s.add_argument("--session", required=True)
+    s.add_argument("--seq", required=True)
+    s.add_argument("--agent-pid")
+    s.add_argument("--cwd")
+    s.add_argument("--transcript")
+    s.add_argument("--note")
+    r = sub.add_parser("recheck")
+    r.add_argument("--list", action="store_true")
+    r.add_argument("--agent-pid", action="append")
+    r.add_argument("--waiting-pid", action="append", metavar="PID[:SINCE_MS]")
+    r.add_argument("--idle-min", type=float, default=30)
+    d = sub.add_parser("_deliver")
+    d.add_argument("job_file")
+    a = p.parse_args(argv)
+    try:
+        if a.cmd == "claude-hook":
+            return cmd_claude_hook()
+        if a.cmd == "send":
+            return cmd_send(a)
+        if a.cmd == "recheck":
+            return cmd_recheck(a)
+        if a.cmd == "_deliver":
+            return cmd_deliver(a.job_file)
+        p.print_help(sys.stderr)
+        return 2
+    finally:
+        if a.cmd in ("claude-hook", "send") and int(now()) % 50 == 0:
+            prune()
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except Exception as e:  # a hook must never fail loudly
+        log("error", reason="crash", error=repr(e))
+        sys.exit(0)
