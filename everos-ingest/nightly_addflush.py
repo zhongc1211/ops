@@ -13,21 +13,33 @@ the request was certainly not sent) does the call go to the public EVEROS_BASE_U
 line then has endpoint=public and fallback=<reason>. EVEROS_TAILNET_URL= (empty) means public only.
 
 Result unknown: add or flush that gets 502/504/524, a read timeout or a connection dropped after
-the request was sent may or may not have landed. The script then checks this session:
-/memory/get episode with filters.session_id (extracted) and /memory/search with
-filters.session_id (unflushed buffer, matched on the chunk's last timestamp).
-  add unknown:   landed -> no resend; not landed -> resend that chunk once, same timestamps.
-  flush unknown: extracted -> done; still buffered -> flush once; neither -> resend every chunk
-                 once (same timestamps), then flush once.
-Each session gets at most one resend round. Any later unknown is only checked (landed or
-failed), a failed outcome stops that session.
+the request was sent may or may not have landed. EverOS's indexes lag: on 2026-10-17 a flush that
+answered 200 extracted showed 0 episodes for its session_id ~1s later and 1 after ~18s. So the
+script does not decide at once; it rechecks after RECHECK_DELAYS (5, 15, 30, 60 s, waiting before
+each recheck). Each recheck reads three things:
+  - /memory/get episode with filters.session_id: more than before this session's first add = extracted;
+  - /memory/search with filters.session_id: the unflushed buffer; for an add, the chunk's last
+    timestamp in it = buffered;
+  - /memory/get episode without filter: total_count, compared with the total before this session.
+The first recheck that shows extracted (or, for an add, buffered) ends the rechecks: landed, no resend.
+If all four come back without that:
+  add:   nothing found -> resend that chunk once, same timestamps;
+  flush: still buffered -> flush once (no re-add); nothing found -> re-add every chunk once (same
+         timestamps), then flush once;
+  total_count went up but nothing for this session -> failed, no resend (see recheck());
+  no recheck got a full answer (any of the three reads not 200) -> failed, no resend.
+Each session gets at most one resend round. A later unknown is only rechecked (landed or failed).
+A failed outcome stops that session.
 
 Ledger (default ~/xinyue-deploy/nightly-review/<date>-xinyue-ledger.jsonl): one JSON line per call,
 appended and flushed right after the call returns (an unknown add/flush line is written once its
-check is done, after the check lines). kind=count_before / count_after are /memory/get episode
+rechecks are done, after the recheck lines). kind=count_before / count_after are /memory/get episode
 counts (total_count + id list) taken before the first write and after the last; kind=session_before
-is that session's episode count before its first add; kind=add / flush carry session_id, HTTP
-status, request_id and the non-text fields of the response data; kind=check is a landed check.
+has session_hits (that session's episodes) and total_before (all of the user's) before its first add; kind=add / flush
+carry session_id, HTTP status, request_id and the non-text fields of the response data.
+kind=recheck is one line per recheck (session_id, call, attempt, delay_s, session_hits, buffered,
+buffered_match, total_count, total_before, endpoint, http, http_detail); kind=recheck_decision ends
+them with decision landed / resend / failed, the state behind it and a reason when failed.
 Every call line has endpoint (tailnet/public) and outcome (ok / unknown→landed / unknown→resent /
 failed); resent calls have resend=true. No key, no message text. --dry-run still takes both
 counts (read-only) and marks every line dry_run=true.
@@ -58,8 +70,10 @@ TAILNET_DEFAULT = "http://100.64.0.5"
 CONNECT_TIMEOUT = 10
 TIMEOUT = 420          # nginx on the tailnet path gives EverOS 400s
 UNKNOWN_HTTP = {502, 504, 524}   # gateway gave up after forwarding: EverOS may have done the work
+RECHECK_DELAYS = (5, 15, 30, 60)   # seconds to wait before each recheck of an unknown result
 LANDED = "unknown→landed"
 RESENT = "unknown→resent"
+OUTCOME_OF_DECISION = {"landed": LANDED, "resend": RESENT}   # recheck decision -> add/flush outcome; else failed
 
 def ts_ms(s):
     try:
@@ -139,6 +153,11 @@ class Resp:
     def __init__(self, http, body, endpoint, outcome, fallback=None):
         self.http, self.body, self.endpoint, self.outcome, self.fallback = http, body, endpoint, outcome, fallback
 
+    @property
+    def data(self):
+        d = self.body.get("data")
+        return d if isinstance(d, dict) else {}
+
     def fields(self):
         f = {"http": self.http, "endpoint": self.endpoint, "outcome": self.outcome, "request_id": self.body.get("request_id")}
         if self.fallback:
@@ -217,7 +236,7 @@ def get_episodes(env, **extra):
 def episode_count(env, ledger, kind):
     """/memory/get episode for the user (agent_id + episode is a 422) -> ledger line."""
     r = get_episodes(env)
-    data = r.body.get("data") if isinstance(r.body.get("data"), dict) else {}
+    data = r.data
     eps = data.get("episodes") or []
     rec = ledger.write(kind, **r.fields(), total_count=data.get("total_count"),
                        count=data.get("count"), episode_ids=[e.get("id") for e in eps if isinstance(e, dict)],
@@ -225,46 +244,81 @@ def episode_count(env, ledger, kind):
     print(f"{kind}: endpoint={r.endpoint} http={r.http} total_count={rec.get('total_count')} count={rec.get('count')}", flush=True)
     return rec
 
-def session_episodes(env, ledger, kind, sid):
-    """This session's extracted episode count, or None when the get did not answer 200."""
-    r = get_episodes(env, filters={"session_id": sid}, page_size=1)
-    data = r.body.get("data") if isinstance(r.body.get("data"), dict) else {}
-    n = data.get("total_count") if r.http == 200 else None
-    ledger.write(kind, session_id=sid, what="episodes", **r.fields(), total_count=n, error=brief(r.body.get("error")))
-    return n
+def first_bad_http(*resps):
+    return next((r.http for r in resps if r.http != 200), 200)
 
-def buffered_ts(env, ledger, sid):
-    """Timestamps (ms) of this session's messages still in EverOS's unflushed buffer, or None."""
+def session_counts(env, sid):
+    """(this session's episode count, overall episode total, Resp, Resp); a count is None when its get was not 200."""
+    rs = get_episodes(env, filters={"session_id": sid}, page_size=1)
+    rt = get_episodes(env, page_size=1)
+    count = lambda r: r.data.get("total_count") if r.http == 200 else None
+    return count(rs), count(rt), rs, rt
+
+def buffered_ts(env, sid):
+    """(timestamps in ms of this session's messages still in the unflushed buffer or None, count, Resp)."""
     r = post(env, "/api/v2/memory/search", {"app_id": env["EVEROS_APP_ID"], "project_id": env["EVEROS_PROJECT_ID"],
                                              "user_id": env["EVEROS_USER_ID"], "query": sid, "method": "keyword",
                                              "top_k": 1, "filters": {"session_id": sid}})
-    data = r.body.get("data") if isinstance(r.body.get("data"), dict) else {}
-    msgs = data.get("unprocessed_messages") or []
-    ts = None
-    if r.http == 200:
-        ts = set()
-        for m in msgs:
-            try:
-                ts.add(round(datetime.fromisoformat(str(m.get("timestamp")).replace("Z", "+00:00")).timestamp() * 1000))
-            except Exception:
-                pass
-    ledger.write("check", session_id=sid, what="buffer", **r.fields(), buffered=len(msgs), error=brief(r.body.get("error")))
-    return ts
+    msgs = r.data.get("unprocessed_messages") or []
+    if r.http != 200:
+        return None, None, r
+    ts = set()
+    for m in msgs:
+        try:
+            ts.add(round(datetime.fromisoformat(str(m.get("timestamp")).replace("Z", "+00:00")).timestamp() * 1000))
+        except Exception:
+            pass
+    return ts, len(msgs), r
 
-def landed_state(env, ledger, sid, ep_before, last_ts):
-    """extracted / buffered / absent, or None when a check call failed."""
-    n = session_episodes(env, ledger, "check", sid)
-    ts = buffered_ts(env, ledger, sid)
-    if n is None or ts is None or ep_before is None:
-        return None
-    if n > ep_before:
-        return "extracted"
-    if last_ts is not None and any(abs(t - last_ts) <= 1 for t in ts):
-        return "buffered"
-    return "absent"
+def recheck(env, ledger, sid, call, ep_before, total_before, last_ts, can_resend):
+    """Recheck an unknown add/flush after each of RECHECK_DELAYS. -> (decision, state).
+
+    decision: landed / resend / failed. state: extracted / buffered / absent / total_up_session_missing
+    / unreadable. Writes one kind=recheck line per attempt and one kind=recheck_decision line.
+    Without a readable count from before this session's first add nothing can be compared: failed at
+    once, without waiting.
+
+    total_count up but nothing under this session_id: the script writes sessions one after another and,
+    between this session's session_before and now, sent only this session's add/flush. So within this
+    script the rise can only be this session, and the session_id index may simply be behind; that is
+    why the rechecks keep going instead of resending. But MCP sessions also write this app/project/
+    user, so the rise alone does not prove it landed. If it is still the only sign after the last
+    recheck: failed, no resend. A duplicate would sit in memory unnoticed, a failed session is
+    reported by the night review and can be written by hand.
+    """
+    state, landed = "unreadable", False
+    for attempt, delay in enumerate(RECHECK_DELAYS if ep_before is not None and total_before is not None else (), 1):
+        time.sleep(delay)
+        n, total, rs, rt = session_counts(env, sid)
+        ts, nbuf, rb = buffered_ts(env, sid)
+        resps = {"episodes": rs, "buffer": rb, "total": rt}
+        match = bool(ts) and last_ts is not None and any(abs(t - last_ts) <= 1 for t in ts)
+        eps = sorted({r.endpoint or "none" for r in resps.values()})
+        ledger.write("recheck", session_id=sid, call=call, attempt=attempt, delay_s=delay, session_hits=n,
+                     ep_before=ep_before, buffered=nbuf, buffered_match=match, total_count=total,
+                     total_before=total_before, endpoint=",".join(eps), http=first_bad_http(*resps.values()),
+                     http_detail={k: r.http for k, r in resps.items()})
+        if first_bad_http(*resps.values()) != 200 or n is None or total is None:
+            continue
+        if n > ep_before:
+            state, landed = "extracted", True; break
+        if call == "add" and match:
+            state, landed = "buffered", True; break
+        state = ("total_up_session_missing" if total > total_before
+                 else "buffered" if nbuf and call == "flush" else "absent")
+    if landed:
+        decision, reason = "landed", None
+    elif state in ("absent", "buffered") and can_resend:
+        decision, reason = "resend", None
+    else:
+        decision = "failed"
+        reason = state if state in ("unreadable", "total_up_session_missing") else "not landed, resend already used"
+    ledger.write("recheck_decision", session_id=sid, call=call, decision=decision, state=state,
+                 **({"reason": reason} if reason else {}))
+    return decision, state
 
 def call_fields(r):
-    data = r.body.get("data") if isinstance(r.body.get("data"), dict) else {}
+    data = r.data
     err = r.body.get("error") if isinstance(r.body.get("error"), dict) else {}
     return {"http": r.http, "endpoint": r.endpoint, "outcome": r.outcome, "status": data.get("status"),
             "request_id": r.body.get("request_id"), "error": err.get("code"), "message": err.get("message")}
@@ -273,7 +327,10 @@ def write_session(env, ledger, scope, o, msgs):
     """add every chunk, then flush, with the result-unknown rule. -> (adds, flush, ok)."""
     sid, side = o["session_id"], o.get("side")
     chunks = [msgs[i:i + CHUNK] for i in range(0, len(msgs), CHUNK)]
-    ep_before = session_episodes(env, ledger, "session_before", sid)
+    ep_before, total_before, rs, rt = session_counts(env, sid)
+    http = first_bad_http(rs, rt)
+    ledger.write("session_before", session_id=sid, session_hits=ep_before, total_before=total_before,
+                 http=http, endpoint=rs.endpoint, outcome="ok" if http == 200 else "failed")
     adds, resent = [], False
 
     def add(ci, resend=False):
@@ -295,10 +352,8 @@ def write_session(env, ledger, scope, o, msgs):
         return f
 
     def settle(kind, r, line, last_ts):
-        """An unknown with the resend already used: check only, set r.outcome and record."""
-        st = landed_state(env, ledger, sid, ep_before, last_ts)
-        landed = st == "extracted" if kind == "flush" else st in ("extracted", "buffered")
-        r.outcome = LANDED if landed else "failed"
+        decision, _ = recheck(env, ledger, sid, kind, ep_before, total_before, last_ts, can_resend=False)
+        r.outcome = OUTCOME_OF_DECISION.get(decision, "failed")
         return record(kind, r, line)
 
     def send_or_settle(kind, r, line, last_ts):
@@ -312,8 +367,8 @@ def write_session(env, ledger, scope, o, msgs):
             if r.outcome == "failed":
                 return adds, None, False
             continue
-        st = landed_state(env, ledger, sid, ep_before, last_ts)
-        r.outcome = LANDED if st in ("extracted", "buffered") else "failed" if st is None else RESENT
+        decision, _ = recheck(env, ledger, sid, "add", ep_before, total_before, last_ts, can_resend=True)
+        r.outcome = OUTCOME_OF_DECISION.get(decision, "failed")
         record("add", r, line)
         if r.outcome == "failed":
             return adds, None, False
@@ -330,8 +385,8 @@ def write_session(env, ledger, scope, o, msgs):
     if r.outcome != "unknown" or resent:
         f = send_or_settle("flush", r, fline, last_ts)
         return adds, f, r.outcome not in ("failed", "unknown")
-    st = landed_state(env, ledger, sid, ep_before, last_ts)
-    r.outcome = LANDED if st == "extracted" else "failed" if st is None else RESENT
+    decision, st = recheck(env, ledger, sid, "flush", ep_before, total_before, last_ts, can_resend=True)
+    r.outcome = OUTCOME_OF_DECISION.get(decision, "failed")
     f = record("flush", r, fline)
     if r.outcome != RESENT:
         return adds, f, r.outcome == LANDED
