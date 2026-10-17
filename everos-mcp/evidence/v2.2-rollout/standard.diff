@@ -1,0 +1,66 @@
+--- MCP-WIRING-STANDARD-v2.md.bak-20261017-203005	2026-10-17 17:51:19.616633334 +0800
++++ MCP-WIRING-STANDARD-v2.md	2026-10-17 20:30:45.354044892 +0800
+@@ -138,7 +138,7 @@
+ - 两台机器、四个项目一共 8 份。除了 `N=` 这一行，其余逐字节相同。
+ 
+ ### 3.2 模板（全文）
+-**2026-10-17 起以 v2.1 为准：`templates/everos-mcp-launcher-v2.1.sh`（改动见同目录 `CHANGELOG.md`）。** 8 份脚本都从这个文件生成，只把 `N=<N>` 换成项目名。下面是 v2 原文，只留作对照，不要再照抄。
++**2026-10-17 20:30 SGT 起以 v2.2 为准：`templates/everos-mcp-launcher-v2.2.sh`（hybrid 检索 + 服务端 rerank，改动见同目录 `CHANGELOG.md`；v2.1 `everos-mcp-launcher-v2.1.sh` 留作回滚）。** 8 份脚本都从这个文件生成，只把 `N=<N>` 换成项目名。下面是 v2 原文，只留作对照，不要再照抄。
+ 
+ 在 box 上实测过的副本是 `EV/everos-mcp-template.sh`，里面 `N=dv-ads`。
+ ```bash
+@@ -190,17 +190,19 @@
+ ### 3.3 逐字比对方法（两台机器通用，box 和 macOS 都有 `shasum`）
+ ```bash
+ for f in ~/.local/bin/everos-mcp-*; do
++  case $f in *.bak*) continue;; esac          # 跳过原地备份（*.bak-*）
+   n=${f##*/everos-mcp-}
+   [ "$(grep -c '^N=' "$f")" = 1 ] && [ "$(grep '^N=' "$f")" = "N=$n" ] && printf '%s N-ok ' "$n" || printf '%s N-BAD ' "$n"
+   sed 's/^N=.*/N=@/' "$f" | shasum -a 256 | cut -c1-64
+ done
+-# 每一行都应该是：<n> N-ok f543542db2cd6d5fcdaf33e6688700e4c91e19d01d42f144a475f5f601b39ce6   （v2.1）
++# 每一行都应该是：<n> N-ok befbd0921afc36751323e70152c382f84e4d4257b01d526c597287f8aad7a3c3   （v2.2）
+ bash -n ~/.local/bin/everos-mcp-<N> && echo syntax-ok     # iMac 上用 /bin/bash 3.2 再跑一遍
+ ```
+ 模板改动后会得到新的「规范 sha」，要把本节的值一起改掉。8 份脚本必须同时换。
+-- 当前规范：v2.1，模板 `templates/everos-mcp-launcher-v2.1.sh`，规范 sha `f543542d…b39ce6`（2026-10-17）。「归一化」就是上面这条：`sed 's/^N=.*/N=@/'` 之后 `shasum -a 256`，不去空白、不去注释。生成方法：`sed 's/^N=<N>$/N=<n>/' templates/everos-mcp-launcher-v2.1.sh > ~/.local/bin/everos-mcp-<n>`。
+-- 旧值：v2 是 `a165609f…e15ff01a`；心月 PR #10 的样板是 `d5267256…`（过渡版，不是模板）。G1 一律按 v2.1 的 sha 判：还没换的副本算「已知待换」，不算失败；换完一份就按 v2.1 验一份，不再拿 v2 的 a165609f 做基准。
+-- 证据：`mcp-evidence/v2.1-template/`（box stdio 实测 tailnet、Host、回落公网、只读 3 个工具；iMac `/bin/bash` 3.2 语法检查）。
++- 当前规范：v2.2，模板 `templates/everos-mcp-launcher-v2.2.sh`，规范 sha `befbd092…87aad7a3c3`（2026-10-17 20:30 SGT）。「归一化」就是上面这条：`sed 's/^N=.*/N=@/'` 之后 `shasum -a 256`，不去空白、不去注释。生成方法：`sed 's/^N=<N>$/N=<n>/' templates/everos-mcp-launcher-v2.2.sh > ~/.local/bin/everos-mcp-<n>`。
++- 旧值：v2.1 是 `f543542d…b39ce6`（keyword 默认）；vllm hybrid 试点草稿 A 是 `acf10e59…3ab05f7`（试点例外，已由 v2.2 取代）；v2 是 `a165609f…e15ff01a`；心月 PR #10 的样板是 `d5267256…`（过渡版，不是模板）。G1 一律按 v2.2 的 sha 判，不再拿 v2.1 的 f543542d 或试点的 acf10e59 做基准。
++- 证据：v2.2 `mcp-evidence/v2.2-rollout/`（上线前 user 线门槛：xinyue、官网的 hybrid 带 atomic facts、跨项目隔离、token 0；8 份逐份换装前后 sha 和真实 MCP 调用）；v2.1 `mcp-evidence/v2.1-template/`（box stdio 实测 tailnet、Host、回落公网、只读 3 个工具；iMac `/bin/bash` 3.2 语法检查）。
++- 回滚到 v2.1：每台每份 `install -m 755 ~/.local/bin/everos-mcp-<n>.bak-v21-pre-v22 ~/.local/bin/everos-mcp-<n>`（vllm-omni 的备份是试点草稿 A；要回到 v2.1 用 `everos-mcp-vllm-omni.bak-v21-pre-hybrid`），G1 改回按 f543542d 判。只想临时退回 keyword、不换脚本：在该项目 env 文件加 `EVEROS_MCP_SEARCH_METHOD=keyword`。
+ 
+ ### 3.4 和现有脚本的差异，以及实测（box，`EV/template-probe.txt`，用 `EV/tools/mcp_probe.py` 直接跑 MCP stdio）
+ | 改动 | 原因 | 实测 |
+@@ -209,8 +211,8 @@
+ | 去掉 `EVEROS_ENV_FILE` 覆盖 | 否则调用方可以指向别的项目的 env 文件，绕过 scope 锁 | — |
+ | 校验 BASE_URL 必须等于期望值 | everos-mcp 在没有 BASE_URL 时会退回 `api.evermind.ai`，并把我们的 key 带过去 | T5b、T5d（假 HOME，没有发起任何网络请求）都以 exit 1 退出 |
+ | 校验 5 个必填变量 | 少了 app 或 project 时，everos-mcp 会悄悄用 `default` scope | T5c 以 exit 1 退出 |
+-| 只有 `N=` 一行不同 | 方便逐字比对 | 规范 sha 是 v2.1 的 `f543542d…`（v2 的 `a165609f…` 已作废） |
+-| 其余部分（锁版本、keyword 补丁、PATH）和心月脚本一样 | — | T1：7 个工具，召回到广告 5 条 |
++| 只有 `N=` 一行不同 | 方便逐字比对 | 规范 sha 是 v2.2 的 `befbd092…`（v2.1 的 `f543542d…`、v2 的 `a165609f…` 已作废） |
++| 其余部分（锁版本、keyword 补丁、PATH）和心月脚本一样（v2.2 起 keyword 补丁换成 hybrid 检索补丁，见 CHANGELOG） | — | T1：7 个工具，召回到广告 5 条 |
+ 
+ 没跑：模板没在 macOS `/bin/bash` 3.2 上运行过（这次只做只读核对）。上线时在 iMac 上跑 `bash -n` 和 §11 的一格。
+ 
+@@ -582,8 +584,10 @@
+ 5. **自动抽 skill**：有了 embedding，服务端可以开 skill_extraction 或 OME 来自动抽 skill。这还是服务端的写入通道，编码会话的写工具继续禁用。收工回写见 §6。
+ 6. 同步更新 HANDOFF §2 和 PLAN 里关于 keyword 的说明。
+ 
++**进度（2026-10-17）**：第 1 步完成（embedding 19:03、补向量、rerank 20:18:21 起 `rerank:true`）。第 2 步实际做法是换 vllm 一份启动脚本（试点草稿 A，没用 env 行），20:20–20:25 通过（`mcp-evidence/vllm-omni/hybrid-pilot/RESULT.md`）。第 3 步按 v2.2 做，但**保留** `python -c` wrapper、不改成直接 `exec everos-mcp`：0.1.1 的 `search_memory` 会丢掉 1.4.2 hybrid 结果里嵌在 episode 下的 atomic facts，wrapper 把它们补进输出，另外还管只读、Host、scope 过滤和 search.log。hybrid **不带** `enable_llm_rerank`（服务端 rerank）。`method=vector` 不用（不返回 atomic facts）。
++
+ ## 13. 已知坑
+-1. 照 HANDOFF §2 原样挂 `uvx everos-mcp`，在开 embedding 之前每次都会 422（everos-mcp 写死了 hybrid）。必须走 wrapper。
++1. 照 HANDOFF §2 原样挂 `uvx everos-mcp`，在开 embedding 之前每次都会 422（everos-mcp 写死了 hybrid）。必须走 wrapper。现在 embedding、rerank 都开了，原样挂不再 422，但仍不能用：会把写工具给模型、丢 atomic facts、不带 Host（v2.2 wrapper 处理这些）。服务端 rerank 一旦关掉，agent 线 hybrid 会回到 422，此时在 env 文件加 `EVEROS_MCP_SEARCH_METHOD=keyword`。
+ 2. env 文件里没有 BASE_URL 时，everos-mcp 会退回 `api.evermind.ai`，把 key 发到外部；少了 app 或 project 时，会悄悄用 `default` scope。模板已加校验（§3.4）。
+ 3. 调用方导出的 `EVEROS_*` 会传进 MCP 进程（pi 已从源码 `stdio.js:75` 确认；Claude Code 没单独验证）。旧脚本会被它改掉 scope（T4）。
+ 4. pi 不 `chdir`，所以 `process.cwd()` 不等于会话的 cwd。跨项目 `--session`、`-r`、`/resume` 时会挂错（run3）。
+@@ -601,6 +605,7 @@
+ 16. 服务端只有一个 bearer，scope 隔离只靠客户端（§6）。
+ 17. Claude 的 deny 规则里，`mcp__` 规则带括号会被跳过；只能用裸工具名，或者用裸 server 名 `mcp__everos`。
+ 18. 审计脚本不能打印无关的 `.mcp.json`。这次第一轮审计在 iMac 上就打出了一个与 EverOS 无关的明文 secret，详见 `PI-MCP-FINDINGS.md` §5 第 8 条。`EV/tools/audit.py` 已改成只打印含 everos 的文件。
++19. episode id（如 `zack_ep_20261017_00000001`）在不同 scope 里会重复，是各自的记录（v2.2 门槛实测：心月和官网同一 id 串是不同 session）。隔离按返回项的 `app_id/project_id` 判，不按 id。
+ 
+ ---
+ 

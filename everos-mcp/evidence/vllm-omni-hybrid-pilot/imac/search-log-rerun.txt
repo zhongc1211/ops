@@ -1,0 +1,2 @@
+2026-10-17T20:23:47+0800 everos-mcp-vllm-omni search track=agent method=hybrid enable_llm_rerank=false top_k=-1 outcome=ok ms=720 agent_skills=1 agent_cases=0 episodes=0
+2026-10-17T20:23:49+0800 everos-mcp-vllm-omni search track=user method=hybrid enable_llm_rerank=false top_k=-1 outcome=ok ms=131 agent_skills=0 agent_cases=0 episodes=0

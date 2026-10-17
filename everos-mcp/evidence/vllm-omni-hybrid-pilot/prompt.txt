@@ -1,0 +1,5 @@
+这是只读验收。按顺序只调用两次工具，不调用任何其他工具：
+1. mcp__everos__recall_agent_experience，参数 {"task": "NCCL"}
+2. mcp__everos__search_memory，参数 {"query": "NCCL"}
+然后回复：第一行 "TOOLS:" 加上你拥有的全部 mcp__everos__ 开头的工具名（逗号分隔）；第二行 "RECALL:" 加上 recall 返回的 skill 名（照抄 " (confidence" 之前的部分，逗号分隔，没有就写 NONE）；第三行 "SEARCH:" 加上 search_memory 返回的条数或 NONE。
+如果没有这些工具，就不调用工具，只回复 "TOOLS:"（同上）和一行 NO_EVEROS_TOOLS。不要编造。

@@ -1,0 +1,11 @@
+{
+ "id": "everos-llm",
+ "name": "EverOS LLM",
+ "members": [
+  "codex/gpt-6.1-sol",
+  "grok/grok-4.7"
+ ],
+ "routing": "order",
+ "affinity": "off",
+ "firstToken": 25
+}

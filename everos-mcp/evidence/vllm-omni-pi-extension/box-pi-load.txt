@@ -1,0 +1,25 @@
+# box pi 1.0.4 load check, 2026-10-17 17:41:42 +08
+command: cd <cwd> && env -i HOME=$HOME PATH=$PATH LANG=C.UTF-8 TERM=dumb pi --mode rpc --no-session --tools 'mcp__everos__*'  (stdin: get_state / get_commands / prompt "/mcp")
+
+## run 1: cwd ~/orca/workspaces/vllm-omni/PER-40-B200-线程限制复测 (HEAD 5a93ec1b4e990f42973954d63809f932e699426a): get_state, get_commands
+  get_state messageCount = 0 (0 = no model call)
+  get_commands ok, extension commands: 6
+  stderr bytes: 0
+
+## run 2: same cwd, /mcp status
+  notify: everos: connected, 3 tools (hidden)
+   response prompt True handled
+  get_state messageCount = 0 (0 = no model call)
+  stderr bytes: 0
+
+## run 3: cwd /workspace/ops (unmapped), /mcp status
+  notify: No MCP servers configured. Add them to /home/box/.pi/agent/mcp.json or .pi/mcp.json.
+   response prompt True handled
+  get_state messageCount = 0 (0 = no model call)
+  stderr bytes: 0
+
+## G4 (box)
+743e3d27d88e7d77f3a52fac4371dbd13b95091baad84772e86453f7516214fd  /home/box/.pi/agent/extensions/everos.ts
+no everos-*.ts
+grep -l everos ~/.pi/agent/mcp.json + workspace .pi/mcp.json: [] (empty = pass)
+launcher used: ~/.local/bin/everos-mcp-vllm-omni normalized f543542db2cd6d5fcdaf33e6688700e4c91e19d01d42f144a475f5f601b39ce6 (v2.1, replaced by someone else at 17:25; not touched by this task)

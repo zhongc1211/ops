@@ -1,0 +1,2 @@
+2026-10-17T20:22:37+0800 everos-mcp-vllm-omni endpoint=tailnet url=http://100.64.0.5 health=200 curl_rc=0 connect=0.042270s
+2026-10-17T20:22:55+0800 everos-mcp-dv-ads endpoint=tailnet url=http://100.64.0.5 health=200 curl_rc=0 connect=0.079426s

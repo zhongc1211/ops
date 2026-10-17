@@ -1,0 +1,4 @@
+2026-10-17T20:30:57+0800 everos-mcp-xinyue endpoint=tailnet url=http://100.64.0.5 health=200 curl_rc=0 connect=0.231877s
+2026-10-17T20:31:00+0800 everos-mcp-deepvision endpoint=tailnet url=http://100.64.0.5 health=200 curl_rc=0 connect=0.230889s
+2026-10-17T20:31:03+0800 everos-mcp-dv-ads endpoint=tailnet url=http://100.64.0.5 health=200 curl_rc=0 connect=0.231020s
+2026-10-17T20:31:05+0800 everos-mcp-vllm-omni endpoint=tailnet url=http://100.64.0.5 health=200 curl_rc=0 connect=0.231214s

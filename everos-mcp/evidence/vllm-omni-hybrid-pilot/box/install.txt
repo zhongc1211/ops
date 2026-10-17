@@ -1,0 +1,13 @@
+# box install 2026-10-17 20:21:30 +0800
+before raw: 7b28f7e916f1362990359c230ff4129445a690b8fc07292a3306fb36b6db4430  everos-mcp-vllm-omni
+before norm: f543542db2cd6d5fcdaf33e6688700e4c91e19d01d42f144a475f5f601b39ce6
+backup ok: 7b28f7e916f1362990359c230ff4129445a690b8fc07292a3306fb36b6db4430  everos-mcp-vllm-omni.bak-v21-pre-hybrid
+after raw: 85cecc4b64e26fd5dda8437557ae5955796831fbae491e0f811f723829db0899  everos-mcp-vllm-omni
+after norm: acf10e598199b59bc6b7a7ad6baed6c95d8354f1c9a94e5863d31f3dc3ab05f7
+syntax-ok
+-rwxr-xr-x 1 box box 7388 Oct 17 20:21 everos-mcp-vllm-omni
+-rwxr-xr-x 1 box box 5477 Oct 17 17:25 everos-mcp-vllm-omni.bak-v21-pre-hybrid
+other launchers (unchanged):
+deepvision 0d866b74b3febd20c41e701df88d75e2e5b96ef8c00f2b9fc59cc20126861524
+dv-ads 6c8116badac75415a7b6f9c65fd260b6e5f4ad8b2f6f0b40e48d45f544297bd8
+xinyue b79661091881e9c6c15016296e05ce8bf725d775147bde72bb98edeab9eddaf8

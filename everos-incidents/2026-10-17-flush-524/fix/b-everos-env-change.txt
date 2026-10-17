@@ -1,0 +1,17 @@
+EVEROS_LLM__MODEL=codex/gpt-6.1-sol
+640 root:everos
+"pending":0
+640 root:everos
+EVEROS_LLM__MODEL=group/everos-llm
+total 28
+drwxr-x---  2 root everos 4096 Oct 17 07:47 .
+drwxr-xr-x 98 root root   4096 Oct 16 06:21 ..
+-rw-r-----  1 root everos  474 Oct 17 07:47 everos.env
+-rw-r-----  1 root everos  379 Oct 15 18:43 everos.env.bak.20261015190950
+-rw-r-----  1 root everos  475 Oct 15 19:39 everos.env.bak.20261017T074757Z
+-rw-r-----  1 root everos  481 Oct 15 19:09 everos.env.bak.llm-20261015193953
+-rw-------  1 root root     65 Oct 15 18:45 proxy-token
+NRestarts=0
+ActiveEnterTimestamp=Sat 2026-10-17 07:47:57 UTC
+{"status":"ok","version":"1.4.2","capabilities":{"llm":true,"embed":false,"rerank":false,"multimodal_llm":false,"parser":true},"disabled_features":["vector_search","hybrid_search","reflection","skill_
+TS=20261017T074757Z

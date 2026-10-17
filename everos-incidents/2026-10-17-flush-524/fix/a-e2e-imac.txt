@@ -1,0 +1,8 @@
+session=everos-smoke-imac-tailnet-20261017153758 base=http://100.64.0.5 (Authorization: Bearer <redacted>)
+--- POST http://100.64.0.5/api/v2/memory/add
+{"request_id":"a3921f47a2ae4625bf12e31d2a0ec67b","data":{"message_count":2,"status":"accumulated"}}
+[http 200 in 5.235470s]
+--- POST http://100.64.0.5/api/v2/memory/flush
+{"request_id":"f82459d1ed9347a284acf78441638835","data":{"status":"extracted"}}
+[http 200 in 9.975505s]
+SESSION=everos-smoke-imac-tailnet-20261017153758

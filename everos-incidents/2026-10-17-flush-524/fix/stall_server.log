@@ -1,0 +1,5 @@
+listening
+15:40:10 holding b'POST /v1/chat/completions HTTP/1.1'
+15:42:48 holding b'POST /v1/chat/completions HTTP/1.1'
+15:43:48 holding b'POST /v1/chat/completions HTTP/1.1'
+15:45:29 holding b'POST /v1/messages HTTP/1.1'

@@ -1,0 +1,7 @@
+== session-rerun.jsonl
+model=claude-haiku-5-5 mcp=[{'name': 'everos', 'status': 'connected', 'source': 'local'}]
+everos_tools(3)=['mcp__everos__list_memories', 'mcp__everos__recall_agent_experience', 'mcp__everos__search_memory']
+tool_uses=[('mcp__everos__recall_agent_experience', {'task': 'NCCL'}), ('mcp__everos__search_memory', {'query': 'NCCL'})]
+ids_in_results=[]
+final='TOOLS: mcp__everos__list_memories, mcp__everos__recall_agent_experience, mcp__everos__search_memory\nRECALL: secure-h100-nccl-nvls-and-pod-loss\nSEARCH: NONE'
+cost_usd=0.00623662

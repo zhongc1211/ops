@@ -1,0 +1,21 @@
+after restart2 + first add/flush: 2026-10-17 08:09:45.591447186 +0000 3613922 /var/lib/everos/.cache/tiktoken/fb374d419588a4632f3f557e76b4b70aebbca790
+total 9048
+drwxrwxrwt 2 root   root      4096 2026-10-17 08:11:53.132247061 +0000 .
+drwx------ 3 root   root      4096 2026-10-17 08:10:56.227878969 +0000 ..
+-rw------- 1 everos everos 9254935 2026-10-17 08:11:41.784172325 +0000 jieba.cache
+== journal for the add after restart2
+2026-10-17T08:11:27+0000 site everos[196730]: 2026-10-17T08:11:27.341429Z [info     ] 100.64.0.6:0 - "POST /api/v2/memory/add HTTP/1.1" 200
+2026-10-17T08:11:34+0000 site everos[196730]: 2026-10-17T08:11:34.032925Z [info     ] Added job "_runner_entry" to job store "default" request_id=ee7f6c0b6ee540ff90999e122d0d90c1
+2026-10-17T08:11:34+0000 site everos[196730]: 2026-10-17T08:11:34.069412Z [info     ] Removed job 8746d418d2034a6b8a68ceee253191a3 request_id=ee7f6c0b6ee540ff90999e122d0d90c1
+2026-10-17T08:11:34+0000 site everos[196730]: 2026-10-17T08:11:34.071824Z [info     ] Running job "_runner_entry (trigger: date[2026-10-17 08:11:33 UTC], next run at: 2026-10-17 08:11:33 UTC)" (scheduled at 2026-10-17 08:11:33.960
+2026-10-17T08:11:34+0000 site everos[196730]: 2026-10-17T08:11:34.103405Z [info     ] skipping memcell (n_items=2): no_tool_single_user {'user_count': 1} attempt=0 request_id=ee7f6c0b6ee540ff90999e122d0d90c1 run_id=8746d418d2034a6
+2026-10-17T08:11:34+0000 site everos[196730]: 2026-10-17T08:11:34.104274Z [info     ] agent_case_skipped_by_algo     attempt=0 memcell_id=mc_acff70e6f4f4 request_id=ee7f6c0b6ee540ff90999e122d0d90c1 run_id=8746d418d2034a6b8a68ceee2
+2026-10-17T08:11:34+0000 site everos[196730]: 2026-10-17T08:11:34.126412Z [info     ] Job "_runner_entry (trigger: date[2026-10-17 08:11:33 UTC], next run at: 2026-10-17 08:11:33 UTC)" executed successfully request_id=ee7f6c0b6ee5
+2026-10-17T08:11:39+0000 site everos[196730]: 2026-10-17T08:11:39.528884Z [info     ] Added job "_runner_entry" to job store "default" request_id=ee7f6c0b6ee540ff90999e122d0d90c1
+2026-10-17T08:11:39+0000 site everos[196730]: 2026-10-17T08:11:39.544791Z [info     ] Added job "_runner_entry" to job store "default" request_id=ee7f6c0b6ee540ff90999e122d0d90c1
+2026-10-17T08:11:39+0000 site everos[196730]: 2026-10-17T08:11:39.565996Z [info     ] Added job "_runner_entry" to job store "default" request_id=ee7f6c0b6ee540ff90999e122d0d90c1
+2026-10-17T08:11:39+0000 site everos[196730]: 2026-10-17T08:11:39.586026Z [info     ] Removed job a254585d77f44a62a2704816a2209de5 request_id=ee7f6c0b6ee540ff90999e122d0d90c1
+2026-10-17T08:11:39+0000 site everos[196730]: 2026-10-17T08:11:39.597595Z [info     ] Removed job 8369a4706914405398545899bf17fdb1 request_id=ee7f6c0b6ee540ff90999e122d0d90c1
+2026-10-17T08:11:39+0000 site everos[196730]: 2026-10-17T08:11:39.611489Z [info     ] Removed job 09fda2655cbd4a4c93cc31d2e96beb2a request_id=ee7f6c0b6ee540ff90999e122d0d90c1
+2026-10-17T08:11:39+0000 site everos[196730]: 2026-10-17T08:11:39.615663Z [info     ] Running job "_runner_entry (trigger: date[2026-10-17 08:11:39 UTC], next run at: 2026-10-17 08:11:39 UTC)" (scheduled at 2026-10-17 08:11:39.506
+1

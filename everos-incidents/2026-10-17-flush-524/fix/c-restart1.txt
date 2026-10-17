@@ -1,0 +1,16 @@
+== 16:09:14 SGT pre-restart check
+established conns to :8000: 0
+last flush/add in nginx log:
+100.64.0.6 - - [17/Oct/2026:07:51:40 +0000] "POST /api/v2/memory/flush HTTP/1.1" 200 79 "-" "curl/8.14.1"
+100.64.0.4 - - [17/Oct/2026:07:52:29 +0000] "POST /api/v2/memory/add HTTP/1.1" 200 99 "-" "curl/8.7.1"
+100.64.0.4 - - [17/Oct/2026:07:52:38 +0000] "POST /api/v2/memory/flush HTTP/1.1" 200 79 "-" "curl/8.7.1"
+journal last 3 min, add/flush/Running job/executed:
+"pending":0
+RESTART1 issued 2026-10-17 16:09:14 SGT; healthy at 16:09:25 SGT
+ActiveEnterTimestamp=Sat 2026-10-17 08:09:14 UTC
+{"status":"ok","version":"1.4.2","capabilities":{"llm":true,"embed":false,"reran
+
+1
+total 8
+drwxr-xr-x 2 everos everos 4096 Oct 17 08:08 .
+drwxr-xr-x 3 everos everos 4096 Oct 17 08:08 ..

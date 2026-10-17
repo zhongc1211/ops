@@ -1,0 +1,140 @@
+== LLMSettings (config/settings.py)
+        EVEROS_LLM__TIMEOUT_SECONDS
+        EVEROS_LLM__EXTRA
+    """
+
+    model: str = "gpt-4.1-mini"
+    api_key: SecretStr | None = None
+    base_url: str | None = None
+    timeout_seconds: float = Field(default=60.0, gt=0)
+    """Per-request deadline handed to the algo client.
+
+    Matches the algo default, so leaving it alone changes nothing. It exists
+    because extraction latency is a property of the endpoint, not of this
+    project: a hosted frontier model answers an extraction prompt in seconds,
+    while a self-hosted mid-size model on a shared gateway can take minutes for
+    the same prompt. Without this the deadline was unreachable from config, and
+    a slow endpoint could only fail -- three attempts, three timeouts, one
+    dead-lettered memory.
+    """
+    extra: dict[str, Any] = Field(default_factory=dict)
+    """Provider-specific request fields merged into every chat call.
+
+    An escape hatch for what the OpenAI protocol does not cover, kept generic
+    because each gateway spells its own knobs differently. The case it was added
+    for: a reasoning model served over an OpenAI-compatible endpoint keeps
+    thinking by default, and thinking is billed against ``max_tokens`` -- so an
+    extraction call can spend its entire budget reasoning and return an empty
+== openai_provider.py timeout/max_retries
+        self,
+        *,
+        model: str,
+        api_key: str,
+        base_url: str | None = None,
+        timeout: float = 60.0,
+        temperature: float = 0.0,
+        max_tokens: int | None = None,
+        max_retries: int | None = None,
+        extra: Mapping[str, Any] | None = None,
+    ) -> None:
+        self._model = model
+        self._temperature = temperature
+        self._max_tokens = max_tokens
+        self._extra: dict[str, Any] = dict(extra or {})
+        # `max_retries` is the SDK's own retry count, and it MULTIPLIES with any
+        # retry the caller does. The decider retries 3 times (4 attempts); with the
+        # SDK default of 2 (3 requests) one unanswerable round costs 4 x 3 x timeout
+        # -- measured at 728-744s against a 60s deadline, and the round still ends in
+        # the fixed top-3 fallback. Left as None the SDK default stands, so callers
+        # that do not ask are unaffected.
+        client_kwargs: dict[str, object] = {
+            "api_key": api_key,
+            "base_url": base_url,
+            "timeout": timeout,
+        }
+        if max_retries is not None:
+            client_kwargs["max_retries"] = max_retries
+        self._client = openai.AsyncOpenAI(**client_kwargs)  # type: ignore[arg-type]
+
+    async def chat(
+== client.py llm build
+    api_key = (
+        llm_cfg.api_key.get_secret_value() if llm_cfg.api_key is not None else None
+    )
+    if not api_key or not llm_cfg.base_url:
+        raise LLMNotConfiguredError(
+            missing_config_error("LLM api_key and base_url", "llm")
+        )
+    client: LLMClient = build_client(
+        LLMConfig(
+            model=llm_cfg.model,
+            api_key=api_key,
+            base_url=llm_cfg.base_url,
+            timeout=llm_cfg.timeout_seconds,
+            extra=dict(llm_cfg.extra),
+        )
+    )
+    # Wrap for OTel token capture only when tracing is on — keeps the
+    # disabled path (the default) allocation- and overhead-free.
+    if settings.observability.enabled:
+        client = UsageRecordingClient(client)
+    # Finish-reason diagnostic wrapper is always outermost: it must see
+== flush route (entrypoints/api/routes/memorize.py)
+@router.post("/flush")
+async def flush_memory(
+    req: Annotated[MemorizeFlushRequest, ...],
+    request: Request,
+) -> SuccessEnvelope[FlushResponseData]:
+    """Force boundary detection over the current ``session_id`` buffer."""
+    request_id = extract_request_id(request)
+    result = await memorize(
+        {
+            "session_id": req.session_id,
+            "app_id": req.app_id,
+            "project_id": req.project_id,
+            "messages": [],
+        },
+        is_final=True,
+    )
+    # service's ``accumulated`` = nothing to flush (buffer was empty);
+    # ``extracted`` = at least one cell carved out.
+    status: Literal["extracted", "no_extraction"] = (
+        "extracted" if result.status == "extracted" else "no_extraction"
+    )
+    return SuccessEnvelope(
+        request_id=request_id,
+        data=FlushResponseData(status=status),
+    )
+== _extract_with_retry (memory/extract/pipeline/user_memory.py): only ValueError is retried
+296:async def _extract_with_retry(
+297-    extractor: EpisodeExtractor,
+298-    cell: AlgoMemCell,
+299-    prompt: str | None,
+300-    memcell_id: str,
+301-) -> AlgoEpisode:
+302-    """Call everalgo episode extraction with retry on malformed LLM output."""
+303-    for attempt in range(_EXTRACT_MAX_RETRIES):
+304-        try:
+305-            return await extractor.aextract(cell, sender_id=None, prompt=prompt)
+306-        except ValueError as exc:
+307-            wait = _EXTRACT_RETRY_BACKOFF * (attempt + 1)
+308-            logger.warning(
+309-                "episode_extract_retry",
+310-                memcell_id=memcell_id,
+311-                attempt=attempt,
+312-                error=str(exc)[:200],
+313-                backoff_s=wait,
+314-            )
+== id_gen.py
+"""Deterministic, human-readable ``message_id`` generation.
+
+Format: ``m_<session_id>_<timestamp_ms>_<idx:03d>``.
+
+Human-readable so logs / debugging / md entries stay greppable. Deterministic
+so caller retries (same payload) produce the same ids — pipeline merge
+naturally dedupes via the message_id PK in ``unprocessed_buffer``.
+"""
+
+from __future__ import annotations
+== session lock
+194:session_lock_timeout_seconds = 360.0

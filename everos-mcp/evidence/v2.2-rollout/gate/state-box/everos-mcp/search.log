@@ -1,0 +1,14 @@
+2026-10-17T20:28:37+0800 everos-mcp-xinyue search track=user method=hybrid enable_llm_rerank=absent top_k=-1 outcome=ok ms=1307 agent_skills=0 agent_cases=0 episodes=8 atomic_facts=24 foreign_dropped=0
+2026-10-17T20:28:37+0800 everos-mcp-xinyue search track=user method=hybrid enable_llm_rerank=absent top_k=-1 outcome=ok ms=459 agent_skills=0 agent_cases=0 episodes=1 atomic_facts=3 foreign_dropped=0
+2026-10-17T20:28:38+0800 everos-mcp-xinyue search track=user method=hybrid enable_llm_rerank=absent top_k=-1 outcome=ok ms=358 agent_skills=0 agent_cases=0 episodes=0 atomic_facts=0 foreign_dropped=0
+2026-10-17T20:28:38+0800 everos-mcp-xinyue search track=agent method=hybrid enable_llm_rerank=absent top_k=-1 outcome=ok ms=543 agent_skills=2 agent_cases=0 episodes=0 atomic_facts=0 foreign_dropped=0
+2026-10-17T20:28:40+0800 everos-mcp-deepvision search track=user method=hybrid enable_llm_rerank=absent top_k=-1 outcome=ok ms=597 agent_skills=0 agent_cases=0 episodes=0 atomic_facts=0 foreign_dropped=0
+2026-10-17T20:28:41+0800 everos-mcp-deepvision search track=user method=hybrid enable_llm_rerank=absent top_k=-1 outcome=ok ms=1171 agent_skills=0 agent_cases=0 episodes=12 atomic_facts=33 foreign_dropped=0
+2026-10-17T20:28:42+0800 everos-mcp-deepvision search track=user method=hybrid enable_llm_rerank=absent top_k=-1 outcome=ok ms=1074 agent_skills=0 agent_cases=0 episodes=7 atomic_facts=18 foreign_dropped=0
+2026-10-17T20:28:43+0800 everos-mcp-deepvision search track=agent method=hybrid enable_llm_rerank=absent top_k=-1 outcome=ok ms=833 agent_skills=1 agent_cases=0 episodes=0 atomic_facts=0 foreign_dropped=0
+2026-10-17T20:28:44+0800 everos-mcp-dv-ads search track=user method=hybrid enable_llm_rerank=absent top_k=-1 outcome=ok ms=590 agent_skills=0 agent_cases=0 episodes=0 atomic_facts=0 foreign_dropped=0
+2026-10-17T20:28:45+0800 everos-mcp-dv-ads search track=user method=hybrid enable_llm_rerank=absent top_k=-1 outcome=ok ms=397 agent_skills=0 agent_cases=0 episodes=1 atomic_facts=3 foreign_dropped=0
+2026-10-17T20:28:45+0800 everos-mcp-dv-ads search track=agent method=hybrid enable_llm_rerank=absent top_k=-1 outcome=ok ms=524 agent_skills=5 agent_cases=0 episodes=0 atomic_facts=0 foreign_dropped=0
+2026-10-17T20:28:47+0800 everos-mcp-vllm-omni search track=user method=hybrid enable_llm_rerank=absent top_k=-1 outcome=ok ms=581 agent_skills=0 agent_cases=0 episodes=0 atomic_facts=0 foreign_dropped=0
+2026-10-17T20:28:47+0800 everos-mcp-vllm-omni search track=user method=hybrid enable_llm_rerank=absent top_k=-1 outcome=ok ms=347 agent_skills=0 agent_cases=0 episodes=0 atomic_facts=0 foreign_dropped=0
+2026-10-17T20:28:48+0800 everos-mcp-vllm-omni search track=agent method=hybrid enable_llm_rerank=absent top_k=-1 outcome=ok ms=485 agent_skills=1 agent_cases=0 episodes=0 atomic_facts=0 foreign_dropped=0

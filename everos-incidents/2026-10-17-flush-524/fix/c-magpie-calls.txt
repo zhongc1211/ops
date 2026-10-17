@@ -1,0 +1,11 @@
+## magpie EverOS calls 16:09-16:12 SGT (t = start time)
+16:09:48.008 group/everos-llm served codex gpt-6.1-sol ms 5614 status 200
+16:09:54.537 group/everos-llm served codex gpt-6.1-sol ms 3957 status 200
+16:10:02.621 group/everos-llm served codex gpt-6.1-sol ms 5987 status 200
+16:10:12.300 group/everos-llm served codex gpt-6.1-sol ms 7306 status 200
+16:10:12.313 group/everos-llm served codex gpt-6.1-sol ms 11386 status 200
+16:11:21.551 group/everos-llm served codex gpt-6.1-sol ms 4914 status 200
+16:11:27.859 group/everos-llm served codex gpt-6.1-sol ms 5334 status 200
+16:11:33.926 group/everos-llm served codex gpt-6.1-sol ms 4655 status 200
+16:11:39.556 group/everos-llm served codex gpt-6.1-sol ms 4979 status 200
+16:11:39.652 group/everos-llm served codex gpt-6.1-sol ms 11097 status 200

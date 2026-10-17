@@ -1,0 +1,19 @@
+## magpie direct tests of group/everos-llm (curl on iMac loopback), 15:39-15:47 SGT
+## firstToken=25 on the group; stalltest = temporary local test provider (silent listener, later a closed port)
+15:39:35.117 members ['codex/gpt-6.1-sol', 'grok/grok-4.7'] status 200 ms 1567 tries [('codex', 200, 1532, '')]
+15:40:10.021 members ['stalltest/stall', 'grok/grok-4.7'] status 499 ms 120069 tries [('stalltest', 499, 120026, 'the agent canceled the request')]
+15:42:47.922 members ['stalltest/stall', 'grok/grok-4.7'] status 200 ms 27077 tries [('stalltest', 504, 25039, 'stalltest: no first token in 25s'), ('grok', 200, 1942, '')]
+15:43:48.398 members ['stalltest/stall', 'grok/grok-4.7'] status 499 ms 75102 tries [('stalltest', 499, 75000, 'the agent canceled the request')]
+15:45:29.382 members ['stalltest2/stall', 'grok/grok-4.7'] status 499 ms 75030 tries [('stalltest2', 499, 74987, 'the agent canceled the request')]
+15:47:42.292 members ['stalltest/stall', 'grok/grok-4.7'] status 200 ms 1966 tries [('stalltest', 502, 98, 'Post "http://127.0.0.1:39998/v1/chat/completions": dial tcp 127.0.0.1:39998: connect: connection refused'), ('grok', 200, 1801, '')]
+
+Request shapes (all {"model":"group/everos-llm","messages":[{"role":"user","content":"Reply with exactly: OK"}],"max_tokens":20}):
+15:39:35 normal, non-stream                         -> codex served (primary)
+15:40:10 silent primary (chat URL), non-stream      -> NOT cut; curl gave up at 120s (499)
+15:42:47 silent primary (chat URL), stream:true     -> cut at 25s "no first token in 25s", grok served
+15:43:48 silent primary (chat URL), non-stream      -> NOT cut (75s, 499)
+15:45:29 silent primary (Messages URL, translated), non-stream -> NOT cut (75s, 499)
+15:47:42 primary connection refused, non-stream     -> failed over in 98ms, grok served
+Conclusion: in magpie 0.1.1255 the group firstToken wait applies only to client-streamed requests.
+EverOS 1.4.2 sends non-streamed chat completions, so a silent codex stall is NOT failed over;
+errors (connect refused, 5xx, 429/quota, overload) ARE failed over to grok.

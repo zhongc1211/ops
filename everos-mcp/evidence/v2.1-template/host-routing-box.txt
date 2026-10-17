@@ -1,0 +1,24 @@
+## 2026-10-17 17:04:24 +08 box -> http://100.64.0.5, authenticated read-only search on ops/everos-smoke (Authorization: Bearer <redacted>)
+-- Host: 100.64.0.5             -> 200 0.729942s  keys= ['agent_cases', 'agent_skills', 'episodes', 'profiles', 'unprocessed_messages']  episodes= 3
+-- Host: everos.deepvision.sg   -> 200 0.474111s  keys= ['agent_cases', 'agent_skills', 'episodes', 'profiles', 'unprocessed_messages']  episodes= 3
+-- Host: random.invalid         -> 200 0.473059s  keys= ['agent_cases', 'agent_skills', 'episodes', 'profiles', 'unprocessed_messages']  episodes= 3
+-- no Host override (curl sends Host: 100.64.0.5), no auth -> 401
+
+## site nginx (nginx -T, 2026-10-17 ~17:05 SGT, via iMac ssh; listen/server_name lines only)
+sites-enabled/everos-tailnet.conf:  listen 100.64.0.5:80;  server_name _;   (allow 100.64.0.0/10; deny all; 400s timeouts; same everos-auth.conf map)
+sites-enabled/everos.conf:          listen 80 default_server; listen [::]:80 default_server; server_name _;  return 444;
+sites-enabled/everos.conf:          listen 80; listen [::]:80; server_name everos.deepvision.sg;  (public block, via Cloudflare)
+ss -ltn :80 -> nginx holds 0.0.0.0:80 and [::]:80 only (the 100.64.0.5:80 listen has no `bind`, so nginx serves it from the
+wildcard socket and picks the server by the connection's local address; no boot-order dependency on tailscaled).
+
+## Verdict
+nginx chooses the server block by local address:port FIRST, then by Host among blocks on that address. A connection that
+arrives on 100.64.0.5:80 only considers everos-tailnet.conf (the only block with that exact address), so ANY Host works:
+Host 100.64.0.5, everos.deepvision.sg and random.invalid all returned 200 with the same 3 episodes. If it had fallen to the
+default server we would have seen 444 (connection closed, empty reply), not 200 + data.
+It can reach the public blocks only if everos-tailnet.conf is removed/disabled. Then:
+  Host: 100.64.0.5           -> default_server -> 444 (fails closed, no data, MCP sees "unavailable")
+  Host: everos.deepvision.sg -> public everos.deepvision.sg block -> still works (same auth map)
+So xinyue's MCP traffic (Host 100.64.0.5) is safe today only because of the tailnet server block; sending
+Host: everos.deepvision.sg explicitly makes it independent of that block. v2.1 does this on every request.
+Public IP 157.230.194.108:80 from the box: connection fails (000) for both Hosts (origin firewalled to Cloudflare).
