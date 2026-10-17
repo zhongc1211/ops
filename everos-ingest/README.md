@@ -52,3 +52,11 @@ EVEROS_INGEST_ROOT=$HOME/.orca-state/bin/everos-ingest \
 - dry-run：`DRY_RUN=1 D=YYYY-MM-DD <precheck 脚本>`，只打印，不写文件
 - 19:21 改动（备份在 /home/box/orca-backups/fdv68-collect-20261016-1921/，iMac 上是 ~/orca-backups/…）：加 OD 规则（固定前缀 `~/Library/Application Support/Open Design/namespaces/release-stable/data/projects/fdv61-`）；首条消息被 `<pasted_content>` 包着时先拆包装再判定；输出每行加 `included_by`。43c55a22 夜审改成读 `/var/lib/everos-ingest/deepvision-site/$D/`
 - 19:28：207ff52e / 34fe1ab0 已启用；一次性核查 `098bc4e7-7bcd-4d2f-a391-1ab2b665c8c0`（2026-10-17 00:30，`fdv68-firstrun-check.sh` + `fdv68_firstrun_check.py`，跑完自己 disable）
+
+## 心月夜审写入台账 + 00:30 兜底（2026-10-17）
+
+- `nightly_addflush.py` — 夜审第 2 步写入脚本（box 上原有版本 + 写入台账）。每次 add/flush 追加一行到
+  `~/xinyue-deploy/nightly-review/$D-ledger.jsonl`（`--ledger` 可改），写前写后各 get 一次 episode 计数（含 id 列表）。
+- `night-review-xinyue.prompt.md` — `75b324a4` 的 prompt 全文：先写摘要骨架（状态：进行中），每步更新，第 2 步调用上面的脚本，结尾改为完成。
+- `night-review-guard-xinyue.sh` — Orca automation「心月夜审兜底」的 precheck（00:30，只读，总是 exit 1）；参数见
+  `night-review-guard-xinyue.automation.md`。
