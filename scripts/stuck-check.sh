@@ -41,7 +41,14 @@
 # 三、别的自动任务有没有跑完（每次都查，脚本直接发给 coding-assistant）。~/.orca-state/runs/ 下
 #   cf-usage、seo-weekly、mem-cpu-cleanup 的 .due 比 .ok 新，且超过 STUCK_MARKER_GRACE_MIN（默认 60）分钟，报一次。
 #
-# 四、box 的 Orca 连不上：每次查询重试 3 次；连续 2 次检查都连不上，报一次给 coding-assistant，恢复后复位。
+# 四、box 的 Orca 连不上：每次查询重试 3 次，还不行就等 STUCK_BOX_RETRY_WAIT（默认 30）秒再查一轮（box 刚从暂停恢复时
+#   常有几十秒连不上）；两轮都失败才算这次连不上。连续 2 次检查都连不上，报一次给 coding-assistant，恢复后复位。
+#   box 的 agent-probe 临时终端失败时也等 15 秒再试一次。
+# 派活 bot 的判断顺序：orca-projects.md 里的 Linear 编号 → 工作区显示名前缀（「营销 · 」「dv营销 · 」→ deepvision-marketing，
+#   见 NAME_BOT）→ 仓库映射；第一类里 agent 外面包的 notify-run --bot（agent-probe 的 dispatch_bot）优先于以上全部；
+#   都没有的发给 coding-assistant。
+# 同一时间只跑一个：~/.orca-state/stuck-check/run.lock（flock），上一次还没跑完时这次直接退出（--scan 返回 1，不启动 agent）。
+# webhook 返回非 2xx 时，日志里带响应体的前 160 个字符（去掉 URL/KEY 和长串，压成一行）。
 #
 # 用法：
 #   --scan     自动化的 precheck。查一遍；二、三、四类直接发；一类写进 pending.json。
@@ -60,7 +67,7 @@
 set -u
 PY=$(command -v python3 || echo /usr/bin/python3)
 exec "$PY" - "$@" <<'PYEOF'
-import base64, datetime, gzip, hashlib, json, os, re, shlex, shutil, subprocess, sys, tempfile, time
+import base64, datetime, fcntl, gzip, hashlib, json, os, re, shlex, shutil, subprocess, sys, tempfile, time
 
 HOME = os.path.expanduser("~")
 ARGS = sys.argv[1:]
@@ -104,7 +111,12 @@ SECRETS = []  # webhook 的 URL 和 KEY，任何输出里都替换掉
 REPORTED, GONE, IDLE, SILENT = "reported_not_accepted", "agent_gone", "agent_idle", "agent_silent"
 # orca-projects.md 里的 bot 名 → ~/.config/grokbot/webhooks/ 下的文件名
 BOT_SLUG = {"心月网站 运维": "xinyue", "deepvision 运维": "deepvision-ops", "deepvision 广告产品": "deepvision-ads",
-            "vllm-omni 开发": "vllm-omni", "定时任务": "ops"}
+            "vllm-omni 开发": "vllm-omni", "定时任务": "ops", "deepvision 营销": "deepvision-marketing",
+            "营销": "deepvision-marketing"}
+# 工作区显示名前缀 → bot（营销没有自己的仓库和 Linear 团队，FDV 编号和广告、运维混用，只能靠显示名或 notify-run --bot 认）
+NAME_BOT = [(re.compile(r"^\s*(?:dv\s*)?营销\s*·|^\s*deepvision[\s-]*marketing\b|^\s*marketing\s*·", re.I),
+             "deepvision-marketing")]
+BOX_RETRY_WAIT = float(os.environ.get("STUCK_BOX_RETRY_WAIT", "30"))
 # 工作区备注里算「agent 已报完成或卡住」的写法
 REPORT_RE = re.compile(r"^\s*(?:done|partial|blocked|完成|已完成|做完|卡住|阻塞|受阻)|等\s*\S{0,12}?(?:拍板|验收|确认|决定)", re.I)
 
@@ -202,18 +214,38 @@ def post_once(cfg, payload):
         esc = lambda v: v.replace("\\", "\\\\").replace('"', '\\"')
         conf = 'url = "%s"\nheader = "Content-Type: application/json"\nheader = "Authorization: Bearer %s"\n' % (
             esc(cfg["URL"]), esc(cfg["KEY"]))
+        resp = body.name + ".resp"
         try:
-            p = subprocess.run(["curl", "-sS", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "20", "-X", "POST",
+            p = subprocess.run(["curl", "-sS", "-o", resp, "-w", "%{http_code}", "--max-time", "20", "-X", "POST",
                                 "--data-binary", "@" + body.name, "-K", "-"],
                                input=conf, capture_output=True, text=True, timeout=40)
         except (OSError, subprocess.TimeoutExpired) as e:
             return type(e).__name__
+        finally:
+            try:
+                with open(resp, "rb") as f:
+                    _last_resp[0] = f.read(400).decode("utf-8", "replace")
+                os.remove(resp)
+            except OSError:
+                _last_resp[0] = ""
     if p.returncode != 0:
         return "curl 退出码 %d" % p.returncode
     return int(p.stdout) if p.stdout.strip().isdigit() else "无状态码"
 
 
 _last_post = [0.0]
+_last_resp = [""]
+
+
+def resp_snippet():
+    """上一次 POST 的响应体：去掉 URL/KEY 和看着像令牌的长串，压成一行，最多 160 个字符。"""
+    t = _last_resp[0] or ""
+    for sec in SECRETS:
+        t = t.replace(sec, "<已隐藏>")
+    t = re.sub(r"(?i)(bearer\s+|(?:key|token|secret)[\"']?\s*[:=]\s*[\"']?)[^\s\"',}]+", r"\1<已隐藏>", t)
+    t = re.sub(r"[A-Za-z0-9_\-]{32,}", "<长串已隐藏>", t)
+    t = " ".join(t.split())
+    return t[:160] + ("…" if len(t) > 160 else "")
 
 
 def post(cfg, payload, what):
@@ -225,7 +257,8 @@ def post(cfg, payload, what):
         code = post_once(cfg, payload)
         _last_post[0] = time.time()
         ok = isinstance(code, int) and 200 <= code < 300
-        log("POST %s → %s（第 %d 次）%s" % (what, code, n + 1, "" if ok else "，失败"))
+        snip = "" if ok else resp_snippet()
+        log("POST %s → %s（第 %d 次）%s" % (what, code, n + 1, "" if ok else "，失败" + ("，响应：%s" % snip if snip else "")))
         if ok:
             return True
     return False
@@ -270,9 +303,12 @@ def load_mapping():
 MAP_ID, MAP_NAME, MAP_LINEAR = load_mapping()
 
 
-def bot_for(repo_id, repo_name, slug, linear):
+def bot_for(repo_id, repo_name, slug, linear, display=None):
     if linear and linear in MAP_LINEAR:
         return BOT_SLUG.get(MAP_LINEAR[linear], MAP_LINEAR[linear])
+    for rx, b in NAME_BOT:
+        if display and rx.search(display):
+            return b
     info = MAP_ID.get(repo_id, {})
     slug = slug or info.get("slug")
     names = [info.get("name"), repo_name, slug.split("/")[-1] if slug else None]
@@ -409,6 +445,10 @@ def run_probe(host):
             log("%s：agent-probe 失败（%s），这次不判断进程是否还在" % (host["label"], (err or "无输出")[:120]))
         return doc
     text, err = box_run(host["env"], "~/.local/bin/agent-probe; echo @@PROBE-RC$?", "stuck-check probe", r"^@@PROBE-RC\d")
+    if text is None:
+        log("%s：agent-probe 第一次失败（%s），15 秒后再试一次" % (host["label"], err))
+        time.sleep(15)
+        text, err = box_run(host["env"], "~/.local/bin/agent-probe; echo @@PROBE-RC$?", "stuck-check probe", r"^@@PROBE-RC\d")
     if text is None:
         log("%s：%s，这次不判断进程是否还在" % (host["label"], err))
         return None
@@ -595,7 +635,10 @@ def check_agents(host, known, track):
             continue  # 有 notify-run 在跑长命令，结束时它会自己叫醒 bot
         linear = w.get("linkedLinearIssue")
         repo_slug = MAP_ID.get(w.get("repoId"), {}).get("slug")
-        bot = bot_for(w.get("repoId"), w.get("repo"), repo_slug, linear)
+        bot = bot_for(w.get("repoId"), w.get("repo"), repo_slug, linear, w.get("displayName"))
+        disp = [p.get("dispatch_bot") for p in aprocs if p.get("dispatch_bot")]
+        if disp:  # agent 是 notify-run --bot X 派出来的：直接用 X
+            bot = disp[0]
         task = ("%s %s" % (linear or "", w.get("displayName") or "")).strip()
         if linear and linear in (w.get("displayName") or ""):
             task = w["displayName"]
@@ -745,7 +788,7 @@ def check_reported(host):
         slugs = slug_of.get(w.get("repoId")) or []
         if not slugs and MAP_ID.get(w.get("repoId"), {}).get("slug"):
             slugs = [MAP_ID[w["repoId"]]["slug"]]
-        bot = bot_for(w.get("repoId"), w.get("repo"), slugs[0] if slugs else None, linear)
+        bot = bot_for(w.get("repoId"), w.get("repo"), slugs[0] if slugs else None, linear, w.get("displayName"))
         task = ("%s %s" % (linear or "", w.get("displayName") or "")).strip()
         if linear and linear in (w.get("displayName") or ""):
             task = w["displayName"]
@@ -950,6 +993,12 @@ def main():
         log("box：没有配好的 Orca environment，跳过")
     else:
         box, err = load_host("box", box_env)
+        if box is None and BOX_RETRY_WAIT > 0:
+            log("box（--environment %s）第一轮 3 次都没连上（%s），等 %.0f 秒再查一轮" % (box_env, (err or "")[:120], BOX_RETRY_WAIT))
+            time.sleep(BOX_RETRY_WAIT)
+            box, err = load_host("box", box_env)
+            if box is not None:
+                log("box 第二轮连上了，不算失败")
         if box is None:
             track["box_fail"] = track.get("box_fail", 0) + 1
             log("box（--environment %s）重试 3 次仍查询失败，这次跳过（连续第 %d 次）：%s" % (
@@ -1041,6 +1090,29 @@ def touch_due():
         pass
 
 
+def take_lock():
+    """同一时间只跑一个（10-15 13:23 出过两次扫描同时跑）。拿不到锁返回 None。"""
+    f = open(os.path.join(STATE_DIR, "run.lock"), "a+")
+    try:
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        f.close()
+        return None
+    f.seek(0), f.truncate(), f.write("%d %d\n" % (os.getpid(), NOW)), f.flush()
+    return f
+
+
+_lock = None
+if MODE not in ("--list", "--dry-run"):
+    _lock = take_lock()
+    if _lock is None:
+        try:
+            holder = open(os.path.join(STATE_DIR, "run.lock")).read().split()
+            since = "，pid %s，%.0f 秒前开始" % (holder[0], NOW - float(holder[1])) if len(holder) >= 2 else ""
+        except (OSError, ValueError):
+            since = ""
+        log("另一个 stuck-check 还在跑（这次 %s%s），这次直接退出" % (MODE, since))
+        sys.exit(1 if MODE == "--scan" else 0)
 try:
     rc = main()
 except Exception as e:  # 脚本自己出错不能当成「没事」：scan 时照样启动 agent，由它报出来
