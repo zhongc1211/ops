@@ -1,1 +1,14 @@
 xinyue-lessons-import.tgz
+
+# no caches, backups, env files or key material
+__pycache__/
+*.pyc
+*.bak
+*.bak*
+.env
+.env.*
+*.env
+*.pem
+*.key
+id_rsa*
+id_ed25519*

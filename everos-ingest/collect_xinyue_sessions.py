@@ -274,6 +274,221 @@ def live_terminal_count(worktree_id: str | None, path: str) -> int:
         return 0
 
 
+# --- exclusion: smoke / night-review / collector / setup sessions never go to EverOS ------
+# Decided by the session's task (first user message, plus the brief file it points to),
+# not by the workspace name.
+EXCLUDE_PATH_RE = re.compile(r"/auto-run-\d+-\d{8}T\d{4}$")
+# Opening prompts of automation / smoke sessions (first real user message).
+EXCLUDE_PROMPT_MARKERS = (
+    ("smoke", re.compile(r"^\s*这是 EverOS MCP 冒烟")),
+    ("smoke", re.compile(r"^\s*只调用下面(列出)?的只读工具")),
+    # one-shot config/recall acceptance checks ("This is an isolated config check. ...")
+    ("smoke", re.compile(r"^\s*This is an? (isolated |quick )?(config|smoke|recall|acceptance)[ -]?(check|test)", re.I)),
+    ("smoke", re.compile(r"^\s*这是.{0,24}(冒烟|召回验收|recall 验收|验收检查)", re.I)),
+    ("night-review", re.compile(r"心月夜审（xinyue-site，每晚一次")),
+    ("night-review", re.compile(r"^\s*(【[^】]*】)?\s*心月夜审")),
+    ("collector", re.compile(r"本任务的全部工作由预检脚本完成")),
+)
+# Setup/config of the agent tooling itself (EverOS wiring, MCP mounts, ingest/review
+# automations). Matched only against the task headline (first lines of the task), so the
+# rule boilerplate a dev brief carries further down ("接派活会话必须挂 everos-mcp") does not count.
+SETUP_TASK_RES = (
+    re.compile(r"(挂上|挂载|挂好|挂|配置|配好|接入|接上|安装|装上).{0,40}(everos-mcp|EverOS|MCP\b|claude 配置|Claude 配置)", re.I),
+    re.compile(r"(everos-mcp|EverOS|MCP\b).{0,16}(接入|接线|接上|冒烟|挂载|挂上|配置|样板|采集|setup|set up|wiring)", re.I),
+    re.compile(r"(修改|改|新建|创建|配置|手动跑).{0,24}(采集|夜审|ingest).{0,16}(automation|自动化)", re.I),
+)
+# Product work on the site stays in, even if it touches EverOS (e.g. a PER ticket that
+# wires EverOS into the studio): a Linear ticket or PR work in the headline wins.
+# Recall/smoke acceptance runs ("召回验收", "recall check"); checked after DEV_GUARD_RE.
+SMOKE_TASK_RE = re.compile(r"(召回|recall).{0,12}(验收|冒烟|smoke|acceptance|check)", re.I)
+DEV_GUARD_RE = re.compile(r"(\bPER-\d+|\bPR\s*#?\d+|开\s*PR|gh pr|feat/[\w./-]+|Linear)", re.I)
+BRIEF_PATH_RE = re.compile(r"(/[\w.\-/]+\.md)")
+
+
+def task_headline(text: str, lines: int = 2) -> str:
+    out = [l.strip() for l in text.splitlines() if l.strip()][:lines]
+    return " ".join(out)[:400]
+
+
+def brief_text(first: str) -> str:
+    """If the first message points at a brief file (e.g. "读 /workspace/ops/tasks/x.md 照做"), return its start."""
+    head = task_headline(first, 1)
+    if len(head) > 160:
+        return ""
+    for m in BRIEF_PATH_RE.finditer(head):
+        p = m.group(1)
+        try:
+            with open(p, "r", encoding="utf-8", errors="replace") as f:
+                return f.read(4000)
+        except OSError:
+            continue
+    return ""
+
+
+def task_type(first: str) -> tuple[str, str]:
+    """Return (kind, why) for the session's task: smoke/night-review/collector/setup/dev."""
+    for kind, rx in EXCLUDE_PROMPT_MARKERS:
+        if rx.search(first):
+            return kind, f"opening prompt looks like {kind}"
+    texts = [("task", first)]
+    b = brief_text(first)
+    if b:
+        texts.append(("brief", b))
+    for src, t in texts:
+        head = task_headline(t)
+        if DEV_GUARD_RE.search(head):
+            return "dev", f"{src} headline names a ticket/PR"
+        m = SMOKE_TASK_RE.search(head)
+        if m:
+            return "smoke", f"{src} headline is a recall/smoke acceptance: {m.group(0)[:40]!r}"
+        for rx in SETUP_TASK_RES:
+            m = rx.search(head)
+            if m:
+                return "setup", f"{src} headline is setup/config: {m.group(0)[:40]!r}"
+    return "dev", "no exclusion rule matched"
+
+
+def first_user_text(jsonl: str | None) -> str:
+    if not jsonl:
+        return ""
+    try:
+        with open(jsonl, "r", encoding="utf-8", errors="replace") as f:
+            for i, line in enumerate(f):
+                if i > 400:
+                    break
+                try:
+                    o = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if o.get("type") != "user" or o.get("isMeta") or o.get("isSidechain"):
+                    continue
+                c = (o.get("message") or {}).get("content")
+                if isinstance(c, list):
+                    c = "\n".join(b.get("text", "") for b in c if isinstance(b, dict) and b.get("type") == "text")
+                c = (c or "").strip()
+                if not c or c.startswith("<"):
+                    continue
+                return c
+    except OSError:
+        pass
+    return ""
+
+
+def transcript_entrypoint(jsonl: str | None) -> str | None:
+    """Claude Code writes `entrypoint` on each line: "cli" for interactive sessions,
+    "sdk-cli" for `claude -p` / print mode, "sdk-ts"/"sdk-py" for SDK runs."""
+    if not jsonl:
+        return None
+    try:
+        with open(jsonl, "r", encoding="utf-8", errors="replace") as f:
+            for i, line in enumerate(f):
+                if i > 200:
+                    break
+                try:
+                    o = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if o.get("entrypoint"):
+                    return str(o["entrypoint"])
+    except OSError:
+        pass
+    return None
+
+
+def exclusion_reason(row: dict) -> str | None:
+    wp = (row.get("workspace_path") or "").rstrip("/")
+    if wp and EXCLUDE_PATH_RE.search(wp):
+        return "night-review auto-run worktree"
+    # `claude -p` and SDK runs are non-interactive one-shots (smoke / acceptance), never dev
+    # work. pi sessions are not collected here (only ~/.claude/projects is read); `pi -p
+    # --no-session` leaves no transcript and pi session headers carry no mode field.
+    ep = transcript_entrypoint(row.get("transcript_path"))
+    if ep and ep.startswith("sdk"):
+        return f"non-interactive session (entrypoint={ep}, claude -p / SDK): smoke/acceptance"
+    kind, why = task_type(first_user_text(row.get("transcript_path")))
+    return None if kind == "dev" else why
+
+
+# --- redaction for transcripts pushed off this machine -----------------------------------
+SECRET_ENV_FILES_GLOBS = ("~/.config/everos/*.env", "~/.config/grokbot/webhooks/*.env")
+SECRET_KEY_RE = re.compile(r"(KEY|TOKEN|SECRET|PASS|COOKIE|URL)", re.I)
+SECRET_PATTERNS = [re.compile(p) for p in (
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----",
+    r"(?i)\bBearer\s+[A-Za-z0-9._~+/=\-]{16,}",
+    r"\bsk-[A-Za-z0-9_\-]{16,}",
+    r"\bgh[pousr]_[A-Za-z0-9]{20,}",
+    r"\bgithub_pat_[A-Za-z0-9_]{20,}",
+    r"\bcfut_[A-Za-z0-9_\-]{20,}",
+    r"\bAKIA[0-9A-Z]{16}\b",
+    r"\bxox[abprs]-[A-Za-z0-9-]{10,}",
+    r"\beyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}",
+    r"(?i)\b([A-Z0-9_]*(?:api[_-]?key|secret|password|passwd|token))(\\?[\"']?\s*[=:]\s*\\?[\"']?)[A-Za-z0-9._~+/\-]{16,}",
+)]
+REDACTED = "[REDACTED]"
+
+
+def load_literal_secrets() -> list[str]:
+    import glob
+    vals: set[str] = set()
+    for g in SECRET_ENV_FILES_GLOBS:
+        for fn in glob.glob(os.path.expanduser(g)):
+            if fn.endswith((".bak",)) or ".bak-" in fn:
+                continue
+            try:
+                for line in open(fn, encoding="utf-8", errors="replace"):
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    k, v = line.split("=", 1)
+                    k = k.replace("export ", "").strip()
+                    v = v.strip().strip('"').strip("'")
+                    if SECRET_KEY_RE.search(k) and not k.upper().endswith("BASE_URL") and len(v) >= 16:
+                        vals.add(v)
+            except OSError:
+                continue
+    # longest first so a value containing another is replaced whole
+    return sorted(vals, key=len, reverse=True)
+
+
+def redact_text(text: str, literals: list[str]) -> tuple[str, int]:
+    n = 0
+    for v in literals:
+        for form in {v, json.dumps(v)[1:-1]}:
+            if form and form in text:
+                n += text.count(form)
+                text = text.replace(form, REDACTED)
+    for rx in SECRET_PATTERNS:
+        def sub(m: re.Match) -> str:
+            nonlocal n
+            n += 1
+            if m.re.groups >= 2:
+                return m.group(1) + m.group(2) + REDACTED
+            return REDACTED
+        text = rx.sub(sub, text)
+    return text, n
+
+
+def stage_filtered_transcript(src: str, dst: Path, literals: list[str]) -> tuple[int, int]:
+    """Copy src -> dst with secrets redacted. Returns (redactions, dropped_invalid_lines)."""
+    red = dropped = 0
+    tmp = dst.with_suffix(dst.suffix + ".tmp")
+    with open(src, "r", encoding="utf-8", errors="replace") as fi, tmp.open("w", encoding="utf-8") as fo:
+        for line in fi:
+            if not line.strip():
+                continue
+            out, n = redact_text(line.rstrip("\n"), literals)
+            red += n
+            try:
+                json.loads(out)
+            except json.JSONDecodeError:
+                dropped += 1
+                continue
+            fo.write(out + "\n")
+    os.chmod(tmp, 0o600)
+    tmp.replace(dst)
+    return red, dropped
+
+
 def collect(machine: str, day: str) -> list[dict]:
     day_start, day_end, start_ms, end_ms = sgt_day(day)
     data = run_json([ORCA, "worktree", "list", "--json"], timeout=120)
@@ -431,10 +646,19 @@ def collect(machine: str, day: str) -> list[dict]:
     # Actually stick to schema + workspace_path is fine. HANDOFF lists required keys; extras OK for night review.
     # Sort by started_at
     rows.sort(key=lambda r: r.get("started_at") or "")
-    # Remove workspace_path to stay close to schema (night review may not care)
+    kept: list[dict] = []
+    excluded: list[dict] = []
     for r in rows:
+        why = exclusion_reason(r)
+        if why:
+            excluded.append({"session_id": r["session_id"], "machine": machine, "workspace": r.get("workspace"),
+                             "transcript_path": r.get("transcript_path"), "reason": why})
+        else:
+            kept.append(r)
+    # Remove workspace_path to stay close to schema (night review may not care)
+    for r in kept:
         r.pop("workspace_path", None)
-    return rows
+    return kept, excluded
 
 
 def main() -> int:
@@ -442,17 +666,55 @@ def main() -> int:
     ap.add_argument("--date", default=os.environ.get("D") or datetime.now(SGT).strftime("%Y-%m-%d"))
     ap.add_argument("--out", default="")
     ap.add_argument("--machine", default=os.environ.get("MACHINE") or ("imac" if sys.platform == "darwin" else "box"))
+    ap.add_argument("--stage-dir", default="", help="copy redacted transcripts here (for pushing to box)")
+    ap.add_argument("--remote-dir", default="", help="path the staged transcripts will have on box")
     args = ap.parse_args()
     machine = args.machine
     if machine not in ("box", "imac"):
         print(f"bad machine: {machine}", file=sys.stderr)
         return 2
-    rows = collect(machine, args.date)
+    rows, excluded = collect(machine, args.date)
     out = args.out
     if not out:
         out = f"/var/lib/everos-ingest/xinyue/{args.date}/sessions-{machine}.jsonl"
     out_p = Path(out)
     out_p.parent.mkdir(parents=True, exist_ok=True)
+    if args.stage_dir:
+        if not args.remote_dir:
+            print("--stage-dir needs --remote-dir", file=sys.stderr)
+            return 2
+        literals = load_literal_secrets()
+        if not literals:
+            # F6: never ship transcripts when the secret list could not be loaded
+            print("no literal secrets loaded from env files; refusing to stage transcripts", file=sys.stderr)
+            return 3
+        stage = Path(args.stage_dir)
+        if stage.exists():
+            import shutil
+            shutil.rmtree(stage)
+        stage.mkdir(parents=True)
+        os.chmod(stage, 0o700)
+        total_red = 0
+        for r in rows:
+            src = r.get("transcript_path")
+            if not src or not os.access(src, os.R_OK):
+                r["transcript_source_path"] = src
+                r["transcript_path"] = None
+                continue
+            name = f"{r['session_id']}.jsonl"
+            red, dropped = stage_filtered_transcript(src, stage / name, literals)
+            total_red += red
+            r["transcript_source_path"] = src
+            r["transcript_path"] = f"{args.remote_dir.rstrip('/')}/{name}"
+            r["transcript_redactions"] = red
+            r["transcript_dropped_lines"] = dropped
+        print(f"staged {sum(1 for r in rows if r.get('transcript_path'))} transcripts -> {stage} "
+              f"(literal secrets loaded={len(literals)}, redactions={total_red})")
+    ex_p = out_p.with_name(out_p.stem + ".excluded.jsonl")
+    with ex_p.open("w", encoding="utf-8") as f:
+        for e in excluded:
+            f.write(json.dumps(e, ensure_ascii=False) + "\n")
+    print(f"excluded {len(excluded)} sessions -> {ex_p}")
     with out_p.open("w", encoding="utf-8") as f:
         for r in rows:
             # ensure required keys
@@ -480,5 +742,8 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except Exception as e:
+        # exit 4, not 1: the precheck wrappers use exit 1 to mean "done, do not start the model"
+        import traceback
+        traceback.print_exc()
         print(f"collect failed: {e}", file=sys.stderr)
-        raise
+        raise SystemExit(4)
