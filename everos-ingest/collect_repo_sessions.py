@@ -9,6 +9,7 @@ repo changes (Zack 10-18 13:18「补」, ID 10-16 批):
   K  that project's own night review sessions are excluded (ads 9b5c20e7, vllm c392a743);
   ticket guard: FDV-N for ads, PER-N (already in the xinyue guard) for vllm.
   No OD rule: the Open Design prefix is deepvision-site only.
+  secret-like whole-session exclusion comes with the site collector (10-18 16:11).
 
 Runs the deepvision-site collector with its module settings swapped for the chosen repo, so the
 site script itself is not changed.

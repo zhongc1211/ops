@@ -12,6 +12,10 @@ Rules (Zack 2026-10-16 19:07, FDV-68 EXCLUSION-OPTIONS.md A+E+H+K):
   OD (Coding助手 19:21) besides H, sessions whose cwd starts with the fixed Open Design project
      prefix below (FDV-61 redesign work, not a git repo) also belong to deepvision-site. The full
      prefix is hard-coded; no substring matching.
+  secret-like (dr eggbot 10-18 16:11) a session the rules above keep is still excluded whole when
+     its title, task headline or brief headline names a key word (KEYS, AIKEYS, SECRET, REVOKE,
+     TOKEN, API_KEY …), or the task, brief or any transcript line holds an env secret value or a
+     token format; see collect_xinyue_sessions.secret_like_reason.
 
 Reuses helpers from collect_xinyue_sessions.py (same directory) without changing it.
 
@@ -231,12 +235,22 @@ def collect(machine: str, day: str) -> tuple[list[dict], list[dict], list[dict]]
         })
     rows.sort(key=lambda r: r.get("started_at") or "")
     kept, excluded = [], []
+    literals = base.load_literal_secrets()
     for r in rows:
         wp = (r.get("workspace_path") or "").rstrip("/")
         if wp and base.EXCLUDE_PATH_RE.search(wp):
             kind, rule = "night-review", "K: night-review auto-run worktree path"
         else:
-            kind, rule = task_type(first_user_text(r.get("transcript_path")), r.get("_cwd"))
+            first = first_user_text(r.get("transcript_path"))
+            kind, rule = task_type(first, r.get("_cwd"))
+            if kind == "dev":  # whole-session secret-like exclusion (see base.secret_like_reason)
+                b, bpath = brief_text(first, r.get("_cwd"))
+                why = base.secret_like_reason(
+                    [("title", r.get("workspace") or ""), ("task headline", base.task_headline(first)),
+                     (f"brief {bpath} headline", base.task_headline(b))],
+                    [first, b], r.get("transcript_path"), literals)
+                if why:
+                    kind, rule = "secret-like", why
         r["_rule"] = rule
         (kept if kind == "dev" else excluded).append(r)
     return kept, excluded, other_repo

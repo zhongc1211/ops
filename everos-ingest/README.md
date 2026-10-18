@@ -76,3 +76,18 @@ EVEROS_INGEST_ROOT=$HOME/.orca-state/bin/everos-ingest \
 - 夜审：9b5c20e7、c392a743 加第 0 步读采集清单并用上面的脚本写入；c392a743 第 4 步改用 lesson 脚本、env 改 `vllm-omni.env`
   （以前用 xinyue.env 覆盖成 app_id=vllm、user_id=zack@vllm-omni，coding agent 召回不到）。prompt 全文：
   `night-review-deepvision-ads.prompt.md`、`night-review-vllm-omni.prompt.md`。
+
+## 整条排除 secret-like 会话（2026-10-18，dr eggbot 16:11 定，依据 Zack「密钥不落地」）
+
+- 四个采集入口都加了（`collect_xinyue_sessions.py` 的 `secret_like_reason`，官网脚本调用它，广告和 vllm 通过
+  `collect_repo_sessions.py` 随官网脚本生效）。只对原规则会保留的会话检查，原来被排除的会话原因不变。
+- 命中就整条写进 `sessions-<machine>.excluded.jsonl`，reason 以 `secret-like:` 开头（只写命中的类别，不写值），不进 EverOS：
+  - 标题（工作区名）、开场任务前两行、brief 前两行里出现 KEYS、AIKEYS、SECRET(S)、REVOKE(D/S)、TOKEN(S)、API_KEY、
+    PRIVATE_KEY、PASSWORD、CREDENTIAL（不分大小写，按词边界）；
+  - 开场任务、brief 全文或 transcript 任一行里出现 env 文件里的密钥原值，或固定前缀的 token 格式
+    （私钥块、sk-、gh?_、github_pat_、cfut_、AKIA、xox?-、JWT、带数字的 Bearer）。
+- 关键词不查正文和工具输出：10-17 实测几乎每条开发会话的工具输出里都有 API_KEY/SECRET/TOKEN（box 广告 3 条里 2 条、
+  iMac vllm 4 条全中），查了会把正常会话也排掉。通用的 NAME=value 格式也不算（命中的都是占位符）。
+- 10-17 dry-run：iMac 广告 12 → 保留 7、排除 5（KEYS、AIKEYS、PROD-ADMIN-SECRET、REVOKE 四条会话 + FDV-77「生产管理员secret」
+  工作区的占位行）；box 广告、两边 vllm、官网、心月都和改前一样。
+- 只排除，不删已有数据。

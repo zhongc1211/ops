@@ -395,7 +395,7 @@ def transcript_entrypoint(jsonl: str | None) -> str | None:
     return None
 
 
-def exclusion_reason(row: dict) -> str | None:
+def exclusion_reason(row: dict, literals: list[str] | None = None) -> str | None:
     wp = (row.get("workspace_path") or "").rstrip("/")
     if wp and EXCLUDE_PATH_RE.search(wp):
         return "night-review auto-run worktree"
@@ -405,8 +405,14 @@ def exclusion_reason(row: dict) -> str | None:
     ep = transcript_entrypoint(row.get("transcript_path"))
     if ep and ep.startswith("sdk"):
         return f"non-interactive session (entrypoint={ep}, claude -p / SDK): smoke/acceptance"
-    kind, why = task_type(first_user_text(row.get("transcript_path")))
-    return None if kind == "dev" else why
+    first = first_user_text(row.get("transcript_path"))
+    kind, why = task_type(first)
+    if kind != "dev":
+        return why
+    b = brief_text(first)
+    return secret_like_reason(
+        [("title", row.get("workspace") or ""), ("task headline", task_headline(first)), ("brief headline", task_headline(b))],
+        [first, b], row.get("transcript_path"), literals or [])
 
 
 # --- redaction for transcripts pushed off this machine -----------------------------------
@@ -487,6 +493,60 @@ def stage_filtered_transcript(src: str, dst: Path, literals: list[str]) -> tuple
     os.chmod(tmp, 0o600)
     tmp.replace(dst)
     return red, dropped
+
+
+# --- whole-session exclusion: secret-like sessions never go to EverOS --------------------
+# dr eggbot 2026-10-18 16:11, after Zack「密钥不落地」. Checked only for sessions the task rules
+# would keep, so every existing exclusion keeps its old reason. Key words count only in the
+# title, the task headline and the brief headline: nearly every dev transcript mentions
+# API_KEY / SECRET / TOKEN somewhere in tool output (10-17: 2 of 3 box ads sessions, all 4 iMac
+# vllm sessions). Env values and token formats count anywhere in the transcript.
+SECRET_WORD_RE = re.compile(
+    r"(?<![A-Za-z0-9])(AIKEYS|KEYS|SECRETS?|REVOKE[DS]?|TOKENS?|API[_-]?KEYS?|PRIVATE[_-]KEYS?|PASSWORDS?|CREDENTIALS?)"
+    r"(?![A-Za-z0-9])", re.I)
+# Token formats with a fixed prefix (SECRET_PATTERNS minus the generic NAME=value one, which
+# matches placeholders such as GOOGLE_CLIENT_SECRET=<name>); Bearer needs a digit for the same reason.
+SECRET_FORMAT_RES = (
+    ("private key", SECRET_PATTERNS[0]), ("sk-", SECRET_PATTERNS[2]), ("gh?_", SECRET_PATTERNS[3]),
+    ("github_pat_", SECRET_PATTERNS[4]), ("cfut_", SECRET_PATTERNS[5]), ("AKIA", SECRET_PATTERNS[6]),
+    ("xox?-", SECRET_PATTERNS[7]), ("JWT", SECRET_PATTERNS[8]),
+    ("Bearer", re.compile(r"(?i)\bBearer\s+(?=[A-Za-z0-9._~+/=\-]*\d)[A-Za-z0-9._~+/=\-]{20,}")),
+)
+
+
+def secret_hit(text: str, literal_forms: list[str]) -> str | None:
+    """What secret-like thing text contains (never the value itself), or None."""
+    if any(v in text for v in literal_forms):
+        return "an env secret value"
+    for name, rx in SECRET_FORMAT_RES:
+        if rx.search(text):
+            return f"a {name} token"
+    return None
+
+
+def secret_like_reason(heads: list[tuple[str, str]], texts: list[str], transcript: str | None,
+                       literals: list[str]) -> str | None:
+    """Reason starting with "secret-like" when the whole session must stay out of EverOS.
+    heads: (where, text) checked for key words; texts and every transcript line: env values / token formats."""
+    for src, t in heads:
+        m = SECRET_WORD_RE.search(t or "")
+        if m:
+            return f"secret-like: {src} names {m.group(1).upper()!r}"
+    forms = sorted({f for v in literals for f in (v, json.dumps(v)[1:-1]) if f})
+    for t in texts:
+        hit = secret_hit(t or "", forms)
+        if hit:
+            return f"secret-like: task or brief contains {hit}"
+    if transcript:
+        try:
+            with open(transcript, "r", encoding="utf-8", errors="replace") as f:
+                for n, line in enumerate(f, 1):
+                    hit = secret_hit(line, forms)
+                    if hit:
+                        return f"secret-like: transcript line {n} contains {hit}"
+        except OSError:
+            pass
+    return None
 
 
 def collect(machine: str, day: str) -> list[dict]:
@@ -648,8 +708,9 @@ def collect(machine: str, day: str) -> list[dict]:
     rows.sort(key=lambda r: r.get("started_at") or "")
     kept: list[dict] = []
     excluded: list[dict] = []
+    literals = load_literal_secrets()
     for r in rows:
-        why = exclusion_reason(r)
+        why = exclusion_reason(r, literals)
         if why:
             excluded.append({"session_id": r["session_id"], "machine": machine, "workspace": r.get("workspace"),
                              "transcript_path": r.get("transcript_path"), "reason": why})
