@@ -11,6 +11,7 @@
 #   每个进程还有 "notify_anc"（祖先里有没有 notify-run）、"pane"（环境变量 ORCA_PANE_KEY，即 Orca 的 tabId:leafId，
 #   读不到为 null）、"in_orca"（在 Orca 终端里：有 pane 或祖先是 Orca）。顶层 agent（祖先里没有 agent）且没有 notify-run
 #   包着时多一个 "args_head"：命令行压成一行的前 400 个字符，给 stuck-check 比对是不是 Orca 自动任务起的（不写日志）。
+# "stops"：agent-stop 写的「主动停止」标记（~/.orca-state/agent-stops/，48 小时内），stuck-check 用来不报主动停掉的 agent。
 # 只读，不改任何东西。
 import base64, gzip, json, os, re, socket, subprocess, sys, time
 
@@ -90,6 +91,27 @@ def panes_of(pids):
     return out
 
 
+def stop_marks():
+    """agent-stop 写的「主动停止」标记（STOP_KEEP_H 小时内的）：stuck-check 看到就不报这个 agent 的 agent_gone / ws_broken。"""
+    d = os.environ.get("AGENT_STOP_DIR") or os.path.expanduser("~/.orca-state/agent-stops")
+    keep = float(os.environ.get("STOP_KEEP_H", "48")) * 3600
+    out = []
+    try:
+        names = sorted(os.listdir(d))
+    except OSError:
+        return out
+    for f in names:
+        if not f.endswith(".json"):
+            continue
+        try:
+            m = json.load(open(os.path.join(d, f), encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(m, dict) and time.time() - (m.get("ts") or 0) < keep:
+            out.append({k: m.get(k) for k in ("pid", "start", "name", "pane", "cwd", "ts", "by", "reason")})
+    return out
+
+
 def main():
     r = subprocess.run(["ps", "-axo", "pid=,ppid=,stat=,etime=,args="], capture_output=True, text=True, timeout=30)
     procs = {}
@@ -137,7 +159,7 @@ def main():
     for p in keep:
         p["wraps_agent"] = p["pid"] in wrappers
         p.pop("_args", None)
-    doc = {"host": socket.gethostname(), "ts": int(time.time()), "procs": keep}
+    doc = {"host": socket.gethostname(), "ts": int(time.time()), "procs": keep, "stops": stop_marks()}
     if "--plain" in sys.argv[1:]:
         print(json.dumps(doc, ensure_ascii=False, indent=1))
         return

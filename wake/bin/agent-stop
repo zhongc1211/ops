@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+# agent-stop [--reason "<为什么停>"] [--by <谁停的>] [--mark-only] [--signal TERM|INT|HUP] <pid>...
+# 主动停掉 agent 时用（PER-66）：先写一条「主动停止」标记，再发信号。卡住检查（stuck-check.sh）经 agent-probe 读到标记，
+# 这个 agent 退出后就不报 agent_gone / ws_broken（10-19 03:05 停 7 个已做完的 brief agent，之后被报了 6 次 agent_gone）。
+# 标记：~/.orca-state/agent-stops/<时间>-<pid>.json（AGENT_STOP_DIR 可改），内容
+#   {"pid", "start"（进程启动时间，秒）, "name", "pane"（ORCA_PANE_KEY）, "cwd", "ts", "by", "reason", "host"}。
+#   超过 7 天的标记顺手删掉。只认 claude / pi / codex 这类 agent 进程，别的 pid 拒绝。
+# --mark-only：只写标记不发信号（自己用别的办法停，比如关 Orca 终端，先写标记再关）。
+# 退出码：0 全部写好标记（且信号发出）；1 有 pid 失败（不存在、不是 agent、写标记失败、发信号失败）；2 用法错误。
+import json, os, re, signal, socket, subprocess, sys, time
+
+AGENTS = {"claude", "codex", "pi", "gemini", "opencode", "grok", "cursor-agent", "omp"}
+RUNTIMES = {"node", "bun", "deno", "python", "python3"}
+DIR = os.environ.get("AGENT_STOP_DIR") or os.path.expanduser("~/.orca-state/agent-stops")
+KEEP_S = 7 * 86400
+
+
+def usage():
+    print('用法: agent-stop [--reason "<为什么停>"] [--by <谁停的>] [--mark-only] [--signal TERM|INT|HUP] <pid>...',
+          file=sys.stderr)
+    sys.exit(2)
+
+
+def ps(pid):
+    """(etime 秒, 命令行) 或 None。"""
+    r = subprocess.run(["ps", "-o", "etime=,args=", "-p", str(pid)], capture_output=True, text=True)
+    f = r.stdout.strip().split(None, 1)
+    if r.returncode != 0 or len(f) < 2:
+        return None
+    days, _, rest = f[0].partition("-") if "-" in f[0] else ("0", "", f[0])
+    parts = [int(x) for x in rest.split(":")]
+    while len(parts) < 3:
+        parts.insert(0, 0)
+    return int(days) * 86400 + parts[0] * 3600 + parts[1] * 60 + parts[2], f[1]
+
+
+def agent_name(args):
+    tok = args.split()
+    strip = lambda t: re.sub(r"\.(?:js|mjs|cjs|py)$", "", os.path.basename(t))
+    b0, b1 = strip(tok[0]), strip(tok[1]) if len(tok) > 1 else ""
+    if b0 in AGENTS:
+        return b0
+    if b0 in RUNTIMES and b1 in AGENTS:
+        return b1
+    return None
+
+
+def cwd_of(pid):
+    try:
+        return os.readlink("/proc/%d/cwd" % pid)
+    except OSError:
+        pass
+    r = subprocess.run(["lsof", "-a", "-d", "cwd", "-Fn", "-p", str(pid)], capture_output=True, text=True)
+    return next((ln[1:] for ln in r.stdout.splitlines() if ln.startswith("n")), None)
+
+
+def pane_of(pid):
+    try:
+        env = open("/proc/%d/environ" % pid, "rb").read().decode("utf-8", "replace").replace("\0", " ")
+    except OSError:
+        env = subprocess.run(["ps", "-E", "-o", "command=", "-p", str(pid)], capture_output=True, text=True).stdout
+    m = re.search(r"(?:^|\s)ORCA_PANE_KEY=([\w:.-]+)", env)
+    return m.group(1) if m else None
+
+
+def main():
+    args, reason, by, mark_only, sig = sys.argv[1:], "", os.environ.get("USER") or "?", False, "TERM"
+    pids = []
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a in ("--reason", "--by", "--signal"):
+            if i + 1 >= len(args):
+                usage()
+            v = args[i + 1]
+            if a == "--reason":
+                reason = v
+            elif a == "--by":
+                by = v
+            else:
+                sig = v.upper().replace("SIG", "")
+            i += 2
+            continue
+        if a == "--mark-only":
+            mark_only = True
+        elif a.isdigit():
+            pids.append(int(a))
+        else:
+            usage()
+        i += 1
+    if not pids or sig not in ("TERM", "INT", "HUP"):
+        usage()
+    if not reason:
+        print("agent-stop: 请用 --reason 写明为什么停（标记里要有）", file=sys.stderr)
+        sys.exit(2)
+    os.makedirs(DIR, exist_ok=True)
+    now = time.time()
+    for f in os.listdir(DIR):
+        try:
+            if f.endswith(".json") and now - os.path.getmtime(os.path.join(DIR, f)) > KEEP_S:
+                os.remove(os.path.join(DIR, f))
+        except OSError:
+            pass
+    bad = 0
+    for pid in pids:
+        info = ps(pid)
+        if info is None:
+            print("agent-stop: pid %d 不存在" % pid, file=sys.stderr)
+            bad += 1
+            continue
+        name = agent_name(info[1])
+        if not name:
+            print("agent-stop: pid %d 不是 agent 进程（%s），没动" % (pid, info[1].split()[0]), file=sys.stderr)
+            bad += 1
+            continue
+        mark = {"pid": pid, "start": int(now - info[0]), "name": name, "pane": pane_of(pid), "cwd": cwd_of(pid),
+                "ts": int(now), "by": by, "reason": reason, "host": socket.gethostname()}
+        path = os.path.join(DIR, "%s-%d.json" % (time.strftime("%Y%m%dT%H%M%S"), pid))
+        try:
+            with open(path + ".tmp", "w", encoding="utf-8") as f:
+                json.dump(mark, f, ensure_ascii=False)
+            os.replace(path + ".tmp", path)
+        except OSError as e:
+            print("agent-stop: pid %d 写标记失败（%s），没发信号" % (pid, e), file=sys.stderr)
+            bad += 1
+            continue
+        if mark_only:
+            print("agent-stop: pid %d（%s）已写标记 %s，没发信号（--mark-only）" % (pid, name, path))
+            continue
+        try:
+            os.kill(pid, getattr(signal, "SIG" + sig))
+        except OSError as e:
+            print("agent-stop: pid %d 已写标记，但发 SIG%s 失败：%s" % (pid, sig, e), file=sys.stderr)
+            bad += 1
+            continue
+        print("agent-stop: pid %d（%s，pane %s）已写标记 %s，已发 SIG%s" % (pid, name, mark["pane"] or "-", path, sig))
+    sys.exit(1 if bad else 0)
+
+
+main()
