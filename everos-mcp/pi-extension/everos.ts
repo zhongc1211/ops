@@ -1,4 +1,4 @@
-// Pi user extension (EverOS MCP wiring standard v2): ~/.pi/agent/extensions/everos.ts, same bytes on box and iMac.
+// Pi user extension (EverOS MCP wiring standard v2): ~/.pi/agent/extensions/everos.ts, same bytes on box, iMac and MBA.
 // Mounts the EverOS MCP server "everos" for the project that owns the session's working directory, read-only.
 // Each project's wrapper is ~/.local/bin/everos-mcp-<N> (key and scope from ~/.config/everos/<N>.env).
 // Nothing secret here.
@@ -14,18 +14,22 @@ const PROJECTS: ReadonlyArray<readonly [string, string]> = [
   [`${H}/pi/remote/xinyue-site`, "xinyue"],
   [`${H}/pi/remote/xinyue-site-cicd`, "xinyue"],
   [`${H}/pi/remote/xinyue-ci`, "xinyue"],
+  [`${H}/orca/projects/xinyue-site`, "xinyue"],
   // deepvision-site
   [`${H}/orca/workspaces/deepvision-site`, "deepvision"],
   ["/workspace/repos/deepvision-site", "deepvision"],
   [`${H}/orca/workspaces/site`, "deepvision"],
   [`${H}/claude/site`, "deepvision"],
+  [`${H}/orca/projects/deepvision-site`, "deepvision"],
   // deepvision-ads
   [`${H}/orca/workspaces/deepvision-ads`, "dv-ads"],
   ["/workspace/repos/deepvision-ads", "dv-ads"],
+  [`${H}/orca/projects/deepvision-ads`, "dv-ads"],
   // vllm-omni
   [`${H}/orca/workspaces/vllm-omni`, "vllm-omni"],
   ["/workspace/repos/vllm-omni", "vllm-omni"],
   [`${H}/orca/workspaces/repository`, "vllm-omni"],
+  [`${H}/orca/projects/vllm-omni`, "vllm-omni"],
 ];
 
 function real(p: string): string {
