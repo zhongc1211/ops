@@ -6,6 +6,9 @@
 # 一、卡住的 agent（每次都查，纯脚本，不用模型）。只看 workspace-status=in-progress 的任务工作区
 #   （git 工作区，非主目录、非归档、不在 /tmp 下）；todo / in-review / completed / sleeping 一律跳过。
 #   要歇着的工作区标看板状态 Sleep（sleep），不查。
+#   例外：STUCK_MAIN_REPOS（默认 ops）的主目录也查——brief agent 都在 ops 主目录里跑（10-19 前被跳过）。主目录里同时有很多
+#   agent，按 agent 终端（paneKey）逐个查，key 是「机器:路径#paneKey」，进程靠 agent-probe 读到的 ORCA_PANE_KEY 对上；
+#   不看 workspaceStatus，没有 ws_broken；Orca 自动任务起的、agent 状态超过 STUCK_MAIN_MAX_AGE_H（默认 24）小时没变的不查。
 #     ws_broken    in-progress 但一个终端都没有（断了：Orca 重启、终端被关），已安静 STUCK_GONE_MIN 分钟。没有屏幕可复核，
 #                  不经复核直接叫醒负责的 bot。（10-18 前这种按 Sleep 跳过，Zack 10-18 13:18 改成要报。）
 #   工作区里有 notify-run 在跑长命令时不算卡住（包住整个 agent 的那层 notify-run 不算在内）。只报三种：
@@ -13,7 +16,8 @@
 #     agent_idle   agent 停在输入框等输入（tui-idle）超过 STUCK_IDLE_MIN（默认 30）分钟。
 #                  先交给 orca-wake（~/.local/bin/orca-wake recheck --agent-pid，box 上走临时终端）：派活时用
 #                  notify-run --tty 起的会话由它补叫醒一次，和它的 hook 叫醒共用 wake.log 和去重键，同一次停顿只叫一次；
-#                  派活 bot 不在 enabled-bots 里时它只写 wake.log（影子模式）。这两种情况 stuck-check 自己不再发 agent_idle。
+#                  派活 bot 不在 enabled-bots 里时它只写 wake.log（影子模式，不算叫醒过）：这时转报 coding-assistant（经复核），
+#                  不再当成已处理（10-16～10-17 影子模式漏了 58 次）。orca-wake 真发了的，stuck-check 自己不再发 agent_idle。
 #                  orca-wake 没有这个进程的记录（no_state_for_pid，比如不是经 notify-run --tty 起的）或 agent 已不是
 #                  notify-run 的直接子进程（parent_changed）时，才按下面的老办法写进 pending 发出去。
 #                  orca-wake 说刚有动静（recent_activity）或调用失败时这次不报，下次再查。
@@ -32,6 +36,11 @@
 #   payload：{bot, task, worktree, status:"stuck", kind, note, machine, source:"stuck-check"}。
 #   同一工作区报过（或复核后排除）就不再报，直到 agent 有新动作（agent_silent 还包括终端有新输出）。
 #   agent 的动作时间取 Orca 的 agent 状态记录；没有记录时（以及 box 上的输出时间）用终端屏幕指纹，由每次检查比对得出。
+#
+# 一 a、没经 notify-run 起的 agent（每次都查，脚本直接发）：agent-probe 看到 claude / pi / codex 在 Orca 终端里跑、是顶层 agent、
+#   父链里没有 notify-run（做完不会叫醒任何人），而且不是 Orca 自动任务起的（运行记录里的 paneKey，或命令行 / Orca 记的 prompt
+#   和某个自动任务的 prompt 对得上）→ 报给工作区对应的 bot，认不出的报 coding-assistant（kind agent_unwrapped）。
+#   每个进程报一次，同一个 bot 的合成一条。起 agent 用 wake/bin/orca-agent-launch（不带 --bot 就拒绝）。
 #
 # 一 b、due date 对账（每次都查，脚本直接发）。有 due 的 Linear issue：In Progress 超过 STUCK_DUE_GRACE_MIN（默认 30）
 #   分钟，没有工作区或工作区里没有 agent 在跑 → 叫醒负责的 bot（due_no_agent）；过了 due 当天还没进 In Review →
@@ -56,6 +65,8 @@
 # 派活 bot 的判断顺序：orca-projects.md 里的 Linear 编号 → 工作区显示名前缀（「营销 · 」「dv营销 · 」→ deepvision-marketing，
 #   见 NAME_BOT）→ 仓库映射；第一类里 agent 外面包的 notify-run --bot（agent-probe 的 dispatch_bot）优先于以上全部；
 #   都没有的发给 coding-assistant。
+# 心跳：每次跑完（含闸门关着直接退出）写 STATE_DIR/heartbeat.json，并在 stdout 打一行「@@HB {"ts","mode","rc","last_scan"}」。
+#   Orca 自动任务的运行记录会存 precheck 的 stdout，另一台机器上的 scripts/heartbeat-watch.sh 读它，太久没有新的就报警。
 # 同一时间只跑一个：~/.orca-state/stuck-check/run.lock（flock），上一次还没跑完时这次直接退出（--scan 返回 1，不启动 agent）。
 # webhook 返回非 2xx 时，日志里带响应体的前 160 个字符（去掉 URL/KEY 和长串，压成一行）。
 #
@@ -74,7 +85,7 @@
 # 退出码：0 正常（--scan 见上）；2 iMac Orca 查询失败；3 有 webhook 重试后仍然失败；4 脚本自己出错
 #   （--scan 时出错或 iMac Orca 查询失败也返回 0，让自动化启动 agent 把错误报出来）。
 # 测试用环境变量：STUCK_STATE_DIR、STUCK_ENV_FILE、STUCK_WEBHOOK_DIR、STUCK_RUNS_DIR、STUCK_FORCE_BOT（所有 bot 改发到它）、
-#   STUCK_ONLY（正则，只查路径匹配的工作区）、STUCK_BOX_ENV、STUCK_MBA_ENV、STUCK_ORCA_WAKE（本机 orca-wake 路径）、
+#   STUCK_ONLY（正则，只查路径匹配的工作区；没包 notify-run 的 agent 按 cwd 匹配）、STUCK_BOX_ENV、STUCK_MBA_ENV、STUCK_ORCA_WAKE（本机 orca-wake 路径）、
 #   STUCK_BOX_WAKE_CONFIG_DIR（box 上 orca-wake 的 ORCA_WAKE_CONFIG_DIR；本机的直接继承环境变量）。
 set -u
 PY=$(command -v python3 || echo /usr/bin/python3)
@@ -126,6 +137,12 @@ os.makedirs(STATE_DIR, exist_ok=True)
 SECRETS = []  # webhook 的 URL 和 KEY，任何输出里都替换掉
 REPORTED, GONE, IDLE, SILENT = "reported_not_accepted", "agent_gone", "agent_idle", "agent_silent"
 BROKEN, DUE_IDLE, DUE_LATE = "ws_broken", "due_no_agent", "due_overdue"
+UNWRAPPED = "agent_unwrapped"
+WATCH_AGENTS = {"claude", "pi", "codex"}  # 要求经 notify-run 起的 agent
+# 主目录里也查卡住的仓库（brief agent 都在 ops 主目录里跑，10-19 前被当成主目录跳过）：按 agent 终端逐个查
+MAIN_REPOS = {x.strip() for x in os.environ.get("STUCK_MAIN_REPOS", "ops").split(",") if x.strip()}
+MAIN_MAX_AGE_H = float(os.environ.get("STUCK_MAIN_MAX_AGE_H", "24"))  # 主目录里 agent 状态超过这么久没变的不查
+HB_FILE = os.path.join(STATE_DIR, "heartbeat.json")  # 每次跑完写一次；另一台机器的 heartbeat-watch 盯它（经自动任务运行记录）
 # orca-projects.md 里的 bot 名 → ~/.config/grokbot/webhooks/ 下的文件名
 BOT_SLUG = {"心月网站 运维": "xinyue", "deepvision 运维": "deepvision-ops", "deepvision 广告产品": "deepvision-ads",
             "vllm-omni 开发": "vllm-omni", "定时任务": "ops", "deepvision 营销": "deepvision-marketing",
@@ -612,6 +629,97 @@ def automation_of(w, env):
     return None
 
 
+def norm(t):
+    return " ".join((t or "").split())
+
+
+def automation_prompts(host):
+    """这台 Orca 各自动任务 prompt 的开头（压成一行，至少 20 个字）。查不到返回空列表。"""
+    if "auto_prompts" not in host:
+        al, _ = orca_json(["automations", "list"], host["env"], tries=2)
+        host["auto_prompts"] = [pp for pp in (norm(a.get("prompt"))[:80] for a in (al or {}).get("automations") or [])
+                                if len(pp) >= 20]
+    return host["auto_prompts"]
+
+
+def automation_panes(host):
+    """自动任务运行记录里的终端 paneKey（记录较大，只在 prompt 对不上时才查）。"""
+    if "auto_panes" not in host:
+        rl, _ = orca_json(["automations", "runs"], host["env"], tries=2, timeout=120)
+        host["auto_panes"] = {r["terminalPaneKey"] for r in (rl or {}).get("runs") or [] if r.get("terminalPaneKey")}
+    return host["auto_panes"]
+
+
+def by_automation(host, pane=None, args=None, prompt=None):
+    """agent 是不是 Orca 自动任务起的：命令行 / Orca 记的 prompt 是某个自动任务的 prompt，或终端 paneKey 在运行记录里。"""
+    a, pr = norm(args), norm(prompt)
+    if any((a and pp in a) or (pr and pr.startswith(pp[:60])) for pp in automation_prompts(host)):
+        return True
+    return bool(pane) and pane in automation_panes(host)
+
+
+def get_probe(host):
+    if "probe" not in host:
+        host["probe"] = run_probe(host)
+    return host["probe"]
+
+
+def check_unwrapped(host, track, pend=()):
+    """活着的 claude / pi / codex，父链里没有 notify-run：做完或停下没人叫醒（10-18 box 上 8 个 brief agent 这样漏掉）。
+    只看 Orca 终端里的顶层 agent（agent 自己起的子 agent、Orca 外面人开的终端不算），Orca 自动任务起的不算。
+    每个进程报一次，发给工作区对应的 bot，认不出的发 coding-assistant。返回直发列表。"""
+    label, env = host["label"], host["env"]
+    probe = get_probe(host)
+    if probe is None:
+        return []
+    seen = track.setdefault("unwrapped", {})
+    ws_paths = [w["path"] for w in host["worktrees"] if w.get("path")]
+    wmap = {w["path"]: w for w in host["worktrees"] if w.get("path")}
+    live, per_bot = set(), {}
+    for p in probe.get("procs", []):
+        if p["kind"] != "agent" or p.get("name") not in WATCH_AGENTS or p.get("agent_anc_cwds") or \
+                p.get("notify_anc") or not p.get("in_orca") or (ONLY and not ONLY.search(p.get("cwd") or "")):
+            continue
+        k = "%s:%d" % (label, p["pid"])
+        start = int(probe.get("ts", NOW) - p.get("etime_s", 0))
+        live.add(k)
+        if k in pend or (k in seen and abs(seen[k].get("start", 0) - start) < 120):
+            continue  # 报过，或上次没发出去、还在 pending 里
+        if by_automation(host, p.get("pane"), p.get("args_head")):
+            seen[k] = {"start": start, "automation": True}
+            continue
+        wp = ws_of(p.get("cwd") or "", ws_paths)
+        w = wmap.get(wp) or {}
+        bot = bot_for(w.get("repoId"), w.get("repo"), MAP_ID.get(w.get("repoId"), {}).get("slug"),
+                      w.get("linkedLinearIssue"), w.get("displayName")) if w else "未映射"
+        if bot == "未映射":
+            bot = FALLBACK_BOT
+        what = "%s pid %d（%s，已跑 %.0f 分钟，cwd %s）：%s" % (
+            p["name"], p["pid"], label, p.get("etime_s", 0) / 60.0, p.get("cwd") or "?",
+            ("工作区「%s」" % (w.get("displayName") or wp)) if w else "不在任何 Orca 工作区里")
+        log("没包 notify-run | %s | %s" % (bot, what))
+        per_bot.setdefault(bot, []).append((k, start, what))
+    for k in [k for k in seen if k.split(":", 1)[0] == label and k not in live]:
+        del seen[k]
+    out = []
+    for bot, items in per_bot.items():
+        ids = ",".join(sorted(k for k, _, _ in items))
+        out.append({"id": "unwrapped:%s:%s" % (bot, hashlib.sha1(ids.encode()).hexdigest()[:10]), "cfg": "bot:" + bot,
+                    "after": {"unwrapped": [[k, {"start": st, "notified": NOW}] for k, st, _ in items]},
+                    "payload": {"bot": bot, "task": "有 %d 个 agent 没经 notify-run 起（%s）" % (len(items), label),
+                                "worktree": "；".join(sorted({w.split("：")[0] for _, _, w in items}))[:300],
+                                "status": "stuck", "kind": UNWRAPPED, "machine": label, "source": "stuck-check",
+                                "note": "这些 agent 的父链里没有 notify-run，做完或停下不会叫醒派活的 bot（dev-bot-rules 要求一律用 "
+                                        "notify-run 包，起 agent 请用 orca-agent-launch）。还在做的盯着点，做完的看结果并关掉：\n" +
+                                        "\n".join("%d. %s" % (i, w) for i, (_, _, w) in enumerate(items, 1))}})
+    return out
+
+
+def is_main_watch(w):
+    return bool(w.get("isMainWorktree")) and not w.get("isArchived") and w.get("repo") in MAIN_REPOS and \
+        not (ONLY and not ONLY.search(w.get("path") or ""))
+
+
 # ---- 一、卡住的 agent ----
 def check_agents(host, known, track):
     """返回 (嫌疑列表, 这次看过的 key 集合, 查了几个工作区)。known = agents.json 里的记录。
@@ -621,6 +729,8 @@ def check_agents(host, known, track):
     label, env = host["label"], host["env"]
     ws_paths = [w["path"] for w in host["worktrees"] if w.get("path")]
     cands, eligible, found = [], set(), []
+    main_seen = track.setdefault("main_seen", {})  # 主目录里上次见到的 agent 终端：agent 退出后 Orca 连记录一起删掉，只能靠这里
+    main_now = set()
 
     def broken(w, key):
         last = (w.get("lastActivityAt") or 0) / 1000.0
@@ -644,7 +754,49 @@ def check_agents(host, known, track):
                     "等别人就改 in-review 或 Sleep，做完改 completed" % (
                         "最近一次活动在 %.0f 分钟前" % quiet if quiet is not None else "没有活动记录")})
 
+    def main_panes(w):
+        """主目录（ops）里同时跑着很多 agent，按 agent 终端逐个当成一个「工作区」查，key 带 paneKey。
+        自动任务起的、状态超过 MAIN_MAX_AGE_H 小时没变的不查；不看 workspaceStatus，没有 ws_broken。"""
+        recs = {}
+        for a in w.get("agents") or []:
+            recs.setdefault(a.get("paneKey"), []).append(a)
+        for t in host["terms"].get(w["path"]) or []:
+            if not t.get("agentIdentity") or not t.get("tabId"):
+                continue
+            pk = "%s:%s" % (t["tabId"], t.get("leafId"))
+            agents = recs.get(pk) or []
+            if not agents:
+                continue  # Orca 没有这个终端的 agent 记录，判断不了
+            hook = max(max(a.get("updatedAt") or 0, a.get("stateStartedAt") or 0) for a in agents) / 1000.0
+            if (NOW - hook) / 3600.0 > MAIN_MAX_AGE_H:
+                continue
+            first = next((a.get("prompt") for a in agents if a.get("prompt")), "")
+            if by_automation(host, pk, prompt=first):
+                continue
+            key = "%s:%s#%s" % (label, w["path"], pk)
+            eligible.add(key)
+            main_now.add(key)
+            ms = main_seen.setdefault(key, {})
+            ms.update(hook=hook, seen=NOW, handle=t["handle"], task="%s 主目录 · %s" % (w.get("repo"), norm(first)[:40] or pk[:8]),
+                      bot=bot_for(w.get("repoId"), w.get("repo"), MAP_ID.get(w.get("repoId"), {}).get("slug"), None, None))
+            out = (t.get("lastOutputAt") or 0) / 1000.0
+            scr = 0 if out else (screen_since(t["handle"], env, track, 0) or 0)
+            agent_t, out_t = hook, out or scr
+            rec = known.get(key)
+            if rec:
+                newer = agent_t if rec.get("kind") != SILENT else max(agent_t, out_t)
+                if newer <= rec.get("marker", 0) + 60:
+                    continue
+                del known[key]
+            pw = dict(w, agents=agents, liveTerminalCount=1, linkedLinearIssue=None,
+                      displayName="%s 主目录 · %s" % (w.get("repo"), norm(first)[:40] or t.get("title") or pk[:8]))
+            cands.append({"w": pw, "key": key, "agents": agents, "hook": hook, "scr": scr, "agent_t": agent_t,
+                          "out_t": out_t, "out": out, "handles": [t["handle"]], "act": 0, "pane": pk})
+
     for w in host["worktrees"]:
+        if is_main_watch(w):
+            main_panes(w)
+            continue
         if not is_task_ws(w) or w.get("workspaceStatus") != "in-progress":
             continue
         key = "%s:%s" % (label, w["path"])
@@ -676,9 +828,27 @@ def check_agents(host, known, track):
             del known[key]
         cands.append({"w": w, "key": key, "agents": agents, "hook": hook, "scr": scr, "agent_t": agent_t,
                       "out_t": out_t, "out": out, "handles": handles, "act": (w.get("lastActivityAt") or 0) / 1000.0})
+    # 主目录里上次还在、这次 Orca 已没有 agent 记录的终端：agent 退出了。经 notify-run 起的它自己会叫醒，不报；
+    # 没包的报一次 agent_gone（终端还在就经复核）。这台主目录没查到（终端列表失败）时不判断。
+    if host["terms_ok"]:
+        mains = {w["path"] for w in host["worktrees"] if is_main_watch(w)}
+        for key in [k for k in main_seen if k.startswith(label + ":") and k not in main_now]:
+            ms = main_seen.pop(key)
+            if ms.get("wrapped") is not False or key.split(":", 1)[1].split("#")[0] not in mains:
+                continue  # 包了 notify-run，或者上次没查到进程、分不清
+            quiet = (NOW - (ms.get("hook") or ms.get("seen") or NOW)) / 60.0
+            alive = any(t["handle"] == ms.get("handle") for ts in host["terms"].values() for t in ts)
+            found.append({"key": key, "kind": GONE, "bot": ms.get("bot") or FALLBACK_BOT, "task": ms.get("task") or key,
+                          "worktree": key, "machine": label, "env": env, "marker": ms.get("hook") or NOW,
+                          "terminals": [ms["handle"]] if alive else [],
+                          "note": "主目录里的 agent 进程退出了（上次检查还在，最近一次 agent 动作在 %.0f 分钟前；它没经 notify-run 起，"
+                                  "退出时没人收到）。终端%s。看看它做完没有、结果在哪" % (quiet, "还开着" if alive else "也关了")})
+    if DRY:  # 演练 / 核对覆盖面用：这次查了哪些
+        for k in sorted(eligible):
+            log("查 | %s" % k)
     if not cands:
         return found, eligible, len(eligible)
-    probe = run_probe(host)
+    probe = get_probe(host)
     rechecks = []
     for c in cands:
         w, key, agents, handles = c["w"], c["key"], c["agents"], c["handles"]
@@ -686,6 +856,12 @@ def check_agents(host, known, track):
         aprocs, notify = [], []
         if probe is not None:
             for p in probe.get("procs", []):
+                if c.get("pane"):  # 主目录：按终端认进程
+                    if p.get("pane") == c["pane"] and p["kind"] == "agent" and not p.get("agent_anc_cwds"):
+                        aprocs.append(p)
+                    elif p.get("pane") == c["pane"] and p["kind"] == "notify-run" and not p.get("wraps_agent"):
+                        notify.append(p)
+                    continue
                 here = ws_of(p.get("cwd") or "", ws_paths) == w["path"]
                 if p["kind"] == "agent" and here:
                     aprocs.append(p)
@@ -694,6 +870,11 @@ def check_agents(host, known, track):
                     notify.append(p)
         if notify:
             continue  # 有 notify-run 在跑长命令，结束时它会自己叫醒 bot
+        if c.get("pane") and any(by_automation(host, args=p.get("args_head")) for p in aprocs):
+            main_seen.pop(key, None)
+            continue  # 主目录里自动任务起的（paneKey 已不在运行记录里，靠命令行认出来）
+        if c.get("pane") and aprocs:
+            main_seen[key]["wrapped"] = any(p.get("notify_anc") for p in aprocs)
         linear = w.get("linkedLinearIssue")
         repo_slug = MAP_ID.get(w.get("repoId"), {}).get("slug")
         bot = bot_for(w.get("repoId"), w.get("repo"), repo_slug, linear, w.get("displayName"))
@@ -702,18 +883,21 @@ def check_agents(host, known, track):
             bot = disp[0]
         task = task_name(w)
 
-        def add(kind, note, marker, w=w, key=key, bot=bot, task=task, handles=handles):
-            made_by = automation_of(w, env)
+        def add(kind, note, marker, w=w, key=key, bot=bot, task=task, handles=handles, to=None):
+            made_by = automation_of(w, env) if not w.get("isMainWorktree") else None
             if made_by:
                 known[key] = {"kind": kind, "marker": marker, "dismissed": NOW,
                               "reason": "自动任务「%s」建的工作区" % made_by}
                 return
-            found.append({"key": key, "kind": kind, "bot": bot, "task": task, "worktree": key, "machine": label,
+            found.append({"key": key, "kind": kind, "bot": to or bot, "task": task, "worktree": key, "machine": label,
                           "note": note, "marker": marker, "env": env, "terminals": handles})
 
         nterm = w.get("liveTerminalCount") or 0
         if probe is None and not agents:
             continue  # 进程查不到，Orca 也没有 agent 记录，没法判断
+        if c.get("pane") and not aprocs and (probe is None or not any(
+                p.get("pane") for p in probe.get("procs", []) if p["kind"] == "agent")):
+            continue  # 主目录按终端认进程，这台读不到进程的 paneKey 时分不清，不报
         if probe is not None and not aprocs:
             last = max(c["act"], c["hook"], c["out"]) or c["scr"]  # 屏幕指纹第一次见到时是「现在」，有别的时间就不用它
             quiet = (NOW - last) / 60.0 if last else None
@@ -749,7 +933,7 @@ def check_agents(host, known, track):
                 idle_for, st)
             if aprocs:  # 先交给 orca-wake；它没有记录的再按老办法报（见 wake_recheck 之后）
                 top = [p["pid"] for p in aprocs if not p.get("agent_anc_cwds")] or [p["pid"] for p in aprocs]
-                rechecks.append({"key": key, "pids": top, "note": note, "marker": agent_t, "add": add})
+                rechecks.append({"key": key, "pids": top, "note": note, "marker": agent_t, "add": add, "addf": add})
             elif probe is None:  # 拿不到 pid 就问不了 orca-wake；按老办法报可能和它重复叫醒，下次再查
                 log("agent_idle | %s | 进程没查到，没法问 orca-wake，这次不报，下次再查" % key)
             else:
@@ -758,7 +942,7 @@ def check_agents(host, known, track):
         if waiting:
             if aprocs:
                 top = [p["pid"] for p in aprocs if not p.get("agent_anc_cwds")] or [p["pid"] for p in aprocs]
-                rechecks.append({"key": key, "pids": top, "marker": agent_t, "add": None, "waiting": waiting,
+                rechecks.append({"key": key, "pids": top, "marker": agent_t, "add": None, "addf": add, "waiting": waiting,
                                  "note": "agent 停在对话框已 %.0f 分钟（Orca 状态 waiting）" % (
                                      (NOW - waiting / 1000.0) / 60.0)})
             else:
@@ -766,7 +950,7 @@ def check_agents(host, known, track):
             continue
         if stale and aprocs:
             top = [p["pid"] for p in aprocs if not p.get("agent_anc_cwds")] or [p["pid"] for p in aprocs]
-            rechecks.append({"key": key, "pids": top, "marker": agent_t, "add": None,
+            rechecks.append({"key": key, "pids": top, "marker": agent_t, "add": None, "addf": add,
                              "note": "Orca 状态 working 已 %.0f 分钟没变，终端停在输入框" % idle_for})
         # 进程在、不在等输入：看终端多久没有新输出
         mins = (NOW - out_t) / 60.0 if out_t else None
@@ -784,7 +968,15 @@ def check_agents(host, known, track):
             res = {p: rr["res"].get(p, "no_result") for p in r["pids"]}
             desc = "，".join("pid %d %s" % (p, v) for p, v in sorted(res.items()))
             sent = [p for p, v in res.items() if v == "send"]
-            if sent:
+            if sent and not DRY and not ("*" in rr["enabled"] or (rr["bot"].get(sent[0]) or "?") in rr["enabled"]):
+                # 影子模式：orca-wake 只写了日志、没发（10-16～10-17 这样漏了 58 次）。不算叫醒过，转报 coding-assistant
+                bot = rr["bot"].get(sent[0]) or "?"
+                log("agent_idle | %s | orca-wake 要补叫醒（%s），但派活 bot %s 不在 enabled-bots 里，只写了影子日志；转报 %s" % (
+                    key, desc, bot, FALLBACK_BOT))
+                r["addf"](IDLE, "%s；orca-wake 判定这次停顿要补叫醒，但派活 bot %s 不在 enabled-bots 里（影子模式），没发出去。"
+                                "请转达 %s，或把它加进 ~/.config/orca-wake/enabled-bots" % (r["note"], bot, bot), marker,
+                          to=FALLBACK_BOT)
+            elif sent:
                 bot = rr["bot"].get(sent[0]) or "?"
                 shadow = not ("*" in rr["enabled"] or bot in rr["enabled"])
                 log("agent_idle | %s | %sorca-wake 补叫醒（%s；派活 bot：%s，%s）" % (
@@ -981,6 +1173,8 @@ def check_reported(host):
         if not is_task_ws(w) or status not in ("completed", "in-review"):
             continue
         scanned += 1
+        if DRY:
+            log("查（二）| %s:%s | %s" % (label, w["path"], status))
         linear = w.get("linkedLinearIssue")
         lstate, lts = linear_state(linear) if linear else (None, None)
         if lstate == "canceled":
@@ -1132,6 +1326,8 @@ def send_all(pending, known, track, seen):
             known[k] = dict(rec, notified=NOW, to=d["payload"]["bot"])
         if after.get("due"):
             track.setdefault("due", {})[after["due"][0]] = after["due"][1]
+        for k, rec in after.get("unwrapped") or []:
+            track.setdefault("unwrapped", {})[k] = rec
     for s in pending.get("suspects", []):
         why = DISMISS.get(s.get("id", ""))
         if why:
@@ -1239,7 +1435,13 @@ def main():
                 direct.append({"id": "broken:" + s["key"], "cfg": "bot:" + s["bot"],
                                "payload": agent_payload(s, s["bot"]),
                                "after": {"known": [s["key"], {"kind": BROKEN, "marker": s["marker"]}]}})
-        log("%s：in-progress 任务工作区 %d 个，新嫌疑 %d 个，断了的 %d 个" % (h["label"], n, len(found) - nb, nb))
+        log("%s：in-progress 任务工作区和主目录 agent %d 个，新嫌疑 %d 个，断了的 %d 个" % (h["label"], n, len(found) - nb, nb))
+        # 没经 notify-run 起的 agent（每次都查，要跑一次 agent-probe）
+        pend = {k for d in direct for k, _ in (d.get("after") or {}).get("unwrapped") or []}
+        uw = check_unwrapped(h, track, pend)
+        have = {d["id"] for d in direct}
+        direct += [d for d in uw if d["id"] not in have]
+        log("%s：没包 notify-run 的 agent 新报 %d 条" % (h["label"], len(uw)))
     for k in [k for k in known if k.split(":", 1)[0] in checked and k not in eligible]:
         del known[k]  # 工作区已经不是 in-progress 或不在了
     track["screens"] = {h: r for h, r in track["screens"].items() if NOW - r.get("seen", 0) < 6 * 3600}
@@ -1392,6 +1594,25 @@ def touch_due():
         pass
 
 
+def heartbeat(rc):
+    """每次跑完写心跳：heartbeat.json，并在 stdout 打一行 @@HB {...}。自动任务的运行记录会存 precheck 的 stdout，
+    另一台机器的 heartbeat-watch 经 `orca automations runs --environment ...` 读到它，超过 N 分钟没有新的就报警。"""
+    if MODE in ("--list", "--dry-run"):
+        return
+    g = load_json(GATE_FILE, {})
+    hb = {"ts": int(time.time()), "mode": MODE, "rc": rc, "last_scan": int(g.get("last") or 0)}
+    if MODE != "--scan":
+        hb["last_scan"] = int(NOW)
+    old = load_json(HB_FILE, {})
+    if MODE != "--scan" and old.get("last_scan"):
+        hb["last_scan"] = max(hb["last_scan"], int(old["last_scan"]))
+    try:
+        save_json(HB_FILE, hb)
+    except OSError:
+        pass
+    print("@@HB " + json.dumps(hb), flush=True)
+
+
 def take_lock():
     """同一时间只跑一个（10-15 13:23 出过两次扫描同时跑）。拿不到锁返回 None。"""
     f = open(os.path.join(STATE_DIR, "run.lock"), "a+")
@@ -1412,6 +1633,7 @@ if MODE == "--scan" and os.environ.get("STUCK_NO_GATE") != "1":
         _g = load_json(GATE_FILE, {})
         if _g and any(_gate[1].get(k) and not _g.get(k) for k in ("iMac", "box", "MBA")):
             save_json(GATE_FILE, dict(_g, **{k: v for k, v in _gate[1].items() if v}))  # 上次扫描时没查到的身份先补记
+        heartbeat(1)
         sys.exit(1)  # 没到点、Orca 也没重启：安静退出，不写日志
 if MODE not in ("--list", "--dry-run"):
     _lock = take_lock()
@@ -1422,6 +1644,7 @@ if MODE not in ("--list", "--dry-run"):
         except (OSError, ValueError):
             since = ""
         log("另一个 stuck-check 还在跑（这次 %s%s），这次直接退出" % (MODE, since))
+        heartbeat(1 if MODE == "--scan" else 0)  # last_scan 不变：扫描卡住时 heartbeat-watch 靠它报
         sys.exit(1 if MODE == "--scan" else 0)
 if _gate:
     save_json(GATE_FILE, dict(_gate[1], last=NOW, why=_gate[0]))
@@ -1439,5 +1662,6 @@ except Exception as e:  # 脚本自己出错不能当成「没事」：scan 时�
                                  "direct": []})
         touch_due()
         rc = 0
+heartbeat(rc)
 sys.exit(rc)
 PYEOF

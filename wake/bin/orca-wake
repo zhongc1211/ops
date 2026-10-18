@@ -29,7 +29,8 @@ are skipped (logged).
 Files (override with environment variables, mainly for tests):
   state   ${ORCA_WAKE_STATE_DIR:-~/.local/state/orca-wake}
             sessions/<agent>-<session>.json   per-session state (turn counter, last Stop, ...)
-            sent/<sha1>                        one file per dedup key that got a 2xx (or shadow)
+            sent/<sha1>                        one file per dedup key that got a 2xx (never for shadow)
+            shadow/<sha1>                      a key that was decided but not sent (bot not enabled)
             inflight/<sha1>                    a sender is working on this key
             wake.log                           one JSON line per decision / send attempt
   config  ${ORCA_WAKE_CONFIG_DIR:-~/.config/orca-wake}
@@ -377,6 +378,9 @@ def dispatch_send(job):
     if os.path.exists(sent):
         log("skip", reason="already_sent", **base)
         return
+    if os.path.exists(os.path.join(STATE_DIR, "shadow", h)) and not enabled_for(job["bot"]):
+        log("skip", reason="already_shadowed", **base)  # once the bot is enabled, the same key really goes out
+        return
     try:
         fd = os.open(inflight, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     except OSError as e:
@@ -449,6 +453,16 @@ def _mark_sent(sent, job, mode, http):
     mark_woken(job["agent"], job["session_id"], job["seq"], job["status"], job["source"])
 
 
+def _mark_shadow(job):
+    try:
+        d = os.path.join(STATE_DIR, "shadow")
+        os.makedirs(d, mode=0o700, exist_ok=True)
+        with open(os.path.join(d, key_hash(job["dedup_key"])), "w") as f:
+            json.dump({"key": job["dedup_key"], "ts": iso(), "bot": job["bot"]}, f)
+    except OSError:
+        pass
+
+
 def read_state(agent, session_id):
     try:
         with open(os.path.join(STATE_DIR, "sessions", "%s-%s.json" % (agent, safe_name(session_id))),
@@ -472,7 +486,8 @@ def _send_now(job, sent, base):
             job["message"] = stop["message"]
     payload = build_payload(job)
     if not enabled_for(job["bot"]):
-        _mark_sent(sent, job, "shadow", None)
+        # Not sent, so not "woken": keep it out of sent/ and woken, or recheck would skip this pause for good.
+        _mark_shadow(job)
         log("shadow", note="bot not in enabled-bots; not sent", log_tail_len=len(payload["log_tail"]), **base)
         return
     url, keyv, env_path = read_env_file(job["bot"])
@@ -896,7 +911,8 @@ def candidate(s, idle_min, waiting=False):
 
 
 def key_busy(key):
-    """'sent' if the key already got a 2xx (or shadow), 'inflight' if a live sender holds it, else None."""
+    """'sent' if the key already got a 2xx, 'inflight' if a live sender holds it, else None. Shadow keys
+    (bot not enabled) are not sent and do not count."""
     h = key_hash(key)
     if os.path.exists(os.path.join(STATE_DIR, "sent", h)):
         return "sent"
@@ -1028,7 +1044,7 @@ def _recheck_waiting(s, pid, since, ctx):
 
 def prune():
     cutoff = now() - SENT_TTL_S
-    for sub in ("sent", "sessions"):
+    for sub in ("sent", "sessions", "shadow"):
         d = os.path.join(STATE_DIR, sub)
         try:
             for n in os.listdir(d):
