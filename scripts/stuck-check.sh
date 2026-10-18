@@ -85,7 +85,7 @@
 # 退出码：0 正常（--scan 见上）；2 iMac Orca 查询失败；3 有 webhook 重试后仍然失败；4 脚本自己出错
 #   （--scan 时出错或 iMac Orca 查询失败也返回 0，让自动化启动 agent 把错误报出来）。
 # 测试用环境变量：STUCK_STATE_DIR、STUCK_ENV_FILE、STUCK_WEBHOOK_DIR、STUCK_RUNS_DIR、STUCK_FORCE_BOT（所有 bot 改发到它）、
-#   STUCK_ONLY（正则，只查路径匹配的工作区）、STUCK_BOX_ENV、STUCK_MBA_ENV、STUCK_ORCA_WAKE（本机 orca-wake 路径）、
+#   STUCK_ONLY（正则，只查路径匹配的工作区；没包 notify-run 的 agent 按 cwd 匹配）、STUCK_BOX_ENV、STUCK_MBA_ENV、STUCK_ORCA_WAKE（本机 orca-wake 路径）、
 #   STUCK_BOX_WAKE_CONFIG_DIR（box 上 orca-wake 的 ORCA_WAKE_CONFIG_DIR；本机的直接继承环境变量）。
 set -u
 PY=$(command -v python3 || echo /usr/bin/python3)
@@ -678,7 +678,7 @@ def check_unwrapped(host, track, pend=()):
     live, per_bot = set(), {}
     for p in probe.get("procs", []):
         if p["kind"] != "agent" or p.get("name") not in WATCH_AGENTS or p.get("agent_anc_cwds") or \
-                p.get("notify_anc") or not p.get("in_orca"):
+                p.get("notify_anc") or not p.get("in_orca") or (ONLY and not ONLY.search(p.get("cwd") or "")):
             continue
         k = "%s:%d" % (label, p["pid"])
         start = int(probe.get("ts", NOW) - p.get("etime_s", 0))
