@@ -1384,6 +1384,9 @@ _gate = None
 if MODE == "--scan" and os.environ.get("STUCK_NO_GATE") != "1":
     _gate = gate()
     if not _gate[0]:
+        _g = load_json(GATE_FILE, {})
+        if _g and any(_gate[1].get(k) and not _g.get(k) for k in ("iMac", "box")):
+            save_json(GATE_FILE, dict(_g, **{k: v for k, v in _gate[1].items() if v}))  # 上次扫描时没查到的身份先补记
         sys.exit(1)  # 没到点、Orca 也没重启：安静退出，不写日志
 if MODE not in ("--list", "--dry-run"):
     _lock = take_lock()
