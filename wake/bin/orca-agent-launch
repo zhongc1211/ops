@@ -116,7 +116,7 @@ else:
     how = "描述里%s「%s」" % ("把「负责 bot：%s」改成" % m.group(1) if m else "补了", line)
 print("Linear %s：due 设为 %s；%s" % (iss["identifier"], due, how))
 PY
-    ) || die "Linear $issue 写不进去（${msg:-见上}）。确认要先起 agent 再补卡就加 --no-linear"
+    ) || { echo "orca-agent-launch: 拒绝：Linear $issue 写不进去（${msg:-见上}）。确认要先起 agent 再补卡就加 --no-linear" >&2; exit 3; }
     echo "orca-agent-launch: $msg" >&2
 fi
 exec "${cmd[@]}"
