@@ -28,12 +28,18 @@ for attempt in 1 2 3; do
 done
 
 f="$S/box-fail"
+P="$S/pending.log"   # 连不上 box 时的日志行，下次连上时补进 box 的日志（演练不补）
 if [ $ok = 1 ]; then
   echo 0 > "$f"
   [ $rc -ne 0 ] && echo "$(ts) box 上 prod_ledger.py exit $rc（fetch rc=$frc）" >> "$M"
+  if [ -s "$P" ] && [ "${PROD_WATCH_DRILL:-}" != 1 ] && \
+     ssh "${SSH_OPTS[@]}" box 'cat >> /workspace/ops/reports/prod-watch-$(TZ=Asia/Singapore date +%Y%m%d).log' < "$P"; then
+    : > "$P"
+  fi
 else
   n=$(( $(cat "$f" 2>/dev/null || echo 0) + 1 )); echo $n > "$f"
-  echo "$(ts) ssh box 3 次都失败（连续第 $n 次），这次没比对台账；fetch rc=$frc，结果在 $S/last.json" >> "$M"
+  line="$(ts) [iMac 补记] ssh box 3 次都失败（连续第 $n 次），这次没比对台账；fetch rc=$frc，结果在 iMac $S/last.json"
+  echo "$line" >> "$M"; [ "${PROD_WATCH_DRILL:-}" != 1 ] && echo "$line" >> "$P"
   last=$(cat "$S/box-fail-alerted" 2>/dev/null || echo 0); now=$(date +%s)
   if [ $n -ge 4 ] && [ $((now - last)) -ge 21600 ]; then
     timeout 180 "$NR" --bot coding-assistant --no-tty --task "ops · 23 生产版本哨兵：iMac 连续 $n 次 ssh 不到 box" -- \
