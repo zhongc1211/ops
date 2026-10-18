@@ -186,6 +186,10 @@ def main():
         else:
             st.pop("fail_since", None)
             hb = res["hb"]
+            if res["runs"] == 0 and not st.get("last_hb"):
+                # 刚建的自动任务还没跑过（10-19 上线时两边同时建，iMac 先跑、误报过一次）；见过心跳之后再没有就照报
+                log("%s：还没有运行记录（自动任务刚建？），这次不判断" % t["name"])
+                continue
             if hb is None:
                 down, why = True, "最近 %d 次运行记录里没有心跳行（@@HB），最新一次运行在 %s" % (res["runs"], fmt(res["newest_run"]))
             else:
