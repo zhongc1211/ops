@@ -5,8 +5,9 @@
 #
 # 一、卡住的 agent（每次都查，纯脚本，不用模型）。只看 workspace-status=in-progress 的任务工作区
 #   （git 工作区，非主目录、非归档、不在 /tmp 下）；todo / in-review / completed / sleeping 一律跳过。
-#   sleeping 的判断：工作区一个终端都没有。Orca 的 Sleep 会停掉工作区的全部终端，CLI 里没有别的标记，
-#   所以「in-progress 但终端全关了」的工作区也按 sleeping 跳过（关终端这种情况由包住 agent 的 notify-run 叫醒）。
+#   要歇着的工作区标看板状态 Sleep（sleep），不查。
+#     ws_broken    in-progress 但一个终端都没有（断了：Orca 重启、终端被关），已安静 STUCK_GONE_MIN 分钟。没有屏幕可复核，
+#                  不经复核直接叫醒负责的 bot。（10-18 前这种按 Sleep 跳过，Zack 10-18 13:18 改成要报。）
 #   工作区里有 notify-run 在跑长命令时不算卡住（包住整个 agent 的那层 notify-run 不算在内）。只报三种：
 #     agent_gone   agent 进程已经不在（退出、崩溃、断线，终端还开着），工作区还没标完成，且已安静 STUCK_GONE_MIN（默认 10）分钟。
 #     agent_idle   agent 停在输入框等输入（tui-idle）超过 STUCK_IDLE_MIN（默认 30）分钟。
@@ -32,9 +33,16 @@
 #   同一工作区报过（或复核后排除）就不再报，直到 agent 有新动作（agent_silent 还包括终端有新输出）。
 #   agent 的动作时间取 Orca 的 agent 状态记录；没有记录时（以及 box 上的输出时间）用终端屏幕指纹，由每次检查比对得出。
 #
+# 一 b、due date 对账（每次都查，脚本直接发）。有 due 的 Linear issue：In Progress 超过 STUCK_DUE_GRACE_MIN（默认 30）
+#   分钟，没有工作区或工作区里没有 agent 在跑 → 叫醒负责的 bot（due_no_agent）；过了 due 当天还没进 In Review →
+#   叫醒 coding-assistant（due_overdue）。负责 bot：issue 标签 bot:<名字> → 描述里「负责 bot：<名字>」→ 关联工作区 →
+#   orca-projects.md → coding-assistant。每种情况每个 due 只报一次。box 没查到时不对。
+#
 # 二、报了没人验收（约每小时查一次，脚本直接发，不经模型）。只看 completed / in-review 的任务工作区：
 #   reported_not_accepted：已开 PR 超过 1 小时没有 review 和人工评论；或没有 PR、标完成超过 1 小时。
-#   「已验收」= PR 有 review 或人工评论、已合并或关闭，工作区已归档，Linear 卡片 canceled。agent 又在工作时不报。
+#   「已验收」= PR 有 review 或人工评论、已合并或关闭（含 Orca 记着的关联 PR 已合并/关闭），工作区已归档，Linear 卡片
+#   canceled。agent 又在工作时不报。completed、工作区干净、比远端默认分支没有多出提交、也没有 PR 的直接放行。
+#   repo list 查不到时这台这次不查（不再当成「仓库没有 GitHub 远端」）。
 #   多条合并成一条发给 Coding助手（~/.config/grokbot/stuck-webhook.env）。同一件事只报一次，
 #   连续 STUCK_FORGET_HOURS（默认 24）小时没再出现才忘掉。
 #
@@ -51,7 +59,10 @@
 # webhook 返回非 2xx 时，日志里带响应体的前 160 个字符（去掉 URL/KEY 和长串，压成一行）。
 #
 # 用法：
-#   --scan     自动化的 precheck。查一遍；二、三、四类直接发；一类写进 pending.json。
+#   --scan     自动化的 precheck（自动任务每分钟调一次）。闸门：距上次扫描满 STUCK_INTERVAL_MIN（默认 15）分钟，或 iMac / box
+#              的 Orca 重启过（orca status 的进程号或 runtimeId 变了，记在 gate.json），才往下查，否则直接返回 1；
+#              Orca 重启后这次连第二类一起查。STUCK_NO_GATE=1 跳过闸门。
+#              查一遍；ws_broken、due、二、三、四类直接发；其余一类写进 pending.json。
 #              退出码 0 = 有嫌疑要复核或有东西没发出去（同时写 .due 标记），1 = 没事，自动化跳过这次。
 #   --list     打印 pending.json 里的嫌疑（S1、S2…）和每条的复核办法。
 #   --send     把 pending.json 里没被 --dismiss 的嫌疑发给各自的 bot，并补发之前没发出去的。
@@ -101,7 +112,9 @@ LOG_FILE = os.path.join(STATE_DIR, "stuck-check.log")
 SEEN_FILE = os.path.join(STATE_DIR, "notified.json")   # 第二类的已通知记录
 AGENTS_FILE = os.path.join(STATE_DIR, "agents.json")   # 第一类：报过或排除过的工作区
 PENDING_FILE = os.path.join(STATE_DIR, "pending.json")  # 等复核的嫌疑、没发出去的直发消息
-TRACK_FILE = os.path.join(STATE_DIR, "track.json")     # 屏幕指纹、box 连不上的次数、上次全量检查时间、标记告警
+TRACK_FILE = os.path.join(STATE_DIR, "track.json")
+GATE_FILE = os.path.join(STATE_DIR, "gate.json")      # --scan 闸门：上次扫描时间和两台 Orca 的启动身份
+INTERVAL_MIN = float(os.environ.get("STUCK_INTERVAL_MIN", "15"))     # 屏幕指纹、box 连不上的次数、上次全量检查时间、标记告警
 MARKERS = {"cf-usage": "CF usage watch", "seo-weekly": "SEO weekly check", "mem-cpu-cleanup": "内存与 CPU 日常清理"}
 FALLBACK_BOT = "coding-assistant"
 SGT = datetime.timezone(datetime.timedelta(hours=8))
@@ -109,6 +122,7 @@ NOW = time.time()
 os.makedirs(STATE_DIR, exist_ok=True)
 SECRETS = []  # webhook 的 URL 和 KEY，任何输出里都替换掉
 REPORTED, GONE, IDLE, SILENT = "reported_not_accepted", "agent_gone", "agent_idle", "agent_silent"
+BROKEN, DUE_IDLE, DUE_LATE = "ws_broken", "due_no_agent", "due_overdue"
 # orca-projects.md 里的 bot 名 → ~/.config/grokbot/webhooks/ 下的文件名
 BOT_SLUG = {"心月网站 运维": "xinyue", "deepvision 运维": "deepvision-ops", "deepvision 广告产品": "deepvision-ads",
             "vllm-omni 开发": "vllm-omni", "定时任务": "ops", "deepvision 营销": "deepvision-marketing",
@@ -579,6 +593,22 @@ def screen_since(handle, env, track, seed=0):
     return rec["since"]
 
 
+def task_name(w):
+    linear = w.get("linkedLinearIssue")
+    if linear and linear in (w.get("displayName") or ""):
+        return w["displayName"]
+    return ("%s %s" % (linear or "", w.get("displayName") or "")).strip()
+
+
+def automation_of(w, env):
+    """自动任务每次运行自己建的工作区，没有 bot 在等它，跑完留着是正常的。是的话返回自动任务名。"""
+    show, _ = orca_json(["worktree", "show", "--worktree", "path:" + w["path"]], env)
+    prov = ((show or {}).get("worktree") or show or {}).get("automationProvenance") or {}
+    if prov.get("kind") == "created-by-automation":
+        return prov.get("automationNameSnapshot") or "?"
+    return None
+
+
 # ---- 一、卡住的 agent ----
 def check_agents(host, known, track):
     """返回 (嫌疑列表, 这次看过的 key 集合, 查了几个工作区)。known = agents.json 里的记录。
@@ -587,13 +617,41 @@ def check_agents(host, known, track):
     工作区的 lastActivityAt 不用来判断「有新活动」：在 Orca 界面里点开工作区它也会变。"""
     label, env = host["label"], host["env"]
     ws_paths = [w["path"] for w in host["worktrees"] if w.get("path")]
-    cands, eligible = [], set()
+    cands, eligible, found = [], set(), []
+
+    def broken(w, key):
+        last = (w.get("lastActivityAt") or 0) / 1000.0
+        rec = known.get(key)
+        if rec:
+            if rec.get("kind") == BROKEN and last <= rec.get("marker", 0) + 60:
+                return  # 报过，之后没有新活动
+            del known[key]
+        quiet = (NOW - last) / 60.0 if last else None
+        if quiet is not None and quiet < GONE_MIN:
+            return
+        made_by = automation_of(w, env)
+        if made_by:
+            known[key] = {"kind": BROKEN, "marker": last, "dismissed": NOW, "reason": "自动任务「%s」建的工作区" % made_by}
+            return
+        linear = w.get("linkedLinearIssue")
+        found.append({"key": key, "kind": BROKEN, "bot": bot_for(w.get("repoId"), w.get("repo"), MAP_ID.get(
+            w.get("repoId"), {}).get("slug"), linear, w.get("displayName")), "task": task_name(w), "worktree": key,
+            "machine": label, "env": env, "terminals": [], "marker": last,
+            "note": "工作区标着 in-progress，但一个终端都没有（断了：agent 和终端都不在），%s。还要做就重新起 agent；"
+                    "等别人就改 in-review 或 Sleep，做完改 completed" % (
+                        "最近一次活动在 %.0f 分钟前" % quiet if quiet is not None else "没有活动记录")})
+
     for w in host["worktrees"]:
         if not is_task_ws(w) or w.get("workspaceStatus") != "in-progress":
             continue
-        if not (w.get("liveTerminalCount") or 0) and not host["terms"].get(w["path"]):
-            continue  # 一个终端都没有：Sleep 过的工作区就是这样（orca CLI 里看不出别的区别），不查
         key = "%s:%s" % (label, w["path"])
+        if not (w.get("liveTerminalCount") or 0) and not host["terms"].get(w["path"]):
+            # 一个终端都没有：工作区断了（Orca 重启、终端被关、agent 连同终端一起没了）。要歇着的工作区标 Sleep
+            # （看板状态 sleep），走不到这里。终端列表没查到时分不清，不报。
+            if host["terms_ok"]:
+                eligible.add(key)
+                broken(w, key)
+            continue
         eligible.add(key)
         agents = w.get("agents") or []
         hook = max([max(a.get("updatedAt") or 0, a.get("stateStartedAt") or 0) for a in agents] or [0]) / 1000.0
@@ -616,9 +674,9 @@ def check_agents(host, known, track):
         cands.append({"w": w, "key": key, "agents": agents, "hook": hook, "scr": scr, "agent_t": agent_t,
                       "out_t": out_t, "out": out, "handles": handles, "act": (w.get("lastActivityAt") or 0) / 1000.0})
     if not cands:
-        return [], eligible, len(eligible)
+        return found, eligible, len(eligible)
     probe = run_probe(host)
-    found, rechecks = [], []
+    rechecks = []
     for c in cands:
         w, key, agents, handles = c["w"], c["key"], c["agents"], c["handles"]
         agent_t, out_t = c["agent_t"], c["out_t"]
@@ -639,17 +697,13 @@ def check_agents(host, known, track):
         disp = [p.get("dispatch_bot") for p in aprocs if p.get("dispatch_bot")]
         if disp:  # agent 是 notify-run --bot X 派出来的：直接用 X
             bot = disp[0]
-        task = ("%s %s" % (linear or "", w.get("displayName") or "")).strip()
-        if linear and linear in (w.get("displayName") or ""):
-            task = w["displayName"]
+        task = task_name(w)
 
         def add(kind, note, marker, w=w, key=key, bot=bot, task=task, handles=handles):
-            show, _ = orca_json(["worktree", "show", "--worktree", "path:" + w["path"]], env)
-            prov = ((show or {}).get("worktree") or show or {}).get("automationProvenance") or {}
-            if prov.get("kind") == "created-by-automation":
-                # 自动任务每次运行自己建的工作区，没有 bot 在等它，跑完留着是正常的
+            made_by = automation_of(w, env)
+            if made_by:
                 known[key] = {"kind": kind, "marker": marker, "dismissed": NOW,
-                              "reason": "自动任务「%s」建的工作区" % prov.get("automationNameSnapshot")}
+                              "reason": "自动任务「%s」建的工作区" % made_by}
                 return
             found.append({"key": key, "kind": kind, "bot": bot, "task": task, "worktree": key, "machine": label,
                           "note": note, "marker": marker, "env": env, "terminals": handles})
@@ -755,11 +809,157 @@ def check_agents(host, known, track):
     return found, eligible, len(eligible)
 
 
+# ---- 一 b、Linear due date 对账 ----
+DUE_GRACE_MIN = float(os.environ.get("STUCK_DUE_GRACE_MIN", "30"))
+BOT_LABEL = re.compile(r"^\s*bot\s*[:：]\s*(\S+)\s*$", re.I)
+BOT_LINE = re.compile(r"负责\s*bot\s*[:：]\s*([\w.\-]+)", re.I)
+
+
+def due_bot(iss, wss):
+    """负责 bot：issue 标签「bot:<名字>」→ 描述里「负责 bot：<名字>」→ 关联工作区 → orca-projects.md 的 Linear 编号。"""
+    for lb in iss.get("labels") or []:
+        m = BOT_LABEL.match(lb.get("name") if isinstance(lb, dict) else str(lb))
+        if m:
+            return BOT_SLUG.get(m.group(1), m.group(1))
+    m = BOT_LINE.search(iss.get("description") or "")
+    if m:
+        return BOT_SLUG.get(m.group(1), m.group(1))
+    for h, w in wss:
+        b = bot_for(w.get("repoId"), w.get("repo"), MAP_ID.get(w.get("repoId"), {}).get("slug"), iss["identifier"],
+                    w.get("displayName"))
+        if b != "未映射":
+            return b
+    b = MAP_LINEAR.get(iss["identifier"])
+    return BOT_SLUG.get(b, b) if b else FALLBACK_BOT
+
+
+def started_at(ident):
+    """issue 最近一次进 In Progress 的时间（Linear 活动记录）；查不到返回 None。"""
+    res, _ = orca_json(["linear", "issue", ident, "--activity"], tries=2)
+    best = None
+    for a in (res or {}).get("activity") or []:
+        for ch in a.get("changes") or []:
+            if ch.get("field") == "state" and ((ch.get("to") or {}).get("name") or "").lower() == "in progress":
+                t = iso_ts(a.get("createdAt"))
+                if t and (best is None or t > best):
+                    best = t
+    return best
+
+
+def check_due(hosts, track):
+    """有 due date 的 Linear issue：
+    In Progress 超过 DUE_GRACE_MIN 分钟，还没有工作区或工作区里没有 agent 在跑 → 叫醒负责的 bot（due_no_agent）；
+    过了 due（当天 23:59 SGT 之后）还没进 In Review / Done → 叫醒 coding-assistant（due_overdue）。
+    每个 issue、每种情况、每个 due date（due_no_agent 还加上进 In Progress 的时间）只报一次。返回直发列表。"""
+    issues, ok = [], True
+    for st in ("started", "unstarted"):
+        res, err = orca_json(["linear", "list-issues", "--state", st, "--workspace", "all"], tries=2)
+        if res is None:
+            log("Linear 查询失败（%s），这次不对 due date" % (err or "")[:160])
+            ok = False
+            break
+        issues += [i for i in res.get("issues") or [] if i.get("dueDate")]
+    seen = track.setdefault("due", {})
+    if not ok:
+        return []
+    out, live = [], set()
+    today = datetime.datetime.now(SGT).date()
+    for iss in issues:
+        ident, sname = iss["identifier"], ((iss.get("state") or {}).get("name") or "").lower()
+        if "review" in sname:
+            continue
+        rx = re.compile(r"(?<![A-Za-z0-9])%s(?![0-9])" % re.escape(ident), re.I)
+        wss = [(h, w) for h in hosts for w in h["worktrees"]
+               if not w.get("isArchived") and (w.get("linkedLinearIssue") == ident or rx.search(
+                   "%s %s" % (w.get("displayName") or "", w.get("branch") or "")))]
+        running = [(h, w) for h, w in wss if (w.get("agents") and (w.get("liveTerminalCount") or h["terms"].get(w["path"])))
+                   or any(t.get("agentIdentity") for t in h["terms"].get(w["path"]) or [])]
+        bot = due_bot(iss, wss)
+        task = "%s %s" % (ident, iss.get("title") or "")
+        where = "；".join("%s:%s" % (h["label"], w["path"]) for h, w in wss) or "没有工作区"
+        due = iss["dueDate"]
+        try:
+            late = today > datetime.date.fromisoformat(due[:10])
+        except ValueError:
+            late = False
+
+        def add(kind, to, note, k):
+            live.add(k)
+            if k in seen or k in {d["id"] for d in out}:
+                return
+            log("due | %s | %s | %s | %s" % (kind, to, task, note))
+            out.append({"id": k, "cfg": "bot:" + to, "after": {"due": [k, {"sent": NOW}]}, "payload": {
+                "bot": to, "task": task, "worktree": where, "status": "stuck", "kind": kind, "issue": ident,
+                "due": due, "note": note, "machine": "Linear", "source": "stuck-check"}})
+
+        if late:
+            add(DUE_LATE, FALLBACK_BOT, "%s due %s 已过，还没进 In Review（现在是 %s，负责 bot：%s，%s）" % (
+                ident, due, (iss.get("state") or {}).get("name"), bot,
+                "agent 还在跑" if running else "没有 agent 在跑"), "due:%s:%s:%s" % (DUE_LATE, ident, due))
+        if sname != "in progress" or running:
+            continue
+        since = started_at(ident) or iso_ts(iss.get("updatedAt"))
+        if since is None or (NOW - since) / 60.0 < DUE_GRACE_MIN:
+            continue
+        add(DUE_IDLE, bot, "%s 已 In Progress %.0f 分钟（due %s），%s。还在做就起 agent 接着做；等人就改状态" % (
+            ident, (NOW - since) / 60.0, due, "没有工作区" if not wss else "工作区里没有 agent 在跑（%s）" % where),
+            "due:%s:%s:%s:%d" % (DUE_IDLE, ident, due, since))
+    for k in [k for k in seen if k not in live]:
+        del seen[k]  # issue 已经交了、改了 due 或不再是这种情况，下次再出现时重新报
+    log("due：有 due 的未完成 issue %d 个，新要报 %d 条" % (len(issues), len(out)))
+    return out
+
+
 # ---- 二、报了没人验收（completed / in-review） ----
+GIT_FACTS = r'''for p in "$@"; do
+  cd "$p" 2>/dev/null || { echo "G $(printf %s "$p" | base64 | tr -d '\n') - -"; continue; }
+  d=$(git status --porcelain 2>/dev/null | head -n1 | wc -l | tr -d ' ')
+  b=""; for r in origin/HEAD origin/main origin/master upstream/main upstream/master; do
+    git rev-parse -q --verify "$r^{commit}" >/dev/null 2>&1 && { b=$r; break; }; done
+  if [ -n "$b" ]; then n=$(git rev-list --count HEAD --not "$b" 2>/dev/null); else n=$(git rev-list --count HEAD --not --remotes 2>/dev/null); fi
+  echo "G $(printf %s "$p" | base64 | tr -d '\n') ${d:--} ${n:--}"
+done
+'''
+
+
+def git_facts(host, paths):
+    """工作区 → (有没有未提交改动, 比远端默认分支多几个提交)；查不到的不在结果里。box 上走一个临时终端一次查完。
+    没有远端默认分支时，数不在任何远端分支上的提交。"""
+    if not paths:
+        return {}
+    if host["env"] is None:
+        rc, text, err = run(["bash", "-c", GIT_FACTS, "git-facts"] + paths, 120)
+    else:
+        script = "set -- %s\n%s" % (" ".join(shlex.quote(p) for p in paths), GIT_FACTS)
+        script = 'echo @@GIT""-BEGIN; { %s} 2>&1 | gzip -c | base64; echo @@GIT""-END\n' % script
+        cmd = "echo %s | base64 -d | bash" % base64.b64encode(script.encode()).decode()
+        raw, err = box_run(host["env"], cmd, "stuck-check git", r"^@@GIT-END", 40)
+        m = re.findall(r"@@GIT-BEGIN(.*?)@@GIT-END", raw or "", re.S)
+        try:
+            text = gzip.decompress(base64.b64decode("".join(m[-1].split()))).decode("utf-8", "replace")
+        except (IndexError, ValueError, OSError):
+            text = ""
+    out = {}
+    for ln in (text or "").splitlines():
+        f = ln.split()
+        if len(f) == 4 and f[0] == "G" and f[2].isdigit() and f[3].isdigit():
+            try:
+                out[base64.b64decode(f[1]).decode()] = (f[2] != "0", int(f[3]))
+            except ValueError:
+                pass
+    if len(out) < len(paths):
+        log("%s：%d 个工作区的 git 状态没查到（%s），这些照旧报" % (host["label"], len(paths) - len(out), (err or "")[:120]))
+    return out
+
+
 def check_reported(host):
     label, env = host["label"], host["env"]
-    repos, _ = orca_json(["repo", "list"], env)
-    repos = (repos or {}).get("repos") or []
+    repos, err = orca_json(["repo", "list"], env, tries=3)
+    if repos is None:
+        # 10-18 13:05 box 隧道刚断，repo list 失败，box 上 ops 仓库（不在 orca-projects.md 里）被当成「没有 GitHub 远端」误报
+        log("%s：repo list 失败（%s），这次不查「报了没人验收」，免得把仓库当成没有远端" % (label, (err or "")[:160]))
+        return [], 0
+    repos = repos.get("repos") or []
     slug_of = {}
     for r in repos:
         key = (r.get("gitRemoteIdentity") or {}).get("canonicalKey") or ""
@@ -772,7 +972,7 @@ def check_reported(host):
             if user and slugs[0].split("/")[0] != user:
                 slugs.append("%s/%s" % (user, slugs[0].split("/")[1]))
             slug_of[r["id"]] = slugs
-    found, scanned = [], 0
+    found, scanned, clean_check = [], 0, []
     for w in host["worktrees"]:
         status = w.get("workspaceStatus")
         if not is_task_ws(w) or status not in ("completed", "in-review"):
@@ -789,9 +989,7 @@ def check_reported(host):
         if not slugs and MAP_ID.get(w.get("repoId"), {}).get("slug"):
             slugs = [MAP_ID[w["repoId"]]["slug"]]
         bot = bot_for(w.get("repoId"), w.get("repo"), slugs[0] if slugs else None, linear, w.get("displayName"))
-        task = ("%s %s" % (linear or "", w.get("displayName") or "")).strip()
-        if linear and linear in (w.get("displayName") or ""):
-            task = w["displayName"]
+        task = task_name(w)
         where = "%s:%s" % (label, w["path"])
 
         def add(note):
@@ -807,6 +1005,8 @@ def check_reported(host):
             continue  # PR 有人看过、已合并或已关闭，算验收过
         if slugs and not pr_ok:
             continue  # PR 查询失败，不误报
+        if (w.get("linkedPR") or {}).get("state") in ("merged", "closed"):
+            continue  # Orca 记着关联 PR 已合并或关闭（远端查不到时的兜底）
         signals, reported_at = ["工作区标为 %s" % status], [(w.get("lastActivityAt") or 0) / 1000.0]
         if lstate == "completed":
             signals.append("Linear %s 已完成" % linear)
@@ -817,9 +1017,21 @@ def check_reported(host):
             reported_at.append(marker[1])
         age = hours(max(reported_at), ms=False) if max(reported_at) > 0 else None
         if age is None or age > THRESH_H:
-            add("%s，%s没人验收（没有 PR，分支 %s%s）" % (
+            note = "%s，%s没人验收（没有 PR，分支 %s%s）" % (
                 "；".join(signals), "已 %.1f 小时" % age if age is not None else "",
-                branch or "?", "" if slugs else "，仓库没有 GitHub 远端"))
+                branch or "?", "" if slugs else "，仓库没有 GitHub 远端")
+            if status == "completed":
+                clean_check.append((w["path"], add, note))  # 先看工作区干不干净，见下
+            else:
+                add(note)
+    # completed、工作区干净、比远端默认分支没有多出提交、也没有 PR：没有东西要验收，放行（不靠备注写「已验收」）
+    facts = git_facts(host, [p for p, _, _ in clean_check])
+    for p, add, note in clean_check:
+        f = facts.get(p)
+        if f and not f[0] and f[1] == 0:
+            log("放行 | %s:%s | completed，工作区干净，没有本地提交，没有 PR" % (label, p))
+            continue
+        add(note + ("（%s）" % "，".join(x for x in ("有未提交改动" if f[0] else "", "%d 个提交不在远端默认分支" % f[1] if f[1] else "") if x) if f else ""))
     return found, scanned
 
 
@@ -885,7 +1097,14 @@ def send_all(pending, known, track, seen):
     failed, broken = 0, False
     left_direct, left_suspects = [], []
     for d in pending.get("direct", []):
-        cfg = read_env(ENV_FILE) if d["cfg"] == "stuck" else bot_cfg(FALLBACK_BOT)[1]
+        if d["cfg"].startswith("bot:"):  # 发给负责的 bot；没有它的 webhook 时转 coding-assistant
+            want = d["cfg"][4:]
+            to, cfg = bot_cfg(want)
+            d["payload"]["bot"] = to
+            if to != want and not FORCE_BOT and "（按映射应归" not in d["payload"]["note"]:
+                d["payload"]["note"] += "（按映射应归 %s，没有它的 webhook，转给 %s）" % (want, to)
+        else:
+            cfg = read_env(ENV_FILE) if d["cfg"] == "stuck" else bot_cfg(FALLBACK_BOT)[1]
         if cfg is None:
             log("webhook 未配置，只记日志不发：%s" % d["payload"]["task"])
             continue
@@ -903,6 +1122,11 @@ def send_all(pending, known, track, seen):
             track["box_alerted"] = True
         for k in after.get("seen") or []:
             seen[k] = {"notified": NOW, "last_seen": NOW}
+        if after.get("known"):
+            k, rec = after["known"]
+            known[k] = dict(rec, notified=NOW, to=d["payload"]["bot"])
+        if after.get("due"):
+            track.setdefault("due", {})[after["due"][0]] = after["due"][1]
     for s in pending.get("suspects", []):
         why = DISMISS.get(s.get("id", ""))
         if why:
@@ -982,11 +1206,7 @@ def main():
             return 0
         return 2
     hosts.append(imac)
-    box_env = os.environ.get("STUCK_BOX_ENV")
-    if not box_env:
-        rc, out, _ = run([ORCA, "environment", "list"], 30)
-        names = [ln.split()[1] for ln in out.splitlines() if len(ln.split()) >= 2] if rc == 0 else []
-        box_env = next((n for n in ("box", "grok-bot") if n in names), None)
+    box_env = box_env_name()
     direct = list(pending.get("direct") or [])
     have = {d["id"] for d in direct}
     if not box_env:
@@ -1017,14 +1237,31 @@ def main():
 
     # 一、卡住的 agent
     suspects, eligible = [], set()
+    have = {d["id"] for d in direct}
     for h in hosts:
         found, elig, n = check_agents(h, known, track)
-        suspects += found
         eligible |= elig
-        log("%s：in-progress 任务工作区 %d 个，新嫌疑 %d 个" % (h["label"], n, len(found)))
+        nb = 0
+        for s in found:
+            if s["kind"] != BROKEN:
+                suspects.append(s)
+                continue
+            nb += 1  # 没有终端可读，不用复核，直接叫醒
+            log("断了 | %s | %s | %s | %s" % (s["bot"], s["task"], s["worktree"], s["note"]))
+            if "broken:" + s["key"] not in have:
+                direct.append({"id": "broken:" + s["key"], "cfg": "bot:" + s["bot"],
+                               "payload": agent_payload(s, s["bot"]),
+                               "after": {"known": [s["key"], {"kind": BROKEN, "marker": s["marker"]}]}})
+        log("%s：in-progress 任务工作区 %d 个，新嫌疑 %d 个，断了的 %d 个" % (h["label"], n, len(found) - nb, nb))
     for k in [k for k in known if k.split(":", 1)[0] in checked and k not in eligible]:
         del known[k]  # 工作区已经不是 in-progress 或不在了
     track["screens"] = {h: r for h, r in track["screens"].items() if NOW - r.get("seen", 0) < 6 * 3600}
+    # 一 b、due date 对账（box 连不上时看不全工作区，不对）
+    if box_env and "box" not in checked:
+        log("box 这次没查到，不对 due date")
+    else:
+        have = {d["id"] for d in direct}
+        direct += [d for d in check_due(hosts, track) if d["id"] not in have]
     for i, s in enumerate(suspects, 1):
         s["id"] = "S%d" % i
         log("嫌疑 %s | %s | %s | %s | %s | %s" % (s["id"], s["bot"], s["kind"], s["task"], s["worktree"], s["note"]))
@@ -1077,6 +1314,46 @@ def main():
     return 3 if failed else 0
 
 
+def box_env_name():
+    if os.environ.get("STUCK_BOX_ENV"):
+        return os.environ["STUCK_BOX_ENV"]
+    rc, out, _ = run([ORCA, "environment", "list"], 30)
+    names = [ln.split()[1] for ln in out.splitlines() if len(ln.split()) >= 2] if rc == 0 else []
+    return next((n for n in ("box", "grok-bot") if n in names), None)
+
+
+def orca_ident(env):
+    """这台 Orca 这次启动的身份：app 进程号 + runtimeId（box 是 headless serve，没有 app 进程号）。查不到返回 None。"""
+    res, _ = orca_json(["status"], env, timeout=20)
+    if not res:
+        return None
+    rt = (res.get("runtime") or {}).get("runtimeId")
+    pid = (res.get("app") or {}).get("pid")
+    return "pid:%s|rt:%s" % (pid, rt) if (pid or rt) else None
+
+
+def gate():
+    """--scan 的闸门。自动任务每分钟跑一次 precheck：距上次扫描满 INTERVAL_MIN 分钟，或 iMac / box 的 Orca
+    重启过（进程号或 runtimeId 变了，比上次扫描时记的），才真正扫描。返回 (原因 或 None, 这次看到的身份)。"""
+    g = load_json(GATE_FILE, {})
+    ids = {"iMac": orca_ident(None)}
+    why = None
+    if NOW - g.get("last", 0) >= INTERVAL_MIN * 60 - 45:
+        why = "到点"
+    if ids["iMac"] and g.get("iMac") and ids["iMac"] != g["iMac"]:
+        why = "iMac 的 Orca 重启过（%s → %s）" % (g["iMac"], ids["iMac"])
+    benv = box_env_name()
+    if benv:
+        ids["box"] = orca_ident(benv)
+        if ids["box"] and g.get("box") and ids["box"] != g["box"] and not why:
+            why = "box 的 Orca 重启过（%s → %s）" % (g["box"], ids["box"])
+        elif ids["box"] and g.get("box") and ids["box"] != g["box"]:
+            why += "；box 的 Orca 也重启过（%s → %s）" % (g["box"], ids["box"])
+    for k in ("iMac", "box"):
+        ids[k] = ids.get(k) or g.get(k)  # 这次没查到的沿用上次的，免得下次误判成重启
+    return why, ids
+
+
 def touch_due():
     """给 codex 备用任务看的标记：主任务到点了。成功收尾由 agent 调 orca-ok.sh 写 .ok。"""
     if DRY:
@@ -1103,6 +1380,11 @@ def take_lock():
 
 
 _lock = None
+_gate = None
+if MODE == "--scan" and os.environ.get("STUCK_NO_GATE") != "1":
+    _gate = gate()
+    if not _gate[0]:
+        sys.exit(1)  # 没到点、Orca 也没重启：安静退出，不写日志
 if MODE not in ("--list", "--dry-run"):
     _lock = take_lock()
     if _lock is None:
@@ -1113,6 +1395,11 @@ if MODE not in ("--list", "--dry-run"):
             since = ""
         log("另一个 stuck-check 还在跑（这次 %s%s），这次直接退出" % (MODE, since))
         sys.exit(1 if MODE == "--scan" else 0)
+if _gate:
+    save_json(GATE_FILE, dict(_gate[1], last=NOW, why=_gate[0]))
+    if _gate[0] != "到点":
+        FULL = True  # Orca 刚启动：连「报了没人验收」一起查一遍
+        log("Orca 启动后补查一遍：%s" % _gate[0])
 try:
     rc = main()
 except Exception as e:  # 脚本自己出错不能当成「没事」：scan 时照样启动 agent，由它报出来
