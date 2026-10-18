@@ -14,7 +14,8 @@
   - 发现消失了就删掉它的记录。
 日志一行一条打印到 stdout，并追加到 --log（box 上就是 /workspace/ops/reports/unpushed-scan-YYYYMMDD.log；
 iMac 上是本机镜像，由 unpushed-scan.sh 再经 ssh 追加到 box 的同一个文件）。
-演练：--only <路径前缀> 只扫这些工作区，--state 用单独的状态文件，--drill 让叫醒标题带「【演练】」。
+演练：--only <路径前缀> 只扫这些工作区，--state 用单独的状态文件，--drill 让叫醒标题带「【演练】」，
+  环境变量 UNPUSHED_FORCE_BOT=<bot> 让所有叫醒改发给这个 bot（演练用 test，不叫醒真 bot）。
 退出码：0 = 扫完（不管有没有发现）；2 = 拿不到工作区列表。
 """
 import argparse
@@ -38,6 +39,7 @@ BOTS = [  # (git remote 里的关键字, bot)
     ("xinyue", "xinyue"),
     ("vllm-omni", "vllm-omni"),
 ]
+FORCE_BOT = os.environ.get("UNPUSHED_FORCE_BOT")
 NOTIFY_RUN = shutil.which("notify-run") or os.path.expanduser("~/.local/bin/notify-run")
 GIT_ENV = dict(os.environ, GIT_OPTIONAL_LOCKS="0", GIT_TERMINAL_PROMPT="0", LC_ALL="C")
 
@@ -237,6 +239,8 @@ def main():
             "\n只读扫描，没碰仓库。日志 /workspace/ops/reports/unpushed-scan-YYYYMMDD.log"
         if args.dry_run:
             log("（dry-run）会叫 %s：%d 条" % (bot, len(lines)))
+        elif FORCE_BOT:
+            wake(FORCE_BOT, title, "（演练：原本叫 %s）\n" % bot + body, log)
         else:
             wake(bot, title, body, log)
     state["_paths"] = paths
