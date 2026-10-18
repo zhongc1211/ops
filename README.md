@@ -22,7 +22,10 @@ Orca 项目和工作区清单见 [orca-projects.md](orca-projects.md)。
 | [`scripts/stuck-check.sh`](scripts/stuck-check.sh) | 卡住工作检查（Orca 自动化每分钟 precheck，约 15 分钟扫一次），兜底补叫醒；也查 ops 主目录里的 agent 和没包 notify-run 的 agent；依赖 orca-wake 的 `sent/` 状态 |
 | [`scripts/agent-probe`](scripts/agent-probe) | 列出本机 agent 和 notify-run 进程，给卡住检查用 |
 | [`scripts/heartbeat-watch.sh`](scripts/heartbeat-watch.sh) | 盯另一台机器上卡住检查的心跳（自动任务运行记录里的 `@@HB`），太久没有就报警、恢复报一次 |
-| [`wake/bin/orca-agent-launch`](wake/bin/orca-agent-launch) | 统一的起 agent 入口，强制经 notify-run |
+| [`wake/bin/orca-agent-launch`](wake/bin/orca-agent-launch) | 统一的起 agent 入口，强制经 notify-run；带 `--issue` 时给 Linear 卡写负责 bot 和 due（`--eta`） |
+| [`wake/bin/agent-stop`](wake/bin/agent-stop) | 主动停 agent：先写「主动停止」标记再发信号，卡住检查看到标记就不报 agent_gone |
+| [`scripts/automation-reaper.sh`](scripts/automation-reaper.sh) | 关掉做完不退出的 Orca 自动任务 agent（已写结果、空闲超过 2 小时），没写结果的不动 |
+| [`scripts/orca-bot-guard.sh`](scripts/orca-bot-guard.sh) | orca-bot 公网守护（iMac「ops · 03」的 precheck），连续不通叫醒 Coding助手，记 webhook 的 HTTP 码 |
 | [`sentinels/`](sentinels/) | ops · 23 生产版本哨兵（iMac 每 15 分钟，生产台账）和 ops · 24 未推送扫描（两台机器每小时） |
 | [`orca-remote/`](orca-remote/) | box 上 Orca 的看门狗 `watchdog.sh` 和 `ensure-watchdog.sh` |
 | [`reports/wake-fixes-2026-10-17.md`](reports/wake-fixes-2026-10-17.md) | 叫醒系统 10-17 修复记录 |
