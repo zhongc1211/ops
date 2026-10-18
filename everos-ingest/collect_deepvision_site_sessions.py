@@ -7,7 +7,8 @@ Rules (Zack 2026-10-16 19:07, FDV-68 EXCLUSION-OPTIONS.md A+E+H+K):
      iMac ~/orca/workspaces/site/…); never by a name substring (deepvision-ads stays out).
   A  setup/config rules are checked before the ticket guard, so "FDV-68 … 接入 EverOS" is
      excluded even though it names a ticket.
-  E  setup/config patterns are the xinyue ones (SETUP_TASK_RES), unchanged.
+  E  setup/config patterns are the xinyue ones (SETUP_TASK_RES), unchanged; brief instructions
+     ("不调 everos", "挂了就记一句", "不打印密钥") are cut first (base.setup_match, 10-19 FDV-67).
   K  the deepvision-site night review's own sessions (43c55a22) are excluded.
   OD (Coding助手 19:21) besides H, sessions whose cwd starts with the fixed Open Design project
      prefix below (FDV-61 redesign work, not a git repo) also belong to deepvision-site. The full
@@ -154,10 +155,9 @@ def task_type(first: str, cwd: str | None) -> tuple[str, str]:
         texts.append((f"brief {bpath}", b))
     for src, t in texts:
         head = base.task_headline(t)
-        for rx in base.SETUP_TASK_RES:  # A: setup before ticket guard; E: xinyue patterns
-            m = rx.search(head)
-            if m:
-                return "setup", f"A+E: {src} headline is setup/config: {m.group(0)[:40]!r}"
+        m = base.setup_match(head)  # A: setup before ticket guard; E: xinyue patterns
+        if m:
+            return "setup", f"A+E: {src} headline is setup/config: {m.group(0)[:40]!r}"
     for src, t in texts:
         m = DEV_GUARD_RE.search(base.task_headline(t))
         if m:

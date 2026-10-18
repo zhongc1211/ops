@@ -297,6 +297,36 @@ SETUP_TASK_RES = (
     re.compile(r"(everos-mcp|EverOS|MCP\b).{0,16}(接入|接线|接上|冒烟|挂载|挂上|配置|样板|采集|setup|set up|wiring)", re.I),
     re.compile(r"(修改|改|新建|创建|配置|手动跑).{0,24}(采集|夜审|ingest).{0,16}(automation|自动化)", re.I),
 )
+# Standard briefs carry instructions such as "挂了就记一句接着做；不调 everos 写入类工具" or "不打印密钥".
+# They are not the task, so they never make a session setup/config (Zack 10-19 01:02, FDV-67
+# [Zack答-FDV67-AE]): from a negated instruction (不/别/勿… + a verb, do not/don't/never) or a
+# fallback one (挂了/失败/出错… 就) to the end of its clause is cut before SETUP_TASK_RES runs.
+# The cut becomes a newline so `.` cannot join the clauses around it; clauses without one are untouched.
+INSTRUCTION_RE = re.compile(
+    r"(?:不要|不用|不必|无需|禁止|严禁|切勿|不得|不许|不|别|勿)\s*"
+    r"(?:调|用|挂|接|装|配|改|动|碰|写|打印|输出|贴|提交|删|发|跑|开|启用)"
+    r"|(?:挂了|失败了?|出错了?|报错了?|不可用|连不上).{0,4}?就"
+    r"|\b(?:do not|don't|never)\s+\w", re.I)
+CLAUSE_RE = re.compile(r"([，,。；;！!？?\n])")
+
+
+def without_instructions(head: str) -> str:
+    parts = CLAUSE_RE.split(head)
+    for i in range(0, len(parts), 2):
+        m = INSTRUCTION_RE.search(parts[i])
+        if m:
+            parts[i] = parts[i][:m.start()] + "\n"
+    return "".join(parts)
+
+
+def setup_match(head: str) -> re.Match | None:
+    """First SETUP_TASK_RES match in a task/brief headline, brief instructions left out."""
+    head = without_instructions(head)
+    for rx in SETUP_TASK_RES:
+        m = rx.search(head)
+        if m:
+            return m
+    return None
 # Product work on the site stays in, even if it touches EverOS (e.g. a PER ticket that
 # wires EverOS into the studio): a Linear ticket or PR work in the headline wins.
 # Recall/smoke acceptance runs ("召回验收", "recall check"); checked after DEV_GUARD_RE.
@@ -341,10 +371,9 @@ def task_type(first: str) -> tuple[str, str]:
         m = SMOKE_TASK_RE.search(head)
         if m:
             return "smoke", f"{src} headline is a recall/smoke acceptance: {m.group(0)[:40]!r}"
-        for rx in SETUP_TASK_RES:
-            m = rx.search(head)
-            if m:
-                return "setup", f"{src} headline is setup/config: {m.group(0)[:40]!r}"
+        m = setup_match(head)
+        if m:
+            return "setup", f"{src} headline is setup/config: {m.group(0)[:40]!r}"
     return "dev", "no exclusion rule matched"
 
 
