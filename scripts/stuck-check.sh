@@ -1,7 +1,7 @@
 #!/bin/bash
 # stuck-check.sh [--scan | --list | --send [--dismiss S<n>=原因 ...] | --dry-run] [--full]
 # 卡住工作检查（Orca 自动化「卡住工作检查」每 15 分钟调用）。兜底用：agent 做完或卡住本来会自己叫醒派活的 bot
-# （webhook 或 notify-run），这里只查漏掉的。查 iMac 和 box 两套 Orca（box 走 orca --environment）。
+# （webhook 或 notify-run），这里只查漏掉的。查 iMac、box、MBA 三套 Orca（box、MBA 走 orca --environment）。
 #
 # 一、卡住的 agent（每次都查，纯脚本，不用模型）。只看 workspace-status=in-progress 的任务工作区
 #   （git 工作区，非主目录、非归档、不在 /tmp 下）；todo / in-review / completed / sleeping 一律跳过。
@@ -36,7 +36,7 @@
 # 一 b、due date 对账（每次都查，脚本直接发）。有 due 的 Linear issue：In Progress 超过 STUCK_DUE_GRACE_MIN（默认 30）
 #   分钟，没有工作区或工作区里没有 agent 在跑 → 叫醒负责的 bot（due_no_agent）；过了 due 当天还没进 In Review →
 #   叫醒 coding-assistant（due_overdue）。负责 bot：issue 标签 bot:<名字> → 描述里「负责 bot：<名字>」→ 关联工作区 →
-#   orca-projects.md → coding-assistant。每种情况每个 due 只报一次。box 没查到时不对。
+#   orca-projects.md → coding-assistant。每种情况每个 due 只报一次。box 或 MBA 没查到时不对。
 #
 # 二、报了没人验收（约每小时查一次，脚本直接发，不经模型）。只看 completed / in-review 的任务工作区：
 #   reported_not_accepted：已开 PR 超过 1 小时没有 review 和人工评论；或没有 PR、标完成超过 1 小时。
@@ -49,9 +49,10 @@
 # 三、别的自动任务有没有跑完（每次都查，脚本直接发给 coding-assistant）。~/.orca-state/runs/ 下
 #   cf-usage、seo-weekly、mem-cpu-cleanup 的 .due 比 .ok 新，且超过 STUCK_MARKER_GRACE_MIN（默认 60）分钟，报一次。
 #
-# 四、box 的 Orca 连不上：每次查询重试 3 次，还不行就等 STUCK_BOX_RETRY_WAIT（默认 30）秒再查一轮（box 刚从暂停恢复时
-#   常有几十秒连不上）；两轮都失败才算这次连不上。连续 2 次检查都连不上，报一次给 coding-assistant，恢复后复位。
-#   box 的 agent-probe 临时终端失败时也等 15 秒再试一次。
+# 四、box / MBA 的 Orca 连不上：每次查询重试 3 次，还不行就等 STUCK_BOX_RETRY_WAIT（默认 30）秒再查一轮（box 刚从暂停恢复时
+#   常有几十秒连不上）；两轮都失败才算这次连不上。连续 2 次检查都连不上，报一次给 coding-assistant（kind box_unreachable /
+#   mba_unreachable），恢复后复位。MBA 按常开机器算（Zack 10-18），环境名 mba（STUCK_MBA_ENV 可改，设成空串不查）；
+#   MBA 上的临时终端开在 STUCK_MBA_PROBE_WT（默认 MBA 的 ops 主目录）。远端的 agent-probe 临时终端失败时也等 15 秒再试一次。
 # 派活 bot 的判断顺序：orca-projects.md 里的 Linear 编号 → 工作区显示名前缀（「营销 · 」「dv营销 · 」→ deepvision-marketing，
 #   见 NAME_BOT）→ 仓库映射；第一类里 agent 外面包的 notify-run --bot（agent-probe 的 dispatch_bot）优先于以上全部；
 #   都没有的发给 coding-assistant。
@@ -59,7 +60,7 @@
 # webhook 返回非 2xx 时，日志里带响应体的前 160 个字符（去掉 URL/KEY 和长串，压成一行）。
 #
 # 用法：
-#   --scan     自动化的 precheck（自动任务每分钟调一次）。闸门：距上次扫描满 STUCK_INTERVAL_MIN（默认 15）分钟，或 iMac / box
+#   --scan     自动化的 precheck（自动任务每分钟调一次）。闸门：距上次扫描满 STUCK_INTERVAL_MIN（默认 15）分钟，或 iMac / box / MBA
 #              的 Orca 重启过（orca status 的进程号或 runtimeId 变了，记在 gate.json），才往下查，否则直接返回 1；
 #              Orca 重启后这次连第二类一起查。STUCK_NO_GATE=1 跳过闸门。
 #              查一遍；ws_broken、due、二、三、四类直接发；其余一类写进 pending.json。
@@ -73,7 +74,7 @@
 # 退出码：0 正常（--scan 见上）；2 iMac Orca 查询失败；3 有 webhook 重试后仍然失败；4 脚本自己出错
 #   （--scan 时出错或 iMac Orca 查询失败也返回 0，让自动化启动 agent 把错误报出来）。
 # 测试用环境变量：STUCK_STATE_DIR、STUCK_ENV_FILE、STUCK_WEBHOOK_DIR、STUCK_RUNS_DIR、STUCK_FORCE_BOT（所有 bot 改发到它）、
-#   STUCK_ONLY（正则，只查路径匹配的工作区）、STUCK_BOX_ENV、STUCK_ORCA_WAKE（本机 orca-wake 路径）、
+#   STUCK_ONLY（正则，只查路径匹配的工作区）、STUCK_BOX_ENV、STUCK_MBA_ENV、STUCK_ORCA_WAKE（本机 orca-wake 路径）、
 #   STUCK_BOX_WAKE_CONFIG_DIR（box 上 orca-wake 的 ORCA_WAKE_CONFIG_DIR；本机的直接继承环境变量）。
 set -u
 PY=$(command -v python3 || echo /usr/bin/python3)
@@ -106,6 +107,8 @@ STATE_DIR = os.environ.get("STUCK_STATE_DIR") or os.path.join(HOME, ".orca-state
 RUNS_DIR = os.environ.get("STUCK_RUNS_DIR") or os.path.join(HOME, ".orca-state/runs")
 PROBE = os.environ.get("STUCK_PROBE") or os.path.join(HOME, ".local/bin/agent-probe")
 BOX_PROBE_WT = os.environ.get("STUCK_BOX_PROBE_WT", "path:/workspace/repos/deepvision-site")
+MBA_PROBE_WT = os.environ.get("STUCK_MBA_PROBE_WT", "path:/Users/jiawenwang/orca/workspaces/ops")
+PROBE_WT = {}  # environment 名 → 临时终端开在哪个工作区，查到环境名时填
 ORCA_WAKE = os.environ.get("STUCK_ORCA_WAKE") or os.path.join(HOME, ".local/bin/orca-wake")
 BOX_WAKE_CONFIG = os.environ.get("STUCK_BOX_WAKE_CONFIG_DIR")
 LOG_FILE = os.path.join(STATE_DIR, "stuck-check.log")
@@ -475,7 +478,7 @@ def run_probe(host):
 def box_run(env, command, title, done_re, polls=12):
     """在 box 上开一个临时 Orca 终端跑 command，等屏幕上出现 done_re，返回 (屏幕文本, None)，读完关掉终端。
     失败返回 (None, 错误)。"""
-    res, err = orca_json(["terminal", "create", "--worktree", BOX_PROBE_WT, "--title", title,
+    res, err = orca_json(["terminal", "create", "--worktree", PROBE_WT.get(env, BOX_PROBE_WT), "--title", title,
                           "--command", command], env, tries=2)
     handle = ((res or {}).get("terminal") or {}).get("handle")
     if not handle:
@@ -1120,6 +1123,8 @@ def send_all(pending, known, track, seen):
             track.setdefault("markers", {})[after["marker"][0]] = after["marker"][1]
         if after.get("box_alert"):
             track["box_alerted"] = True
+        if after.get("mba_alert"):
+            track["mba_alerted"] = True
         for k in after.get("seen") or []:
             seen[k] = {"notified": NOW, "last_seen": NOW}
         if after.get("known"):
@@ -1206,33 +1211,15 @@ def main():
             return 0
         return 2
     hosts.append(imac)
-    box_env = box_env_name()
     direct = list(pending.get("direct") or [])
-    have = {d["id"] for d in direct}
-    if not box_env:
-        log("box：没有配好的 Orca environment，跳过")
-    else:
-        box, err = load_host("box", box_env)
-        if box is None and BOX_RETRY_WAIT > 0:
-            log("box（--environment %s）第一轮 3 次都没连上（%s），等 %.0f 秒再查一轮" % (box_env, (err or "")[:120], BOX_RETRY_WAIT))
-            time.sleep(BOX_RETRY_WAIT)
-            box, err = load_host("box", box_env)
-            if box is not None:
-                log("box 第二轮连上了，不算失败")
-        if box is None:
-            track["box_fail"] = track.get("box_fail", 0) + 1
-            log("box（--environment %s）重试 3 次仍查询失败，这次跳过（连续第 %d 次）：%s" % (
-                box_env, track["box_fail"], (err or "")[:160]))
-            if track["box_fail"] >= 2 and not track.get("box_alerted") and "box-unreachable" not in have:
-                direct.append({"id": "box-unreachable", "cfg": "fallback", "payload": {
-                    "bot": FALLBACK_BOT, "task": "box 的 Orca 连不上", "worktree": "box", "status": "stuck",
-                    "kind": "box_unreachable", "machine": "box", "source": "stuck-check",
-                    "note": "卡住工作检查连续 %d 次连不上 box 的 Orca（--environment %s，每次重试 3 次）：%s。这段时间 box 上的工作区没人查。" % (
-                        track["box_fail"], box_env, (err or "")[:160])}, "after": {"box_alert": True}})
-        else:
-            track["box_fail"], track["box_alerted"] = 0, False
-            direct = [d for d in direct if d["id"] != "box-unreachable"]
-            hosts.append(box)
+    remote = {"box": box_env_name(), "MBA": mba_env_name()}
+    for label, env in remote.items():
+        if not env:
+            log("%s：没有配好的 Orca environment，跳过" % label)
+            continue
+        host = load_remote(label, env, direct, track)
+        if host:
+            hosts.append(host)
     checked = {h["label"] for h in hosts}
 
     # 一、卡住的 agent
@@ -1256,9 +1243,10 @@ def main():
     for k in [k for k in known if k.split(":", 1)[0] in checked and k not in eligible]:
         del known[k]  # 工作区已经不是 in-progress 或不在了
     track["screens"] = {h: r for h, r in track["screens"].items() if NOW - r.get("seen", 0) < 6 * 3600}
-    # 一 b、due date 对账（box 连不上时看不全工作区，不对）
-    if box_env and "box" not in checked:
-        log("box 这次没查到，不对 due date")
+    # 一 b、due date 对账（box 或 MBA 连不上时看不全工作区，不对）
+    missed = [l for l, e in remote.items() if e and l not in checked]
+    if missed:
+        log("%s 这次没查到，不对 due date" % "、".join(missed))
     else:
         have = {d["id"] for d in direct}
         direct += [d for d in check_due(hosts, track) if d["id"] not in have]
@@ -1314,12 +1302,48 @@ def main():
     return 3 if failed else 0
 
 
+def load_remote(label, env, direct, track):
+    """查一台远端 Orca（box / MBA）：第一轮 3 次都没连上就等 BOX_RETRY_WAIT 秒再查一轮；连续 2 次查不到，
+    往 direct 里加一条「连不上」发给 FALLBACK_BOT（只报一次，连上后重置）。返回 host 或 None。"""
+    k = label.lower()  # track 里的键和直发编号：box_fail / box-unreachable，mba_fail / mba-unreachable
+    PROBE_WT[env] = MBA_PROBE_WT if k == "mba" else BOX_PROBE_WT
+    host, err = load_host(label, env)
+    if host is None and BOX_RETRY_WAIT > 0:
+        log("%s（--environment %s）第一轮 3 次都没连上（%s），等 %.0f 秒再查一轮" % (label, env, (err or "")[:120], BOX_RETRY_WAIT))
+        time.sleep(BOX_RETRY_WAIT)
+        host, err = load_host(label, env)
+        if host is not None:
+            log("%s 第二轮连上了，不算失败" % label)
+    if host is None:
+        track[k + "_fail"] = track.get(k + "_fail", 0) + 1
+        log("%s（--environment %s）重试 3 次仍查询失败，这次跳过（连续第 %d 次）：%s" % (
+            label, env, track[k + "_fail"], (err or "")[:160]))
+        if track[k + "_fail"] >= 2 and not track.get(k + "_alerted") and k + "-unreachable" not in {d["id"] for d in direct}:
+            direct.append({"id": k + "-unreachable", "cfg": "fallback", "payload": {
+                "bot": FALLBACK_BOT, "task": "%s 的 Orca 连不上" % label, "worktree": label, "status": "stuck",
+                "kind": k + "_unreachable", "machine": label, "source": "stuck-check",
+                "note": "卡住工作检查连续 %d 次连不上 %s 的 Orca（--environment %s，每次重试 3 次）：%s。这段时间 %s 上的工作区没人查。" % (
+                    track[k + "_fail"], label, env, (err or "")[:160], label)}, "after": {k + "_alert": True}})
+        return None
+    track[k + "_fail"], track[k + "_alerted"] = 0, False
+    direct[:] = [d for d in direct if d["id"] != k + "-unreachable"]
+    return host
+
+
 def box_env_name():
     if os.environ.get("STUCK_BOX_ENV"):
         return os.environ["STUCK_BOX_ENV"]
     rc, out, _ = run([ORCA, "environment", "list"], 30)
     names = [ln.split()[1] for ln in out.splitlines() if len(ln.split()) >= 2] if rc == 0 else []
     return next((n for n in ("box", "grok-bot") if n in names), None)
+
+
+def mba_env_name():
+    if os.environ.get("STUCK_MBA_ENV") is not None:
+        return os.environ["STUCK_MBA_ENV"] or None  # 设成空串 = 不查 MBA
+    rc, out, _ = run([ORCA, "environment", "list"], 30)
+    names = [ln.split()[1] for ln in out.splitlines() if len(ln.split()) >= 2] if rc == 0 else []
+    return next((n for n in ("mba", "MBA") if n in names), None)
 
 
 def orca_ident(env):
@@ -1333,7 +1357,7 @@ def orca_ident(env):
 
 
 def gate():
-    """--scan 的闸门。自动任务每分钟跑一次 precheck：距上次扫描满 INTERVAL_MIN 分钟，或 iMac / box 的 Orca
+    """--scan 的闸门。自动任务每分钟跑一次 precheck：距上次扫描满 INTERVAL_MIN 分钟，或 iMac / box / MBA 的 Orca
     重启过（进程号或 runtimeId 变了，比上次扫描时记的），才真正扫描。返回 (原因 或 None, 这次看到的身份)。"""
     g = load_json(GATE_FILE, {})
     ids = {"iMac": orca_ident(None)}
@@ -1342,14 +1366,15 @@ def gate():
         why = "到点"
     if ids["iMac"] and g.get("iMac") and ids["iMac"] != g["iMac"]:
         why = "iMac 的 Orca 重启过（%s → %s）" % (g["iMac"], ids["iMac"])
-    benv = box_env_name()
-    if benv:
-        ids["box"] = orca_ident(benv)
-        if ids["box"] and g.get("box") and ids["box"] != g["box"] and not why:
-            why = "box 的 Orca 重启过（%s → %s）" % (g["box"], ids["box"])
-        elif ids["box"] and g.get("box") and ids["box"] != g["box"]:
-            why += "；box 的 Orca 也重启过（%s → %s）" % (g["box"], ids["box"])
-    for k in ("iMac", "box"):
+    for k, env in (("box", box_env_name()), ("MBA", mba_env_name())):
+        if not env:
+            continue
+        ids[k] = orca_ident(env)
+        if ids[k] and g.get(k) and ids[k] != g[k] and not why:
+            why = "%s 的 Orca 重启过（%s → %s）" % (k, g[k], ids[k])
+        elif ids[k] and g.get(k) and ids[k] != g[k]:
+            why += "；%s 的 Orca 也重启过（%s → %s）" % (k, g[k], ids[k])
+    for k in ("iMac", "box", "MBA"):
         ids[k] = ids.get(k) or g.get(k)  # 这次没查到的沿用上次的，免得下次误判成重启
     return why, ids
 
@@ -1385,7 +1410,7 @@ if MODE == "--scan" and os.environ.get("STUCK_NO_GATE") != "1":
     _gate = gate()
     if not _gate[0]:
         _g = load_json(GATE_FILE, {})
-        if _g and any(_gate[1].get(k) and not _g.get(k) for k in ("iMac", "box")):
+        if _g and any(_gate[1].get(k) and not _g.get(k) for k in ("iMac", "box", "MBA")):
             save_json(GATE_FILE, dict(_g, **{k: v for k, v in _gate[1].items() if v}))  # 上次扫描时没查到的身份先补记
         sys.exit(1)  # 没到点、Orca 也没重启：安静退出，不写日志
 if MODE not in ("--list", "--dry-run"):
