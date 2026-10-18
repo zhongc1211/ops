@@ -729,6 +729,8 @@ def check_agents(host, known, track):
     label, env = host["label"], host["env"]
     ws_paths = [w["path"] for w in host["worktrees"] if w.get("path")]
     cands, eligible, found = [], set(), []
+    main_seen = track.setdefault("main_seen", {})  # 主目录里上次见到的 agent 终端：agent 退出后 Orca 连记录一起删掉，只能靠这里
+    main_now = set()
 
     def broken(w, key):
         last = (w.get("lastActivityAt") or 0) / 1000.0
@@ -773,6 +775,10 @@ def check_agents(host, known, track):
                 continue
             key = "%s:%s#%s" % (label, w["path"], pk)
             eligible.add(key)
+            main_now.add(key)
+            ms = main_seen.setdefault(key, {})
+            ms.update(hook=hook, seen=NOW, handle=t["handle"], task="%s 主目录 · %s" % (w.get("repo"), norm(first)[:40] or pk[:8]),
+                      bot=bot_for(w.get("repoId"), w.get("repo"), MAP_ID.get(w.get("repoId"), {}).get("slug"), None, None))
             out = (t.get("lastOutputAt") or 0) / 1000.0
             scr = 0 if out else (screen_since(t["handle"], env, track, 0) or 0)
             agent_t, out_t = hook, out or scr
@@ -822,6 +828,21 @@ def check_agents(host, known, track):
             del known[key]
         cands.append({"w": w, "key": key, "agents": agents, "hook": hook, "scr": scr, "agent_t": agent_t,
                       "out_t": out_t, "out": out, "handles": handles, "act": (w.get("lastActivityAt") or 0) / 1000.0})
+    # 主目录里上次还在、这次 Orca 已没有 agent 记录的终端：agent 退出了。经 notify-run 起的它自己会叫醒，不报；
+    # 没包的报一次 agent_gone（终端还在就经复核）。这台主目录没查到（终端列表失败）时不判断。
+    if host["terms_ok"]:
+        mains = {w["path"] for w in host["worktrees"] if is_main_watch(w)}
+        for key in [k for k in main_seen if k.startswith(label + ":") and k not in main_now]:
+            ms = main_seen.pop(key)
+            if ms.get("wrapped") is not False or key.split(":", 1)[1].split("#")[0] not in mains:
+                continue  # 包了 notify-run，或者上次没查到进程、分不清
+            quiet = (NOW - (ms.get("hook") or ms.get("seen") or NOW)) / 60.0
+            alive = any(t["handle"] == ms.get("handle") for ts in host["terms"].values() for t in ts)
+            found.append({"key": key, "kind": GONE, "bot": ms.get("bot") or FALLBACK_BOT, "task": ms.get("task") or key,
+                          "worktree": key, "machine": label, "env": env, "marker": ms.get("hook") or NOW,
+                          "terminals": [ms["handle"]] if alive else [],
+                          "note": "主目录里的 agent 进程退出了（上次检查还在，最近一次 agent 动作在 %.0f 分钟前；它没经 notify-run 起，"
+                                  "退出时没人收到）。终端%s。看看它做完没有、结果在哪" % (quiet, "还开着" if alive else "也关了")})
     if DRY:  # 演练 / 核对覆盖面用：这次查了哪些
         for k in sorted(eligible):
             log("查 | %s" % k)
@@ -850,7 +871,10 @@ def check_agents(host, known, track):
         if notify:
             continue  # 有 notify-run 在跑长命令，结束时它会自己叫醒 bot
         if c.get("pane") and any(by_automation(host, args=p.get("args_head")) for p in aprocs):
+            main_seen.pop(key, None)
             continue  # 主目录里自动任务起的（paneKey 已不在运行记录里，靠命令行认出来）
+        if c.get("pane") and aprocs:
+            main_seen[key]["wrapped"] = any(p.get("notify_anc") for p in aprocs)
         linear = w.get("linkedLinearIssue")
         repo_slug = MAP_ID.get(w.get("repoId"), {}).get("slug")
         bot = bot_for(w.get("repoId"), w.get("repo"), repo_slug, linear, w.get("displayName"))
