@@ -633,30 +633,29 @@ def norm(t):
     return " ".join((t or "").split())
 
 
-def automation_marks(host):
-    """这台 Orca 的自动任务：运行记录里的终端 paneKey、各自动任务 prompt 的开头（压成一行）。查不到返回空集。"""
-    if "auto" not in host:
-        panes, prompts = set(), []
+def automation_prompts(host):
+    """这台 Orca 各自动任务 prompt 的开头（压成一行，至少 20 个字）。查不到返回空列表。"""
+    if "auto_prompts" not in host:
         al, _ = orca_json(["automations", "list"], host["env"], tries=2)
-        for a in (al or {}).get("automations") or []:
-            pp = norm(a.get("prompt"))[:80]
-            if len(pp) >= 20:
-                prompts.append(pp)
+        host["auto_prompts"] = [pp for pp in (norm(a.get("prompt"))[:80] for a in (al or {}).get("automations") or [])
+                                if len(pp) >= 20]
+    return host["auto_prompts"]
+
+
+def automation_panes(host):
+    """自动任务运行记录里的终端 paneKey（记录较大，只在 prompt 对不上时才查）。"""
+    if "auto_panes" not in host:
         rl, _ = orca_json(["automations", "runs"], host["env"], tries=2, timeout=120)
-        for r in (rl or {}).get("runs") or []:
-            if r.get("terminalPaneKey"):
-                panes.add(r["terminalPaneKey"])
-        host["auto"] = (panes, prompts)
-    return host["auto"]
+        host["auto_panes"] = {r["terminalPaneKey"] for r in (rl or {}).get("runs") or [] if r.get("terminalPaneKey")}
+    return host["auto_panes"]
 
 
 def by_automation(host, pane=None, args=None, prompt=None):
-    """agent 是不是 Orca 自动任务起的：终端 paneKey 在运行记录里，或命令行 / Orca 记的 prompt 是某个自动任务的 prompt。"""
-    panes, prompts = automation_marks(host)
-    if pane and pane in panes:
-        return True
+    """agent 是不是 Orca 自动任务起的：命令行 / Orca 记的 prompt 是某个自动任务的 prompt，或终端 paneKey 在运行记录里。"""
     a, pr = norm(args), norm(prompt)
-    return any((a and pp in a) or (pr and pr.startswith(pp[:60])) for pp in prompts)
+    if any((a and pp in a) or (pr and pr.startswith(pp[:60])) for pp in automation_prompts(host)):
+        return True
+    return bool(pane) and pane in automation_panes(host)
 
 
 def get_probe(host):
@@ -823,6 +822,9 @@ def check_agents(host, known, track):
             del known[key]
         cands.append({"w": w, "key": key, "agents": agents, "hook": hook, "scr": scr, "agent_t": agent_t,
                       "out_t": out_t, "out": out, "handles": handles, "act": (w.get("lastActivityAt") or 0) / 1000.0})
+    if DRY:  # 演练 / 核对覆盖面用：这次查了哪些
+        for k in sorted(eligible):
+            log("查 | %s" % k)
     if not cands:
         return found, eligible, len(eligible)
     probe = get_probe(host)
@@ -1147,6 +1149,8 @@ def check_reported(host):
         if not is_task_ws(w) or status not in ("completed", "in-review"):
             continue
         scanned += 1
+        if DRY:
+            log("查（二）| %s:%s | %s" % (label, w["path"], status))
         linear = w.get("linkedLinearIssue")
         lstate, lts = linear_state(linear) if linear else (None, None)
         if lstate == "canceled":
