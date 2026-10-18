@@ -992,7 +992,7 @@ def check_reported(host):
         task = task_name(w)
         where = "%s:%s" % (label, w["path"])
 
-        def add(note):
+        def add(note, bot=bot, task=task, where=where):  # 绑定当前值：completed 的要等循环后统一判断
             found.append({"bot": bot, "task": task, "worktree": where, "status": REPORTED, "note": note})
 
         pr, pr_ok = (None, False)
