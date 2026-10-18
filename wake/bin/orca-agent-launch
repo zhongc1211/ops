@@ -83,10 +83,14 @@ if [ "${ORCA_AGENT_LAUNCH_DRY:-}" = 1 ]; then
     exit 0
 fi
 if [ -n "$issue" ] && [ -z "$no_linear" ]; then
-    orca=${ORCA_AGENT_LAUNCH_ORCA:-$(command -v orca-ide || command -v orca || { [ -x "$HOME/.local/bin/orca" ] && echo "$HOME/.local/bin/orca"; } ||
-        echo /Applications/Orca.app/Contents/Resources/bin/orca)}
-    # 写 due，再补「负责 bot：」一行。失败就不起 agent：due 对账靠它
-    msg=$(python3 - "$orca" "$issue" "$due" "$bot" <<'PY'
+    orca=${ORCA_AGENT_LAUNCH_ORCA:-}
+    [ -n "$orca" ] || orca=$(command -v orca-ide || command -v orca) || orca=""
+    [ -n "$orca" ] || { [ -x "$HOME/.local/bin/orca" ] && orca=$HOME/.local/bin/orca; } ||
+        orca=/Applications/Orca.app/Contents/Resources/bin/orca
+    # 写 due，再补「负责 bot：」一行。失败就不起 agent：due 对账靠它。
+    # Python 不放进 $(...) 里：/bin/bash 3.2 解析 $(...) 里的 here-doc 会出错（10-19 演练时整个脚本跑不起来）
+    out=$(mktemp "${TMPDIR:-/tmp}/orca-agent-launch.XXXXXX") || die "建不了临时文件"
+    python3 - "$orca" "$issue" "$due" "$bot" >"$out" <<'PY'
 import json, re, subprocess, sys
 orca, issue, due, bot = sys.argv[1:5]
 
@@ -116,7 +120,12 @@ else:
     how = "描述里%s「%s」" % ("把「负责 bot：%s」改成" % m.group(1) if m else "补了", line)
 print("Linear %s：due 设为 %s；%s" % (iss["identifier"], due, how))
 PY
-    ) || { echo "orca-agent-launch: 拒绝：Linear $issue 写不进去（${msg:-见上}）。确认要先起 agent 再补卡就加 --no-linear" >&2; exit 3; }
+    rc=$?
+    msg=$(cat "$out"); rm -f "$out"
+    if [ "$rc" -ne 0 ]; then
+        echo "orca-agent-launch: 拒绝：Linear $issue 写不进去（见上）。确认要先起 agent 再补卡就加 --no-linear" >&2
+        exit 3
+    fi
     echo "orca-agent-launch: $msg" >&2
 fi
 exec "${cmd[@]}"
