@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """心月夜审 75b324a4 step 2: sessions jsonl -> /memory/add -> /memory/flush.
 
-Usage: python3 -I nightly_addflush.py --date 2026-10-16 [--project P] [--dry-run] --log OUT.json [--ledger L.jsonl]
+Usage: python3 -I nightly_addflush.py --date 2026-10-16 [--project P] [--dry-run | --readback-only] --log OUT.json
+                                      [--ledger L.jsonl] [--sessions-dir DIR]
 Reads ~/.config/everos/xinyue.env; the key goes only into the Authorization header.
 --project deepvision-ads | vllm-omni (2026-10-18) does the same for that project's capture
 (/var/lib/everos-ingest/<project>/<date>/, env dv-ads.env / vllm-omni.env, ledger <date>-<project>-ledger.jsonl)
@@ -46,11 +47,26 @@ them with decision landed / resend / failed, the state behind it and a reason wh
 Every call line has endpoint (tailnet/public) and outcome (ok / unknown→landed / unknown→resent /
 failed); resent calls have resend=true. No key, no message text. --dry-run still takes both
 counts (read-only) and marks every line dry_run=true.
+
+Read back (PER-67, everos_readback.py): HTTP 200 is not success. After count_after every OK session is
+read back by session_id under the env's scope, polled up to everos_readback.READBACK_TIMEOUT_S (180 s);
+it must have more episodes than its session_before count. A session that does not pass becomes
+result=FAIL with reason "readback_failed: <why>", the ledger gets kind=readback / readback_summary lines,
+and the script exits 3 (otherwise 0, as before).
+--readback-only sends no add/flush: every session that would be written (readable transcript with text
+messages) is read back, needing at least one episode. --sessions-dir reads sessions-<side>.jsonl from
+another directory (default /var/lib/everos-ingest/<project>/<date>).
+EVEROS_WRITE_STUB_URL (drill only): add and flush go to this address and nowhere else (no fallback);
+every other call goes to EverOS as usual. Used with a local server that answers 200 to prove that a
+200 write which EverOS never saw ends in readback_failed.
 """
 import argparse, http.client, json, os, re, sys, time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))   # python3 -I leaves the script's directory out
+import everos_readback
 
 SGT = timezone(timedelta(hours=8))
 # --project -> (env file, expected app / project / user / assistant sender); ID 10-16 批, Zack 10-18 13:18
@@ -83,6 +99,7 @@ RECHECK_DELAYS = (5, 15, 30, 60)   # seconds to wait before each recheck of an u
 LANDED = "unknown→landed"
 RESENT = "unknown→resent"
 OUTCOME_OF_DECISION = {"landed": LANDED, "resend": RESENT}   # recheck decision -> add/flush outcome; else failed
+WRITE_PATHS = ("/api/v2/memory/add", "/api/v2/memory/flush")   # the calls EVEROS_WRITE_STUB_URL takes over
 
 def ts_ms(s):
     try:
@@ -179,7 +196,8 @@ def post(env, path, body):
                # Cloudflare answers the default Python-urllib UA with 403 (error 1010)
                "User-Agent": "xinyue-nightly-addflush/1.1"}
     fallback = None
-    for name, base, host in env["_endpoints"]:
+    eps = env.get("_write_endpoints") if path in WRITE_PATHS else None
+    for name, base, host in eps or env["_endpoints"]:
         try:
             st, raw = send(base, host, path, data, headers)
         except ConnectFailed as e:
@@ -337,6 +355,7 @@ def write_session(env, ledger, scope, o, msgs):
     sid, side = o["session_id"], o.get("side")
     chunks = [msgs[i:i + CHUNK] for i in range(0, len(msgs), CHUNK)]
     ep_before, total_before, rs, rt = session_counts(env, sid)
+    o["episodes_before"] = ep_before   # the read back needs more than this
     http = first_bad_http(rs, rt)
     ledger.write("session_before", session_id=sid, session_hits=ep_before, total_before=total_before,
                  http=http, endpoint=rs.endpoint, outcome="ok" if http == 200 else "failed")
@@ -412,7 +431,10 @@ def write_session(env, ledger, scope, o, msgs):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", required=True)
-    ap.add_argument("--dry-run", action="store_true")
+    mode = ap.add_mutually_exclusive_group()
+    mode.add_argument("--dry-run", action="store_true")
+    mode.add_argument("--readback-only", action="store_true", help="no add/flush: read back the sessions only")
+    ap.add_argument("--sessions-dir", help="default /var/lib/everos-ingest/<project>/<date>")
     ap.add_argument("--log", required=True)
     ap.add_argument("--ledger", help="write ledger jsonl (default ~/xinyue-deploy/nightly-review/<date>-<project>-ledger.jsonl)")
     ap.add_argument("--project", default="xinyue", choices=sorted(PROJECTS))
@@ -422,13 +444,16 @@ def main():
     if tuple(env.get(k) for k in ("EVEROS_APP_ID", "EVEROS_PROJECT_ID", "EVEROS_USER_ID", "EVEROS_ASSISTANT_SENDER_ID")) != scope_want:
         sys.exit("scope mismatch in " + env_path)
     env["_endpoints"] = endpoints(env)
+    if os.environ.get("EVEROS_WRITE_STUB_URL"):
+        env["_write_endpoints"] = [("write-stub", os.environ["EVEROS_WRITE_STUB_URL"], None)]
+        print(f"WRITE STUB: add/flush go to {os.environ['EVEROS_WRITE_STUB_URL']} only (drill)", flush=True)
     key = env.get("EVEROS_API_KEY", "")
     scope = {"app_id": env["EVEROS_APP_ID"], "project_id": env["EVEROS_PROJECT_ID"]}
     ledger = Ledger(a.ledger or f"~/xinyue-deploy/nightly-review/{a.date}-{a.project}-ledger.jsonl", key, a.dry_run)
     print(f"ledger: {ledger.path}", flush=True)
     print("endpoints: " + " -> ".join(f"{n} {u}" for n, u, _ in env["_endpoints"]), flush=True)
     before = episode_count(env, ledger, "count_before")
-    base = Path(f"/var/lib/everos-ingest/{a.project}/{a.date}")
+    base = Path(a.sessions_dir or f"/var/lib/everos-ingest/{a.project}/{a.date}")
     rows, seen = [], set()
     for side in ("box", "imac"):
         f = base / f"sessions-{side}.jsonl"
@@ -444,6 +469,7 @@ def main():
     log = []
     for o in rows:
         rec = {"session_id": o.get("session_id"), "machine": o.get("side"), "workspace": o.get("workspace")}
+        o["rec"] = rec
         if "error" in o:
             rec["result"] = "FAIL"; rec["reason"] = o["error"]; log.append(rec); continue
         tp = o.get("transcript_path")
@@ -455,6 +481,8 @@ def main():
             rec["result"] = "SKIP"; rec["reason"] = "no text messages"; log.append(rec); continue
         if a.dry_run:
             rec["result"] = "DRY"; log.append(rec); continue
+        if a.readback_only:
+            rec["result"] = "OK"; rec["readback_only"] = True; log.append(rec); continue
         adds, flush, ok = write_session(env, ledger, scope, o, msgs)
         rec["add"] = adds
         rec["flush"] = flush
@@ -465,12 +493,26 @@ def main():
         print(json.dumps(rec, ensure_ascii=False), flush=True)
     after = episode_count(env, ledger, "count_after")
     new_ids = sorted(set(after.get("episode_ids", [])) - set(before.get("episode_ids", [])))
+    written = [o for o in rows if o.get("rec", {}).get("result") == "OK"]
+    results = everos_readback.readback(
+        env, post, [everos_readback.episode_target(o["session_id"], o.get("episodes_before")) for o in written],
+        a.project, ledger) if written and not a.dry_run else []
+    for o, res in zip(written, results):
+        o["rec"]["readback"] = {k: res.get(k) for k in ("result", "reason", "count", "before", "polls", "seconds", "found")}
+        if res["result"] != "PASS":
+            o["rec"]["result"], o["rec"]["reason"] = "FAIL", everos_readback.failure_reason(res)
+    readback_failed = everos_readback.failed(results)
     ledger.write("summary", sessions=len(log), ok=sum(r["result"] == "OK" for r in log),
-                 fail=sum(r["result"] == "FAIL" for r in log), new_episode_ids=new_ids)
+                 fail=sum(r["result"] == "FAIL" for r in log), new_episode_ids=new_ids,
+                 readback_failed=len(readback_failed))
     Path(a.log).write_text(json.dumps(log, ensure_ascii=False, indent=1))
     for r in log:
         print(r["result"], r["machine"], r["session_id"], r.get("messages"), r.get("reason", ""))
     print(f"episodes before={before.get('total_count')} after={after.get('total_count')} new={new_ids}")
+    if readback_failed:
+        print(f"readback_failed: {len(readback_failed)} session(s), see the readback_failed lines above", flush=True)
+        return everos_readback.EXIT_READBACK_FAILED
+    return 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
