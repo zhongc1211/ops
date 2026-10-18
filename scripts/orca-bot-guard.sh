@@ -5,7 +5,7 @@
 # 日志 ~/.orca-state/orca-bot-guard/guard.log。webhook 每次都记 HTTP 码；非 2xx 时带响应体前 160 个字符（去掉 URL/KEY 和长串，
 #   压成一行）。10-16 两段 14 次「webhook failed」当时不记码，原因查不到（PER-66）。
 # URL 和 KEY 只经 stdin 交给 curl，不进命令行参数、日志和输出。
-# 测试用环境变量：GUARD_STATE_DIR、GUARD_ENV_FILE、GUARD_PROBE_URL。
+# 测试用环境变量：GUARD_STATE_DIR、GUARD_ENV_FILE、GUARD_PROBE_URL、GUARD_BOT（payload 里的 bot，默认 coding）。
 ST=${GUARD_STATE_DIR:-$HOME/.orca-state/orca-bot-guard}; mkdir -p "$ST"; LOG=$ST/guard.log
 ENV_FILE=${GUARD_ENV_FILE:-$HOME/.config/grokbot/stuck-webhook.env}
 ts(){ TZ=Asia/Singapore date '+%F %T'; }
@@ -26,7 +26,7 @@ if [ -z "$URL" ] || [ -z "$KEY" ]; then
   echo "$(ts) webhook failed http=no_config（$ENV_FILE 缺 URL 或 KEY）" >> "$LOG"; exit 1
 fi
 resp=$(mktemp "${TMPDIR:-/tmp}/orca-bot-guard.XXXXXX")
-body="{\"bot\":\"coding\",\"task\":\"orca-bot 守护\",\"status\":\"down\",\"note\":\"orca-bot.deepvision.sg 连续 $n 次不通（code=$code），请在 box 上重启 orca-remote\"}"
+body="{\"bot\":\"${GUARD_BOT:-coding}\",\"task\":\"orca-bot 守护\",\"status\":\"down\",\"note\":\"orca-bot.deepvision.sg 连续 $n 次不通（code=$code），请在 box 上重启 orca-remote\"}"
 esc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 http=$(printf 'url = "%s"\nheader = "Authorization: Bearer %s"\nheader = "Content-Type: application/json"\n' \
          "$(esc "$URL")" "$(esc "$KEY")" |
