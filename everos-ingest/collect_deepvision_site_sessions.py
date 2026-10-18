@@ -265,7 +265,7 @@ def main() -> int:
     ap.add_argument("--remote-dir", default="", help="path the staged transcripts will have on box")
     ap.add_argument("--dry-run", action="store_true", help="print kept/excluded with rules; no staging")
     args = ap.parse_args()
-    if args.machine not in ("box", "imac"):
+    if args.machine not in ("box", "imac", "mba"):
         print(f"bad machine: {args.machine}", file=sys.stderr)
         return 2
     kept, excluded, other = collect(args.machine, args.date)

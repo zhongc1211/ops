@@ -430,10 +430,11 @@ def main():
     before = episode_count(env, ledger, "count_before")
     base = Path(f"/var/lib/everos-ingest/{a.project}/{a.date}")
     rows, seen = [], set()
-    for side in ("box", "imac"):
+    for side in ("box", "imac", "mba"):
         f = base / f"sessions-{side}.jsonl"
         if not f.is_file():
-            rows.append({"side": side, "error": f"missing {f}"}); continue
+            # MBA joined 2026-10-18: a missing MBA list is reported but is not a failure
+            rows.append({"side": side, ("warn" if side == "mba" else "error"): f"missing {f}"}); continue
         for line in f.read_text().splitlines():
             if not line.strip():
                 continue
@@ -446,6 +447,8 @@ def main():
         rec = {"session_id": o.get("session_id"), "machine": o.get("side"), "workspace": o.get("workspace")}
         if "error" in o:
             rec["result"] = "FAIL"; rec["reason"] = o["error"]; log.append(rec); continue
+        if "warn" in o:
+            rec["result"] = "WARN"; rec["reason"] = o["warn"]; log.append(rec); continue
         tp = o.get("transcript_path")
         if not tp or not os.access(tp, os.R_OK):
             rec["result"] = "FAIL"; rec["reason"] = f"transcript not readable on box: {tp}"; log.append(rec); continue

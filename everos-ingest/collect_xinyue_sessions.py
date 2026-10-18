@@ -762,7 +762,7 @@ def main() -> int:
     ap.add_argument("--remote-dir", default="", help="path the staged transcripts will have on box")
     args = ap.parse_args()
     machine = args.machine
-    if machine not in ("box", "imac"):
+    if machine not in ("box", "imac", "mba"):
         print(f"bad machine: {machine}", file=sys.stderr)
         return 2
     rows, excluded = collect(machine, args.date)
