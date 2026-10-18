@@ -21,6 +21,7 @@ Orca 项目和工作区清单见 [orca-projects.md](orca-projects.md)。
 | [`wake/install.sh`](wake/install.sh) | 在 iMac / box 上安装叫醒脚本和 `agent-probe`（`--check` 只比对） |
 | [`scripts/stuck-check.sh`](scripts/stuck-check.sh) | 卡住工作检查（Orca 自动化每 15 分钟），兜底补叫醒；依赖 orca-wake 的 `sent/` 状态 |
 | [`scripts/agent-probe`](scripts/agent-probe) | 列出本机 agent 和 notify-run 进程，给卡住检查用 |
+| [`sentinels/`](sentinels/) | ops · 23 生产版本哨兵（iMac 每 15 分钟，生产台账）和 ops · 24 未推送扫描（两台机器每小时） |
 | [`orca-remote/`](orca-remote/) | box 上 Orca 的看门狗 `watchdog.sh` 和 `ensure-watchdog.sh` |
 | [`reports/wake-fixes-2026-10-17.md`](reports/wake-fixes-2026-10-17.md) | 叫醒系统 10-17 修复记录 |
 
