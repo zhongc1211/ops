@@ -88,26 +88,30 @@ log_send() {  # $1=http（或说明） $2=第几次
         "$(printf '%s' "$start_dir" | tr '\t\n' '  ')" >>"$NR_LOG"; } 2>/dev/null || true
 }
 
+# 打到 stderr 的提示一律经外部 echo：终端关掉后（HUP）写终端会失败，bash 内建 echo 失败时内容留在 stdio 缓冲里，
+# 之后每个 $(...) 子 shell 都会把它吐进捕获结果，日志的时间、ws 字段被串掉，mkdir 还建出名字带换行的目录（10-18 iMac 4 次）。
+say() { /bin/echo "$1" >&2 2>/dev/null || true; }
+
 # 在子 shell 里读 env 文件，KEY 不留在主进程里。
 send_webhook() (
     set +x
     env_file="$HOME/.config/grokbot/webhooks/$bot.env"
     [ -r "$env_file" ] || env_file="/home/box/.config/grokbot/webhooks/$bot.env"
     if [ ! -r "$env_file" ]; then
-        echo "notify-run: 找不到 $bot 的 webhook 配置，未发送" >&2
+        say "notify-run: 找不到 $bot 的 webhook 配置，未发送"
         log_send no_config 0
         exit 1
     fi
     URL="" KEY=""
     . "$env_file"
     if [ -z "$URL" ] || [ -z "$KEY" ]; then
-        echo "notify-run: $env_file 缺 URL 或 KEY，未发送" >&2
+        say "notify-run: $env_file 缺 URL 或 KEY，未发送"
         log_send bad_config 0
         exit 1
     fi
     machine=$(hostname)
     if ! build_json >"$tmpd/payload.json"; then
-        echo "notify-run: 生成 JSON 失败（需要 jq 或 python3），未发送" >&2
+        say "notify-run: 生成 JSON 失败（需要 jq 或 python3），未发送"
         exit 1
     fi
     tries=${NOTIFY_RUN_TRIES:-3}
@@ -116,7 +120,7 @@ send_webhook() (
         http=$(printf 'Authorization: Bearer %s\n' "$KEY" | curl -sS -o /dev/null -w '%{http_code}' \
             --max-time 20 -X POST -H @- -H 'Content-Type: application/json' \
             --data-binary @"$tmpd/payload.json" "$URL" 2>/dev/null)
-        echo "notify-run: webhook bot=$bot status=$status exit_code=$code http=${http:-无响应} 第${n}次" >&2
+        say "notify-run: webhook bot=$bot status=$status exit_code=$code http=${http:-无响应} 第${n}次"
         log_send "${http:-none}" "$n"
         case "$http" in 2??) exit 0 ;; esac
         [ "$n" -lt "$tries" ] || exit 1
