@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """deepvision广告夜审 9b5c20e7 step 4: the night's lessons -> one EverOS session -> /memory/add -> /memory/flush.
 
-Usage: python3 -I dv_ads_lessons.py --lessons L.json --log OUT.json [--ledger L.jsonl] [--dry-run]
+Usage: python3 -I dv_ads_lessons.py --lessons L.json --log OUT.json [--ledger L.jsonl] [--dry-run] [--project P]
 Reads ~/.config/everos/dv-ads.env (scope deepvision / deepvision-ads / zack / coding-deepvision-ads);
 the key goes only into the Authorization header.
+--project vllm-omni (2026-10-18) is the vllm night review c392a743: ~/.config/everos/vllm-omni.env (scope
+vllm-omni / vllm-omni / zack / coding-vllm-omni), session nightly-review-vllm-omni-<D>,
+ledger <D>-vllm-omni-ledger.jsonl. Everything else is the same.
 
 Why a user message (FDV-81): on 2026-10-16 the night review added its 4 lessons as assistant messages only;
 add 200 and flush 200 extracted, but no episode was made. EverOS builds the user's episodes from a
@@ -36,7 +39,11 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 SGT = timezone(timedelta(hours=8))
-SCOPE = ("deepvision", "deepvision-ads", "zack", "coding-deepvision-ads")
+# --project -> (env file, expected app / project / user / assistant sender); ID 10-16 批
+PROJECTS = {
+    "deepvision-ads": ("~/.config/everos/dv-ads.env", ("deepvision", "deepvision-ads", "zack", "coding-deepvision-ads")),
+    "vllm-omni": ("~/.config/everos/vllm-omni.env", ("vllm-omni", "vllm-omni", "zack", "coding-vllm-omni")),
+}
 
 def load_env(p):
     env = {}
@@ -339,7 +346,7 @@ def write_session(env, ledger, scope, o, msgs):
     f3 = send_or_settle("flush", r3, dict(fline, resend=True), last_ts)
     return adds, f3, r3.outcome not in ("failed", "unknown")
 
-def build_messages(env, spec, key):
+def build_messages(env, spec, key, project="deepvision-ads"):
     """(session_id, messages) from the lessons file; raises ValueError on a bad file or a secret-like text."""
     date = spec.get("date") or ""
     datetime.strptime(date, "%Y-%m-%d")
@@ -349,7 +356,7 @@ def build_messages(env, spec, key):
         raise ValueError("context (the zack message) is empty")
     if not lessons or not all(isinstance(l, dict) and (l.get("text") or "").strip() for l in lessons):
         raise ValueError("lessons must be a non-empty list of {label, text}")
-    sid = spec.get("session_id") or f"nightly-review-deepvision-ads-{date}"
+    sid = spec.get("session_id") or f"nightly-review-{project}-{date}"
     at = datetime.fromisoformat(spec["at"]) if spec.get("at") else datetime.now(SGT)
     t0 = int(at.timestamp() * 1000)
     texts = [("user", context)] + [("assistant", (f"[{l['label']}] " if l.get("label") else "") + l["text"].strip())
@@ -370,20 +377,23 @@ def main():
     ap.add_argument("--lessons", required=True, help="lessons JSON (see the docstring)")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--log", required=True)
-    ap.add_argument("--ledger", help="ledger jsonl (default ~/xinyue-deploy/nightly-review/<date>-deepvision-ads-ledger.jsonl)")
-    ap.add_argument("--env", default="~/.config/everos/dv-ads.env")
+    ap.add_argument("--ledger", help="ledger jsonl (default ~/xinyue-deploy/nightly-review/<date>-<project>-ledger.jsonl)")
+    ap.add_argument("--project", default="deepvision-ads", choices=sorted(PROJECTS))
+    ap.add_argument("--env", help="env file (default: the project's, see PROJECTS)")
     a = ap.parse_args()
+    env_path, scope_want = PROJECTS[a.project]
+    a.env = a.env or env_path
     env = load_env(a.env)
-    if (env.get("EVEROS_APP_ID"), env.get("EVEROS_PROJECT_ID"), env.get("EVEROS_USER_ID"), env.get("EVEROS_ASSISTANT_SENDER_ID")) != SCOPE:
+    if (env.get("EVEROS_APP_ID"), env.get("EVEROS_PROJECT_ID"), env.get("EVEROS_USER_ID"), env.get("EVEROS_ASSISTANT_SENDER_ID")) != scope_want:
         sys.exit("scope mismatch in " + a.env)
     env["_endpoints"] = endpoints(env)
     key = env.get("EVEROS_API_KEY", "")
     scope = {"app_id": env["EVEROS_APP_ID"], "project_id": env["EVEROS_PROJECT_ID"]}
     try:
-        date, sid, msgs = build_messages(env, json.loads(Path(a.lessons).read_text()), key)
+        date, sid, msgs = build_messages(env, json.loads(Path(a.lessons).read_text()), key, a.project)
     except (ValueError, KeyError, OSError) as e:
         sys.exit(f"lessons file {a.lessons}: {e}")
-    ledger = Ledger(a.ledger or f"~/xinyue-deploy/nightly-review/{date}-deepvision-ads-ledger.jsonl", key, a.dry_run)
+    ledger = Ledger(a.ledger or f"~/xinyue-deploy/nightly-review/{date}-{a.project}-ledger.jsonl", key, a.dry_run)
     print(f"ledger: {ledger.path}", flush=True)
     print("endpoints: " + " -> ".join(f"{n} {u}" for n, u, _ in env["_endpoints"]), flush=True)
     print(f"session_id: {sid}  messages: {len(msgs)} (user {sum(m['role'] == 'user' for m in msgs)}, "

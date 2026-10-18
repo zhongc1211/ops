@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """心月夜审 75b324a4 step 2: sessions jsonl -> /memory/add -> /memory/flush.
 
-Usage: python3 -I nightly_addflush.py --date 2026-10-16 [--dry-run] --log OUT.json [--ledger L.jsonl]
+Usage: python3 -I nightly_addflush.py --date 2026-10-16 [--project P] [--dry-run] --log OUT.json [--ledger L.jsonl]
 Reads ~/.config/everos/xinyue.env; the key goes only into the Authorization header.
+--project deepvision-ads | vllm-omni (2026-10-18) does the same for that project's capture
+(/var/lib/everos-ingest/<project>/<date>/, env dv-ads.env / vllm-omni.env, ledger <date>-<project>-ledger.jsonl)
+for the ads (9b5c20e7) and vllm (c392a743) night reviews; the env's scope must be the 10-16 one.
 Only user/assistant text blocks are sent (no tool calls/results); messages that look
 like they carry a secret are dropped and counted.
 
@@ -31,7 +34,7 @@ If all four come back without that:
 Each session gets at most one resend round. A later unknown is only rechecked (landed or failed).
 A failed outcome stops that session.
 
-Ledger (default ~/xinyue-deploy/nightly-review/<date>-xinyue-ledger.jsonl): one JSON line per call,
+Ledger (default ~/xinyue-deploy/nightly-review/<date>-<project>-ledger.jsonl, xinyue by default): one JSON line per call,
 appended and flushed right after the call returns (an unknown add/flush line is written once its
 rechecks are done, after the recheck lines). kind=count_before / count_after are /memory/get episode
 counts (total_count + id list) taken before the first write and after the last; kind=session_before
@@ -50,6 +53,12 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 SGT = timezone(timedelta(hours=8))
+# --project -> (env file, expected app / project / user / assistant sender); ID 10-16 批, Zack 10-18 13:18
+PROJECTS = {
+    "xinyue": ("~/.config/everos/xinyue.env", ("xinyue", "xinyue-site", "zack", "coding-xinyue-site")),
+    "deepvision-ads": ("~/.config/everos/dv-ads.env", ("deepvision", "deepvision-ads", "zack", "coding-deepvision-ads")),
+    "vllm-omni": ("~/.config/everos/vllm-omni.env", ("vllm-omni", "vllm-omni", "zack", "coding-vllm-omni")),
+}
 
 def load_env(p):
     env = {}
@@ -405,17 +414,21 @@ def main():
     ap.add_argument("--date", required=True)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--log", required=True)
-    ap.add_argument("--ledger", help="write ledger jsonl (default ~/xinyue-deploy/nightly-review/<date>-xinyue-ledger.jsonl)")
+    ap.add_argument("--ledger", help="write ledger jsonl (default ~/xinyue-deploy/nightly-review/<date>-<project>-ledger.jsonl)")
+    ap.add_argument("--project", default="xinyue", choices=sorted(PROJECTS))
     a = ap.parse_args()
-    env = load_env("~/.config/everos/xinyue.env")
+    env_path, scope_want = PROJECTS[a.project]
+    env = load_env(env_path)
+    if tuple(env.get(k) for k in ("EVEROS_APP_ID", "EVEROS_PROJECT_ID", "EVEROS_USER_ID", "EVEROS_ASSISTANT_SENDER_ID")) != scope_want:
+        sys.exit("scope mismatch in " + env_path)
     env["_endpoints"] = endpoints(env)
     key = env.get("EVEROS_API_KEY", "")
     scope = {"app_id": env["EVEROS_APP_ID"], "project_id": env["EVEROS_PROJECT_ID"]}
-    ledger = Ledger(a.ledger or f"~/xinyue-deploy/nightly-review/{a.date}-xinyue-ledger.jsonl", key, a.dry_run)
+    ledger = Ledger(a.ledger or f"~/xinyue-deploy/nightly-review/{a.date}-{a.project}-ledger.jsonl", key, a.dry_run)
     print(f"ledger: {ledger.path}", flush=True)
     print("endpoints: " + " -> ".join(f"{n} {u}" for n, u, _ in env["_endpoints"]), flush=True)
     before = episode_count(env, ledger, "count_before")
-    base = Path(f"/var/lib/everos-ingest/xinyue/{a.date}")
+    base = Path(f"/var/lib/everos-ingest/{a.project}/{a.date}")
     rows, seen = [], set()
     for side in ("box", "imac"):
         f = base / f"sessions-{side}.jsonl"

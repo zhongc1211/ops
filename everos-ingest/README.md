@@ -60,3 +60,19 @@ EVEROS_INGEST_ROOT=$HOME/.orca-state/bin/everos-ingest \
 - `night-review-xinyue.prompt.md` — `75b324a4` 的 prompt 全文：先写摘要骨架（状态：进行中），每步更新，第 2 步调用上面的脚本，结尾改为完成。
 - `night-review-guard-xinyue.sh` — Orca automation「心月夜审兜底」的 precheck（00:30，只读，总是 exit 1）；参数见
   `night-review-guard-xinyue.automation.md`。
+
+## deepvision-ads / vllm-omni 会话采集 + vllm 夜审写入修复（2026-10-18，Zack 13:18「补，顺便查修 vllm 写入」）
+
+- 规则和输出同官网（A+E+H+K）：`collect_repo_sessions.py --repo deepvision-ads|vllm-omni` 换掉官网采集脚本的
+  仓库名、夜审标记（9b5c20e7 / c392a743）、工单号（FDV-N / PER-N），不用 OD 规则；官网脚本没改。
+- precheck：`collect-box-repo.sh <repo>`、`collect-imac-repo.sh <repo>`（iMac 副本在 `~/.orca-state/bin/everos-ingest/`），
+  采前一天，输出 `/var/lib/everos-ingest/<repo>/$D/`。DRY_RUN=1 只打印。
+- automation：
+  - box `91fa38d4` dv广告 · 26 EverOS 广告会话采集 box（00:06），iMac `8b06646f` dv广告 · 26 EverOS 广告会话采集 iMac（00:02）
+  - box `4ce0c307` vllm · 27 EverOS 会话采集 box（00:20），iMac `89faa2a6` vllm · 27 EverOS 会话采集 iMac（00:16）
+- 写入：`nightly_addflush.py --project deepvision-ads|vllm-omni`（会话，默认仍是心月）、`dv_ads_lessons.py --project vllm-omni`
+  （lesson，默认仍是广告）。都按 env 文件核对作用域，ID 用 10-16 批的：user_id zack；deepvision/deepvision-ads/coding-deepvision-ads；
+  vllm-omni/vllm-omni/coding-vllm-omni。
+- 夜审：9b5c20e7、c392a743 加第 0 步读采集清单并用上面的脚本写入；c392a743 第 4 步改用 lesson 脚本、env 改 `vllm-omni.env`
+  （以前用 xinyue.env 覆盖成 app_id=vllm、user_id=zack@vllm-omni，coding agent 召回不到）。prompt 全文：
+  `night-review-deepvision-ads.prompt.md`、`night-review-vllm-omni.prompt.md`。
