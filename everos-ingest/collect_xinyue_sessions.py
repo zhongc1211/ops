@@ -501,9 +501,11 @@ def stage_filtered_transcript(src: str, dst: Path, literals: list[str]) -> tuple
 # title, the task headline and the brief headline: nearly every dev transcript mentions
 # API_KEY / SECRET / TOKEN somewhere in tool output (10-17: 2 of 3 box ads sessions, all 4 iMac
 # vllm sessions). Env values and token formats count anywhere in the transcript.
+# v2 (Zack 10-18 16:30, FDV-67): plain TOKEN(S) is gone ("max tokens" in vllm headlines); only
+# api/access token and 令牌 count. "AI key" / "API key" / 密钥 are new (FDV-72「开AI key」).
 SECRET_WORD_RE = re.compile(
-    r"(?<![A-Za-z0-9])(AIKEYS|KEYS|SECRETS?|REVOKE[DS]?|TOKENS?|API[_-]?KEYS?|PRIVATE[_-]KEYS?|PASSWORDS?|CREDENTIALS?)"
-    r"(?![A-Za-z0-9])", re.I)
+    r"(?<![A-Za-z0-9])(AI[\s_-]?KEYS?|API[\s_-]?KEYS?|KEYS|SECRETS?|REVOKE[DS]?|(?:API|ACCESS)[\s_-]?TOKENS?"
+    r"|PRIVATE[_-]KEYS?|PASSWORDS?|CREDENTIALS?)(?![A-Za-z0-9])|令牌|密钥", re.I)
 # Token formats with a fixed prefix (SECRET_PATTERNS minus the generic NAME=value one, which
 # matches placeholders such as GOOGLE_CLIENT_SECRET=<name>); Bearer needs a digit for the same reason.
 SECRET_FORMAT_RES = (
@@ -531,7 +533,7 @@ def secret_like_reason(heads: list[tuple[str, str]], texts: list[str], transcrip
     for src, t in heads:
         m = SECRET_WORD_RE.search(t or "")
         if m:
-            return f"secret-like: {src} names {m.group(1).upper()!r}"
+            return f"secret-like: {src} names {m.group(0).upper()!r}"
     forms = sorted({f for v in literals for f in (v, json.dumps(v)[1:-1]) if f})
     for t in texts:
         hit = secret_hit(t or "", forms)

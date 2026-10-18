@@ -13,8 +13,8 @@ Rules (Zack 2026-10-16 19:07, FDV-68 EXCLUSION-OPTIONS.md A+E+H+K):
      prefix below (FDV-61 redesign work, not a git repo) also belong to deepvision-site. The full
      prefix is hard-coded; no substring matching.
   secret-like (dr eggbot 10-18 16:11) a session the rules above keep is still excluded whole when
-     its title, task headline or brief headline names a key word (KEYS, AIKEYS, SECRET, REVOKE,
-     TOKEN, API_KEY …), or the task, brief or any transcript line holds an env secret value or a
+     its title, task headline or brief headline names a key word (KEYS, AI KEY, API KEY, SECRET,
+     REVOKE, API/ACCESS TOKEN, 密钥 …), or the task, brief or any transcript line holds an env secret value or a
      token format; see collect_xinyue_sessions.secret_like_reason.
 
 Reuses helpers from collect_xinyue_sessions.py (same directory) without changing it.
