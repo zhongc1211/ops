@@ -23,6 +23,7 @@ Orca 项目和工作区清单见 [orca-projects.md](orca-projects.md)。
 | [`scripts/agent-probe`](scripts/agent-probe) | 列出本机 agent 和 notify-run 进程，给卡住检查用 |
 | [`scripts/heartbeat-watch.sh`](scripts/heartbeat-watch.sh) | 盯另一台机器上卡住检查的心跳（自动任务运行记录里的 `@@HB`），太久没有就报警、恢复报一次 |
 | [`wake/bin/orca-agent-launch`](wake/bin/orca-agent-launch) | 统一的起 agent 入口，强制经 notify-run |
+| [`sentinels/`](sentinels/) | ops · 23 生产版本哨兵（iMac 每 15 分钟，生产台账）和 ops · 24 未推送扫描（两台机器每小时） |
 | [`orca-remote/`](orca-remote/) | box 上 Orca 的看门狗 `watchdog.sh` 和 `ensure-watchdog.sh` |
 | [`reports/wake-fixes-2026-10-17.md`](reports/wake-fixes-2026-10-17.md) | 叫醒系统 10-17 修复记录 |
 
