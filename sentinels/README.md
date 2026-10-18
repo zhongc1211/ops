@@ -23,7 +23,7 @@
 | 文件 | 做什么 |
 |---|---|
 | `unpushed-scan.sh` | 预检入口。box 直接写 `/workspace/ops/reports/unpushed-scan-YYYYMMDD.log`；iMac 写本机镜像再 ssh 追加到 box，ssh 不通时留到下次补发 |
-| `unpushed_scan.py` | 扫本机 `orca worktree list` 的每个工作区：不在任何远程分支里的提交；放了 2 小时以上的未提交改动（未跟踪的 node_modules 软链接不算）。只读：`GIT_OPTIONAL_LOCKS=0`，不 fetch |
+| `unpushed_scan.py` | 扫本机 `orca worktree list` 的每个工作区：不在任何远程分支里、最早一个超过 2 小时的提交；放了 2 小时以上的未提交改动（未跟踪的 node_modules 软链接不算）。只读：`GIT_OPTIONAL_LOCKS=0`，不 fetch |
 
 叫醒对象按 git remote 认：deepvision-site → `deepvision-ops`，deepvision-ads → `deepvision-ads`，xinyue → `xinyue`，
 vllm-omni → `vllm-omni`，其他（ops 等）→ `coding-assistant`。同一个 bot 一次运行只收一条消息。

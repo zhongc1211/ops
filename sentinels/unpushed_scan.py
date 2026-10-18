@@ -2,11 +2,11 @@
 """unpushed_scan.py — ops · 24 未推送扫描（box 和 iMac 各跑一份，每小时，各扫本机的 Orca 工作区）。
 
 对本机 `orca worktree list` 里的每个工作区（只读，GIT_OPTIONAL_LOCKS=0，不 fetch、不提交、不推、不 stash、不 reset）：
-  unpushed — HEAD 上有不在任何远程分支里的提交（git rev-list HEAD --not --remotes）
+  unpushed — HEAD 上有不在任何远程分支里的提交（git rev-list HEAD --not --remotes），最早的一个超过 2 小时
   dirty    — 有未提交的改动（含未跟踪文件，不含未跟踪的 node_modules 软链接），其中最早的一处改动超过 2 小时
 发现了就用 notify-run 叫醒该项目的 bot（按 git remote 认项目），同一个 bot 一次运行只叫一次，消息里列出全部发现。
 限流（状态在 ~/.orca-state/unpushed-scan/state.json）：
-  - 新发现、或内容变了（HEAD / 改动列表不同）：马上叫项目 bot，计数从 1 开始；
+  - 新发现、或内容变了（最早没推送的提交 / HEAD 加改动列表不同）：马上叫项目 bot，计数从 1 开始；
   - 没变：距上次叫醒满 4 小时才再叫项目 bot；已经叫过 2 次还没变，第 3 次改叫 coding-assistant，之后每 24 小时最多再叫它一次；
   - 发现消失了就删掉它的记录。
 日志一行一条打印到 stdout，并追加到 --log（box 上就是 /workspace/ops/reports/unpushed-scan-YYYYMMDD.log；
@@ -99,14 +99,18 @@ def scan_one(path):
     head = head.strip()
     _, branch = git(path, "rev-parse", "--abbrev-ref", "HEAD")
     branch = branch.strip()
-    rc, out = git(path, "rev-list", "--count", "HEAD", "--not", "--remotes")
-    n = int(out.strip() or 0) if rc == 0 else 0
-    if n > 0:
-        _, up = git(path, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
-        up = up.strip() or "没有上游分支"
-        _, subj = git(path, "log", "-1", "--format=%h %s", "HEAD")
-        found.append(("unpushed", head, "分支 %s 有 %d 个提交不在任何远程分支里（上游：%s；HEAD %s）" % (
-            branch, n, up, subj.strip()[:80])))
+    rc, out = git(path, "rev-list", "--format=%H %ct", "--no-commit-header", "HEAD", "--not", "--remotes")
+    commits = [l.split() for l in out.splitlines() if l.strip()] if rc == 0 else []
+    if commits:
+        first_sha, first_ct = commits[-1][0], int(commits[-1][1])  # 最早一个没推送的提交
+        age = time.time() - first_ct
+        if age >= DIRTY_AGE:  # 2 小时内的新提交不报，正在干活的 agent 常常过一会儿才推
+            _, up = git(path, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+            up = up.strip() or "没有上游分支"
+            _, subj = git(path, "log", "-1", "--format=%h %s", "HEAD")
+            # 指纹用最早那个没推送的提交：接着往上加提交不算「变了」，推上去一部分才算
+            found.append(("unpushed", first_sha, "分支 %s 有 %d 个提交不在任何远程分支里，最早一个 %.1f 小时前（上游：%s；HEAD %s）" % (
+                branch, len(commits), age / 3600, up, subj.strip()[:80])))
     rc, out = git(path, "status", "--porcelain=v1", "-z", "--untracked-files=normal")
     if rc == 0 and out:
         entries, oldest, now = [], None, time.time()
