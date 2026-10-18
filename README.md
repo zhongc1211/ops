@@ -3,6 +3,13 @@
 Zack 的运维仓库：EverOS 记忆系统、派活 agent 的叫醒和守护、box 运维和 Orca 定时任务（automations）用的脚本。
 Orca 项目和工作区清单见 [orca-projects.md](orca-projects.md)。
 
+## 系统地图和只读检查
+
+| 路径 | 内容 |
+|---|---|
+| [`SYSTEM_MAP.md`](SYSTEM_MAP.md) | 系统层地图：每台机器、每个 bot、每条叫醒链路、守护和心跳、夜审、三台机器的全部 Orca 自动任务；格式同 FEATURE_MAP（功能 / 入口 / 怎么验证 / 验证命令） |
+| [`scripts/ops-verify`](scripts/ops-verify) | 按 SYSTEM_MAP 逐条跑只读检查，出 Markdown + JSON 报告；有 FAIL 退出 1，0 条 PASS 退出 3。不发叫醒、不改任何东西 |
+
 ## EverOS 记忆系统
 
 | 目录 | 内容 |

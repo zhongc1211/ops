@@ -1,0 +1,704 @@
+#!/usr/bin/env python3
+# ops-verify [--only ID[,ID|前缀...]] [--list] [--out DIR] [--map PATH]
+# 按 SYSTEM_MAP.md 逐条跑只读检查（PER-67）：机器在线、EverOS health、tailnet/headscale、bot 的 webhook 配置（只看变量名）、
+# 叫醒脚本版本、hook 条目、心跳（@@HB / heartbeat.json）、看门狗和 orca-bot 守护、夜审、各机 Orca 自动任务和地图一致。
+# 地图里每行第一列是检查 ID，这里按 ID 前缀找检查函数；地图里有、这里没有的 ID 判 FAIL（地图和脚本不同步）。
+# 只读：不发 webhook（连 test bot 也不发）、不跑 stuck-check、不写 Linear / EverOS、不改自动任务、不重启、不 git fetch。
+#   唯一会在别处留下痕迹的是 iMac 终端探针（OPS_VERIFY_IMAC_TERMINAL=1 才开）：在 iMac ops 主工作区开一个临时终端跑一段
+#   只读 Python（算 sha256、test -x、读 heartbeat.json），读完关掉。box 没有到 iMac 的 ssh key，只能这样读 iMac 上的文件。
+# 跨机：iMac 走 box 上的 `orca ... --environment iMac`，MBA 走 tailnet `ssh mba`。连不上记 FAIL 或 SKIP，写原因。
+# 报告：<out>/report.json、report.md（默认 ~/.orca-state/ops-verify/<时间>/）。每条 PASS/FAIL/SKIP 都带证据。
+# 退出码：0 全部通过（至少 1 条 PASS）；1 有 FAIL；2 用法错误；3 0 条 PASS（全 SKIP 也算失败）。
+# 环境变量见 SYSTEM_MAP.md「怎么跑」一节。不读出、不打印任何 key/token/webhook URL 的值。
+import base64, datetime, hashlib, json, os, re, shutil, subprocess, sys, time, zlib
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(HERE)
+HOME = os.path.expanduser("~")
+SGT = datetime.timezone(datetime.timedelta(hours=8))
+NOW = time.time()
+ENV = os.environ.get
+ORCA = ENV("OPS_VERIFY_ORCA") or shutil.which("orca") or "orca"
+MAC_ORCA = "/Applications/Orca.app/Contents/Resources/bin/orca"
+MBA_SSH = ENV("OPS_VERIFY_MBA_SSH") or "mba"
+IMAC_ENV = "iMac"
+IMAC_WORKTREE = "id:e9b33f9c-7218-4f6c-b03a-3b85fd8933ac::/Users/jiawenwang/orca/workspaces/ops"
+IMAC_TERMINAL = ENV("OPS_VERIFY_IMAC_TERMINAL") == "1"
+EVEROS_URL = ENV("OPS_VERIFY_EVEROS_HEALTH_URL") or "http://100.64.0.5/health"
+EVEROS_HOST = ENV("OPS_VERIFY_EVEROS_HOST") or "everos.deepvision.sg"
+HB_FILE = ENV("OPS_VERIFY_HB_FILE") or os.path.join(HOME, ".orca-state/heartbeat-watch/heartbeat.json")
+HB_MAX = float(ENV("OPS_VERIFY_HB_MAX_MIN") or 20)
+SCAN_SLACK = 15  # stuck-check 的 last_scan 允许比心跳多旧 15 分钟（和 heartbeat-watch 的 STUCK_INTERVAL_MIN 一致）
+WAKE_REF = ENV("OPS_VERIFY_WAKE_REF") or "origin/zhongc1211/ops-PER-66-叫醒漏叫修复第二批"
+SKIP = [s.strip() for s in (ENV("OPS_VERIFY_SKIP") or "").split(",") if s.strip()]
+WEBHOOK_DIR = os.path.join(HOME, ".config/grokbot/webhooks")
+ENABLED_BOTS = os.path.join(HOME, ".config/orca-wake/enabled-bots")
+# 叫醒脚本：已装路径（~/.local/bin/ 下）→ 仓库里的源文件
+WAKE_FILES = {"notify-run": "wake/bin/notify-run", "orca-agent-launch": "wake/bin/orca-agent-launch",
+              "orca-wake": "wake/bin/orca-wake", "orca-wake-hooks": "wake/bin/orca-wake-hooks",
+              "agent-probe": "scripts/agent-probe"}
+HOSTS = {"box": "box", "imac": "iMac", "mba": "MBA"}
+
+
+class Res(Exception):
+    def __init__(self, status, evidence):
+        self.status, self.evidence = status, evidence
+
+
+def PASS(ev): raise Res("PASS", ev)
+def FAIL(ev): raise Res("FAIL", ev)
+def SKIPPED(ev): raise Res("SKIP", ev)
+
+
+def run(cmd, timeout=90, input=None):
+    """(退出码, stdout, stderr)；命令起不来或超时退出码记 None。"""
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, input=input)
+        return p.returncode, p.stdout, p.stderr
+    except subprocess.TimeoutExpired:
+        return None, "", "超时 %ds" % timeout
+    except OSError as e:
+        return None, "", "%s: %s" % (type(e).__name__, e)
+
+
+def ssh(cmd, timeout=60, input=None):
+    return run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", MBA_SSH, cmd], timeout, input)
+
+
+def short(s, n=200):
+    s = re.sub(r"\s+", " ", s or "").strip()
+    return s if len(s) <= n else s[:n] + "…"
+
+
+def fmt(t):
+    return datetime.datetime.fromtimestamp(t, SGT).strftime("%m-%d %H:%M") if t else "无"
+
+
+def parse_json(rc, out, err, what):
+    if rc is None:
+        FAIL("%s：%s" % (what, err))
+    try:
+        d = json.loads(out)
+    except ValueError:
+        FAIL("%s：退出 %s，输出不是 JSON：%s" % (what, rc, short(out or err)))
+    if isinstance(d, dict) and d.get("ok") is False:
+        FAIL("%s：%s" % (what, short(json.dumps(d.get("error"), ensure_ascii=False))))
+    return d
+
+
+# ---------- 地图 ----------
+
+def cells(line):
+    parts = re.split(r"(?<!\\)\|", line.strip())[1:-1]
+    return [p.strip().replace("\\|", "|") for p in parts]
+
+
+def load_map(path):
+    rows = []
+    for ln in open(path, encoding="utf-8"):
+        if not ln.startswith("| "):
+            continue
+        c = cells(ln)
+        if c and re.fullmatch(r"[A-Z]-[A-Za-z0-9-]+", c[0]):
+            rows.append(c)
+    return rows
+
+
+def unq(s):
+    return s.strip().strip("`")
+
+
+def automations_in_map():
+    """{host: {完整 id: 行}}，host 是 box/imac/mba。"""
+    out = {h: {} for h in HOSTS}
+    for c in MAP:
+        m = re.fullmatch(r"A-(box|imac|mba)-([0-9a-f]{8})", c[0])
+        if m and len(c) >= 9:
+            out[m.group(1)][unq(c[3])] = {"id8": m.group(2), "name": c[2], "id": unq(c[3]), "enabled": c[4] == "是",
+                                          "entry": unq(c[6]) if c[6].startswith("`") else None, "row": c}
+    return out
+
+
+def map_auto_id(id8):
+    for h, autos in AUTOS.items():
+        for full, a in autos.items():
+            if a["id8"] == id8:
+                return h, full
+    return None, None
+
+
+# ---------- 带缓存的只读查询 ----------
+
+CACHE = {}
+
+
+def cached(key, fn):
+    if key not in CACHE:
+        try:
+            CACHE[key] = ("ok", fn())
+        except Res as r:
+            CACHE[key] = ("res", r)
+    kind, v = CACHE[key]
+    if kind == "res":
+        raise Res(v.status, v.evidence)
+    return v
+
+
+def orca_cmd(host, args):
+    if host == "box":
+        return run([ORCA] + args + ["--json"])
+    if host == "imac":
+        return run([ORCA] + args + ["--environment", IMAC_ENV, "--json"])
+    return ssh(" ".join([MAC_ORCA] + args + ["--json"]))
+
+
+def live_automations(host):
+    def f():
+        d = parse_json(*orca_cmd(host, ["automations", "list"]), what="%s automations list" % HOSTS[host])
+        return {a["id"]: a for a in (d.get("result") or {}).get("automations") or []}
+    return cached(("list", host), f)
+
+
+def runs(host, full_id):
+    def f():
+        d = parse_json(*orca_cmd(host, ["automations", "runs", "--id", full_id]),
+                       what="%s automations runs %s" % (HOSTS[host], full_id[:8]))
+        return (d.get("result") or {}).get("runs") or []
+    return cached(("runs", host, full_id), f)
+
+
+def precheck(r):
+    p = r.get("precheckResult") or {}
+    if isinstance(p, str):  # 个别版本把它存成字符串
+        try:
+            p = json.loads(p)
+        except ValueError:
+            p = {}
+    return p
+
+
+def latest_hb(rs):
+    best = None
+    for r in rs:
+        for m in re.finditer(r"^@@HB (\{.*\})\s*$", precheck(r).get("stdout") or "", re.M):
+            try:
+                hb = json.loads(m.group(1))
+            except ValueError:
+                continue
+            if isinstance(hb.get("ts"), (int, float)) and (best is None or hb["ts"] > best["ts"]):
+                best = hb
+    return best
+
+
+# 只读探针：在目标机器上算叫醒脚本 sha256、看入口文件是否存在可执行、读心跳文件。兼容 macOS 自带 python3.9。
+PROBE = r'''
+import hashlib, json, os, shutil, base64
+A = json.loads(base64.b64decode(ARGS).decode())
+H = os.path.expanduser("~")
+r = {"bins": {}, "entries": {}, "hb": None}
+for n in A["bins"]:
+    p = os.path.join(H, ".local/bin", n)
+    try:
+        r["bins"][n] = hashlib.sha256(open(p, "rb").read()).hexdigest()
+    except OSError:
+        r["bins"][n] = None
+for e in A["entries"]:
+    p = os.path.expandvars(e) if "/" in e else (shutil.which(e) or "")
+    r["entries"][e] = bool(p) and os.path.isfile(p) and os.access(p, os.X_OK)
+try:
+    r["hb"] = json.load(open(os.path.join(H, ".orca-state/heartbeat-watch/heartbeat.json")))
+except Exception:
+    pass
+print("@@" + "OPSV<" + base64.b64encode(json.dumps(r).encode()).decode() + ">@@")
+'''
+
+
+def probe_code(host):
+    args = {"bins": sorted(WAKE_FILES), "entries": sorted({a["entry"] for a in AUTOS[host].values() if a["entry"]})}
+    return "ARGS = %r\n" % base64.b64encode(json.dumps(args).encode()).decode() + PROBE
+
+
+def parse_probe(text):
+    m = re.search(r"@@OPSV<([A-Za-z0-9+/=]+)>@@", re.sub(r"\s+", "", text or ""))
+    return json.loads(base64.b64decode(m.group(1)).decode()) if m else None
+
+
+def probe(host):
+    def f():
+        code = probe_code(host)
+        if host == "box":
+            rc, out, err = run([sys.executable or "python3", "-I", "-"], 60, code)
+        elif host == "mba":
+            rc, out, err = ssh("python3 -I -", 60, code)
+        else:
+            return imac_probe(code)
+        d = parse_probe(out)
+        if d is None:
+            FAIL("%s 探针没有结果：退出 %s %s" % (HOSTS[host], rc, short(err)))
+        return d
+    return cached(("probe", host), f)
+
+
+def imac_probe(code):
+    if not IMAC_TERMINAL:
+        SKIPPED("box 没有到 iMac 的 ssh；iMac 上的文件要开终端探针（OPS_VERIFY_IMAC_TERMINAL=1），这次没开")
+    blob = base64.b64encode(zlib.compress(code.encode())).decode()
+    cmd = "python3 -I -c \"import base64,zlib;exec(zlib.decompress(base64.b64decode('%s')).decode())\"" % blob
+    rc, out, err = run([ORCA, "terminal", "create", "--environment", IMAC_ENV, "--worktree", IMAC_WORKTREE,
+                        "--title", "ops-verify 只读探针", "--command", cmd, "--json"], 60)
+    d = parse_json(rc, out, err, "iMac 开探针终端")
+    res = d.get("result") or {}
+    handle = (res.get("terminal") or {}).get("handle") or res.get("handle")
+    if not handle:
+        FAIL("iMac 开探针终端没拿到 handle：%s" % short(out))
+    got, text = None, ""
+    try:
+        for _ in range(20):
+            time.sleep(3)
+            rc, out, err = run([ORCA, "terminal", "read", "--environment", IMAC_ENV, "--terminal", handle,
+                                "--cursor", "0", "--limit", "400", "--json"], 30)
+            try:
+                r = json.loads(out).get("result") or {}
+                t = r.get("terminal") or r
+                text = "\n".join(t.get("tail") or t.get("lines") or []) if isinstance(t.get("tail") or t.get("lines"), list) \
+                    else json.dumps(r, ensure_ascii=False)
+            except ValueError:
+                text = out
+            got = parse_probe(text)
+            if got:
+                break
+    finally:
+        run([ORCA, "terminal", "close", "--environment", IMAC_ENV, "--terminal", handle, "--json"], 30)
+    if got is None:
+        FAIL("iMac 探针 60 秒没有结果（终端已关）：%s" % short(text[-300:]))
+    return got
+
+
+def tailscale():
+    def f():
+        d = parse_json(*run(["tailscale", "status", "--json"], 30), what="tailscale status")
+        return d
+    return cached(("tailscale",), f)
+
+
+def ref_sha(path):
+    def f():
+        ref = WAKE_REF
+        if run(["git", "-C", REPO, "rev-parse", "--verify", "-q", ref + "^{commit}"], 20)[0] != 0:
+            ref = "origin/main"
+        return ref
+    ref = cached(("wake_ref",), f)
+    p = subprocess.run(["git", "-C", REPO, "show", "%s:%s" % (ref, path)], capture_output=True)
+    return ref, (hashlib.sha256(p.stdout).hexdigest() if p.returncode == 0 else None)
+
+
+# ---------- 检查 ----------
+
+def c_orca(host):
+    d = parse_json(*orca_cmd(host, ["status"]), what="%s orca status" % HOSTS[host])
+    rt = (d.get("result") or {}).get("runtime") or {}
+    ev = "runtime.state=%s reachable=%s appVersion=%s" % (rt.get("state"), rt.get("reachable"), rt.get("appVersion"))
+    (PASS if rt.get("state") == "ready" and rt.get("reachable") else FAIL)(ev)
+
+
+def c_node(name):
+    d = tailscale()
+    peers = list((d.get("Peer") or {}).values())
+    for p in peers:
+        if p.get("HostName") == name or (p.get("DNSName") or "").split(".")[0] == name:
+            ip = (p.get("TailscaleIPs") or ["?"])[0]
+            ev = "节点 %s（%s）Online=%s LastSeen=%s" % (name, ip, p.get("Online"), p.get("LastSeen"))
+            (PASS if p.get("Online") else FAIL)(ev)
+    FAIL("tailscale status 里没有节点 %s（有：%s）" % (name, ", ".join(sorted(p.get("HostName", "?") for p in peers))))
+
+
+def c_headscale():
+    d = tailscale()
+    tn = (d.get("CurrentTailnet") or {}).get("Name") or ""
+    online = (d.get("Self") or {}).get("Online")
+    ev = "BackendState=%s 控制面=%s 本机 Online=%s" % (d.get("BackendState"), tn, online)
+    (PASS if d.get("BackendState") == "Running" and online and "headscale" in tn else FAIL)(ev)
+
+
+def c_everos():
+    rc, out, err = run(["curl", "-sS", "-o", "/dev/null", "-w", "%{http_code} %{time_total}", "--connect-timeout", "5",
+                        "--max-time", "20", "-H", "Host: " + EVEROS_HOST, EVEROS_URL], 30)
+    code = (out or "").split(" ")[0]
+    ev = "GET %s（Host: %s）→ %s %s" % (EVEROS_URL, EVEROS_HOST, out.strip() or "无响应", short(err, 120))
+    (PASS if code == "200" else FAIL)(ev)
+
+
+def c_bot(bot, need_enabled):
+    path = os.path.join(WEBHOOK_DIR, bot + ".env")
+    try:
+        names = set()
+        for ln in open(path, encoding="utf-8"):
+            m = re.match(r"\s*(?:export\s+)?(URL|KEY)\s*=\s*\S", ln)
+            if m:
+                names.add(m.group(1))
+    except OSError as e:
+        FAIL("%s 读不了：%s" % (path, type(e).__name__))
+    ev = ["%s 有变量 %s" % (path, "、".join(sorted(names)) or "（无）")]
+    ok = names == {"URL", "KEY"}
+    try:
+        enabled = [l.strip() for l in open(ENABLED_BOTS) if l.strip() and not l.startswith("#")]
+    except OSError:
+        enabled = None
+    if enabled is None:
+        ev.append("%s 读不了" % ENABLED_BOTS)
+        ok = ok and not need_enabled
+    else:
+        on = bot in enabled or "*" in enabled
+        ev.append("enabled-bots %s" % ("有" if on else "没有"))
+        ok = ok and (on or not need_enabled)
+    (PASS if ok else FAIL)("；".join(ev))
+
+
+def c_bins(host):
+    d = probe(host)
+    bad, ev = [], []
+    ref = None
+    for n, src in sorted(WAKE_FILES.items()):
+        ref, want = ref_sha(src)
+        got = (d.get("bins") or {}).get(n)
+        if got is None:
+            bad.append(n)
+            ev.append("%s 缺失" % n)
+        elif got != want:
+            bad.append(n)
+            ev.append("%s %s≠%s" % (n, got[:12], (want or "ref 里没有")[:12]))
+        else:
+            ev.append("%s %s" % (n, got[:12]))
+    ev.insert(0, "比对 %s：" % ref)
+    (FAIL if bad else PASS)(" ".join(ev))
+
+
+def c_hooks(host):
+    if host == "box":
+        exe = shutil.which("orca-wake-hooks") or os.path.join(HOME, ".local/bin/orca-wake-hooks")
+        rc, out, err = run([exe, "check"], 30)
+    elif host == "mba":
+        rc, out, err = ssh("~/.local/bin/orca-wake-hooks check", 30)
+    else:
+        SKIPPED("iMac 没有只读通道读 settings.json")
+    (PASS if rc == 0 else FAIL)("orca-wake-hooks check 退出 %s：%s" % (rc, short(out + err)))
+
+
+def c_run_hb(host, id8, scan_check):
+    h, full = map_auto_id(id8)
+    if not full:
+        FAIL("地图里没有自动任务 %s" % id8)
+    rs = runs(host, full)
+    hb = latest_hb(rs)
+    if hb is None:
+        FAIL("%s 最近 %d 次运行记录里没有 @@HB" % (id8, len(rs)))
+    age = (NOW - hb["ts"]) / 60.0
+    ev = "%s 最新 @@HB %s（%.1f 分钟前，阈值 %g）mode=%s rc=%s" % (id8, fmt(hb["ts"]), age, HB_MAX, hb.get("mode"), hb.get("rc"))
+    ok = age <= HB_MAX
+    if scan_check and hb.get("last_scan"):
+        sa = (NOW - hb["last_scan"]) / 60.0
+        ev += " last_scan %.1f 分钟前（阈值 %g）" % (sa, HB_MAX + SCAN_SLACK)
+        ok = ok and sa <= HB_MAX + SCAN_SLACK
+    (PASS if ok else FAIL)(ev)
+
+
+def check_hb_dict(hb, where):
+    if not isinstance(hb, dict) or not isinstance(hb.get("ts"), (int, float)):
+        FAIL("%s 没有可用的心跳（%s）" % (where, short(json.dumps(hb), 120)))
+    age = (NOW - hb["ts"]) / 60.0
+    ev = "%s ts=%s（%.1f 分钟前，阈值 %g）rc=%s" % (where, fmt(hb["ts"]), age, HB_MAX, hb.get("rc"))
+    (PASS if age <= HB_MAX and hb.get("rc") == 0 else FAIL)(ev)
+
+
+def c_hbfile(host):
+    if host == "box":
+        try:
+            hb = json.load(open(HB_FILE, encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            FAIL("%s 读不了：%s" % (HB_FILE, type(e).__name__))
+        check_hb_dict(hb, HB_FILE)
+    check_hb_dict(probe(host).get("hb"), "%s ~/.orca-state/heartbeat-watch/heartbeat.json" % HOSTS[host])
+
+
+def c_watchdog():
+    rc, out, _ = run(["pgrep", "-f", "/workspace/ops/orca-remote/watchdog.sh"], 10)
+    pids = out.split()
+    log = "/workspace/ops/orca-remote/watchdog.log"
+    restarts, since = 0, NOW - 3600
+    try:
+        with open(log, encoding="utf-8", errors="replace") as f:
+            tail = f.readlines()[-3000:]
+        for ln in tail:
+            m = re.match(r"\[(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)", ln)
+            if m and "restart" in ln.lower():
+                t = datetime.datetime.strptime(m.group(1), "%Y-%m-%d %H:%M:%S").replace(tzinfo=SGT).timestamp()
+                restarts += t >= since
+        logev = "watchdog.log 最近 60 分钟含 restart 的行 %d 条" % restarts
+    except OSError as e:
+        logev = "watchdog.log 读不了（%s）" % type(e).__name__
+    (PASS if pids else FAIL)("watchdog.sh 进程 %s；%s" % (",".join(pids) or "不在", logev))
+
+
+def c_recent_run(host, id8, max_min):
+    h, full = map_auto_id(id8)
+    rs = runs(host, full)
+    if not rs:
+        FAIL("%s 没有运行记录" % id8)
+    r = max(rs, key=lambda r: r.get("createdAt") or 0)
+    pc = precheck(r)
+    age = (NOW - (r.get("createdAt") or 0) / 1000.0) / 60.0
+    ev = "%s 最新运行 %s（%.1f 分钟前，阈值 %g）status=%s precheck exit=%s timedOut=%s" % (
+        id8, fmt((r.get("createdAt") or 0) / 1000.0), age, max_min, r.get("status"), pc.get("exitCode"), pc.get("timedOut"))
+    (PASS if age <= max_min and not pc.get("timedOut") else FAIL)(ev)
+
+
+def c_nightly(host, id8, how):
+    h, full = map_auto_id(id8)
+    if not full:
+        FAIL("地图里没有自动任务 %s" % id8)
+    rs = runs(host, full)
+    if not rs:
+        FAIL("%s 没有运行记录" % id8)
+    ok_status = {"completed"} | ({"skipped_precheck"} if "skipped_precheck" in how else set())
+    r = max(rs, key=lambda r: r.get("createdAt") or 0)
+    age = (NOW - (r.get("createdAt") or 0) / 1000.0) / 3600.0
+    ev = "%s 最新运行 %s（%.1f 小时前，阈值 26）status=%s %s" % (
+        id8, fmt((r.get("createdAt") or 0) / 1000.0), age, r.get("status"), short(r.get("error") or "", 80))
+    (PASS if age <= 26 and r.get("status") in ok_status else FAIL)(ev)
+
+
+def c_list(host):
+    live = live_automations(host)
+    want = AUTOS[host]
+    extra = [live[i]["name"] for i in live if i not in want]
+    missing = [want[i]["name"] for i in want if i not in live]
+    ev = "实时 %d 条，地图 %d 条" % (len(live), len(want))
+    if extra:
+        ev += "；地图外：%s" % "、".join(extra)
+    if missing:
+        ev += "；实时没有：%s" % "、".join(missing)
+    (FAIL if extra or missing or not want else PASS)(ev)
+
+
+def c_auto(host, id8):
+    a = next((x for x in AUTOS[host].values() if x["id8"] == id8), None)
+    live = live_automations(host).get(a["id"])
+    if live is None:
+        FAIL("实时列表里没有 %s（%s）" % (a["id"], a["name"]))
+    bad, ev = [], []
+    if live.get("name") != a["name"]:
+        bad.append("名字")
+        ev.append("名字：实时「%s」≠ 地图「%s」" % (live.get("name"), a["name"]))
+    if bool(live.get("enabled")) != a["enabled"]:
+        bad.append("enabled")
+    ev.append("enabled=%s（地图 %s）" % (live.get("enabled"), "是" if a["enabled"] else "否"))
+    lpc = (live.get("precheck") or {}).get("command") or ""
+    if a["entry"]:
+        if a["entry"] not in lpc:
+            bad.append("入口")
+            ev.append("实时 precheck 不含地图入口 %s" % a["entry"])
+        try:
+            ok = probe(host)["entries"].get(a["entry"])
+            ev.append("入口 %s %s" % (a["entry"], "存在可执行" if ok else "不存在或不可执行"))
+            if not ok:
+                bad.append("入口文件")
+        except Res as r:
+            if r.status == "FAIL":
+                bad.append("入口文件")
+            ev.append("入口文件没查（%s）" % r.evidence)
+    elif lpc:
+        bad.append("入口")
+        ev.append("地图写无 precheck，实时有")
+    (FAIL if bad else PASS)("；".join(ev))
+
+
+def c_composite(ids, done):
+    sts = [(i, done.get(i)) for i in ids]
+    ev = "；".join("%s=%s" % (i, r["status"] if r else "没跑") for i, r in sts)
+    st = [r["status"] for _, r in sts if r]
+    if "FAIL" in st or len(st) < len(ids):
+        FAIL(ev)
+    (PASS if "PASS" in st else SKIPPED)(ev)
+
+
+def refs_of(c):
+    """验证命令里 --only 的 ID；不含本行 ID 的是组合检查（结果取引用的那几条）。"""
+    m = re.search(r"--only ([A-Za-z0-9,_-]+)", c[-1])
+    return m.group(1).split(",") if m else []
+
+
+def is_composite(c):
+    r = refs_of(c)
+    return bool(r) and c[0] not in r
+
+
+def dispatch(c, done):
+    cid = c[0]
+    how = c[3] if len(c) > 3 else ""
+    if is_composite(c):
+        return c_composite(refs_of(c), done)
+    m = re.fullmatch(r"M-(box|imac|mba)-orca", cid)
+    if m:
+        return c_orca(m.group(1))
+    if cid == "T-headscale":
+        return c_headscale()
+    m = re.fullmatch(r"T-([a-z0-9]+)-node", cid)
+    if m:
+        return c_node(m.group(1))
+    if cid == "E-everos-health":
+        return c_everos()
+    m = re.fullmatch(r"B-([A-Za-z0-9._-]+)", cid)
+    if m:
+        return c_bot(m.group(1), need_enabled=m.group(1) != "test")
+    m = re.fullmatch(r"W-bin-(box|imac|mba)", cid)
+    if m:
+        return c_bins(m.group(1))
+    m = re.fullmatch(r"W-hooks-(box|imac|mba)", cid)
+    if m:
+        return c_hooks(m.group(1))
+    if cid == "H-imac-01-hb":
+        return c_run_hb("imac", "439cd438", True)
+    if cid == "H-box-29-hb":
+        return c_run_hb("box", "94e4b0bc", False)
+    if cid == "H-imac-29-hb":
+        return c_run_hb("imac", "5c2d0575", False)
+    m = re.fullmatch(r"H-(box|imac|mba)-hbfile", cid)
+    if m:
+        return c_hbfile(m.group(1))
+    if cid == "G-box-watchdog":
+        return c_watchdog()
+    if cid == "G-imac-orca-bot-guard":
+        return c_recent_run("imac", "30e9bcaa", 15)
+    m = re.fullmatch(r"N-(box|imac|mba)-([0-9a-f]{8})", cid)
+    if m:
+        return c_nightly(m.group(1), m.group(2), how)
+    m = re.fullmatch(r"A-(box|imac|mba)-list", cid)
+    if m:
+        return c_list(m.group(1))
+    m = re.fullmatch(r"A-(box|imac|mba)-([0-9a-f]{8})", cid)
+    if m:
+        return c_auto(m.group(1), m.group(2))
+    FAIL("地图里有这个 ID，ops-verify 没有对应的检查（地图和脚本不同步）")
+
+
+# ---------- 主流程 ----------
+
+def usage(msg=None):
+    if msg:
+        print(msg, file=sys.stderr)
+    print("用法：ops-verify [--only ID[,ID|前缀...]] [--list] [--out DIR] [--map PATH]", file=sys.stderr)
+    sys.exit(2)
+
+
+def matches(cid, pats):
+    return any(cid == p or (p.endswith("-") and cid.startswith(p)) for p in pats)
+
+
+def git(*a):
+    rc, out, _ = run(["git", "-C", REPO] + list(a), 20)
+    return out.strip() if rc == 0 else None
+
+
+def sha256_file(p):
+    return hashlib.sha256(open(p, "rb").read()).hexdigest()
+
+
+def feature(c):
+    if re.fullmatch(r"A-(box|imac|mba)-([0-9a-f]{8}|list)", c[0]):
+        return "%s · %s" % (c[1], c[2])
+    return c[1]
+
+
+def main():
+    global MAP, AUTOS
+    args = sys.argv[1:]
+    only, out_dir, map_path, list_only = None, None, os.path.join(REPO, "SYSTEM_MAP.md"), False
+    while args:
+        a = args.pop(0)
+        if a == "--list":
+            list_only = True
+        elif a in ("--only", "--out", "--map"):
+            if not args:
+                usage()
+            v = args.pop(0)
+            if a == "--only":
+                only = [s.strip() for s in v.split(",") if s.strip()]
+            elif a == "--out":
+                out_dir = v
+            else:
+                map_path = v
+        elif a in ("-h", "--help"):
+            usage()
+        else:
+            usage("不认识的参数：%s" % a)
+    try:
+        MAP = load_map(map_path)
+    except OSError as e:
+        usage("读不了地图 %s：%s" % (map_path, e))
+    AUTOS = automations_in_map()
+    if list_only:
+        for c in MAP:
+            print("%-26s %s" % (c[0], feature(c)))
+        return 0
+    todo = [c for c in MAP if only is None or matches(c[0], only)]
+    if only:
+        # 组合检查引用的 ID 也要跑
+        for c in list(todo):
+            for r in (refs_of(c) if is_composite(c) else []):
+                if r != c[0] and not any(x[0] == r for x in todo):
+                    todo.insert(0, next((x for x in MAP if x[0] == r), [r, r, "", "", ""]))
+    if not todo:
+        usage("--only 没有匹配到任何检查 ID（--list 看全部）")
+    # 组合检查放最后
+    todo.sort(key=is_composite)
+
+    started = datetime.datetime.now(SGT)
+    out_dir = out_dir or os.path.join(HOME, ".orca-state/ops-verify", started.strftime("%Y%m%d-%H%M%S"))
+    done, results = {}, []
+    for c in todo:
+        t0 = time.time()
+        if SKIP and ("all" in SKIP or matches(c[0], SKIP)):
+            r = Res("SKIP", "OPS_VERIFY_SKIP 配置跳过")
+        else:
+            try:
+                dispatch(c, done)
+                r = Res("FAIL", "检查函数没有给出结果")
+            except Res as e:
+                r = e
+            except Exception as e:  # 脚本自己的错误算 FAIL，不算通过
+                r = Res("FAIL", "ops-verify 出错：%s: %s" % (type(e).__name__, short(str(e), 200)))
+        item = {"id": c[0], "feature": feature(c), "status": r.status, "evidence": r.evidence,
+                "seconds": round(time.time() - t0, 1)}
+        done[c[0]] = item
+        results.append(item)
+        print("%-4s %-24s %s" % (r.status, c[0], short(r.evidence, 160)), flush=True)
+
+    summary = {s: sum(1 for x in results if x["status"] == s) for s in ("PASS", "FAIL", "SKIP")}
+    code = 1 if summary["FAIL"] else (3 if summary["PASS"] == 0 else 0)
+    head = git("rev-parse", "HEAD")
+    report = {"tool": "ops-verify", "map": os.path.relpath(map_path, REPO), "commit": head,
+              "dirty": bool(git("status", "--porcelain", "--", "SYSTEM_MAP.md", "scripts/ops-verify")),
+              "script_sha256": sha256_file(os.path.abspath(__file__)), "map_sha256": sha256_file(map_path),
+              "started": started.isoformat(timespec="seconds"), "finished": datetime.datetime.now(SGT).isoformat(timespec="seconds"),
+              "host": os.uname().nodename, "only": only, "skip": SKIP or None, "imac_terminal": IMAC_TERMINAL,
+              "summary": summary, "exit": code, "checks": results}
+    os.makedirs(out_dir, exist_ok=True)
+    with open(os.path.join(out_dir, "report.json"), "w", encoding="utf-8") as f:
+        json.dump(report, f, ensure_ascii=False, indent=1)
+    md = ["# ops-verify 报告", "",
+          "- 地图：`%s`（sha256 `%s`）" % (report["map"], report["map_sha256"][:16]),
+          "- commit：`%s`%s；脚本 sha256 `%s`" % (head, "（地图或脚本有未提交改动）" if report["dirty"] else "", report["script_sha256"][:16]),
+          "- 开始 %s，结束 %s，主机 %s" % (report["started"], report["finished"], report["host"]),
+          "- 结果：PASS %(PASS)d / FAIL %(FAIL)d / SKIP %(SKIP)d" % summary + "，退出码 %d" % code,
+          "", "| ID | 功能 | 结果 | 证据 |", "|---|---|---|---|"]
+    for x in results:
+        md.append("| %s | %s | %s | %s |" % (x["id"], x["feature"].replace("|", "\\|"), x["status"],
+                                           x["evidence"].replace("|", "\\|").replace("\n", " ")))
+    with open(os.path.join(out_dir, "report.md"), "w", encoding="utf-8") as f:
+        f.write("\n".join(md) + "\n")
+    print("PASS %(PASS)d / FAIL %(FAIL)d / SKIP %(SKIP)d" % summary + "，退出码 %d；报告 %s/report.{md,json}" % (code, out_dir))
+    return code
+
+
+if __name__ == "__main__":
+    sys.exit(main())
