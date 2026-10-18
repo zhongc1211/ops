@@ -6,7 +6,10 @@
   dirty    — 有未提交的改动（含未跟踪文件，不含未跟踪的 node_modules 软链接），其中最早的一处改动超过 2 小时
 发现了就用 notify-run 叫醒该项目的 bot（按 git remote 认项目），同一个 bot 一次运行只叫一次，消息里列出全部发现。
 限流（状态在 ~/.orca-state/unpushed-scan/state.json）：
-  - 新发现、或内容变了（最早没推送的提交 / HEAD 加改动列表不同）：马上叫项目 bot，计数从 1 开始；
+  - 同一个工作区 4 小时内只叫一次（项目 bot 和 coding-assistant 都算），不管是哪种发现、内容变没变；
+  - 新发现：这个工作区 4 小时内没叫过就马上叫项目 bot，计数从 1 开始；
+  - 内容变了（最早没推送的提交 / HEAD 加改动列表不同）：叫醒次数重新数（最多记 1 次），但不重置计时
+    （10-19 ops 主目录改动数 26→28，00:29、02:29 各叫一次）；
   - 没变：距上次叫醒满 4 小时才再叫项目 bot；已经叫过 2 次还没变，第 3 次改叫 coding-assistant，之后每 24 小时最多再叫它一次；
   - 发现消失了就删掉它的记录。
 日志一行一条打印到 stdout，并追加到 --log（box 上就是 /workspace/ops/reports/unpushed-scan-YYYYMMDD.log；
@@ -173,6 +176,13 @@ def main():
         state = {}
     now = int(time.time())
     seen, per_bot, n_found, skipped = set(), {}, 0, 0
+    # 每个工作区上次叫醒（含改叫 coding-assistant）的时间，取这次运行之前的值：同一次运行里两种发现一起叫
+    # 另记在 state["_paths"]：发现消失后又冒出来，4 小时内也不再叫
+    paths = {p: t for p, t in (state.pop("_paths", None) or {}).items() if now - t < REWAKE}
+    path_last = dict(paths)
+    for k, v in state.items():
+        pth = k.rsplit("::", 1)[0]
+        path_last[pth] = max(path_last.get(pth, 0), v.get("last", 0), v.get("esc", 0))
     for w in wts:
         path = w["path"]
         if not os.path.isdir(path):
@@ -191,12 +201,15 @@ def main():
             key = path + "::" + kind
             seen.add(key)
             st = state.get(key)
-            if not st or st.get("fp") != fp:
+            if not st:
                 st = {"fp": fp, "wakes": 0, "last": 0, "esc": 0, "first": now}
+            elif st.get("fp") != fp:
+                st = dict(st, fp=fp, wakes=min(st.get("wakes", 0), 1))  # 内容变了：重新数，计时不变
             target = None
-            if st["wakes"] == 0 or (st["wakes"] < 2 and now - st["last"] >= REWAKE):
+            quiet = now - path_last.get(path, 0) >= REWAKE  # 这个工作区 4 小时内没叫过
+            if quiet and st["wakes"] < 2:
                 target = bot
-            elif st["wakes"] >= 2 and now - st["last"] >= REWAKE and now - st["esc"] >= ESCALATE_EVERY:
+            elif quiet and st["wakes"] >= 2 and now - st["esc"] >= ESCALATE_EVERY:
                 target = "coding-assistant"
             line = "%s %s [%s → %s] %s" % (kind, path, w.get("displayName") or "", bot, desc)
             if target:
@@ -207,9 +220,11 @@ def main():
                     st["last"] = now
                 else:
                     st["esc"] = now
+                paths[path] = now
                 log("发现 %s；本次叫 %s" % (line, target))
             else:
-                log("发现 %s；已叫 %d 次，还没到再叫的时间，这次不叫" % (line, st["wakes"]))
+                log("发现 %s；已叫 %d 次，这个工作区上次叫醒在 %.1f 小时前，还没到再叫的时间，这次不叫" % (
+                    line, st["wakes"], (now - path_last.get(path, 0)) / 3600))
             state[key] = st
     for key in list(state):
         if key not in seen and (not args.only or any(key.startswith(p) for p in args.only)):
@@ -224,6 +239,7 @@ def main():
             log("（dry-run）会叫 %s：%d 条" % (bot, len(lines)))
         else:
             wake(bot, title, body, log)
+    state["_paths"] = paths
     if not args.dry_run:
         os.makedirs(os.path.dirname(args.state), exist_ok=True)
         json.dump(state, open(args.state + ".tmp", "w"), ensure_ascii=False, indent=1)
