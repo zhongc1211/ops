@@ -7,6 +7,8 @@
 #     分钟没变（扫描卡住），报警给 coding-assistant（kind heartbeat_stale）。同一次中断只报一次。
 #   - 恢复后报一次「已恢复」（kind heartbeat_recovered）。
 #   - 运行记录查不到（连不上那台 Orca）连续 HB_UNREACH_MIN（默认 45）分钟，也按中断报一次（隧道常断几分钟，所以阈值放宽）。
+#   - 目标自动任务建好不到 N 分钟、还没见过它的心跳时不判断（10-19 02:50 上线时两边同时建，iMac 先跑、误报过一次）；
+#     建好时间取 `orca automations list` 的 createdAt。过了 N 分钟还没有心跳（一次都没跑、或跑了没打 @@HB）照报。
 # 部署：box 上的自动任务盯 iMac 的「ops · 01 卡住工作检查」；iMac 上的自动任务盯 box 上这个脚本自己（它每次也打 @@HB）。
 #   environment 写空串 = 本机 Orca。
 # 状态：HB_STATE_DIR（默认 ~/.orca-state/heartbeat-watch）/state.json、watch.log、heartbeat.json。
@@ -123,6 +125,20 @@ def runs_of(t):
     return None, err
 
 
+def created_at(t):
+    """目标自动任务的建好时间（秒）；查不到返回 None。"""
+    cmd = [ORCA, "automations", "list"] + (["--environment", t["env"]] if t["env"] else []) + ["--json"]
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
+        d = json.loads(p.stdout)
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return None
+    for a in ((d.get("result") or {}).get("automations") or []) if d.get("ok") else []:
+        if a.get("id") == t["id"] and a.get("createdAt"):
+            return a["createdAt"] / 1000.0
+    return None
+
+
 def read_env(path):
     cfg = {}
     try:
@@ -186,10 +202,16 @@ def main():
         else:
             st.pop("fail_since", None)
             hb = res["hb"]
-            if res["runs"] == 0 and not st.get("last_hb"):
-                # 刚建的自动任务还没跑过（10-19 上线时两边同时建，iMac 先跑、误报过一次）；见过心跳之后再没有就照报
-                log("%s：还没有运行记录（自动任务刚建？），这次不判断" % t["name"])
-                continue
+            if not st.get("last_hb") and (hb is None or (NOW - hb["ts"]) / 60.0 > t["max"]):
+                # 还没见过它的心跳：建好不到 N 分钟的不判断（10-19 02:50 上线时 iMac 先跑、误报过一次）。
+                # 见过心跳之后、或建好超过 N 分钟还没有，照报。建好时间查不到时退回旧办法：一次运行记录都没有就不判断。
+                made = created_at(t)
+                if made is not None and (NOW - made) / 60.0 < t["max"]:
+                    log("%s：自动任务建好 %.0f 分钟（不到 %g 分钟），还没有心跳，这次不判断" % (t["name"], (NOW - made) / 60.0, t["max"]))
+                    continue
+                if made is None and res["runs"] == 0:
+                    log("%s：还没有运行记录，建好时间也没查到，这次不判断" % t["name"])
+                    continue
             if hb is None:
                 down, why = True, "最近 %d 次运行记录里没有心跳行（@@HB），最新一次运行在 %s" % (res["runs"], fmt(res["newest_run"]))
             else:

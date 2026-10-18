@@ -1,5 +1,5 @@
 #!/bin/bash
-# orca-agent-launch --bot <bot> --task "<描述>" [--issue X] -- <claude|pi|codex> [参数...]
+# orca-agent-launch --bot <bot> --task "<描述>" [--issue X --eta <YYYY-MM-DD[ HH:MM]>] [--no-linear] -- <claude|pi|codex> [参数...]
 # 统一的起 agent 入口（PER-65）：一律经 notify-run --tty 起，agent 做完、停下、被杀都会叫醒派活的 bot。
 # 派活时把它当 Orca 终端的命令：
 #   orca terminal create --worktree <wt> --command "orca-agent-launch --bot coding-assistant --task 'PER-65 xxx' -- claude --dangerously-skip-permissions '读 BRIEF 并照做'"
@@ -9,23 +9,29 @@
 #   - 要起的不是 claude / pi / codex，或者经 bash -c、env、nohup 之类转一层（agent 必须是 notify-run 的直接子进程，
 #     否则 orca-wake 按 parent_mismatch 跳过）；
 #   - 已经在一个 notify-run 里（ORCA_DISPATCH_PID 还活着）：嵌套起的 agent 不会被当成派出的主会话。
+# 带 --issue 时（PER-66）：起 agent 之前顺手给 Linear issue 写负责 bot 和 due，卡住检查的 due 对账才有东西可查：
+#   - due = --eta 的日期（新加坡时间；只写日期，Linear 的 due 没有时刻）。带 --issue 必须带 --eta，否则拒绝（退出码 2）；
+#   - 负责 bot：描述里没有「负责 bot：<bot>」这一行就在末尾补一行；写着别的 bot 时改成这次的（stuck-check 的 due_bot 认这一行）。
+#   Linear 写不进去时拒绝起 agent（退出码 3），确认要先起再补卡时加 --no-linear。
 # 通过检查后 exec notify-run，退出码就是 notify-run 的（即 agent 的）退出码。
 # 测试用环境变量：ORCA_AGENT_LAUNCH_NOTIFY_RUN（notify-run 路径）、ORCA_AGENT_LAUNCH_WEBHOOK_DIR（webhook 目录）、
-#   ORCA_AGENT_LAUNCH_DRY=1（只打印将要执行的命令）。
+#   ORCA_AGENT_LAUNCH_DRY=1（只打印将要执行的命令，不写 Linear）、ORCA_AGENT_LAUNCH_ORCA（orca CLI 路径）。
 set -u
 
 die() { echo "orca-agent-launch: 拒绝：$*" >&2; exit 2; }
 usage() {
-    echo "用法: orca-agent-launch --bot <bot> --task \"<描述>\" [--issue X] -- <claude|pi|codex> [参数...]" >&2
+    echo "用法: orca-agent-launch --bot <bot> --task \"<描述>\" [--issue X --eta <YYYY-MM-DD[ HH:MM]>] [--no-linear] -- <claude|pi|codex> [参数...]" >&2
     exit 2
 }
 
-bot="" task="" issue=""
+bot="" task="" issue="" eta="" no_linear=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --bot)   [ $# -ge 2 ] || usage; bot=$2; shift 2 ;;
         --task)  [ $# -ge 2 ] || usage; task=$2; shift 2 ;;
         --issue) [ $# -ge 2 ] || usage; issue=$2; shift 2 ;;
+        --eta)   [ $# -ge 2 ] || usage; eta=$2; shift 2 ;;
+        --no-linear) no_linear=1; shift ;;
         --)      shift; break ;;
         -h|--help) usage ;;
         *)       break ;;
@@ -50,16 +56,76 @@ case "$agent" in
 esac
 command -v -- "$1" >/dev/null 2>&1 || die "找不到命令：$1"
 if [ -n "${ORCA_DISPATCH_PID:-}" ] && kill -0 "$ORCA_DISPATCH_PID" 2>/dev/null; then
-    die "已经在 notify-run（pid $ORCA_DISPATCH_PID）里面，嵌套起的 agent 不算派出的主会话；请在新终端里起"
+    die "已经在 notify-run（pid ${ORCA_DISPATCH_PID}）里面，嵌套起的 agent 不算派出的主会话；请在新终端里起"
+fi
+due=""
+if [ -n "$issue" ]; then
+    case "$issue" in
+        [A-Za-z]*-[0-9]*) ;;
+        *) die "--issue 要写 Linear 编号（如 PER-66）：$issue" ;;
+    esac
+    [ -n "$eta" ] || [ -n "$no_linear" ] || die "带 --issue 要同时带 --eta（预计完成时间，写进 Linear 的 due），或者加 --no-linear"
+    if [ -n "$eta" ]; then
+        due=$(printf '%s' "$eta" | grep -Eo '^[0-9]{4}-[0-9]{2}-[0-9]{2}') || die "--eta 要以 YYYY-MM-DD 开头：$eta"
+    fi
+elif [ -n "$eta" ]; then
+    die "--eta 只和 --issue 一起用"
 fi
 unset ORCA_DISPATCH_PID ORCA_DISPATCH_BOT ORCA_TASK_ID ORCA_DISPATCH_ISSUE ORCA_DISPATCH_TS
 nr=${ORCA_AGENT_LAUNCH_NOTIFY_RUN:-$(command -v notify-run || echo "$HOME/.local/bin/notify-run")}
-[ -x "$nr" ] || die "找不到 notify-run（$nr）"
+[ -x "$nr" ] || die "找不到 notify-run（${nr}）"
 cmd=("$nr" --bot "$bot" --task "$task")
 [ -n "$issue" ] && cmd+=(--issue "$issue")
 cmd+=(--tty -- "$@")
 if [ "${ORCA_AGENT_LAUNCH_DRY:-}" = 1 ]; then
+    [ -n "$issue" ] && [ -z "$no_linear" ] && echo "（会写 Linear ${issue}：due ${due}，负责 bot：${bot}）"
     printf '%q ' "${cmd[@]}"; echo
     exit 0
+fi
+if [ -n "$issue" ] && [ -z "$no_linear" ]; then
+    orca=${ORCA_AGENT_LAUNCH_ORCA:-}
+    [ -n "$orca" ] || orca=$(command -v orca-ide || command -v orca) || orca=""
+    [ -n "$orca" ] || { [ -x "$HOME/.local/bin/orca" ] && orca=$HOME/.local/bin/orca; } ||
+        orca=/Applications/Orca.app/Contents/Resources/bin/orca
+    # 写 due，再补「负责 bot：」一行。失败就不起 agent：due 对账靠它。
+    # Python 不放进 $(...) 里：/bin/bash 3.2 解析 $(...) 里的 here-doc 会出错（10-19 演练时整个脚本跑不起来）
+    out=$(mktemp "${TMPDIR:-/tmp}/orca-agent-launch.XXXXXX") || die "建不了临时文件"
+    python3 - "$orca" "$issue" "$due" "$bot" >"$out" <<'PY'
+import json, re, subprocess, sys
+orca, issue, due, bot = sys.argv[1:5]
+
+def call(*args):
+    p = subprocess.run([orca, "linear"] + list(args) + ["--json"], capture_output=True, text=True, timeout=60)
+    try:
+        d = json.loads(p.stdout)
+    except ValueError:
+        raise SystemExit("orca linear %s 没有返回 JSON：%s" % (args[0], (p.stderr or p.stdout).strip()[:200]))
+    if not d.get("ok"):
+        raise SystemExit("orca linear %s 失败：%s" % (args[0], json.dumps(d.get("error"), ensure_ascii=False)[:200]))
+    return d.get("result") or {}
+
+iss = call("issue", issue).get("issue") or {}
+if not iss.get("identifier"):
+    raise SystemExit("Linear 里找不到 %s" % issue)
+call("due-date", "set", issue, "--to", due)
+desc = iss.get("description") or ""
+line = "负责 bot：%s" % bot
+rx = re.compile(r"负责\s*bot\s*[:：]\s*([\w.\-]+)", re.I)
+m = rx.search(desc)
+if m and m.group(1) == bot:
+    how = "描述里已有「%s」" % line
+else:
+    new = rx.sub(line, desc, count=1) if m else (desc.rstrip() + "\n\n" + line + "（orca-agent-launch 写入）").lstrip()
+    call("save-issue", issue, "--description", new)
+    how = "描述里%s「%s」" % ("把「负责 bot：%s」改成" % m.group(1) if m else "补了", line)
+print("Linear %s：due 设为 %s；%s" % (iss["identifier"], due, how))
+PY
+    rc=$?
+    msg=$(cat "$out"); rm -f "$out"
+    if [ "$rc" -ne 0 ]; then
+        echo "orca-agent-launch: 拒绝：Linear $issue 写不进去（见上）。确认要先起 agent 再补卡就加 --no-linear" >&2
+        exit 3
+    fi
+    echo "orca-agent-launch: $msg" >&2
 fi
 exec "${cmd[@]}"
