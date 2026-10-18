@@ -297,6 +297,36 @@ SETUP_TASK_RES = (
     re.compile(r"(everos-mcp|EverOS|MCP\b).{0,16}(接入|接线|接上|冒烟|挂载|挂上|配置|样板|采集|setup|set up|wiring)", re.I),
     re.compile(r"(修改|改|新建|创建|配置|手动跑).{0,24}(采集|夜审|ingest).{0,16}(automation|自动化)", re.I),
 )
+# Standard briefs carry instructions such as "挂了就记一句接着做；不调 everos 写入类工具" or "不打印密钥".
+# They are not the task, so they never make a session setup/config (Zack 10-19 01:02, FDV-67
+# [Zack答-FDV67-AE]): from a negated instruction (不/别/勿… + a verb, do not/don't/never) or a
+# fallback one (挂了/失败/出错… 就) to the end of its clause is cut before SETUP_TASK_RES runs.
+# The cut becomes a newline so `.` cannot join the clauses around it; clauses without one are untouched.
+INSTRUCTION_RE = re.compile(
+    r"(?:不要|不用|不必|无需|禁止|严禁|切勿|不得|不许|不|别|勿)\s*"
+    r"(?:调|用|挂|接|装|配|改|动|碰|写|打印|输出|贴|提交|删|发|跑|开|启用)"
+    r"|(?:挂了|失败了?|出错了?|报错了?|不可用|连不上).{0,4}?就"
+    r"|\b(?:do not|don't|never)\s+\w", re.I)
+CLAUSE_RE = re.compile(r"([，,。；;！!？?\n])")
+
+
+def without_instructions(head: str) -> str:
+    parts = CLAUSE_RE.split(head)
+    for i in range(0, len(parts), 2):
+        m = INSTRUCTION_RE.search(parts[i])
+        if m:
+            parts[i] = parts[i][:m.start()] + "\n"
+    return "".join(parts)
+
+
+def setup_match(head: str) -> re.Match | None:
+    """First SETUP_TASK_RES match in a task/brief headline, brief instructions left out."""
+    head = without_instructions(head)
+    for rx in SETUP_TASK_RES:
+        m = rx.search(head)
+        if m:
+            return m
+    return None
 # Product work on the site stays in, even if it touches EverOS (e.g. a PER ticket that
 # wires EverOS into the studio): a Linear ticket or PR work in the headline wins.
 # Recall/smoke acceptance runs ("召回验收", "recall check"); checked after DEV_GUARD_RE.
@@ -341,10 +371,9 @@ def task_type(first: str) -> tuple[str, str]:
         m = SMOKE_TASK_RE.search(head)
         if m:
             return "smoke", f"{src} headline is a recall/smoke acceptance: {m.group(0)[:40]!r}"
-        for rx in SETUP_TASK_RES:
-            m = rx.search(head)
-            if m:
-                return "setup", f"{src} headline is setup/config: {m.group(0)[:40]!r}"
+        m = setup_match(head)
+        if m:
+            return "setup", f"{src} headline is setup/config: {m.group(0)[:40]!r}"
     return "dev", "no exclusion rule matched"
 
 
@@ -395,7 +424,7 @@ def transcript_entrypoint(jsonl: str | None) -> str | None:
     return None
 
 
-def exclusion_reason(row: dict) -> str | None:
+def exclusion_reason(row: dict, literals: list[str] | None = None) -> str | None:
     wp = (row.get("workspace_path") or "").rstrip("/")
     if wp and EXCLUDE_PATH_RE.search(wp):
         return "night-review auto-run worktree"
@@ -405,8 +434,14 @@ def exclusion_reason(row: dict) -> str | None:
     ep = transcript_entrypoint(row.get("transcript_path"))
     if ep and ep.startswith("sdk"):
         return f"non-interactive session (entrypoint={ep}, claude -p / SDK): smoke/acceptance"
-    kind, why = task_type(first_user_text(row.get("transcript_path")))
-    return None if kind == "dev" else why
+    first = first_user_text(row.get("transcript_path"))
+    kind, why = task_type(first)
+    if kind != "dev":
+        return why
+    b = brief_text(first)
+    return secret_like_reason(
+        [("title", row.get("workspace") or ""), ("task headline", task_headline(first)), ("brief headline", task_headline(b))],
+        [first, b], row.get("transcript_path"), literals or [])
 
 
 # --- redaction for transcripts pushed off this machine -----------------------------------
@@ -487,6 +522,62 @@ def stage_filtered_transcript(src: str, dst: Path, literals: list[str]) -> tuple
     os.chmod(tmp, 0o600)
     tmp.replace(dst)
     return red, dropped
+
+
+# --- whole-session exclusion: secret-like sessions never go to EverOS --------------------
+# dr eggbot 2026-10-18 16:11, after Zack「密钥不落地」. Checked only for sessions the task rules
+# would keep, so every existing exclusion keeps its old reason. Key words count only in the
+# title, the task headline and the brief headline: nearly every dev transcript mentions
+# API_KEY / SECRET / TOKEN somewhere in tool output (10-17: 2 of 3 box ads sessions, all 4 iMac
+# vllm sessions). Env values and token formats count anywhere in the transcript.
+# v2 (Zack 10-18 16:30, FDV-67): plain TOKEN(S) is gone ("max tokens" in vllm headlines); only
+# api/access token and 令牌 count. "AI key" / "API key" / 密钥 are new (FDV-72「开AI key」).
+SECRET_WORD_RE = re.compile(
+    r"(?<![A-Za-z0-9])(AI[\s_-]?KEYS?|API[\s_-]?KEYS?|KEYS|SECRETS?|REVOKE[DS]?|(?:API|ACCESS)[\s_-]?TOKENS?"
+    r"|PRIVATE[_-]KEYS?|PASSWORDS?|CREDENTIALS?)(?![A-Za-z0-9])|令牌|密钥", re.I)
+# Token formats with a fixed prefix (SECRET_PATTERNS minus the generic NAME=value one, which
+# matches placeholders such as GOOGLE_CLIENT_SECRET=<name>); Bearer needs a digit for the same reason.
+SECRET_FORMAT_RES = (
+    ("private key", SECRET_PATTERNS[0]), ("sk-", SECRET_PATTERNS[2]), ("gh?_", SECRET_PATTERNS[3]),
+    ("github_pat_", SECRET_PATTERNS[4]), ("cfut_", SECRET_PATTERNS[5]), ("AKIA", SECRET_PATTERNS[6]),
+    ("xox?-", SECRET_PATTERNS[7]), ("JWT", SECRET_PATTERNS[8]),
+    ("Bearer", re.compile(r"(?i)\bBearer\s+(?=[A-Za-z0-9._~+/=\-]*\d)[A-Za-z0-9._~+/=\-]{20,}")),
+)
+
+
+def secret_hit(text: str, literal_forms: list[str]) -> str | None:
+    """What secret-like thing text contains (never the value itself), or None."""
+    if any(v in text for v in literal_forms):
+        return "an env secret value"
+    for name, rx in SECRET_FORMAT_RES:
+        if rx.search(text):
+            return f"a {name} token"
+    return None
+
+
+def secret_like_reason(heads: list[tuple[str, str]], texts: list[str], transcript: str | None,
+                       literals: list[str]) -> str | None:
+    """Reason starting with "secret-like" when the whole session must stay out of EverOS.
+    heads: (where, text) checked for key words; texts and every transcript line: env values / token formats."""
+    for src, t in heads:
+        m = SECRET_WORD_RE.search(t or "")
+        if m:
+            return f"secret-like: {src} names {m.group(0).upper()!r}"
+    forms = sorted({f for v in literals for f in (v, json.dumps(v)[1:-1]) if f})
+    for t in texts:
+        hit = secret_hit(t or "", forms)
+        if hit:
+            return f"secret-like: task or brief contains {hit}"
+    if transcript:
+        try:
+            with open(transcript, "r", encoding="utf-8", errors="replace") as f:
+                for n, line in enumerate(f, 1):
+                    hit = secret_hit(line, forms)
+                    if hit:
+                        return f"secret-like: transcript line {n} contains {hit}"
+        except OSError:
+            pass
+    return None
 
 
 def collect(machine: str, day: str) -> list[dict]:
@@ -648,8 +739,9 @@ def collect(machine: str, day: str) -> list[dict]:
     rows.sort(key=lambda r: r.get("started_at") or "")
     kept: list[dict] = []
     excluded: list[dict] = []
+    literals = load_literal_secrets()
     for r in rows:
-        why = exclusion_reason(r)
+        why = exclusion_reason(r, literals)
         if why:
             excluded.append({"session_id": r["session_id"], "machine": machine, "workspace": r.get("workspace"),
                              "transcript_path": r.get("transcript_path"), "reason": why})
