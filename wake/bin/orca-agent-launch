@@ -1,0 +1,65 @@
+#!/bin/bash
+# orca-agent-launch --bot <bot> --task "<描述>" [--issue X] -- <claude|pi|codex> [参数...]
+# 统一的起 agent 入口（PER-65）：一律经 notify-run --tty 起，agent 做完、停下、被杀都会叫醒派活的 bot。
+# 派活时把它当 Orca 终端的命令：
+#   orca terminal create --worktree <wt> --command "orca-agent-launch --bot coding-assistant --task 'PER-65 xxx' -- claude --dangerously-skip-permissions '读 BRIEF 并照做'"
+# 拒绝（退出码 2，什么都不起）：
+#   - 没带 --bot 或 --task（等于没包 notify-run）；
+#   - bot 名不合法，或没有它的 webhook 配置（~/.config/grokbot/webhooks/<bot>.env，叫醒发不出去）；
+#   - 要起的不是 claude / pi / codex，或者经 bash -c、env、nohup 之类转一层（agent 必须是 notify-run 的直接子进程，
+#     否则 orca-wake 按 parent_mismatch 跳过）；
+#   - 已经在一个 notify-run 里（ORCA_DISPATCH_PID 还活着）：嵌套起的 agent 不会被当成派出的主会话。
+# 通过检查后 exec notify-run，退出码就是 notify-run 的（即 agent 的）退出码。
+# 测试用环境变量：ORCA_AGENT_LAUNCH_NOTIFY_RUN（notify-run 路径）、ORCA_AGENT_LAUNCH_WEBHOOK_DIR（webhook 目录）、
+#   ORCA_AGENT_LAUNCH_DRY=1（只打印将要执行的命令）。
+set -u
+
+die() { echo "orca-agent-launch: 拒绝：$*" >&2; exit 2; }
+usage() {
+    echo "用法: orca-agent-launch --bot <bot> --task \"<描述>\" [--issue X] -- <claude|pi|codex> [参数...]" >&2
+    exit 2
+}
+
+bot="" task="" issue=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --bot)   [ $# -ge 2 ] || usage; bot=$2; shift 2 ;;
+        --task)  [ $# -ge 2 ] || usage; task=$2; shift 2 ;;
+        --issue) [ $# -ge 2 ] || usage; issue=$2; shift 2 ;;
+        --)      shift; break ;;
+        -h|--help) usage ;;
+        *)       break ;;
+    esac
+done
+[ $# -gt 0 ] || usage
+[ -n "$bot" ] || die "没带 --bot：agent 必须经 notify-run 起，做完才会叫醒派活的 bot"
+[ -n "$task" ] || die "没带 --task"
+case "$bot" in
+    *[!A-Za-z0-9._-]*|.*) die "bot 名不合法：$bot" ;;
+esac
+wdir=${ORCA_AGENT_LAUNCH_WEBHOOK_DIR:-$HOME/.config/grokbot/webhooks}
+[ -r "$wdir/$bot.env" ] || [ -r "/home/box/.config/grokbot/webhooks/$bot.env" ] ||
+    die "没有 $bot 的 webhook 配置（$wdir/$bot.env），叫醒发不出去"
+agent=$(basename -- "$1")
+case "$agent" in
+    claude|pi|codex) ;;
+    bash|sh|zsh|dash|env|nohup|setsid|exec|timeout|nice|sudo|script)
+        die "不要经 $agent 转一层：agent 必须是 notify-run 的直接子进程（写成 -- claude ...）" ;;
+    notify-run) die "已经由 orca-agent-launch 包 notify-run 了，直接写 -- claude ..." ;;
+    *) die "只起 claude / pi / codex，不认识：$agent" ;;
+esac
+command -v -- "$1" >/dev/null 2>&1 || die "找不到命令：$1"
+if [ -n "${ORCA_DISPATCH_PID:-}" ] && kill -0 "$ORCA_DISPATCH_PID" 2>/dev/null; then
+    die "已经在 notify-run（pid $ORCA_DISPATCH_PID）里面，嵌套起的 agent 不算派出的主会话；请在新终端里起"
+fi
+unset ORCA_DISPATCH_PID ORCA_DISPATCH_BOT ORCA_TASK_ID ORCA_DISPATCH_ISSUE ORCA_DISPATCH_TS
+nr=${ORCA_AGENT_LAUNCH_NOTIFY_RUN:-$(command -v notify-run || echo "$HOME/.local/bin/notify-run")}
+[ -x "$nr" ] || die "找不到 notify-run（$nr）"
+cmd=("$nr" --bot "$bot" --task "$task")
+[ -n "$issue" ] && cmd+=(--issue "$issue")
+cmd+=(--tty -- "$@")
+if [ "${ORCA_AGENT_LAUNCH_DRY:-}" = 1 ]; then
+    printf '%q ' "${cmd[@]}"; echo
+    exit 0
+fi
+exec "${cmd[@]}"
