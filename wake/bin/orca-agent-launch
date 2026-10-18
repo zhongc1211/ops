@@ -56,7 +56,7 @@ case "$agent" in
 esac
 command -v -- "$1" >/dev/null 2>&1 || die "找不到命令：$1"
 if [ -n "${ORCA_DISPATCH_PID:-}" ] && kill -0 "$ORCA_DISPATCH_PID" 2>/dev/null; then
-    die "已经在 notify-run（pid $ORCA_DISPATCH_PID）里面，嵌套起的 agent 不算派出的主会话；请在新终端里起"
+    die "已经在 notify-run（pid ${ORCA_DISPATCH_PID}）里面，嵌套起的 agent 不算派出的主会话；请在新终端里起"
 fi
 due=""
 if [ -n "$issue" ]; then
@@ -73,12 +73,12 @@ elif [ -n "$eta" ]; then
 fi
 unset ORCA_DISPATCH_PID ORCA_DISPATCH_BOT ORCA_TASK_ID ORCA_DISPATCH_ISSUE ORCA_DISPATCH_TS
 nr=${ORCA_AGENT_LAUNCH_NOTIFY_RUN:-$(command -v notify-run || echo "$HOME/.local/bin/notify-run")}
-[ -x "$nr" ] || die "找不到 notify-run（$nr）"
+[ -x "$nr" ] || die "找不到 notify-run（${nr}）"
 cmd=("$nr" --bot "$bot" --task "$task")
 [ -n "$issue" ] && cmd+=(--issue "$issue")
 cmd+=(--tty -- "$@")
 if [ "${ORCA_AGENT_LAUNCH_DRY:-}" = 1 ]; then
-    [ -n "$issue" ] && [ -z "$no_linear" ] && echo "（会写 Linear $issue：due $due，负责 bot：$bot）"
+    [ -n "$issue" ] && [ -z "$no_linear" ] && echo "（会写 Linear ${issue}：due ${due}，负责 bot：${bot}）"
     printf '%q ' "${cmd[@]}"; echo
     exit 0
 fi

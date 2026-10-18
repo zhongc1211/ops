@@ -51,7 +51,7 @@ for it in "${ITEMS[@]}"; do
   if [ -e "$dst" ]; then state="不同"; else state="缺失"; fi
   case "$MODE" in
     check) echo "$state  $dst" ;;
-    dry) echo "$state  $dst（会$([ "$state" = 不同 ] && echo "备份后")覆盖）" ;;
+    dry) echo "$state  ${dst}（会$([ "$state" = 不同 ] && echo "备份后")覆盖）" ;;
     install)
       if [ -e "$dst" ]; then cp -p "$dst" "$dst.bak-$TS"; echo "备份  $dst -> $dst.bak-$TS"; fi
       tmp="$dst.tmp-$$"

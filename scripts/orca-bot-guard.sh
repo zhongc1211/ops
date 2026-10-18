@@ -3,7 +3,8 @@
 # 连续 2 次不通 => POST 卡住兜底 webhook 叫醒 Coding助手（唤醒会让 box 恢复，box 看门狗/bot 再重启 orca-remote）
 # 同一次故障最多每 10 分钟叫一次
 # 日志 ~/.orca-state/orca-bot-guard/guard.log。webhook 每次都记 HTTP 码；非 2xx 时带响应体前 160 个字符（去掉 URL/KEY 和长串，
-#   压成一行）。10-16 两段 14 次「webhook failed」当时不记码，原因查不到（PER-66）。
+#   压成一行）。10-16 两段 14 次「webhook failed」当时不记码。10-19 演练查到一个原因：/bin/bash 3.2 在 UTF-8 下把 `$code）` 里
+#   「）」的第一个字节当成变量名的一部分，body 里留下半个字符，webhook 回 400（Content-Length 对不上）。变量后面紧跟中文时一律写 ${x}。
 # URL 和 KEY 只经 stdin 交给 curl，不进命令行参数、日志和输出。
 # 测试用环境变量：GUARD_STATE_DIR、GUARD_ENV_FILE、GUARD_PROBE_URL、GUARD_BOT（payload 里的 bot，默认 coding）。
 ST=${GUARD_STATE_DIR:-$HOME/.orca-state/orca-bot-guard}; mkdir -p "$ST"; LOG=$ST/guard.log
@@ -26,7 +27,7 @@ if [ -z "$URL" ] || [ -z "$KEY" ]; then
   echo "$(ts) webhook failed http=no_config（$ENV_FILE 缺 URL 或 KEY）" >> "$LOG"; exit 1
 fi
 resp=$(mktemp "${TMPDIR:-/tmp}/orca-bot-guard.XXXXXX")
-body="{\"bot\":\"${GUARD_BOT:-coding}\",\"task\":\"orca-bot 守护\",\"status\":\"down\",\"note\":\"orca-bot.deepvision.sg 连续 $n 次不通（code=$code），请在 box 上重启 orca-remote\"}"
+body="{\"bot\":\"${GUARD_BOT:-coding}\",\"task\":\"orca-bot 守护\",\"status\":\"down\",\"note\":\"orca-bot.deepvision.sg 连续 $n 次不通（code=${code}），请在 box 上重启 orca-remote\"}"
 esc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 http=$(printf 'url = "%s"\nheader = "Authorization: Bearer %s"\nheader = "Content-Type: application/json"\n' \
          "$(esc "$URL")" "$(esc "$KEY")" |
