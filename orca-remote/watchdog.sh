@@ -1,5 +1,5 @@
 #!/bin/bash
-# orca-remote watchdog (rev 2026-10-17b). Loop every 45s. Single instance via flock. Every external step has a timeout.
+# orca-remote watchdog (rev 2026-10-18). Loop every 45s. Single instance via flock. Every external step has a timeout.
 # rev 2026-10-17b: a VM pause/resume is NOT a failure. Before this rev every resume restarted Orca (294 of 358 restarts
 #   10-10..10-17, 291 of them came back 200 = Orca was fine). Now a resume only opens a grace window; restarts need real failures.
 # - resume-from-pause detected (wall gap > 3x interval) -> log only, start ${GRACE}s grace (failures in grace are not counted)
@@ -7,10 +7,16 @@
 # - public 530/502 while local 200 (stale tunnel) -> after 2 consecutive strikes restart ONLY cloudflared (Orca untouched)
 # - other unhealthy states -> full restart after 2 consecutive strikes outside grace
 # - min 90s between restarts (anti-storm)
+# rev 2026-10-18: after a resume the tunnel is usually what breaks (10-18 01:00..04:25 SGT, 5x local 200 / public 530 = CF 1033,
+#   each fixed by restarting cloudflared alone). So inside the resume grace, the first local 200 + public 530 restarts ONLY
+#   cloudflared right away (no strikes), then rechecks public for up to 60s and needs 3 consecutive 200s. If that fails the
+#   grace ends and the normal strike logic above takes over.
 LOG=/workspace/ops/orca-remote/watchdog.log; R=/workspace/ops/orca-remote/orca-remote
 # DISPLAY is pinned to the orca-bot desktop :4 (never inherited): 10-17 12:40 a caller passed a missing :3 and orca-bot served 502.
 export DISPLAY=:4 PATH=/home/box/.local/bin:/usr/local/bin:/usr/bin:/bin
-INT=45; GAP=$((INT*3)); MINGAP=90; GRACE=${WATCHDOG_GRACE:-120}; grace_until=0; ts=0
+INT=45; GAP=$((INT*3)); MINGAP=90; GRACE=${WATCHDOG_GRACE:-120}; grace_until=0; ts=0; resumed=0
+PUB=https://orca-bot.deepvision.sg/; PBODY=/tmp/orca-remote-watchdog.public-body
+CF_MATCH="cloudflared tunnel --config /home/box/.cloudflared/config.yml"
 stage=init; stage_t=$(date +%s)
 # st NAME: remember what the loop is doing (explains a later gap) and log the previous step if it took >30s
 st(){ d=$(( $(date +%s)-stage_t )); case $stage in sleep|restart-wait) ;; *) [ $d -gt 30 ] && log "slow step '$stage' took ${d}s";; esac; stage=$1; stage_t=$(date +%s); }
@@ -32,20 +38,34 @@ repair_app(){ app_ok && return 1
 [ -n "${WATCHDOG_REPAIR_ONLY:-}" ] && { repair_app; exit $?; }
 exec 9>/tmp/orca-remote-watchdog.lock; flock -n 9 || exit 0
 last_restart=0; last_loop=$(date +%s); last_up=$(cut -d. -f1 /proc/uptime); f=0
+# tunnel_fix WHY: restart ONLY cloudflared (the tmux tunnel-loop respawns it after 5s; Orca serve and tmux untouched), then recheck
+# public every 3s for up to 60s; ok = 3 consecutive 200s. KILL if TERM is ignored (a stopped/hung cloudflared never handles TERM).
+tunnel_fix(){ log "-> tunnel-only restart: $1 (cloudflared; Orca untouched)"; st tunnel-restart
+  old=$(pgrep -f "$CF_MATCH"); [ -n "$old" ] && kill $old 2>/dev/null
+  for i in 1 2 3 4 5; do kill -0 $old 2>/dev/null || break; sleep 1 9>&-; done
+  kill -0 $old 2>/dev/null && { log "cloudflared $old ignored TERM -> KILL"; kill -KILL $old 2>/dev/null; }
+  st tunnel-verify; t0=$(date +%s); ok=0; c=000
+  while [ $(( $(date +%s)-t0 )) -lt 60 ]; do sleep 3 9>&-; c=$(curl -s -o /dev/null -w '%{http_code}' -m 10 $PUB); [ "$c" = 200 ] && ok=$((ok+1)) || ok=0; [ $ok -ge 3 ] && break; done
+  if [ $ok -ge 3 ]; then log "tunnel-only restart verified: public 200 x3, $(( $(date +%s)-t0 ))s after kill"; return 0; fi
+  log "tunnel-only restart NOT verified within 60s (last public=$c)"; return 1; }
 restart(){ now=$(date +%s)
   if [ $((now-last_restart)) -lt $MINGAP ]; then log "restart wanted ($1) but backoff ($((now-last_restart))s<${MINGAP}s)"; return; fi
-  log "-> restart: $1"; st restart; timeout 180 $R restart >>$LOG 2>&1 9>&-; [ $? = 124 ] && log "restart TIMED OUT after 180s"; st restart-wait; last_restart=$(date +%s); f=0; ts=0; grace_until=$((last_restart+GRACE)); sleep 20 9>&-
+  log "-> restart: $1"; st restart; timeout 180 $R restart >>$LOG 2>&1 9>&-; [ $? = 124 ] && log "restart TIMED OUT after 180s"; st restart-wait; last_restart=$(date +%s); f=0; ts=0; resumed=0; grace_until=$((last_restart+GRACE)); sleep 20 9>&-
   log "post-restart local=$(curl -s -o /dev/null -w '%{http_code}' -m 10 http://127.0.0.1:6768/) public=$(curl -s -o /dev/null -w '%{http_code}' -m 15 https://orca-bot.deepvision.sg/)"; }
 log "watchdog started pid $$ (interval ${INT}s, resume gap ${GAP}s, min restart gap ${MINGAP}s)"
 while true; do
   now=$(date +%s); upn=$(cut -d. -f1 /proc/uptime); gap=$((now-last_loop)); upd=$((upn-last_up)); last_loop=$now
-  if [ $gap -gt $GAP ]; then log "resume from pause detected (gap ${gap}s)"; log "last stage before gap: '$stage' (set $((now-stage_t))s ago); guest clock advanced ${upd}s while wall clock advanced ${gap}s ($([ $upd -lt $((gap/2)) ] && echo 'guest clock STOPPED = VM paused/suspended' || echo 'guest clock ran = loop stalled inside the guest'))"; grace_until=$(( $(date +%s)+GRACE )); f=0; ts=0; log "no restart for resume; grace ${GRACE}s, restart only on real failures"; last_loop=$(date +%s); last_up=$(cut -d. -f1 /proc/uptime); fi
+  if [ $gap -gt $GAP ]; then log "resume from pause detected (gap ${gap}s)"; log "last stage before gap: '$stage' (set $((now-stage_t))s ago); guest clock advanced ${upd}s while wall clock advanced ${gap}s ($([ $upd -lt $((gap/2)) ] && echo 'guest clock STOPPED = VM paused/suspended' || echo 'guest clock ran = loop stalled inside the guest'))"; grace_until=$(( $(date +%s)+GRACE )); f=0; ts=0; resumed=1; log "no restart for resume; grace ${GRACE}s, restart only on real failures (except stale tunnel: cloudflared-only at once)"; last_loop=$(date +%s); last_up=$(cut -d. -f1 /proc/uptime); fi
   st curl-local; l=$(curl -s -o /dev/null -w '%{http_code}' -m 10 http://127.0.0.1:6768/)
-  st curl-public; p=$(curl -s -o /dev/null -w '%{http_code}' -m 15 https://orca-bot.deepvision.sg/)
+  st curl-public; p=$(curl -s -o $PBODY -w '%{http_code}' -m 15 $PUB)
+  [ $(date +%s) -ge $grace_until ] && resumed=0
   st repair-check; if repair_app; then restart "app re-extracted"; last_loop=$(date +%s); last_up=$(cut -d. -f1 /proc/uptime); sleep $INT 9>&-; continue; fi
   st tmux-has-session; timeout 20 tmux has-session -t orca-remote 2>/dev/null; trc=$?
   if [ $trc = 124 ]; then log "tmux has-session TIMED OUT after 20s (local=$l public=$p) - not starting a second session"
   elif [ $trc != 0 ]; then log "tmux session missing (local=$l public=$p) -> start"; st start; timeout 180 $R start >>$LOG 2>&1 9>&-; [ $? = 124 ] && log "start TIMED OUT after 180s"; st restart-wait; last_restart=$(date +%s); grace_until=$((last_restart+GRACE)); sleep 20 9>&-
+  elif [ $resumed = 1 ] && [ "$l" = 200 ] && [ "$p" = 530 ]; then
+    resumed=0; log "stale tunnel after resume local=$l public=$p$(grep -qs 1033 $PBODY && echo ' (CF 1033)') -> immediate fix, no strikes"
+    if tunnel_fix "resume + local 200 + public 530"; then f=0; ts=0; else grace_until=0; ts=1; log "resume fast-path failed -> normal strike logic (stale strike 1)"; fi
   elif [ $(date +%s) -lt $grace_until ] && { [ "$l" = 000 ] || [ "$p" != 200 ]; }; then log "unhealthy local=$l public=$p during grace ($((grace_until-$(date +%s)))s left) - not counted"
   elif [ "$l" = 200 ] && { [ "$p" = 530 ] || [ "$p" = 502 ]; }; then
     ts=$((ts+1)); f=0; log "stale tunnel local=$l public=$p (strike $ts)"
