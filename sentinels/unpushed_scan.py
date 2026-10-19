@@ -42,6 +42,7 @@ BOTS = [  # (git remote 里的关键字, bot)
 ]
 IGNORE = [  # (机器, 路径)：这些工作区不扫，也不算进「扫了 N 个工作区」
     ("mba", "~/orca/projects/local"),  # Orca 自动生成的占位仓库，只有一个 Initial commit，没有远程
+    ("imac", "~/claude/worker"),  # 停用的 Lark 秘书 worker，没有远程；2026-10-19 已归档到 ~/ops-archive/20261019/claude-worker.tar.zst，原目录保留
 ]
 FORCE_BOT = os.environ.get("UNPUSHED_FORCE_BOT")
 NOTIFY_RUN = shutil.which("notify-run") or os.path.expanduser("~/.local/bin/notify-run")
