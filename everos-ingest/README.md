@@ -95,3 +95,11 @@ EVEROS_INGEST_ROOT=$HOME/.orca-state/bin/everos-ingest \
 - 关键词 v2（2026-10-18，Zack 16:30「还是按他的来吧」，FDV-67）：去掉单独的 TOKEN(S)（vllm 开场任务常写 max tokens），
   只认 api token、access token、令牌；新增 api key、ai key、密钥（FDV-72「开AI key」那条占位行因此被排除）。
   匹配范围不变，没有 transcript 的占位行照样查标题。
+
+## MBA（2026-10-18 起）
+
+- precheck：`collect-mba.sh`、`collect-mba-deepvision-site.sh`、`collect-mba-repo.sh <repo>`，是 iMac 那三份把 `imac` 换成 `mba` 的副本（MBA 副本在 `~/.orca-state/bin/everos-ingest/`）。
+  推到 box 的 `/var/lib/everos-ingest/<项目>/$D/sessions-mba.jsonl` 和 `mba/`，用 MBA 自己的 key `~/.ssh/everos-ingest-mba`（box authorized_keys 注释 `everos-ingest-mba-to-box`，限 `from="100.64.0.7"`）。
+- 采集器 `--machine` 多认一个 `mba`；`nightly_addflush.py` 多读 `sessions-mba.jsonl`，MBA 那份缺了记 WARN，不算失败（deepvision-site 仓库的 `dv_addflush.py` 同样改法，另一个 PR）。
+- automation（MBA 本机 ops 工作区，时间和 iMac 同）：`5a9491fe` 心月 · 13 EverOS 会话采集 MBA（21:50），`25ec90b7` dv运维 · 14 EverOS 官网会话采集 MBA（00:01），
+  `679f7c06` dv广告 · 26 EverOS 广告会话采集 MBA（00:02），`fc1dd06a` vllm · 27 EverOS 会话采集 MBA（00:16）。
