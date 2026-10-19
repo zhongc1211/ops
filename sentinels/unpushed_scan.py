@@ -14,6 +14,7 @@
   - 发现消失了就删掉它的记录。
 日志一行一条打印到 stdout，并追加到 --log（box 上就是 /workspace/ops/reports/unpushed-scan-YYYYMMDD.log；
 iMac 上是本机镜像，由 unpushed-scan.sh 再经 ssh 追加到 box 的同一个文件）。
+忽略名单 IGNORE：按 --machine 和路径跳过的工作区（如 MBA 的 ~/orca/projects/local 占位仓库）。
 演练：--only <路径前缀> 只扫这些工作区，--state 用单独的状态文件，--drill 让叫醒标题带「【演练】」，
   环境变量 UNPUSHED_FORCE_BOT=<bot> 让所有叫醒改发给这个 bot（演练用 test，不叫醒真 bot）。
 退出码：0 = 扫完（不管有没有发现）；2 = 拿不到工作区列表。
@@ -38,6 +39,9 @@ BOTS = [  # (git remote 里的关键字, bot)
     ("deepvision-ads", "deepvision-ads"),
     ("xinyue", "xinyue"),
     ("vllm-omni", "vllm-omni"),
+]
+IGNORE = [  # (机器, 路径)：这些工作区不扫，也不算进「扫了 N 个工作区」
+    ("mba", "~/orca/projects/local"),  # Orca 自动生成的占位仓库，只有一个 Initial commit，没有远程
 ]
 FORCE_BOT = os.environ.get("UNPUSHED_FORCE_BOT")
 NOTIFY_RUN = shutil.which("notify-run") or os.path.expanduser("~/.local/bin/notify-run")
@@ -170,6 +174,8 @@ def main():
     if wts is None:
         log("拿不到工作区列表：%s，这次没扫" % err)
         return 2
+    ignored = {os.path.expanduser(p) for m, p in IGNORE if m == args.machine}
+    wts = [w for w in wts if w["path"].rstrip("/") not in ignored]
     if args.only:
         wts = [w for w in wts if any(w["path"].startswith(p) for p in args.only)]
     try:
