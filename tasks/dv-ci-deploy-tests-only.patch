@@ -1,0 +1,292 @@
+From 8dfaea6216adeafe725dc6a090e6d65702aefc5c Mon Sep 17 00:00:00 2001
+From: zack <huixindaddy@yahoo.com>
+Date: Thu, 15 Oct 2026 02:44:13 +0800
+Subject: [PATCH] CI runs tests only; Workers Builds deploys the testing Worker
+
+GitHub Actions now runs lint and unit tests for pull requests and for
+pushes to staging and main. The deploy job and its Cloudflare secrets are
+gone.
+
+scripts/ci/cf-build.sh is the Workers Builds build command: it builds
+with the mode's switches (testing: sample media and dashboard copy on)
+and runs the cf dry run, which stops unless the Worker name, mode and
+account are the expected ones. scripts/ci/cf-deploy.sh is the deploy
+command: it repeats the dry run and checks, deploys with cf and checks
+that the new version serves all traffic.
+---
+ .github/workflows/deploy.yml | 89 ------------------------------------
+ .github/workflows/test.yml   | 31 +++++++++++++
+ scripts/ci/cf-build.sh       | 25 ++++++++++
+ scripts/ci/cf-deploy.sh      | 42 +++++++++++------
+ 4 files changed, 83 insertions(+), 104 deletions(-)
+ delete mode 100644 .github/workflows/deploy.yml
+ create mode 100644 .github/workflows/test.yml
+ create mode 100755 scripts/ci/cf-build.sh
+
+diff --git a/.github/workflows/deploy.yml b/.github/workflows/deploy.yml
+deleted file mode 100644
+index d8dcba5..0000000
+--- a/.github/workflows/deploy.yml
++++ /dev/null
+@@ -1,89 +0,0 @@
+-# Deploys the site to Cloudflare Workers with the Cloudflare CLI (`cf`).
+-#
+-# push to staging -> testing Worker deepvision-site-testing
+-#   (NEXT_PUBLIC_SAMPLE_MEDIA=on, NEXT_PUBLIC_DASHBOARD_COPY=on)
+-# push to main    -> production Worker deepvision-site-production
+-#   (NEXT_PUBLIC_SAMPLE_MEDIA=on, dashboard copy off), in the
+-#   `production` environment
+-#
+-# Pull requests never deploy: the only trigger is a push to one of the two
+-# branches. The `testing` environment only accepts staging and `production`
+-# only accepts main. CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are
+-# environment secrets of both, so a job outside those branches cannot read them.
+-# The deploy itself, with its dry run and Worker name check, is
+-# scripts/ci/cf-deploy.sh.
+-
+-name: Deploy
+-
+-on:
+-  push:
+-    branches: [staging, main]
+-
+-permissions:
+-  contents: read
+-
+-concurrency:
+-  group: deploy-${{ github.ref_name }}
+-  cancel-in-progress: false
+-
+-env:
+-  CF_CLI_VERSION: 1.0.0-beta.14
+-  NODE_VERSION: 22.23.2
+-
+-jobs:
+-  testing:
+-    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+-    runs-on: ubuntu-latest
+-    timeout-minutes: 30
+-    environment:
+-      name: testing
+-      url: https://deepvision-site-testing.xiangrong.workers.dev
+-    steps:
+-      - uses: actions/checkout@v4
+-      - uses: actions/setup-node@v4
+-        with:
+-          node-version: ${{ env.NODE_VERSION }}
+-          cache: npm
+-      - run: npm ci
+-      - run: npm install -g cf@${{ env.CF_CLI_VERSION }}
+-      - name: Build (testing switches on)
+-        run: npm run build:worker:testing
+-        env:
+-          NEXT_PUBLIC_SAMPLE_MEDIA: 'on'
+-          NEXT_PUBLIC_DASHBOARD_COPY: 'on'
+-      - name: Dry run, check target, deploy
+-        id: deploy
+-        run: scripts/ci/cf-deploy.sh testing
+-        env:
+-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+-      - name: Smoke test
+-        run: scripts/ci/smoke.sh https://deepvision-site-testing.xiangrong.workers.dev
+-
+-  production:
+-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+-    runs-on: ubuntu-latest
+-    timeout-minutes: 30
+-    environment:
+-      name: production
+-      url: https://deepvision.sg
+-    steps:
+-      - uses: actions/checkout@v4
+-      - uses: actions/setup-node@v4
+-        with:
+-          node-version: ${{ env.NODE_VERSION }}
+-          cache: npm
+-      - run: npm ci
+-      - run: npm install -g cf@${{ env.CF_CLI_VERSION }}
+-      - name: Build (sample media on, dashboard copy off)
+-        run: npm run build:worker -- --env production
+-        env:
+-          NEXT_PUBLIC_SAMPLE_MEDIA: 'on'
+-      - name: Dry run, check target, deploy
+-        id: deploy
+-        run: scripts/ci/cf-deploy.sh production
+-        env:
+-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+-      - name: Smoke test
+-        run: scripts/ci/smoke.sh https://deepvision.sg
+diff --git a/.github/workflows/test.yml b/.github/workflows/test.yml
+new file mode 100644
+index 0000000..060a3e2
+--- /dev/null
++++ b/.github/workflows/test.yml
+@@ -0,0 +1,31 @@
++# Lint and unit tests for pull requests and for pushes to staging and main.
++# Deploys are not done here: Cloudflare Workers Builds deploys the testing
++# Worker from staging (see scripts/ci/cf-build.sh and scripts/ci/cf-deploy.sh).
++
++name: Test
++
++on:
++  pull_request:
++  push:
++    branches: [staging, main]
++
++permissions:
++  contents: read
++
++concurrency:
++  group: test-${{ github.ref }}
++  cancel-in-progress: true
++
++jobs:
++  test:
++    runs-on: ubuntu-latest
++    timeout-minutes: 20
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: 22.23.2
++          cache: npm
++      - run: npm ci
++      - run: npm run lint
++      - run: npm test
+diff --git a/scripts/ci/cf-build.sh b/scripts/ci/cf-build.sh
+new file mode 100755
+index 0000000..43e783c
+--- /dev/null
++++ b/scripts/ci/cf-build.sh
+@@ -0,0 +1,25 @@
++#!/usr/bin/env bash
++# Builds the Worker for one mode, then runs the cf dry run and checks the target
++# Worker name and account. Workers Builds runs it as the build command.
++#
++# Usage: scripts/ci/cf-build.sh <testing|production>
++#
++# testing: NEXT_PUBLIC_SAMPLE_MEDIA=on, NEXT_PUBLIC_DASHBOARD_COPY=on
++# production: NEXT_PUBLIC_SAMPLE_MEDIA=on, dashboard copy off
++set -euo pipefail
++
++mode=${1:?usage: cf-build.sh <testing|production>}
++case "$mode" in
++	testing)
++		export NEXT_PUBLIC_SAMPLE_MEDIA=on NEXT_PUBLIC_DASHBOARD_COPY=on
++		npm run build:worker:testing
++		;;
++	production)
++		export NEXT_PUBLIC_SAMPLE_MEDIA=on
++		unset NEXT_PUBLIC_DASHBOARD_COPY
++		npm run build:worker -- --env production
++		;;
++	*) echo "Unknown mode: $mode" >&2; exit 2 ;;
++esac
++
++CF_DRY_RUN_ONLY=1 "$(dirname "$0")/cf-deploy.sh" "$mode"
+diff --git a/scripts/ci/cf-deploy.sh b/scripts/ci/cf-deploy.sh
+index 0838da1..ca67cff 100755
+--- a/scripts/ci/cf-deploy.sh
++++ b/scripts/ci/cf-deploy.sh
+@@ -1,11 +1,12 @@
+ #!/usr/bin/env bash
+ # Deploys a finished OpenNext build with the Cloudflare CLI (`cf`).
+-# Used by .github/workflows/deploy.yml; it also runs on a laptop.
++# Workers Builds runs it as the deploy command; it also runs on a laptop.
+ #
+ # Usage: scripts/ci/cf-deploy.sh <testing|production>
++#        CF_DRY_RUN_ONLY=1 scripts/ci/cf-deploy.sh <mode>   (dry run and checks only)
+ #
+-# Run from the repo root after `npm run build:worker` for the same mode.
+-# Needs `cf` on PATH and CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID set.
++# Run from the repo root after the build for the same mode (scripts/ci/cf-build.sh).
++# Needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID; Workers Builds sets both.
+ #
+ # cf 1.0.0-beta.14 detects the repo as plain Next.js and refuses `--mode`, so
+ # the deploy runs from a staging folder that holds only worker.js, .open-next/,
+@@ -14,6 +15,9 @@
+ # account and mode are the expected ones.
+ set -euo pipefail
+ 
++CF_CLI_VERSION=1.0.0-beta.14
++EXPECTED_ACCOUNT=7549b9c77aa27ea8c1a8b394d9b71490
++
+ mode=${1:?usage: cf-deploy.sh <testing|production>}
+ case "$mode" in
+ 	testing) expected=deepvision-site-testing ;;
+@@ -22,7 +26,18 @@ case "$mode" in
+ esac
+ : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is not set}"
+ : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is not set}"
+-[ -f .open-next/worker.js ] || { echo "No .open-next build. Run npm run build:worker first." >&2; exit 1; }
++if [ "$CLOUDFLARE_ACCOUNT_ID" != "$EXPECTED_ACCOUNT" ]; then
++	echo "CLOUDFLARE_ACCOUNT_ID is not the deepvision-site account. Stopping." >&2
++	exit 1
++fi
++[ -f .open-next/worker.js ] || { echo "No .open-next build. Run scripts/ci/cf-build.sh first." >&2; exit 1; }
++
++# Use the pinned cf; install it next to the build if PATH has another version.
++if command -v cf >/dev/null && [ "$(cf --version 2>/dev/null)" = "$CF_CLI_VERSION" ]; then
++	cf=(cf)
++else
++	cf=(npx --yes "cf@$CF_CLI_VERSION")
++fi
+ 
+ root=$(pwd)
+ stage="${RUNNER_TEMP:-$(mktemp -d)}/cf-stage-$mode"
+@@ -35,8 +50,8 @@ wrangler_version=$(node -p 'require("./node_modules/wrangler/package.json").vers
+ printf '{"name":"deepvision-site-cf-stage","private":true,"type":"module","devDependencies":{"wrangler":"%s"}}\n' \
+ 	"$wrangler_version" > "$stage/package.json"
+ 
+-sha=$(git rev-parse --short HEAD)
+-message="${GITHUB_REF_NAME:-local} $sha${GITHUB_RUN_ID:+ run $GITHUB_RUN_ID}"
++sha=${WORKERS_CI_COMMIT_SHA:-$(git rev-parse HEAD 2>/dev/null || echo unknown)}
++message="${WORKERS_CI_BRANCH:-local} ${sha:0:7}${WORKERS_CI_BUILD_UUID:+ build $WORKERS_CI_BUILD_UUID}"
+ cd "$stage"
+ 
+ # Reads the Worker name, account and mode that cf wrote for the last build.
+@@ -50,25 +65,26 @@ check_target() {
+ 		echo "Target Worker does not match. Stopping." >&2
+ 		exit 1
+ 	fi
+-	if [ "$account" != "$CLOUDFLARE_ACCOUNT_ID" ]; then
+-		echo "Target account does not match CLOUDFLARE_ACCOUNT_ID. Stopping." >&2
++	if [ "$account" != "$EXPECTED_ACCOUNT" ]; then
++		echo "Target account does not match. Stopping." >&2
+ 		exit 1
+ 	fi
+ }
+ 
+ echo "== Dry run ($mode)"
+-cf deploy --dry-run --mode "$mode" --message "$message"
++"${cf[@]}" deploy --dry-run --mode "$mode" --message "$message"
+ check_target "Dry run"
++if [ -n "${CF_DRY_RUN_ONLY:-}" ]; then exit 0; fi
+ 
+ echo "== Deploy ($mode)"
+-cf deploy --mode "$mode" --message "$message" 2>&1 | tee deploy.log
++"${cf[@]}" deploy --mode "$mode" --message "$message" 2>&1 | tee deploy.log
+ check_target "Deploy"
+ grep -q "Uploaded $expected " deploy.log || { echo "Deploy log does not name $expected." >&2; exit 1; }
+ version=$(grep -oE 'Current Version ID: [0-9a-f-]{36}' deploy.log | awk '{print $4}' | tail -1)
+ [ -n "$version" ] || { echo "No version id in the deploy log." >&2; exit 1; }
+ 
+ # The newest deployment must serve the new version to all traffic.
+-active=$(cf workers deployments list --worker "$expected" |
++active=$("${cf[@]}" workers deployments list --worker "$expected" |
+ 	node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8")).deployments[0];
+ 		const v=d.versions.find(v=>v.percentage===100); process.stdout.write(v ? v.version_id : "")')
+ if [ "$active" != "$version" ]; then
+@@ -76,7 +92,3 @@ if [ "$active" != "$version" ]; then
+ 	exit 1
+ fi
+ echo "Deployed $expected version $version"
+-if [ -n "${GITHUB_OUTPUT:-}" ]; then echo "version_id=$version" >> "$GITHUB_OUTPUT"; fi
+-if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+-	printf '### %s\n\n- Worker: `%s`\n- Version: `%s`\n- Commit: `%s`\n' "$mode" "$expected" "$version" "$sha" >> "$GITHUB_STEP_SUMMARY"
+-fi
+-- 
+2.50.1 (Apple Git-155)
+

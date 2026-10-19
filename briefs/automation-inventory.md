@@ -1,0 +1,3 @@
+# Read-only inventory of all Orca automations (owner Coding助手; for dr eggbot review)
+DO NOT change any config. For every Orca automation / scheduled task on the iMac (orca automations list/show/runs) and on the box (Orca runtime on the box, plus box crontab/systemd timers if any; reach it however you can read-only, else note "not reachable"): name, host, trigger/frequency, prompt or script summary (2 lines), main model + effort, fallback model (e.g. Codex), runs in last 7 days and average duration if available.
+Write a table to ~/orca/workspaces/ops/automation-inventory/INVENTORY.md, then run: ~/.local/bin/notify-run --bot coding-assistant --task "automation 清单完成" -- true

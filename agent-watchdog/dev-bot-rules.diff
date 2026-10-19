@@ -1,0 +1,27 @@
+--- /home/box/agent-data/workflows/dev-bot-rules/SKILL.md (before, sha256 e9a11567…)
++++ /home/box/agent-data/workflows/dev-bot-rules/SKILL.md (after, sha256 519dbfc7…)
+@@ -26,7 +26,7 @@
+ - 建工作区一律 `worktree create --repo id:<仓库对应的项目ID> --no-parent`，指定工作区用完整 ID `<项目ID>::<路径>`。不带 --repo 时新工作区会继承当前工作区的项目，之前就是这样建错的。
+ - iMac 卡顿或资源不够时，可以把工作树建在 box 上的 Orca（`orca` 不带 --environment，box 已经有 deepvision-site、xinyue-site、vllm-omni 三个仓库，Claude Code 已登录可用）。box 只有 8 核 15G 内存，同一时间最多跑 2 个重任务。在对照表里注明工作树放在哪台机器上。
+ - 功能多的开发要拆开：一个功能（一个 Linear issue）一个工作树，并行开发，不要把很多功能堆在一个工作树里；拆出来的工作树按叠加 PR 的顺序来定 base。
+-- 在 Orca 里起 Claude Code 一律用 `claude --dangerously-skip-permissions`，不能停下来等 Zack 授权。Orca agent 要审批时，由派活的 bot 自己处理：关掉会话，换成这个模式重开，然后接着干；绝不找 Zack。
++- 在 Orca 里起 Claude Code 一律把整个 agent 用 notify-run 包住：`notify-run --bot <派活的 bot> --task "<Linear 编号> <简述>：agent 进程退出了" -- claude --dangerously-skip-permissions ...`（iMac 和 box 都在 ~/.local/bin/）。agent 进程退出、崩溃、断线、终端被关，都会叫醒派活的 bot（status 是 done / failed / killed）；终端里 Claude 的界面照常显示、照常能输入。收到这条说明 agent 已经不在了：工作区还没做完就重开 agent 接着干。自己关终端也会收到一条 killed，不用处理。不能停下来等 Zack 授权。Orca agent 要审批时，由派活的 bot 自己处理：关掉会话，换成这个模式重开，然后接着干；绝不找 Zack。
+ - 显示名 `<bot 简称> · <Linear编号> 中文简述`，关联 Linear issue；开工、开 PR、卡住时用 `worktree set` 更新 --comment 和 --workspace-status，做完把卡片状态改成 completed。
+ 
+ ## Orca 标签页
+@@ -66,7 +66,8 @@
+ - 谁派的 Orca coding agent，做完或卡住就直接叫醒谁，不经 Coding助手 转。每个开发 bot 有自己的 webhook routine「Orca 完工/卡住唤醒」，地址和密钥放在 iMac `~/.config/grokbot/webhooks/<bot>.env`（URL=…、KEY=…）。bot 名分别是 deepvision-ops、deepvision-ads、vllm-omni、xinyue、deepvision-marketing（营销 bot 也照此执行）。
+ - 派活时任务里只写文件路径，不写密钥：完成或卡住时执行 `source ~/.config/grokbot/webhooks/<bot>.env && curl -fsS -X POST "$URL" -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' -d '{"bot":"<bot>","task":"<Linear 编号>","worktree":"<路径>","status":"done|stuck","note":"..."}'`。
+ - 自己的 routine 被叫醒后：读 payload，按本 skill 验收或处理；只在需要时回 Coding助手，不找 Zack；bot=test 只确认收到。
+-- 兜底：Coding助手 的 webhook（`~/.config/grokbot/stuck-webhook.env`）只用于兜底。iMac Orca ops 自动任务「卡住工作检查」工作日 8–23 点每小时跑一次，只有叫醒后超过 1 小时还没人验收，或 agent 中途停掉，才 POST 兜底 webhook。
++- 兜底：Coding助手 的 webhook（`~/.config/grokbot/stuck-webhook.env`）只用于兜底。iMac Orca ops 自动任务「卡住工作检查」工作日 8–23 点每 15 分钟跑一次，iMac 和 box 两边的 Orca 都查。completed / in-review 的工作区叫醒后超过 1 小时还没人验收，才 POST 兜底 webhook。
++- 「卡住工作检查」对 in-progress 的工作区直接叫醒派活的 bot（payload 里 status=stuck、source=stuck-check，kind 说明是哪一种），只报三种：agent 进程不在了而工作区没标完成（agent_gone）；agent 停在输入框等输入超过 30 分钟（agent_idle）；agent 还在、不在等输入，但 30 分钟没有新输出，也没有 notify-run 在跑（agent_silent）。同一个工作区只报一次，有新活动后才会再报。todo / in-review / completed / Sleep 的工作区不查，所以状态要随时改准：等 review 或等拍板就改 in-review 或 Sleep，做完改 completed，不然会被当成卡住。
+ 
+ ## 错题本和验收硬标准（Zack 2026-10-13 批，先在心月试一周）
+ - 派活给 coding agent 时写明：动手前先读本仓库 docs/solutions/LESSONS.md。
+@@ -92,4 +93,5 @@
+ 
+ - 超过 15 分钟的长命令（GPU 测试、构建、部署、长脚本）一律用 `notify-run --bot <bot> --task "<描述>" [--issue X] -- <命令>` 包起来（iMac 和 box 都在 ~/.local/bin/）。不管成功、失败还是被 kill，它都会叫醒派活的 bot。
+ - 用 notify-run 包了的命令，agent 不再另发完工 webhook，免得一件事叫醒两次。
++- 整个 agent 已经用 notify-run 包住时，里面的长命令照样要包：外层只在 agent 进程退出时叫醒，长命令跑完它不知道。agent 做完活还停在输入框里，进程没退出，所以完工 webhook 照发。
+ - 不准开后台助手（executor/Task）盯长命令。

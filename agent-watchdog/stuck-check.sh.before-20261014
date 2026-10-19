@@ -1,0 +1,458 @@
+#!/bin/bash
+# stuck-check.sh [--dry-run]: 卡住工作检查（Orca 自动化「卡住工作检查」每小时调用）。
+# 分工：每个开发 bot 有自己的 webhook（~/.config/grokbot/webhooks/<bot>.env），coding agent 做完或卡住时
+# 自己直接叫醒派活的 bot。本脚本只做兜底，不读也不发那些 bot webhook。
+# 查 iMac 和 box 两套 Orca 的任务工作区（非主目录、非归档的 git 工作区），只报两种情况：
+#   reported_not_accepted：agent 已经报了完成或卡住，超过 1 小时还没人验收。
+#       「已报」= 工作区标 completed/in-review、Linear 卡片 completed、有 *.done 标记、工作区备注以
+#       完成/卡住类字样开头（DONE/PARTIAL/BLOCKED/完成/卡住/阻塞…，或「等 xx 拍板/验收/确认」）、或已开 PR。
+#       「已验收」= PR 有 review 或人工评论（Linear 等自动回链评论不算）、PR 已合并或关闭、工作区已归档、
+#       Linear 卡片 canceled。agent 又在工作（被叫回去返工）时不报。
+#   stopped_no_report：agent 中途停掉、没有报。没有上面任何「已报」信号也没有 PR，并且 agent 超过 1 小时
+#       不在工作，或终端还在但里面已经没有 agent，或工作区标 in-progress 但终端已全部关闭。
+#       同一张 Linear 卡在别的工作区（含另一台 Orca）还在做或已报，视为任务已迁走，不报。
+# bot 归属按 ~/orca/workspaces/ops/orca-projects.md 映射，payload 里用 bot webhook 的文件名
+# （deepvision-ops / deepvision-ads / vllm-omni / xinyue）。发现问题才 POST，一次检查只发一条
+# （多个问题合并，note 里逐条列出，status 不一致时写 mixed）：{bot,task,worktree,status,note} 到 ~/.config/grokbot/stuck-webhook.env 里的 URL（KEY 作为 Bearer，
+# 收件方是 Coding助手）。该文件不存在时只写日志并 exit 0。URL 和 KEY 不会出现在输出和日志里。
+# 同一件事（同一工作区 + 同一 status）只报一次；问题连续 STUCK_FORGET_HOURS（默认 24）小时没再出现才忘掉。
+# --dry-run：只打印，不 POST，不记已通知状态。
+# 退出码：0 正常；2 iMac Orca 查询失败；3 webhook 发送失败。
+set -u
+PY=$(command -v python3 || echo /usr/bin/python3)
+exec "$PY" - "$@" <<'PYEOF'
+import datetime, json, os, re, shutil, subprocess, sys, tempfile, time
+
+HOME = os.path.expanduser("~")
+DRY = "--dry-run" in sys.argv[1:]
+THRESH_H = float(os.environ.get("STUCK_THRESHOLD_HOURS", "1"))
+FORGET_H = float(os.environ.get("STUCK_FORGET_HOURS", "24"))
+MAPPING = os.path.join(HOME, "orca/workspaces/ops/orca-projects.md")
+ENV_FILE = os.environ.get("STUCK_ENV_FILE") or os.path.join(HOME, ".config/grokbot/stuck-webhook.env")
+STATE_DIR = os.environ.get("STUCK_STATE_DIR") or os.path.join(HOME, ".orca-state/stuck-check")  # 两个覆盖项只给测试用
+LOG_FILE = os.path.join(STATE_DIR, "stuck-check.log")
+SEEN_FILE = os.path.join(STATE_DIR, "notified.json")
+SGT = datetime.timezone(datetime.timedelta(hours=8))
+NOW = time.time()
+os.makedirs(STATE_DIR, exist_ok=True)
+SECRETS = []  # webhook 的 URL 和 KEY，任何输出里都替换掉
+REPORTED, STOPPED = "reported_not_accepted", "stopped_no_report"
+# orca-projects.md 里的 bot 名 → ~/.config/grokbot/webhooks/ 下的文件名
+BOT_SLUG = {"心月网站 运维": "xinyue", "deepvision 运维": "deepvision-ops", "deepvision 广告产品": "deepvision-ads",
+            "vllm-omni 开发": "vllm-omni", "定时任务": "ops"}
+# 工作区备注里算「agent 已报完成或卡住」的写法
+REPORT_RE = re.compile(r"^\s*(?:done|partial|blocked|完成|已完成|做完|卡住|阻塞|受阻)|等\s*\S{0,12}?(?:拍板|验收|确认|决定)", re.I)
+
+
+def log(msg):
+    for sec in SECRETS:
+        msg = msg.replace(sec, "<已隐藏>")
+    line = "%s %s" % (datetime.datetime.now(SGT).strftime("%F %T SGT"), msg)
+    print(line, flush=True)
+    if not DRY:
+        with open(LOG_FILE, "a") as f:
+            f.write(line + "\n")
+
+
+def run(cmd, timeout=90):
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return p.returncode, p.stdout, p.stderr.strip()
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return 127, "", str(e)
+
+
+ORCA = (shutil.which("orca-ide") or shutil.which("orca")
+        or "/Applications/Orca.app/Contents/Resources/bin/orca")
+
+
+def orca_json(args, env=None):
+    cmd = [ORCA] + args + (["--environment", env] if env else []) + ["--json"]
+    rc, out, err = run(cmd)
+    if rc != 0:
+        return None, err or out.strip()[:200]
+    try:
+        d = json.loads(out)
+    except ValueError:
+        return None, "非 JSON 输出"
+    if not d.get("ok"):
+        return None, json.dumps(d.get("error"), ensure_ascii=False)[:200]
+    return d["result"], None
+
+
+def hours(ms_or_s, ms=True):
+    if not ms_or_s:
+        return None
+    return (NOW - (ms_or_s / 1000.0 if ms else ms_or_s)) / 3600.0
+
+
+def iso_ts(s):
+    try:
+        return datetime.datetime.fromisoformat(s.replace("Z", "+00:00")).timestamp()
+    except (ValueError, AttributeError):
+        return None
+
+
+def post(cfg, payload):
+    """用 curl 发：python.org 的 Python 没有系统根证书，自带的 HTTP 库发 https 会失败。
+    URL 和 KEY 经 stdin 传给 curl，不出现在进程参数里。返回 HTTP 状态码，或失败说明。"""
+    with tempfile.NamedTemporaryFile("w", suffix=".json", encoding="utf-8") as body:
+        json.dump(payload, body, ensure_ascii=False)
+        body.flush()
+        esc = lambda v: v.replace("\\", "\\\\").replace('"', '\\"')
+        conf = 'url = "%s"\nheader = "Content-Type: application/json"\nheader = "Authorization: Bearer %s"\n' % (
+            esc(cfg["URL"]), esc(cfg["KEY"]))
+        try:
+            p = subprocess.run(["curl", "-sS", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "20", "-X", "POST",
+                                "--data-binary", "@" + body.name, "-K", "-"],
+                               input=conf, capture_output=True, text=True, timeout=40)
+        except (OSError, subprocess.TimeoutExpired) as e:
+            return type(e).__name__
+    if p.returncode != 0:
+        return "curl 退出码 %d" % p.returncode
+    return int(p.stdout) if p.stdout.strip().isdigit() else "无状态码"
+
+
+# ---- bot 映射：orca-projects.md 的「Repo → 项目 ID」表和「Bot → 工作区」表 ----
+UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+SLUG = re.compile(r"[\w.-]+/[\w.-]+")
+LINEAR_RUN = re.compile(r"\b([A-Z]{2,6})-(\d+(?:\s*/\s*\d+)*)")
+
+
+def load_mapping():
+    by_id, by_name, by_linear = {}, {}, {}
+    try:
+        lines = open(MAPPING, encoding="utf-8").read().splitlines()
+    except OSError as e:
+        log("映射文件读不到（%s），bot 一律记为「未映射」" % e)
+        return by_id, by_name, by_linear
+    for ln in lines:
+        if not ln.startswith("|") or set(ln) <= set("|-: "):
+            continue
+        c = [x.strip() for x in ln.strip().strip("|").split("|")]
+        if len(c) != 4:
+            continue
+        m = UUID.fullmatch(c[2])
+        if m:  # Repo | Orca 项目 | 项目 ID | 路径
+            s = SLUG.match(c[0])
+            by_id[c[2]] = {"slug": s.group(0) if s else None, "name": c[1]}
+            continue
+        bot = c[0]
+        if bot in ("Bot", "") or bot.startswith("（"):
+            continue
+        name = re.sub(r"\(.*?\)", "", c[2]).strip()
+        if name and name != "—":
+            by_name.setdefault(name, bot)
+        for pre, nums in LINEAR_RUN.findall(c[1] + " " + c[3]):
+            for n in re.split(r"\s*/\s*", nums):
+                by_linear.setdefault("%s-%s" % (pre, n), bot)
+    return by_id, by_name, by_linear
+
+
+MAP_ID, MAP_NAME, MAP_LINEAR = load_mapping()
+
+
+def bot_for(repo_id, repo_name, slug, linear):
+    if linear and linear in MAP_LINEAR:
+        return BOT_SLUG.get(MAP_LINEAR[linear], MAP_LINEAR[linear])
+    info = MAP_ID.get(repo_id, {})
+    slug = slug or info.get("slug")
+    names = [info.get("name"), repo_name, slug.split("/")[-1] if slug else None]
+    names += [v["name"] for v in MAP_ID.values() if slug and v["slug"] == slug]
+    for n in names:
+        if n and n in MAP_NAME:
+            return BOT_SLUG.get(MAP_NAME[n], MAP_NAME[n])
+    return "未映射"
+
+
+# ---- GitHub PR / Linear 查询（都在 iMac 上跑，带缓存） ----
+_pr_cache, _linear_cache = {}, {}
+GH_USER = None
+PR_FIELDS = "number,state,headRefName,createdAt,reviewDecision,reviews,comments,url"
+# 这些账号的评论是自动回链，不算有人看过 PR
+AUTO_COMMENTERS = {"linear", "github-actions", "vercel", "cloudflare-workers-and-pages", "codecov", "dependabot"}
+
+
+def gh_prs(slug, extra):
+    """slug + 过滤条件 → PR 列表；查询失败返回 None。"""
+    k = (slug,) + tuple(extra)
+    if k not in _pr_cache:
+        rc, out, err = run(["gh", "pr", "list", "-R", slug, "--state", "all", "--limit", "200",
+                            "--json", PR_FIELDS] + list(extra))
+        try:
+            _pr_cache[k] = json.loads(out) if rc == 0 else None
+        except ValueError:
+            _pr_cache[k] = None
+        if _pr_cache[k] is None and "Could not resolve to a Repository" not in err:
+            log("gh pr list %s 失败：%s" % (slug, err[:120]))
+    return _pr_cache[k]
+
+
+def prs_for(slug, branch):
+    """先用自己账号开的 PR（一次查完），没命中再按分支名单独查。"""
+    mine = gh_prs(slug, ["--author", "@me"])
+    if mine and any(p["headRefName"] == branch for p in mine):
+        return mine
+    return gh_prs(slug, ["--head", branch])
+
+
+def reviewed(pr):
+    human = [c for c in pr.get("comments") or []
+             if (c.get("author") or {}).get("login") not in AUTO_COMMENTERS
+             and not ((c.get("author") or {}).get("login") or "").endswith("[bot]")]
+    return bool(pr.get("reviews") or pr.get("reviewDecision") or human)
+
+
+def find_pr(slugs, branch, linked_number):
+    """返回 (pr 或 None, 是否查询成功)。"""
+    ok = False
+    for slug in slugs:
+        prs = prs_for(slug, branch)
+        if prs is None:
+            continue
+        ok = True
+        hits = [p for p in prs if p["headRefName"] == branch]
+        if not hits and linked_number and slug == slugs[0]:
+            hits = [p for p in gh_prs(slug, ["--author", "@me"]) or [] if p["number"] == linked_number]
+        if hits:
+            hits.sort(key=lambda p: (p["state"] != "OPEN", -p["number"]))
+            return hits[0], True
+    return None, ok
+
+
+def linear_state(ident):
+    if ident not in _linear_cache:
+        res, _ = orca_json(["linear", "issue", ident])
+        iss = (res or {}).get("issue") or {}
+        _linear_cache[ident] = ((iss.get("state") or {}).get("type"), iso_ts(iss.get("updatedAt")))
+    return _linear_cache[ident]
+
+
+def done_marker(path):
+    """本机工作区里最新的 *.done 标记（3 层以内，跳过 node_modules/.git）。"""
+    best = None
+    base = path.rstrip("/").count("/")
+    for root, dirs, files in os.walk(path):
+        dirs[:] = [d for d in dirs if d not in ("node_modules", ".git", ".wrangler", ".next", "dist")]
+        if root.count("/") - base >= 2:
+            dirs[:] = []
+        for f in files:
+            if f.endswith(".done"):
+                try:
+                    mt = os.path.getmtime(os.path.join(root, f))
+                except OSError:
+                    continue
+                if best is None or mt > best[1]:
+                    best = (os.path.relpath(os.path.join(root, f), path), mt)
+    return best
+
+
+# ---- 检查一台 Orca ----
+def check_host(label, env):
+    ps, err = orca_json(["worktree", "ps"], env)
+    if ps is None:
+        return None, err
+    repos, _ = orca_json(["repo", "list"], env)
+    repos = (repos or {}).get("repos") or []
+    slug_of = {}
+    for r in repos:
+        key = (r.get("gitRemoteIdentity") or {}).get("canonicalKey") or ""
+        if key.startswith("github.com/"):
+            slugs = [key[len("github.com/"):]]
+            up = r.get("upstream") or {}
+            if up.get("owner") and "%s/%s" % (up["owner"], up["repo"]) not in slugs:
+                slugs.append("%s/%s" % (up["owner"], up["repo"]))
+            user = GH_USER or r.get("gitUsername")  # fork 上的 PR 也算
+            if user and slugs[0].split("/")[0] != user:
+                slugs.append("%s/%s" % (user, slugs[0].split("/")[1]))
+            slug_of[r["id"]] = slugs
+    found, scanned, alive = [], 0, set()  # alive：还在做或已报的 Linear 卡
+    for w in ps.get("worktrees", []):
+        if w.get("workspaceKind") != "git" or w.get("isMainWorktree") or w.get("isArchived"):
+            continue
+        scanned += 1
+        linear = w.get("linkedLinearIssue")
+        lstate, lts = linear_state(linear) if linear else (None, None)
+        if lstate == "canceled":
+            continue
+        branch = (w.get("branch") or "").replace("refs/heads/", "")
+        slugs = slug_of.get(w.get("repoId")) or []
+        if not slugs and MAP_ID.get(w.get("repoId"), {}).get("slug"):
+            slugs = [MAP_ID[w["repoId"]]["slug"]]
+        bot = bot_for(w.get("repoId"), w.get("repo"), slugs[0] if slugs else None, linear)
+        task = ("%s %s" % (linear or "", w.get("displayName") or "")).strip()
+        if linear and linear in (w.get("displayName") or ""):
+            task = w["displayName"]
+        where = "%s:%s" % (label, w["path"])
+
+        def add(kind, note):
+            found.append({"bot": bot, "task": task, "worktree": where, "status": kind, "note": note,
+                          "_linear": linear})
+
+        agents = w.get("agents") or []
+        if any(a.get("state") == "working" for a in agents):
+            alive.add(linear)
+            continue  # 还在做，或被叫回去返工
+
+        status = w.get("workspaceStatus")
+        marker = done_marker(w["path"]) if env is None and os.path.isdir(w["path"]) else None
+        comment = (w.get("comment") or "").strip()
+        signals, reported_at = [], []
+        if status in ("completed", "in-review"):
+            signals.append("工作区标为 %s" % status)
+            reported_at.append((w.get("lastActivityAt") or 0) / 1000.0)
+        if lstate == "completed":
+            signals.append("Linear %s 已完成" % linear)
+            reported_at.append(lts or 0)
+        if marker:
+            signals.append("有标记 %s" % marker[0])
+            reported_at.append(marker[1])
+        if REPORT_RE.search(comment):
+            signals.append("工作区备注「%s」" % comment[:60])
+            reported_at.append((w.get("lastActivityAt") or 0) / 1000.0)
+
+        pr, pr_ok = (None, False)
+        if slugs and branch:
+            pr, pr_ok = find_pr(slugs, branch, (w.get("linkedPR") or {}).get("number"))
+
+        if pr:
+            alive.add(linear)
+            age = hours(iso_ts(pr["createdAt"]), ms=False)
+            if pr["state"] == "OPEN" and not reviewed(pr) and age is not None and age > THRESH_H:
+                add(REPORTED, "agent 已开 PR %.1f 小时，没有 review，也没有人评论：%s" % (age, pr["url"]))
+            continue  # PR 有人看过、已合并或已关闭，算验收过
+        if slugs and not pr_ok:
+            continue  # PR 查询失败，不误报
+        if signals:
+            alive.add(linear)
+            age = hours(max(reported_at), ms=False) if max(reported_at) > 0 else None
+            if age is None or age > THRESH_H:
+                add(REPORTED, "%s，%s没人验收（没有 PR，分支 %s%s）" % (
+                    "；".join(signals), "已 %.1f 小时" % age if age is not None else "",
+                    branch or "?", "" if slugs else "，仓库没有 GitHub 远端"))
+            continue
+        terms = w.get("liveTerminalCount") or 0
+        if agents:
+            last = max(agents, key=lambda a: a.get("updatedAt") or a.get("stateStartedAt") or 0)
+            idle = hours(max(last.get("updatedAt") or 0, last.get("stateStartedAt") or 0))
+            if idle is not None and idle > THRESH_H:
+                add(STOPPED, "%s 停在 %s 状态已 %.1f 小时%s，没有完成或卡住的报告，也没有 PR" % (
+                    last.get("agentType") or "agent", last.get("state"), idle,
+                    "（被中断）" if last.get("interrupted") else ""))
+        elif (terms > 0 and status in ("in-progress", "todo")) or status == "in-progress":
+            idle = hours(w.get("lastActivityAt"))
+            if idle is None or idle > THRESH_H:
+                add(STOPPED, "%s，工作区状态 %s%s，没有完成或卡住的报告，也没有 PR" % (
+                    "终端还开着（%d 个）但里面没有 agent 在跑" % terms if terms else "终端已全部关闭，没有 agent",
+                    status, "，最近活动在 %.1f 小时前" % idle if idle is not None else ""))
+    alive.discard(None)
+    return (found, scanned, alive), None
+
+
+def main():
+    global GH_USER
+    rc, out, _ = run(["gh", "api", "user", "-q", ".login"], 30)
+    GH_USER = out.strip() if rc == 0 and out.strip() else None
+    log("开始%s（orca=%s，阈值 %.1f 小时）" % ("（dry-run）" if DRY else "", os.path.basename(ORCA), THRESH_H))
+    problems, alive = [], set()
+    res, err = check_host("iMac", None)
+    if res is None:
+        log("iMac Orca 查询失败：%s" % err)
+        return 2
+    problems += res[0]
+    alive |= res[2]
+    log("iMac：查了 %d 个任务工作区，%d 个问题" % (res[1], len(res[0])))
+
+    box_env = os.environ.get("STUCK_BOX_ENV")
+    if not box_env:
+        rc, out, _ = run([ORCA, "environment", "list"], 30)
+        names = [ln.split()[1] for ln in out.splitlines() if len(ln.split()) >= 2] if rc == 0 else []
+        box_env = next((n for n in ("box", "grok-bot") if n in names), None)
+    if not box_env:
+        log("box：没有配好的 Orca environment，跳过")
+    else:
+        res, err = check_host("box", box_env)
+        if res is None:
+            log("box（--environment %s）查询失败，跳过：%s" % (box_env, err))
+        else:
+            problems += res[0]
+            alive |= res[2]
+            log("box（--environment %s）：查了 %d 个任务工作区，%d 个问题；box 上的 *.done 标记读不到，未检查" % (
+                box_env, res[1], len(res[0])))
+
+    moved = [p for p in problems if p["status"] == STOPPED and p["_linear"] in alive]
+    for p in moved:
+        log("跳过 | %s | %s：%s 在别的工作区还在做或已报，视为任务已迁走" % (p["task"], p["worktree"], p["_linear"]))
+    problems = [p for p in problems if p not in moved]
+    for p in problems:
+        del p["_linear"]
+        log("问题 | %s | %s | %s | %s | %s" % (p["bot"], p["status"], p["task"], p["worktree"], p["note"]))
+
+    # 已通知记录：{工作区|status: {"notified": 首次通知时间, "last_seen": 最近一次还存在的时间}}
+    try:
+        seen = json.load(open(SEEN_FILE))
+    except (OSError, ValueError):
+        seen = {}
+    key = lambda p: "%s|%s" % (p["worktree"], p["status"])
+    seen = {k: v for k, v in seen.items() if isinstance(v, dict) and NOW - v.get("last_seen", 0) < FORGET_H * 3600}
+    for p in problems:
+        if key(p) in seen:
+            seen[key(p)]["last_seen"] = NOW
+    due = [p for p in problems if key(p) not in seen]
+
+    def save_seen():
+        if not DRY:
+            with open(SEEN_FILE, "w") as f:
+                json.dump(seen, f, ensure_ascii=False, indent=1)
+
+    save_seen()
+    if not problems:
+        log("没有发现问题，不发 webhook")
+        return 0
+    log("共 %d 个问题，其中 %d 个需要通知（其余已通知过，同一件事不重复报）" % (len(problems), len(due)))
+
+    if not os.path.isfile(ENV_FILE):
+        log("webhook 未配置（%s 不存在），只记日志，不发送" % ENV_FILE)
+        return 0
+    cfg = {}
+    for ln in open(ENV_FILE):
+        m = re.match(r"\s*(?:export\s+)?(URL|KEY)\s*=\s*(.*?)\s*$", ln)
+        if m:
+            cfg[m.group(1)] = m.group(2).strip("'\"")
+    SECRETS.extend(v for v in cfg.values() if v)
+    if not cfg.get("URL") or not cfg.get("KEY"):
+        log("webhook 配置不完整（%s 缺 URL 或 KEY），只记日志，不发送" % ENV_FILE)
+        return 0
+    if not due:
+        return 0
+    # 一次检查只发一条：只有一个问题时原样发，多个问题合并，note 里逐条列出
+    if len(due) == 1:
+        payload = due[0]
+    else:
+        uniq = lambda k: list(dict.fromkeys(p[k] for p in due))
+        payload = {
+            "bot": "、".join(uniq("bot")),
+            "task": "卡住工作检查：%d 条" % len(due),
+            "worktree": "多个（见 note）",
+            "status": uniq("status")[0] if len(uniq("status")) == 1 else "mixed",
+            "note": "共 %d 条（%s）：\n" % (len(due), "，".join(
+                "%s %d" % (st, sum(p["status"] == st for p in due)) for st in uniq("status"))) + "\n".join(
+                "%d. [%s] %s | %s | %s | %s" % (i, p["bot"], p["status"], p["task"], p["worktree"], p["note"])
+                for i, p in enumerate(due, 1)),
+        }
+    if DRY:
+        log("dry-run，将 POST 1 条（含 %d 个问题）：%s" % (len(due), json.dumps(payload, ensure_ascii=False)))
+        return 0
+    code = post(cfg, payload)
+    if not (isinstance(code, int) and 200 <= code < 300):
+        log("POST 失败（%s）：1 条，含 %d 个问题，下次运行重发" % (code, len(due)))
+        return 3
+    for p in due:
+        seen[key(p)] = {"notified": NOW, "last_seen": NOW}
+    save_seen()
+    log("已 POST（%s）：1 条，含 %d 个问题" % (code, len(due)))
+    return 0
+
+
+sys.exit(main())
+PYEOF

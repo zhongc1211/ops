@@ -1,0 +1,400 @@
+{
+  "id": "7d49b716-90b4-468a-b98e-4ec330c94583",
+  "ok": true,
+  "result": {
+    "terminals": [
+      {
+        "handle": "term_7ec90b78-e3c0-40ac-bace-5a5693e664ca",
+        "ptyId": "folder:479149ea-1146-4baa-b03e-b31fcdbd181e@@5f11e221",
+        "incarnationId": "ae4cd78e-f315-4165-8271-564c1306564e",
+        "orphaned": false,
+        "worktreeId": "folder:479149ea-1146-4baa-b03e-b31fcdbd181e",
+        "worktreePath": "",
+        "branch": "",
+        "tabId": "ec7e9daf-31c9-4dca-b34a-3ba562aaba90",
+        "leafId": "a183fc05-d74f-4af9-b613-6ac8dfd626ba",
+        "title": "~/pi",
+        "connected": true,
+        "writable": true,
+        "lastOutputAt": 1792313383888,
+        "preview": "➜  pi 3ub",
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_70f83f2d-cfa0-43c9-8305-a035357be1b8",
+        "ptyId": "b8e788b7-0343-44e2-862e-147ea20adf8f::/Users/jiawenwang/orca/workspaces/repository/per-rebase-main-1017@@fe065031",
+        "incarnationId": "fbc7fc94-a774-42e3-b5ab-118ff1d646a4",
+        "orphaned": false,
+        "worktreeId": "b8e788b7-0343-44e2-862e-147ea20adf8f::/Users/jiawenwang/orca/workspaces/repository/per-rebase-main-1017",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/repository/per-rebase-main-1017",
+        "branch": "",
+        "tabId": "229f3b0f-2492-4706-92f5-cd830ad1861c",
+        "leafId": "1901dc4c-5a40-4d20-a26d-2688692a8a0c",
+        "title": "..ysis/gpu-1017",
+        "connected": true,
+        "writable": true,
+        "lastOutputAt": 1792312267273,
+        "preview": "54；按总额，离 $30 停止线还有约 $8.5。\n125:1. **不再跑（推荐）**：描述按草稿，把复查表标为 `5bff2b553`。主测已经说明 step mode 的差异在新 head 上仍在，只是从 step 1 开始。$0。\n126:2. **只跑第二个容器**（step mode 对 request mode，都不配调度）：要把 H100 段线提到约 $8，总额仍在 $30 内；开机就绪的风险和这次一样，最坏约 $5.4 拿不到数据。\n127:3. 两个容器都跑：按今天的耗时要 $10 以上，超过 $30 停止线，不建议。\n➜  gpu-1017 git:(06b992e01)",
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_8ae460fc-b020-4aeb-8c80-32b52ef5770b",
+        "ptyId": "099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/orca/workspaces/xinyue-site/docs-lessons-to-everos@@c8ae388f",
+        "incarnationId": "8f8094a3-0d08-480b-b8e6-35c945749f55",
+        "orphaned": false,
+        "worktreeId": "099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/orca/workspaces/xinyue-site/docs-lessons-to-everos",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/xinyue-site/docs-lessons-to-everos",
+        "branch": "refs/heads/zhongc1211/docs-lessons-to-everos",
+        "tabId": "67c4f0ca-7561-4d31-a729-df4a357215a6",
+        "leafId": "528155be-d5ee-4f04-9194-053fdb9c50d3",
+        "title": "..ons-to-everos",
+        "connected": true,
+        "writable": true,
+        "lastOutputAt": 1792343955181,
+        "preview": "➜  docs-lessons-to-everos git:(zhongc1211/docs-lessons-to-everos)",
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_bdc836c7-653d-4c9d-b9aa-adbeeaa2d60f",
+        "ptyId": "e9b33f9c-7218-4f6c-b03a-3b85fd8933ac::/Users/jiawenwang/orca/workspaces/ops@@1b1706f9",
+        "incarnationId": "c4d0d849-0d1a-4e99-8310-5c6354c43011",
+        "orphaned": false,
+        "worktreeId": "e9b33f9c-7218-4f6c-b03a-3b85fd8933ac::/Users/jiawenwang/orca/workspaces/ops",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/ops",
+        "branch": "refs/heads/main",
+        "tabId": "fd6622f1-fe7e-4244-8883-4049d0f22dfa",
+        "leafId": "995b209a-ce0c-43e3-a95b-b3ea7af9345d",
+        "title": "◐ Orca 工作区夜间清理",
+        "connected": true,
+        "writable": true,
+        "lastOutputAt": 1792347461679,
+        "preview": "✳ Schlepping…           58",
+        "executionHostId": "local",
+        "agentIdentity": "claude"
+      },
+      {
+        "handle": "term_536b1904-9e2e-46b8-a1aa-5b17a2751f03",
+        "ptyId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计@@d6b59e73",
+        "incarnationId": "72ec3f26-4b6c-4ece-84d6-445f36c54e7f",
+        "orphaned": false,
+        "worktreeId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计",
+        "branch": "refs/heads/zhongc1211/dv官网-Open-Design-重设计",
+        "tabId": "395277ec-8e58-4ffa-9151-a4fe8ed81e24",
+        "leafId": "d833986b-ea99-40c9-8423-111d60b16292",
+        "title": "主终端",
+        "connected": false,
+        "writable": false,
+        "lastOutputAt": 1792335732648,
+        "preview": "7d 28 BB\nResume this session with:\nclaude --resume 7d8e16a9-5d7a-46a4-8fb4-e879cb7b9857",
+        "exitCause": {
+          "kind": "operator_close"
+        },
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_76ca3727-58f7-4a1c-bfeb-1de6435abfc7",
+        "ptyId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计@@5b3ab8d7",
+        "incarnationId": "154e3470-3284-45f4-abb7-77e8060a2da5",
+        "orphaned": false,
+        "worktreeId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计",
+        "branch": "refs/heads/zhongc1211/dv官网-Open-Design-重设计",
+        "tabId": "48db6935-2e93-427c-a33f-5914db1ca3bf",
+        "leafId": "cf5465c5-7154-4a97-89b8-be8f19aef600",
+        "title": "主终端",
+        "connected": false,
+        "writable": false,
+        "lastOutputAt": 1792334954684,
+        "preview": "BB\nResume this session with:\nclaude --resume a37d5472-d7a8-44ac-8419-ea2084cffdd4",
+        "exitCause": {
+          "kind": "operator_close"
+        },
+        "executionHostId": "local",
+        "agentIdentity": "claude"
+      },
+      {
+        "handle": "term_1c09acf2-2371-49ff-a45d-646f95080bf1",
+        "ptyId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计@@9c5378ab",
+        "incarnationId": "adba5af5-3838-43f6-81d1-736779578f01",
+        "orphaned": false,
+        "worktreeId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计",
+        "branch": "refs/heads/zhongc1211/dv官网-Open-Design-重设计",
+        "tabId": "5effeb5d-e467-46a4-9b62-be04545b24b8",
+        "leafId": "ab4b2f5c-0dcf-4204-abd8-ab510f1fe4bc",
+        "title": "主终端",
+        "connected": false,
+        "writable": false,
+        "lastOutputAt": 1792339213163,
+        "preview": "BB\nResume this session with:\nclaude --resume 46489bb5-b2ba-4851-8077-6ca6c66795b9",
+        "exitCause": {
+          "kind": "operator_close"
+        },
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_50eaf1d3-a5ea-4f93-a2a2-659b6b3d4bbf",
+        "ptyId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-全站素材配色GEO@@a77d1669",
+        "incarnationId": "66150e51-917a-4e17-a0ad-a5c8af820dd2",
+        "orphaned": false,
+        "worktreeId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-全站素材配色GEO",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-全站素材配色GEO",
+        "branch": "",
+        "tabId": "29fa2a40-df0e-4aaf-b807-34d6fd91adab",
+        "leafId": "bf45a9fb-3f3d-4214-a8a4-d0cb700e1c42",
+        "title": "..站素材配色GEO",
+        "connected": true,
+        "writable": true,
+        "lastOutputAt": 1792342405931,
+        "preview": "ut masks: Ryze 0.0000%, ours 0.0000%.\n156:Repeat check, one font (both pages loaded again in fresh browsers, exempt blocks masked as above): Ryze vs Ryze 238 px = 0.0052%; ours vs ours 12 px = 0.0002%. Without masks: Ryze 0.0052%, ours 0.0002%.\n__GB_258943689_E\n➜  dv官网-FDV-70-全站素材配色GEO git:(1f16546)",
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_f356f1fb-3540-4cfd-9918-9f335fad27fc",
+        "ptyId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-全站素材配色GEO@@5ad1235c",
+        "incarnationId": "58779550-d279-4d40-b9d6-624e4c225849",
+        "orphaned": false,
+        "worktreeId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-全站素材配色GEO",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-全站素材配色GEO",
+        "branch": "",
+        "tabId": "887b56ee-fe21-4a5b-b929-505fd371328b",
+        "leafId": "2ea31188-415d-45c0-bfb3-32479ff2ab40",
+        "title": "主终端",
+        "connected": false,
+        "writable": false,
+        "lastOutputAt": 1792263615158,
+        "preview": "BB\nResume this session with:\nclaude --resume f231ed50-a31c-48cb-8d17-b62fec89e711",
+        "exitCause": {
+          "kind": "operator_close"
+        },
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_69e48e8e-7d37-4cb4-9010-dc7cc624b3ef",
+        "ptyId": "4e597f43-7d06-4c29-867e-0252425bbbed::/Users/jiawenwang/orca/workspaces/deepvision-ads/dv广告-FDV-76-隐私页GEO@@bd49c2db",
+        "incarnationId": "3b6d950d-2204-4204-83a5-27f9da19336f",
+        "orphaned": false,
+        "worktreeId": "4e597f43-7d06-4c29-867e-0252425bbbed::/Users/jiawenwang/orca/workspaces/deepvision-ads/dv广告-FDV-76-隐私页GEO",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/deepvision-ads/dv广告-FDV-76-隐私页GEO",
+        "branch": "refs/heads/zhongc1211/dv广告-FDV-76-隐私页GEO",
+        "tabId": "214afaf1-5104-487b-9e18-6ac3d3503d3b",
+        "leafId": "6b660b42-ae16-4ffe-b713-b76d2aa4d2a2",
+        "title": "..l1-prod-login",
+        "connected": true,
+        "writable": true,
+        "lastOutputAt": 1792276206164,
+        "preview": "PUSH-DONE\n2aab2b0c9490c696\nCOPY-DONE\nPHASE-A {\"email\":\"hello@deepvision.sg\",\"base\":\"https://ads.deepvision.sg\",\"submitted\":true,\"turnstileToken\":true,\"requestedAt\":\"2026-10-17T22:30:01.132Z\",\"codeStep\":true,\"alert\":null}\nPHASEA-DONE\n➜  rel1-prod-login",
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_58cdaab5-fd75-4122-bdc5-07858ff4d259",
+        "ptyId": "099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/orca/workspaces/xinyue-site/per-62-game-screenshots@@d6291aa3",
+        "incarnationId": "b07b0184-cb84-4cdf-ae87-1321df9c4d69",
+        "orphaned": false,
+        "worktreeId": "099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/orca/workspaces/xinyue-site/per-62-game-screenshots",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/xinyue-site/per-62-game-screenshots",
+        "branch": "refs/heads/zhongc1211/per-62-game-screenshots",
+        "tabId": "803fad04-eea5-4800-b8d7-a9e27dca1193",
+        "leafId": "22bbd9f7-1401-444f-ad5e-5b1a2e52f020",
+        "title": "主终端 · PER-62 游戏真实截图（续跑）",
+        "connected": false,
+        "writable": false,
+        "lastOutputAt": 1792307175390,
+        "preview": "new task? /clear to save 105.9k tokensBB\nResume this session with:\nclaude --resume 3bf2141b-5038-4d30-9859-86d6211dc755",
+        "exitCause": {
+          "kind": "operator_close"
+        },
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_4805fd26-fbee-4281-b367-83184ba42581",
+        "ptyId": "4e597f43-7d06-4c29-867e-0252425bbbed::/Users/jiawenwang/orca/workspaces/deepvision-ads/dvads-fdv-66-email@@5a225511",
+        "incarnationId": "3554d4c3-88e1-4238-9010-78f274e20959",
+        "orphaned": false,
+        "worktreeId": "4e597f43-7d06-4c29-867e-0252425bbbed::/Users/jiawenwang/orca/workspaces/deepvision-ads/dvads-fdv-66-email",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/deepvision-ads/dvads-fdv-66-email",
+        "branch": "refs/heads/zhongc1211/dvads-fdv-66-email",
+        "tabId": "e7766888-5808-491e-94e3-132e7ab029cf",
+        "leafId": "94d74373-ac6f-4b32-991e-f0478d529c53",
+        "title": "主终端",
+        "connected": false,
+        "writable": false,
+        "lastOutputAt": 1792263613015,
+        "preview": "BB\nResume this session with:\nclaude --resume 00c4960b-9fbc-4ad0-9ddb-1143c3207c04",
+        "exitCause": {
+          "kind": "operator_close"
+        },
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_c0af56ba-7bfa-447f-9606-e2d718bf344a",
+        "ptyId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-关于我们@@ed0e6333",
+        "incarnationId": "62c2cf92-8b22-41a7-a380-b36bb24d5cc8",
+        "orphaned": false,
+        "worktreeId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-关于我们",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-关于我们",
+        "branch": "refs/heads/zhongc1211/dv官网-FDV-70-iMac-关于我们",
+        "tabId": "0564044c-65e7-496b-8ff7-9ab1672b8141",
+        "leafId": "7b15c6ba-a55e-4e32-8819-ff95b2f937a2",
+        "title": "..iMac-关于我们",
+        "connected": true,
+        "writable": true,
+        "lastOutputAt": 1792337616443,
+        "preview": "is operation\nFAIL  tests/migration/storage-ownership.test.ts > immutable object destinations > r2: retries its own object set and refuses a changed set, an unowned existing object, and an ordinary control-key collision\n__GB_2267527786_E\n➜  dv官网-FDV-70-iMac-关于我们 git:(zhongc1211/dv官网-FDV-70-iMac-关于我们)",
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_a2c7eb1a-3846-428c-b5b9-c71d74020a40",
+        "ptyId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-关于我们@@c14c6f22",
+        "incarnationId": "28c209e6-8113-4824-bcab-cd23a140b241",
+        "orphaned": false,
+        "worktreeId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-关于我们",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-关于我们",
+        "branch": "refs/heads/zhongc1211/dv官网-FDV-70-iMac-关于我们",
+        "tabId": "cea90688-616e-4bc2-98aa-5b25020a0e16",
+        "leafId": "47ae7891-d387-4e94-93fd-8dcd576e5496",
+        "title": "主终端",
+        "connected": false,
+        "writable": false,
+        "lastOutputAt": 1792345812392,
+        "preview": "BB\nResume this session with:\nclaude --resume 2f7d0624-0b60-459e-aff7-11a1a2599f25",
+        "exitCause": {
+          "kind": "operator_close"
+        },
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_2d39761b-87a3-48af-b5ea-9acc5708d5a4",
+        "ptyId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-产品页@@03e3fbb1",
+        "incarnationId": "132e6f13-2205-4cca-b9ae-9bb47d509a3a",
+        "orphaned": false,
+        "worktreeId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-产品页",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-产品页",
+        "branch": "refs/heads/zhongc1211/dv官网-FDV-70-iMac-产品页",
+        "tabId": "eb487d78-3c72-4962-8774-d16e2ff75c6e",
+        "leafId": "6f2ed412-e513-4679-9879-99c3de4296c8",
+        "title": "..0-iMac-产品页",
+        "connected": true,
+        "writable": true,
+        "lastOutputAt": 1792334574791,
+        "preview": "➜  dv官网-FDV-70-iMac-产品页 git:(zhongc1211/dv官网-FDV-70-iMac-产品页)",
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_afeda2d4-ef65-4341-9178-a0a7c09a3171",
+        "ptyId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-产品页@@b96ae6f9",
+        "incarnationId": "47d2135b-3c97-4a55-be0c-fee6cf2231af",
+        "orphaned": false,
+        "worktreeId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-产品页",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-产品页",
+        "branch": "refs/heads/zhongc1211/dv官网-FDV-70-iMac-产品页",
+        "tabId": "83c9aa55-f909-46cd-ba90-9c2f54f04be4",
+        "leafId": "f7c62f24-6dba-4c7c-8166-922166f4d8f0",
+        "title": "主终端",
+        "connected": false,
+        "writable": false,
+        "lastOutputAt": 1792344736747,
+        "preview": "BB\nResume this session with:\nclaude --resume 3041d730-e696-4573-8023-26f2d657aa88",
+        "exitCause": {
+          "kind": "operator_close"
+        },
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_601de0b8-f28a-48f4-bd13-4232c0ed29ad",
+        "ptyId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-博客@@e6146198",
+        "incarnationId": "52c25fdb-8ed0-4856-b055-281efe4378af",
+        "orphaned": false,
+        "worktreeId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-博客",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-博客",
+        "branch": "refs/heads/zhongc1211/dv官网-FDV-70-iMac-博客",
+        "tabId": "47c8c510-4bbd-462f-9e98-12e2b3c76d99",
+        "leafId": "07907e88-9168-4746-95fe-5e9a48751fb9",
+        "title": "..-70-iMac-博客",
+        "connected": true,
+        "writable": true,
+        "lastOutputAt": 1792334595120,
+        "preview": "➜  dv官网-FDV-70-iMac-博客 git:(zhongc1211/dv官网-FDV-70-iMac-博客)",
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_f39598cb-aa5e-417d-8969-c9a5078765ed",
+        "ptyId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-博客@@a6008eaa",
+        "incarnationId": "7ebdc920-4dca-43af-a723-f9ae25499928",
+        "orphaned": false,
+        "worktreeId": "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-博客",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-博客",
+        "branch": "refs/heads/zhongc1211/dv官网-FDV-70-iMac-博客",
+        "tabId": "888e5179-e5ec-4b9f-a8d9-ffd45ceec8bd",
+        "leafId": "c301d781-80ef-4293-a7ca-fbafa3d25217",
+        "title": "主终端",
+        "connected": false,
+        "writable": false,
+        "lastOutputAt": 1792347432528,
+        "preview": "BB\nResume this session with:\nclaude --resume 0da2bbfd-b474-4437-8bf8-9ac15e63b3f4",
+        "exitCause": {
+          "kind": "operator_close"
+        },
+        "executionHostId": "local"
+      },
+      {
+        "handle": "term_99c1d1a3-f832-4279-8dc4-0c6d4359a559",
+        "ptyId": "e9b33f9c-7218-4f6c-b03a-3b85fd8933ac::/Users/jiawenwang/orca/workspaces/ops@@15a286ff",
+        "incarnationId": "f05654ef-469f-457c-b9de-a3dc60540038",
+        "orphaned": true,
+        "recordedPaneKey": "34a6c089-5570-4139-99e6-9140276911df:dffe5495-c1c7-44b2-81d8-613404b161ec",
+        "worktreeId": "e9b33f9c-7218-4f6c-b03a-3b85fd8933ac::/Users/jiawenwang/orca/workspaces/ops",
+        "worktreePath": "/Users/jiawenwang/orca/workspaces/ops",
+        "branch": "refs/heads/main",
+        "tabId": "pty:e9b33f9c-7218-4f6c-b03a-3b85fd8933ac::/Users/jiawenwang/orca/workspaces/ops@@15a286ff",
+        "leafId": "pty:e9b33f9c-7218-4f6c-b03a-3b85fd8933ac::/Users/jiawenwang/orca/workspaces/ops@@15a286ff",
+        "title": "✳ Ce-pstack-survey-BRIEF 运维简报",
+        "connected": true,
+        "writable": true,
+        "lastOutputAt": 1792347188773,
+        "preview": "❯",
+        "executionHostId": "local",
+        "agentIdentity": "claude"
+      }
+    ],
+    "hostScope": {
+      "hostIds": [
+        "local"
+      ],
+      "omittedHostIds": [
+        "runtime:3b6f4e92-3a82-410b-a813-420eb041e410",
+        "runtime:8d650fd5-7575-4638-a66c-bd90d9e695ef"
+      ],
+      "omittedHostSelectors": [
+        {
+          "hostId": "runtime:3b6f4e92-3a82-410b-a813-420eb041e410",
+          "selector": "--environment grok-bot"
+        },
+        {
+          "hostId": "runtime:8d650fd5-7575-4638-a66c-bd90d9e695ef",
+          "selector": "--environment mba"
+        }
+      ]
+    },
+    "topologyRevisions": {
+      "folder:479149ea-1146-4baa-b03e-b31fcdbd181e": 42,
+      "b8e788b7-0343-44e2-862e-147ea20adf8f::/Users/jiawenwang/orca/workspaces/repository/per-rebase-main-1017": 305,
+      "099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/orca/workspaces/xinyue-site/docs-lessons-to-everos": 323,
+      "e9b33f9c-7218-4f6c-b03a-3b85fd8933ac::/Users/jiawenwang/orca/workspaces/ops": 1181,
+      "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计": 453,
+      "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-全站素材配色GEO": 453,
+      "4e597f43-7d06-4c29-867e-0252425bbbed::/Users/jiawenwang/orca/workspaces/deepvision-ads/dv广告-FDV-76-隐私页GEO": 205,
+      "099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/orca/workspaces/xinyue-site/per-62-game-screenshots": 323,
+      "4e597f43-7d06-4c29-867e-0252425bbbed::/Users/jiawenwang/orca/workspaces/deepvision-ads/dvads-fdv-66-email": 205,
+      "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-关于我们": 453,
+      "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-产品页": 453,
+      "f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-博客": 453
+    },
+    "totalCount": 19,
+    "truncated": false
+  },
+  "_meta": {
+    "runtimeId": "2b2b9870-c338-4098-97f1-7bd7adc806f6"
+  }
+}
