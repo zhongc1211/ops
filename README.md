@@ -28,6 +28,7 @@ Orca 项目和工作区清单见 [orca-projects.md](orca-projects.md)。
 | [`scripts/orca-bot-guard.sh`](scripts/orca-bot-guard.sh) | orca-bot 公网守护（iMac「ops · 03」的 precheck），连续不通叫醒 Coding助手，记 webhook 的 HTTP 码 |
 | [`sentinels/`](sentinels/) | ops · 23 生产版本哨兵（iMac 每 15 分钟，生产台账）和 ops · 24 未推送扫描（两台机器每小时） |
 | [`orca-remote/`](orca-remote/) | box 上 Orca 的看门狗 `watchdog.sh` 和 `ensure-watchdog.sh` |
+| [`wake/tla/`](wake/tla/) | 叫醒系统的 TLA+ 模型检查（PER-67）：`wake/tla/check.sh` 一条命令复跑；改叫醒 / 卡住检查代码时用 skill `wake-tla-verify` |
 | [`reports/wake-fixes-2026-10-17.md`](reports/wake-fixes-2026-10-17.md) | 叫醒系统 10-17 修复记录 |
 
 ## box 运维和定时任务
