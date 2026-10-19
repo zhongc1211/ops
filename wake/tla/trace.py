@@ -8,16 +8,16 @@ import sys
 
 CODE = {
     "AgentPause": "Claude Stop hook → orca-wake cmd_claude_hook Stop（wake/bin/orca-wake:724-739）→ dispatch_send（:370-423）",
-    "AgentExit": "agent 退出 → notify-run wait 返回（wake/bin/notify-run:194-203）→ finish → send_webhook（:142-156）",
+    "AgentExit": "agent 退出 → notify-run wait 返回（wake/bin/notify-run:196-205）→ finish → send_webhook（:144-158）",
     "MarkCompleted": "agent 把任务工作区标 completed（Orca 看板）",
-    "NrAttempt": "notify-run 一次 curl POST（wake/bin/notify-run:120-128，成功判断 :125）",
+    "NrAttempt": "notify-run 一次 curl POST（wake/bin/notify-run:122-130，成功判断 :127）",
     "OwAttempt": "orca-wake _deliver 一次 POST（wake/bin/orca-wake:501-554，成功判断 :518，_mark_sent :450-453）",
     "IdlePrompt": "Claude idle_prompt hook（wake/bin/orca-wake:764-779）→ dispatch_send 去重（:378-397）",
     "WebhookDown": "派活 bot 的 webhook 开始不可用（环境）",
     "WebhookUp": "webhook 恢复（环境）",
-    "Scan": "卡住检查一次扫描：check_agents + wake_recheck + send_all（scripts/stuck-check.sh:775-1087,1449-1529,1638-1656）",
-    "Tick": "过 15 分钟（下一次扫描，stuck-check.sh:1746）",
-    "Step": "过 1 分钟：ops · 01 precheck（scripts/stuck-check.sh:1807-1847）+ 每 5 分钟 heartbeat-watch（scripts/heartbeat-watch.sh:188-257）",
+    "Scan": "卡住检查一次扫描：check_agents + wake_recheck + send_all（scripts/stuck-check.sh:844-1169,1534-1617,1729-1747）",
+    "Tick": "过 15 分钟（下一次扫描，stuck-check.sh:1837）",
+    "Step": "过 1 分钟：ops · 01 precheck（scripts/stuck-check.sh:1898-1938）+ 每 5 分钟 heartbeat-watch（scripts/heartbeat-watch.sh:188-257）",
     "Fail": "卡住检查出故障（自动任务停 / 每次出错 / 每次超时）",
 }
 

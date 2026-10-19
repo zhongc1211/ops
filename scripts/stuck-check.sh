@@ -116,8 +116,8 @@ GONE_MIN = float(os.environ.get("STUCK_GONE_MIN", "10"))
 MARKER_GRACE_MIN = float(os.environ.get("STUCK_MARKER_GRACE_MIN", "60"))
 BACKOFF = [float(x) for x in os.environ.get("STUCK_BACKOFF", "5,15,45").split(",") if x.strip()]
 POST_GAP = float(os.environ.get("STUCK_POST_GAP", "6"))
-# 发给派活 bot 一直没送达这么久就改报 coding-assistant（PER-67 F4）：stuck-check 自己发的从第一次失败算，
-# 交给 orca-wake 补叫醒的从第一次交出算
+# 发给派活 bot 一直没送达这么久就改报 coding-assistant（PER-67 F4）。从这次停下算（有停下时间时；没有的从第一次失败算），
+# 要求之前至少失败过 / 交出过一次（PER-67 F6：以前从第一次失败 / 交出算，加上前面的 10～30 分钟，1 小时内到不了）
 ESCALATE_MIN = float(os.environ.get("STUCK_ESCALATE_MIN", "45"))
 FORCE_BOT = os.environ.get("STUCK_FORCE_BOT")
 ONLY = re.compile(os.environ["STUCK_ONLY"]) if os.environ.get("STUCK_ONLY") else None
@@ -696,6 +696,75 @@ def by_automation(host, pane=None, args=None, prompt=None):
     return bool(pane) and pane in automation_panes(host)
 
 
+PAUSE_EVENTS = {"Stop", "StopFailure", "Notification/idle_prompt", "send/idle", "send/error", "send/blocked"}
+
+
+def wrapped_exit(host, key, ms):
+    """主目录里包了 notify-run 的 agent 退出了：notify-run.log 里这个终端（pane）最后一次「包住 agent 那层」的发送（agent-probe 带回来）。
+    返回 None（送达了，或分不清：没有记录、agent-probe 是旧版），"retrying"（还在重试），或那一行（明确失败了，PER-67 F2）。"""
+    wk = (get_probe(host) or {}).get("wake")
+    if wk is None:
+        log("主目录 agent 退出 | %s | agent-probe 没带 notify-run 记录（旧版？），按包了 notify-run 不报" % key)
+        return None
+    since = (ms.get("hook") or ms.get("seen") or NOW) - 120
+    lines = [n for n in wk.get("nr") or [] if n.get("agent") and n.get("pane") == key.rsplit("#", 1)[-1] and n["ts"] >= since]
+    if not lines:
+        log("主目录 agent 退出 | %s | notify-run.log 里没有这个终端的退出发送，分不清，不报" % key)
+        return None
+    n = max(lines, key=lambda x: x["ts"])
+    if re.fullmatch(r"2\d\d", n.get("http") or ""):
+        return None
+    if NOW - n["ts"] < 120 and str(n.get("try")) != "3":
+        return "retrying"
+    log("主目录 agent 退出 | %s | notify-run 退出时发送失败（http=%s，第 %s 次）" % (key, n.get("http"), n.get("try")))
+    return n
+
+
+def check_undelivered(host, track):
+    """completed / in-review 的任务工作区：最后一次停下（orca-wake 会话的当前回合，或之后 notify-run 包住 agent 那层的退出发送）
+    没送达过叫醒，已经 ESCALATE_MIN 分钟 → 直接报 coding-assistant（stop_not_delivered）。第二类要标完成 1 小时、约每小时查一次，
+    最坏近 2 小时才到；这里每次扫描都查（PER-67 F6）。数据来自 agent-probe（旧版没有就不查）。每次停下只报一次。"""
+    wk = (get_probe(host) or {}).get("wake")
+    if wk is None:
+        return []
+    label, done, out, live = host["label"], track.setdefault("undelivered", {}), [], set()
+    for w in host["worktrees"]:
+        status = w.get("workspaceStatus")
+        if not is_task_ws(w) or status not in ("completed", "in-review"):
+            continue
+        if any(a.get("state") == "working" for a in w.get("agents") or []):
+            continue
+        p = w["path"].rstrip("/") + "/"
+        inside = lambda c: bool(c) and (c.rstrip("/") + "/").startswith(p)
+        s = max((x for x in wk.get("sessions") or [] if inside(x.get("cwd"))), key=lambda x: x.get("last_event_ts") or 0, default=None)
+        n = max((x for x in wk.get("nr") or [] if x.get("agent") and inside(x.get("ws"))), key=lambda x: x["ts"], default=None)
+        ts_s = (s or {}).get("last_event_ts") or 0
+        if n and n["ts"] >= ts_s:  # 最后一次是退出
+            ok, stop = bool(re.fullmatch(r"2\d\d", n.get("http") or "")), n["ts"]
+            why = "agent 退出时 notify-run 发送没成功（http=%s，第 %s 次）" % (n.get("http"), n.get("try"))
+        elif s and s.get("last_event") in PAUSE_EVENTS:
+            ok, stop = bool(s.get("woken")), ts_s
+            why = "%s 会话最后一次停下（第 %s 回合）没有送达的叫醒" % (s.get("agent"), s.get("turn"))
+        else:
+            continue  # 没有记录，或回合还没结束
+        if ok or NOW - stop < ESCALATE_MIN * 60:
+            continue
+        iid = "undelivered:%s:%s:%d" % (label, w["path"], int(stop))
+        live.add(iid)
+        if iid in done:
+            continue
+        bot = (s or {}).get("bot") or (n or {}).get("bot") or "?"
+        log("没送达 | %s:%s | %s，%s 停下（%.0f 分钟前）" % (label, w["path"], why, hm(stop), (NOW - stop) / 60.0))
+        out.append({"id": iid, "cfg": "fallback", "after": {"undelivered": iid}, "payload": {
+            "bot": FALLBACK_BOT, "task": task_name(w), "worktree": "%s:%s" % (label, w["path"]), "status": "stuck",
+            "kind": "stop_not_delivered", "machine": label, "source": "stuck-check",
+            "note": "工作区标 %s，%s，%s 停下已 %.0f 分钟：派活 bot %s 不知道它停了。看看它做完没有、结果在哪，转达 %s" % (
+                status, why, hm(stop), (NOW - stop) / 60.0, bot, bot)}})
+    for k in [k for k in done if k.startswith("undelivered:%s:" % label) and k not in live]:
+        del done[k]
+    return out
+
+
 def get_probe(host):
     if "probe" not in host:
         host["probe"] = run_probe(host)
@@ -888,14 +957,26 @@ def check_agents(host, known, track):
         cands.append({"w": w, "key": key, "agents": agents, "hook": hook, "scr": scr, "agent_t": agent_t,
                       "out_t": out_t, "out": out, "handles": handles, "act": (w.get("lastActivityAt") or 0) / 1000.0,
                       "panes": panes, "since": rec.get("handed_since") or rec.get("handed")})
-    # 主目录里上次还在、这次 Orca 已没有 agent 记录的终端：agent 退出了。经 notify-run 起的它自己会叫醒，不报；
-    # 没包的报一次 agent_gone（终端还在就经复核）。这台主目录没查到（终端列表失败）时不判断。
+    # 主目录里上次还在、这次 Orca 已没有 agent 记录的终端：agent 退出了。经 notify-run 起的它自己会叫醒，只有 notify-run.log 里
+    # 这个终端（pane）那次退出发送明确失败了才报（PER-67 F2）；没包的报一次 agent_gone（终端还在就经复核）。
+    # 这台主目录没查到（终端列表失败）时不判断。
     if host["terms_ok"]:
         mains = {w["path"] for w in host["worktrees"] if is_main_watch(w)}
         for key in [k for k in main_seen if k.startswith(label + ":") and k not in main_now]:
             ms = main_seen.pop(key)
-            if ms.get("wrapped") is not False or key.split(":", 1)[1].split("#")[0] not in mains:
-                continue  # 包了 notify-run，或者上次没查到进程、分不清
+            if ms.get("wrapped") is None or key.split(":", 1)[1].split("#")[0] not in mains:
+                continue  # 上次没查到进程、分不清
+            if ms.get("wrapped"):
+                nr = wrapped_exit(host, key, ms)
+                if nr == "retrying":
+                    main_seen[key] = ms  # notify-run 还在重试，下次再看
+                elif nr:
+                    found.append({"key": key, "kind": GONE, "bot": nr.get("bot") or ms.get("bot") or FALLBACK_BOT,
+                                  "task": ms.get("task") or key, "worktree": key, "machine": label, "env": env,
+                                  "marker": ms.get("hook") or NOW, "terminals": [], "note":
+                                  "主目录里经 notify-run 起的 agent 退出了（status %s），notify-run 退出时发送没成功（http=%s，第 %s 次，%s），"
+                                  "派活 bot 没收到。看看它做完没有、结果在哪" % (nr.get("status"), nr.get("http"), nr.get("try"), hm(nr["ts"]))})
+                continue
             quiet = (NOW - (ms.get("hook") or ms.get("seen") or NOW)) / 60.0
             sm = stop_mark(host, ms.get("hook"), pane=key.rsplit("#", 1)[-1])
             if sm:
@@ -1058,12 +1139,13 @@ def check_agents(host, known, track):
                 since = r.get("since") or NOW
                 known[key] = {"kind": IDLE, "marker": marker, "handed": NOW, "handed_since": since, "to": bot,
                               "via": "orca-wake", "shadow": shadow}
-                if NOW - since >= ESCALATE_MIN * 60 and bot != FALLBACK_BOT:
+                since = min(since, marker or since)  # 从这次停下算（PER-67 F6），要求之前交出过一次（r["since"]）
+                if r.get("since") and NOW - since >= ESCALATE_MIN * 60 and bot != FALLBACK_BOT:
                     # 交出这么久还没 already_woken：派活 bot 的 webhook 多半坏了，改报 coding-assistant（经复核；PER-67 F4）。
                     # 送达后 send_all 记 notified，之后不再 recheck。
-                    log("agent_idle | %s | orca-wake 从 %s 起补叫醒 %s，%.0f 分钟一直没送达，转报 %s" % (
+                    log("agent_idle | %s | 从 %s 停下起 %s 一直没收到 orca-wake 的补叫醒（%.0f 分钟），转报 %s" % (
                         key, hm(since), bot, (NOW - since) / 60.0, FALLBACK_BOT))
-                    r["addf"](IDLE, "%s；orca-wake 从 %s 起给派活 bot %s 补叫醒，%.0f 分钟一直没送达（它的 webhook 可能坏了），"
+                    r["addf"](IDLE, "%s；从 %s 停下起，orca-wake 给派活 bot %s 的补叫醒 %.0f 分钟一直没送达（它的 webhook 可能坏了），"
                                     "转给 %s：请转达 %s 或看它的服务" % (r["note"], hm(since), bot, (NOW - since) / 60.0,
                                                               FALLBACK_BOT, bot), marker, to=FALLBACK_BOT)
             elif "already_woken" in res.values():
@@ -1435,14 +1517,17 @@ def hm(t):
     return datetime.datetime.fromtimestamp(t, SGT).strftime("%m-%d %H:%M")
 
 
-def escalate(fails, iid, to, note):
-    """发给 to 的这一条从第一次失败起已满 ESCALATE_MIN 分钟：改发 coding-assistant（PER-67 F4）。返回 (to, cfg, note)，不改发时 cfg 为 None。"""
+def escalate(fails, iid, to, note, marker=None):
+    """发给 to 的这一条失败过，而且从这次停下（marker；没有就从第一次失败）起已满 ESCALATE_MIN 分钟：改发 coding-assistant
+    （PER-67 F4、F6）。返回 (to, cfg, note)，不改发时 cfg 为 None。"""
     since = fails.get(iid)
+    if since is not None and marker:
+        since = min(since, marker)
     if FORCE_BOT or to == FALLBACK_BOT or since is None or NOW - since < ESCALATE_MIN * 60:
         return to, None, note
     log("改报 | %s | 发给 %s 从 %s 起一直失败（%.0f 分钟），改发 %s" % (iid, to, hm(since), (NOW - since) / 60.0, FALLBACK_BOT))
     to2, cfg = bot_cfg(FALLBACK_BOT)
-    return to2, cfg, note + "（原本发给 %s，它的 webhook 从 %s 起一直发不出去（%.0f 分钟），转给 %s）" % (
+    return to2, cfg, note + "（原本发给 %s，没发出去；从 %s 起 %.0f 分钟了，转给 %s）" % (
         to, hm(since), (NOW - since) / 60.0, to2)
 
 
@@ -1462,7 +1547,8 @@ def send_all(pending, known, track, seen):
             d["payload"]["bot"] = to
             if to != want and not FORCE_BOT and "（按映射应归" not in d["payload"]["note"]:
                 d["payload"]["note"] += "（按映射应归 %s，没有它的 webhook，转给 %s）" % (want, to)
-            to2, cfg2, note2 = escalate(fails, d["id"], to, d["payload"]["note"])
+            to2, cfg2, note2 = escalate(fails, d["id"], to, d["payload"]["note"],
+                                        ((d.get("after") or {}).get("known") or [None, {}])[1].get("marker"))
             if cfg2:
                 to, cfg, d["cfg"] = to2, cfg2, "fallback"
                 d["payload"].update(bot=to, note=note2)
@@ -1498,6 +1584,8 @@ def send_all(pending, known, track, seen):
             track.setdefault("due", {})[after["due"][0]] = after["due"][1]
         for k, rec in after.get("unwrapped") or []:
             track.setdefault("unwrapped", {})[k] = rec
+        if after.get("undelivered"):
+            track.setdefault("undelivered", {})[after["undelivered"]] = NOW
     for s in pending.get("suspects", []):
         why = DISMISS.get(s.get("id", ""))
         if why:
@@ -1510,7 +1598,7 @@ def send_all(pending, known, track, seen):
             continue
         payload = agent_payload(s, to)
         iid = "suspect:%s:%s" % (s["kind"], s["key"])
-        to2, cfg2, note2 = escalate(fails, iid, to, payload["note"])
+        to2, cfg2, note2 = escalate(fails, iid, to, payload["note"], s.get("marker"))
         if cfg2:
             to, cfg = to2, cfg2
             payload.update(bot=to, note=note2)
@@ -1620,6 +1708,9 @@ def main():
         have = {d["id"] for d in direct}
         direct += [d for d in uw if d["id"] not in have]
         log("%s：没包 notify-run 的 agent 新报 %d 条" % (h["label"], len(uw)))
+        ud = check_undelivered(h, track)
+        have = {d["id"] for d in direct}
+        direct += [d for d in ud if d["id"] not in have]
     for k in [k for k in known if k.split(":", 1)[0] in checked and k not in eligible]:
         del known[k]  # 工作区已经不是 in-progress 或不在了
     track["screens"] = {h: r for h, r in track["screens"].items() if NOW - r.get("seen", 0) < 6 * 3600}

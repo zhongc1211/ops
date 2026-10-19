@@ -44,7 +44,7 @@ wake/tla/check.sh w0 h0           # 只跑名字以 w0、h0 开头的（P2、P3�
   - 有一步代码里不可能发生（比如模型允许的顺序代码里有锁挡着）→ 是模型错，改模型并在 README 写清为什么。
 - **期望 violated、变成 pass**：
   - `*_mutant` 变 pass：模型里那条判断被改没了，检查失去了查错能力——修模型。
-  - 发现类（w07 w09 w11 w13 w15；h03 h04 已随 F7/F8、w13c 已随 F3、w07 w13a 已随 F1、w11a w15 已随 F4/F5 修好改成期望 pass）变 pass：可能是代码修好了。确认修法真的在代码里（不是只改了模型），然后把 `check.sh` 表里的期望改成 pass，README「发现」里标已修和 commit。
+  - 发现类（w07 w09 w11 w13 w15；h03 h04 已随 F7/F8、w13c 已随 F3、w07 w13a 已随 F1、w11a w15 已随 F4/F5、w09 w11 w13 已随 F2/F6 修好改成期望 pass）变 pass：可能是代码修好了。确认修法真的在代码里（不是只改了模型），然后把 `check.sh` 表里的期望改成 pass，README「发现」里标已修和 commit。
 - `timeout` / `error`：看 `.out` 末尾。`error` 多半是 cfg 和模块常量对不上；`timeout` 是状态空间太大，先缩小界限，不要把 timeout 当 pass。
 
 ## 4. 代码改了，更新模型
