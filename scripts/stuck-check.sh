@@ -1180,14 +1180,62 @@ GIT_FACTS = r'''for p in "$@"; do
   if [ -n "$b" ]; then n=$(git rev-list --count HEAD --not "$b" 2>/dev/null); else n=$(git rev-list --count HEAD --not --remotes 2>/dev/null); fi
   echo "G $(printf %s "$p" | base64 | tr -d '\n') ${d:--} ${n:--}"
 done
+python3 - "$@" <<'WAKEPY'
+# 这台机器上，每个工作区最后一次停下有没有送达（2xx）过叫醒（PER-67 F3）。读 orca-wake 的会话状态和 notify-run.log：
+#   最后一次停下 = 工作区里最新的 orca-wake 会话（cwd 在工作区内，按 last_event_ts）的当前回合，或它之后 notify-run 的退出发送。
+#   W <路径 b64> ok|no|none <说明 b64>：ok 送达过；no 有记录但这次停下没送达；none 没有记录（不是经 notify-run 起的）。
+import base64, datetime, glob, json, os, sys
+H = os.path.expanduser("~")
+sd = os.environ.get("ORCA_WAKE_STATE_DIR") or os.path.join(H, ".local/state/orca-wake")
+nl = os.environ.get("NOTIFY_RUN_LOG") or os.path.join(H, ".orca-state/notify-run/notify-run.log")
+b64 = lambda t: base64.b64encode(t.encode()).decode()
+hm = lambda t: datetime.datetime.fromtimestamp(t).strftime("%m-%d %H:%M")
+sess, nr = [], []
+for f in glob.glob(os.path.join(sd, "sessions", "*.json")):
+    try:
+        d = json.load(open(f, encoding="utf-8"))
+    except (OSError, ValueError):
+        continue
+    if isinstance(d, dict) and d.get("cwd"):
+        sess.append(d)
+try:
+    for ln in open(nl, encoding="utf-8", errors="replace"):
+        c = ln.rstrip("\n").split("\t")
+        try:
+            ts = datetime.datetime.strptime(c[0], "%Y-%m-%dT%H:%M:%S%z").timestamp()
+        except ValueError:
+            continue
+        nr.append((ts, dict(x.split("=", 1) for x in c[1:] if "=" in x)))
+except OSError:
+    pass
+for p in sys.argv[1:]:
+    rp = os.path.realpath(p)
+    inside = lambda c: bool(c) and (os.path.realpath(c) + "/").startswith(rp + "/")
+    s = max((d for d in sess if inside(d["cwd"])), key=lambda d: d.get("last_event_ts") or 0, default=None)
+    n = max((x for x in nr if inside(x[1].get("ws"))), key=lambda x: x[0], default=None)
+    if s is None and n is None:
+        print("W %s none %s" % (b64(p), b64("没有 orca-wake / notify-run 记录")))
+        continue
+    ts_s = (s or {}).get("last_event_ts") or 0
+    seq = str((s or {}).get("turn", 0))
+    woke = s is not None and seq in (s.get("woken") or {})
+    nr_ok = n is not None and n[0] >= ts_s and len(n[1].get("http", "")) == 3 and n[1]["http"].startswith("2")
+    why = []
+    if s is not None:
+        why.append("%s 会话最后一次停下（第 %s 回合，%s）%s" % (s.get("agent"), seq, hm(ts_s), "送达过叫醒" if woke else "没有送达的叫醒"))
+    if n is not None and n[0] >= ts_s:
+        why.append("notify-run 退出时发送 http=%s（%s）" % (n[1].get("http"), hm(n[0])))
+    print("W %s %s %s" % (b64(p), "ok" if woke or nr_ok else "no", b64("；".join(why))))
+WAKEPY
 '''
 
 
 def git_facts(host, paths):
-    """工作区 → (有没有未提交改动, 比远端默认分支多几个提交)；查不到的不在结果里。box 上走一个临时终端一次查完。
+    """返回 (git, wake)。git：工作区 → (有没有未提交改动, 比远端默认分支多几个提交)；wake：工作区 → (ok|no|none, 说明)，
+    最后一次停下有没有送达过叫醒（见 GIT_FACTS 里的 WAKEPY）。查不到的不在结果里。box 上走一个临时终端一次查完。
     没有远端默认分支时，数不在任何远端分支上的提交。"""
     if not paths:
-        return {}
+        return {}, {}
     if host["env"] is None:
         rc, text, err = run(["bash", "-c", GIT_FACTS, "git-facts"] + paths, 120)
     else:
@@ -1200,17 +1248,19 @@ def git_facts(host, paths):
             text = gzip.decompress(base64.b64decode("".join(m[-1].split()))).decode("utf-8", "replace")
         except (IndexError, ValueError, OSError):
             text = ""
-    out = {}
+    out, wake = {}, {}
     for ln in (text or "").splitlines():
         f = ln.split()
-        if len(f) == 4 and f[0] == "G" and f[2].isdigit() and f[3].isdigit():
-            try:
+        try:
+            if len(f) == 4 and f[0] == "G" and f[2].isdigit() and f[3].isdigit():
                 out[base64.b64decode(f[1]).decode()] = (f[2] != "0", int(f[3]))
-            except ValueError:
-                pass
+            elif len(f) == 4 and f[0] == "W" and f[2] in ("ok", "no", "none"):
+                wake[base64.b64decode(f[1]).decode()] = (f[2], base64.b64decode(f[3]).decode())
+        except ValueError:
+            pass
     if len(out) < len(paths):
         log("%s：%d 个工作区的 git 状态没查到（%s），这些照旧报" % (host["label"], len(paths) - len(out), (err or "")[:120]))
-    return out
+    return out, wake
 
 
 def check_reported(host):
@@ -1291,12 +1341,18 @@ def check_reported(host):
                 clean_check.append((w["path"], add, note))  # 先看工作区干不干净，见下
             else:
                 add(note)
-    # completed、工作区干净、比远端默认分支没有多出提交、也没有 PR：没有东西要验收，放行（不靠备注写「已验收」）
-    facts = git_facts(host, [p for p, _, _ in clean_check])
+    # completed、工作区干净、比远端默认分支没有多出提交、也没有 PR：没有东西要验收，放行（不靠备注写「已验收」）。
+    # 但最后一次停下没送达过叫醒的照报：有后台 shell 时 Stop / idle_prompt 都不发，派活 bot 不知道它停了（PER-67 F3）。
+    # 没有 orca-wake / notify-run 记录（不是经 notify-run 起的，另有 agent_unwrapped 管）或这项没查到的，照旧放行。
+    facts, wake = git_facts(host, [p for p, _, _ in clean_check])
     for p, add, note in clean_check:
-        f = facts.get(p)
+        f, wk = facts.get(p), wake.get(p)
         if f and not f[0] and f[1] == 0:
-            log("放行 | %s:%s | completed，工作区干净，没有本地提交，没有 PR" % (label, p))
+            if wk and wk[0] == "no":
+                add(note + "（工作区干净，但%s：派活 bot 可能不知道它停了）" % wk[1])
+                continue
+            log("放行 | %s:%s | completed，工作区干净，没有本地提交，没有 PR；%s" % (
+                label, p, wk[1] if wk else "叫醒记录没查到"))
             continue
         add(note + ("（%s）" % "，".join(x for x in ("有未提交改动" if f[0] else "", "%d 个提交不在远端默认分支" % f[1] if f[1] else "") if x) if f else ""))
     return found, scanned

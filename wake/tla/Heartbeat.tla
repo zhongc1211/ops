@@ -24,10 +24,10 @@ CONSTANTS
 VARIABLES
     mode,      \* "ok" 或 FailModes 里的一种；坏了就一直坏（P3 讲的是「停了」）
     reach,     \* box 能不能查到 iMac Orca 的运行记录（mode = dead 时可能查不到）
-    gateAge,   \* gate.json 的 last 距现在几分钟（stuck-check.sh:1721 在 main() 之前写）
+    gateAge,   \* gate.json 的 last 距现在几分钟（stuck-check.sh:1777 在 main() 之前写）
     hbAge,     \* 运行记录里最新一行 @@HB 距现在几分钟
     hbScan,    \* 那行 @@HB 里的 last_scan 距现在几分钟
-    doneAge,   \* 最后一次真正跑完的扫描距现在几分钟 = gate.json 的 done（stuck-check.sh:1736-1737，main() 正常返回后才写）
+    doneAge,   \* 最后一次真正跑完的扫描距现在几分钟 = gate.json 的 done（stuck-check.sh:1792-1793，main() 正常返回后才写）
     hang,      \* 一次卡住的运行还要占几分钟（Orca 到 300 秒杀掉）
     failAge,   \* heartbeat-watch 的 fail_since 距现在几分钟（查不到运行记录时）
     wclock,    \* 距 heartbeat-watch 下一次运行还有几分钟
@@ -56,13 +56,13 @@ Fail ==
          /\ reach' \in (IF m = "dead" THEN BOOLEAN ELSE {TRUE})
     /\ UNCHANGED <<gateAge, hbAge, hbScan, doneAge, hang, failAge, wclock, alerted>>
 
-(* ops · 01 这一分钟的 precheck（stuck-check.sh:1699-1739）。                    *)
+(* ops · 01 这一分钟的 precheck（stuck-check.sh:1755-1795）。                    *)
 (*   闸门没开（距 gate.last 不到 INTERVAL）：heartbeat(1)，@@HB 的 last_scan =   *)
-(*     gate.json 的 done（:1702-1706, :1676）。                                    *)
-(*   闸门开：先写 gate.json last=NOW、done 照旧（:1721），再 main()（:1726）：     *)
-(*     ok    → 写 done=NOW（:1736-1737），heartbeat(rc)，last_scan = done（:1738）  *)
+(*     gate.json 的 done（:1758-1762, :1732）。                                    *)
+(*   闸门开：先写 gate.json last=NOW、done 照旧（:1777），再 main()（:1782）：     *)
+(*     ok    → 写 done=NOW（:1792-1793），heartbeat(rc)，last_scan = done（:1794）  *)
 (*     crash → except：rc=4，--scan 时改成 rc=0，done 不变，照样 heartbeat         *)
-(*             （:1727-1738）                                                     *)
+(*             （:1783-1794）                                                     *)
 (*     hang  → 300 秒后被 Orca 杀掉，这次没有 @@HB、done 不变；锁随进程释放        *)
 (* Mutant "scan_start"：修之前的代码（PER-67 F7、F8），last_scan 取扫描开始时写的 *)
 (*   gate.last，被杀、出错也照样前进。                                            *)
