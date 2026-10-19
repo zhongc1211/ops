@@ -103,3 +103,30 @@ EVEROS_INGEST_ROOT=$HOME/.orca-state/bin/everos-ingest \
 - 采集器 `--machine` 多认一个 `mba`；`nightly_addflush.py` 多读 `sessions-mba.jsonl`，MBA 那份缺了记 WARN，不算失败（deepvision-site 仓库的 `dv_addflush.py` 同样改法，另一个 PR）。
 - automation（MBA 本机 ops 工作区，时间和 iMac 同）：`5a9491fe` 心月 · 13 EverOS 会话采集 MBA（21:50），`25ec90b7` dv运维 · 14 EverOS 官网会话采集 MBA（00:01），
   `679f7c06` dv广告 · 26 EverOS 广告会话采集 MBA（00:02），`fc1dd06a` vllm · 27 EverOS 会话采集 MBA（00:16）。
+
+## 夜审写入后读回（PER-67 第 4 步第 1 项，2026-10-19）
+
+- HTTP 200 不算写进去了（FDV-81：add/flush 都 200 却没有 episode；vllm 10-18 写进了错的作用域）。
+  共用模块 `everos_readback.py`：按 session_id 查 episode（`/memory/get` + `filters.session_id`），或按 name 查
+  agent_skill（get 没有 name 过滤，翻页精确匹配），逐条核对记录里的 app_id / project_id / user_id（skill 是
+  agent_id）/ session_id 和该项目 env 一致。EverOS 抽取是异步的：每 10s 轮询一次，上限 `READBACK_TIMEOUT_S=180`。
+  失败一律 `readback_failed`，reason 是 not_found / not_more_than_before / scope_mismatch / ambiguous / request_failed，退出码 3。
+- skill 名字按 EverOS 存的名字比：EverOS 1.4.2 `sanitize_skill_name`（`core/persistence/markdown/path_safety.py`
+  `sanitize_dirname`）先 NFC，空格换 `_`，去掉字母数字 `_` `-` `.` 以外的字符，**截到 50 字符**，结果是空、`.`、`..` 时用
+  `unnamed`；不转小写，不去尾部 `-`。记录的 name 和 id（`<agent_id>_<截断名>`）只有截断名，content/description 里也没有
+  完整名（10-19 查了心月两条长名）。所以 `--skill` 给全名即可（10-18 的 `reread-…-production-step` 存成
+  `reread-the-latest-decision-before-releasing-a-prod`）。前 50 字符相同的两个名字在 EverOS 里是同一条（后写的盖掉先写的）：
+  命中多条，或同一次读回里两个目标截断后相同，而记录正文里没有能区分的完整名，就是 `ambiguous`，不会 PASS；
+  正文写了完整名时只认写了本名的那条。只读回一个名字、EverOS 里只有一条时分不出是不是「同前缀的另一个名字」写的，
+  这一点读回查不出来。
+- 四个入口：
+  - 心月、广告、vllm 会话：`nightly_addflush.py` 写完、count_after 之后读回每个 OK 会话（要比写前的 episode 多）；
+    读不回的行改成 `result=FAIL`、`reason=readback_failed: …`，台账多 `kind=readback` / `readback_summary`。
+  - 广告、vllm lesson：`dv_ads_lessons.py`（替换原来的 5/15/30/60s post_check）；ALREADY 也读回。
+  - 官网：写入脚本在 deepvision-site 仓库 `scripts/everos/dv_addflush.py`，不改它；夜审在它之后跑
+    `python3 -I everos_readback.py --project deepvision-site --from-log <D>-deepvision-site-addflush.json --session nightly-review-deepvision-site-<D>`。
+  - 只读复查：`everos_readback.py --project P --from-log LOG.json --session SID --skill NAME --report OUT.json`；
+    两个写入脚本也有 `--readback-only`（不 add/flush）。
+- 演练专用（夜审里不用）：`EVEROS_WRITE_STUB_URL`（add/flush 只发到这个地址，读回仍查真 EverOS）、
+  `everos_readback.py --query-project-id`、`EVEROS_PUBLIC_URL`（CLI 的公网回落地址）。
+- 演练产物：`/workspace/ops/reports/drills/per67-a-readback/`。
