@@ -140,3 +140,19 @@ Box 与 iMac 是两套独立 Orca runtime；同名仓库在 box 上另有项目 
 ## 3c. 2026-10-12 14:5x deepvision 运维 收尾（Coding助手 派，Zack 已定）
 - 删除 iMac ~/cutover-20261008/build-fdv54（生产构建目录，git worktree remove）。~/cutover-20261008/build-testing 已不存在（3b 已删）。fdv-16-preview（FDV-25）此前已不在列表。
 | 心月网站 运维 | 心月 · EverOS 启动器 v2.1（iMac 099c800e::~/orca/workspaces/xinyue-site/心月-EverOS-启动器-v2.1；Claude term_4be9a6d2；in-review，2026-10-17） | xinyue-site | — |
+
+## 7. MBA（MacBook Air）Orca 项目（2026-10-18 16:00 SGT 建，box 上的 Claude Code 经 iMac `ssh mba` 做）
+
+MBA：Apple M2 / 8 核 / 8 GB，macOS 26.6.2，Orca 1.4.229，用户 jiawenwang，tailnet 100.64.0.7。iMac 上 `orca --environment mba …`（环境名小写 mba）。
+MBA 是第三套独立 Orca runtime，同名仓库在 MBA 上另有项目 ID。主 checkout 放 `~/orca/projects/<repo>`（ops 和 iMac 一样放 `~/orca/workspaces/ops`），工作区按 Orca 默认建在 `~/orca/workspaces/<repo>/…`。
+
+| Repo | Orca 项目 | 项目 ID | 路径 | 分支 |
+|---|---|---|---|---|
+| zhongc1211/ops | ops | 659a8841-0b19-4204-859d-85fdaf05f7b3 | ~/orca/workspaces/ops | main |
+| zhongc1211/xinyue-site | xinyue-site | 1c963975-d649-4453-8e06-b755dfafa113 | ~/orca/projects/xinyue-site | feat/xinyue-site |
+| zhongc1211/deepvision-site（现 futuredeepvision/deepvision-site） | deepvision-site | d1fae3d4-64a2-4d93-96fe-a5a454e63cfc | ~/orca/projects/deepvision-site | main |
+| zhongc1211/deepvision-ads | deepvision-ads | 4e5bd73a-a952-4b4a-bfe5-d455ffa26454 | ~/orca/projects/deepvision-ads | main |
+| vllm-omni：origin = fork zhongc1211/vllm-omni（blob:none），upstream = vllm-project/vllm-omni | vllm-omni | c1ee517c-7679-44df-b3dd-2a5e761700d4 | ~/orca/projects/vllm-omni | main |
+
+另有 Zack 自己建的 `local`（25037673-35e6-4129-a963-7016a63d6101，~/orca/projects/local），不动。
+EverOS：上面 4 个业务仓库的主 checkout 都用 `claude mcp add -s local everos` 接好；pi 扩展 `everos.ts` 的根目录表加了 `~/orca/projects/<repo>`。
