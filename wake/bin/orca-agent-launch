@@ -13,16 +13,52 @@
 #   - due = --eta 的日期（新加坡时间；只写日期，Linear 的 due 没有时刻）。带 --issue 必须带 --eta，否则拒绝（退出码 2）；
 #   - 负责 bot：描述里没有「负责 bot：<bot>」这一行就在末尾补一行；写着别的 bot 时改成这次的（stuck-check 的 due_bot 认这一行）。
 #   Linear 写不进去时拒绝起 agent（退出码 3），确认要先起再补卡时加 --no-linear。
+# 拒绝时（退出码 2 / 3）同时叫醒派活的 bot：status stuck、kind agent_not_started，note 写拒绝原因（PER-67 第 6 组：10-19 07:24 iMac
+#   一次 --eta 写成 09:30 被拒，agent 没起来，没有 notify-run 也没有任何会话，谁都不知道）。--bot 不合法或没有它的 webhook、或者发不出去时
+#   改发 coding-assistant。只发一次，不重试；ORCA_AGENT_LAUNCH_DRY=1 时不发。
 # 通过检查后 exec notify-run，退出码就是 notify-run 的（即 agent 的）退出码。
 # 测试用环境变量：ORCA_AGENT_LAUNCH_NOTIFY_RUN（notify-run 路径）、ORCA_AGENT_LAUNCH_WEBHOOK_DIR（webhook 目录）、
 #   ORCA_AGENT_LAUNCH_DRY=1（只打印将要执行的命令，不写 Linear）、ORCA_AGENT_LAUNCH_ORCA（orca CLI 路径）。
 set -u
 
-die() { echo "orca-agent-launch: 拒绝：$*" >&2; exit 2; }
-usage() {
-    echo "用法: orca-agent-launch --bot <bot> --task \"<描述>\" [--issue X --eta <YYYY-MM-DD[ HH:MM]>] [--no-linear] -- <claude|pi|codex> [参数...]" >&2
-    exit 2
+# 测试时只认 ORCA_AGENT_LAUNCH_WEBHOOK_DIR，不退回 /home/box 下的真配置
+webhook_env() {  # $1=bot → 能读的 env 文件路径
+    if [ -n "${ORCA_AGENT_LAUNCH_WEBHOOK_DIR:-}" ]; then
+        [ -r "$ORCA_AGENT_LAUNCH_WEBHOOK_DIR/$1.env" ] && echo "$ORCA_AGENT_LAUNCH_WEBHOOK_DIR/$1.env"
+    elif [ -r "$HOME/.config/grokbot/webhooks/$1.env" ]; then
+        echo "$HOME/.config/grokbot/webhooks/$1.env"
+    elif [ -r "/home/box/.config/grokbot/webhooks/$1.env" ]; then
+        echo "/home/box/.config/grokbot/webhooks/$1.env"
+    fi
 }
+send_reject() (  # $1=bot $2=说明；子 shell 里读 env 文件，KEY 不留在主进程里。送达返回 0
+    set +x
+    env_file=$(webhook_env "$1") && [ -n "$env_file" ] || exit 1
+    URL="" KEY=""
+    . "$env_file"
+    [ -n "$URL" ] && [ -n "$KEY" ] || exit 1
+    body=$(python3 -c 'import json, socket, sys
+a = sys.argv[1:]
+print(json.dumps({"bot": a[0], "task": a[1], "issue": a[2], "machine": socket.gethostname(), "status": "stuck",
+                  "kind": "agent_not_started", "source": "orca-agent-launch", "worktree": a[3], "orca_terminal": a[4],
+                  "note": a[5]}, ensure_ascii=False))' "$1" "${task:-?}" "${issue:-}" "$PWD" "${ORCA_TERMINAL_HANDLE:-}" "$2") || exit 1
+    http=$(printf 'Authorization: Bearer %s\n' "$KEY" | curl -sS -o /dev/null -w '%{http_code}' --max-time 20 -X POST -H @- \
+        -H 'Content-Type: application/json' --data-binary "$body" "$URL" 2>/dev/null)
+    /bin/echo "orca-agent-launch: 已把拒绝原因发给 $1（http=${http:-无响应}）" >&2 2>/dev/null || true
+    case "$http" in 2??) exit 0 ;; esac
+    exit 1
+)
+wake_reject() {  # $1=拒绝原因
+    [ "${ORCA_AGENT_LAUNCH_DRY:-}" = 1 ] && return 0
+    local to=coding-assistant note
+    note="orca-agent-launch 拒绝：$1。agent 没起来（没有 notify-run，也不会有完工叫醒）；改好命令重新起"
+    case "${bot:-}" in ""|*[!A-Za-z0-9._-]*|.*) ;; *) [ -n "$(webhook_env "$bot")" ] && to=$bot ;; esac
+    send_reject "$to" "$note" && return 0
+    [ "$to" = coding-assistant ] || send_reject coding-assistant "$note（原本发给 $to，没发出去）" || true
+}
+die() { echo "orca-agent-launch: 拒绝：$*" >&2; wake_reject "$*"; exit 2; }
+usage_text() { echo "用法: orca-agent-launch --bot <bot> --task \"<描述>\" [--issue X --eta <YYYY-MM-DD[ HH:MM]>] [--no-linear] -- <claude|pi|codex> [参数...]" >&2; }
+usage() { usage_text; wake_reject "用法错误（参数不全）"; exit 2; }
 
 bot="" task="" issue="" eta="" no_linear=""
 while [ $# -gt 0 ]; do
@@ -33,7 +69,7 @@ while [ $# -gt 0 ]; do
         --eta)   [ $# -ge 2 ] || usage; eta=$2; shift 2 ;;
         --no-linear) no_linear=1; shift ;;
         --)      shift; break ;;
-        -h|--help) usage ;;
+        -h|--help) usage_text; exit 2 ;;
         *)       break ;;
     esac
 done
@@ -44,8 +80,7 @@ case "$bot" in
     *[!A-Za-z0-9._-]*|.*) die "bot 名不合法：$bot" ;;
 esac
 wdir=${ORCA_AGENT_LAUNCH_WEBHOOK_DIR:-$HOME/.config/grokbot/webhooks}
-[ -r "$wdir/$bot.env" ] || [ -r "/home/box/.config/grokbot/webhooks/$bot.env" ] ||
-    die "没有 $bot 的 webhook 配置（$wdir/$bot.env），叫醒发不出去"
+[ -n "$(webhook_env "$bot")" ] || die "没有 $bot 的 webhook 配置（$wdir/$bot.env），叫醒发不出去"
 agent=$(basename -- "$1")
 case "$agent" in
     claude|pi|codex) ;;
@@ -124,6 +159,7 @@ PY
     msg=$(cat "$out"); rm -f "$out"
     if [ "$rc" -ne 0 ]; then
         echo "orca-agent-launch: 拒绝：Linear $issue 写不进去（见上）。确认要先起 agent 再补卡就加 --no-linear" >&2
+        wake_reject "Linear $issue 写不进去（$(printf '%s' "$msg" | tail -1 | cut -c1-200)）"
         exit 3
     fi
     echo "orca-agent-launch: $msg" >&2

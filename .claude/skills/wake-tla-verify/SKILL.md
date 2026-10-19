@@ -5,7 +5,7 @@ description: 叫醒系统（notify-run、orca-wake、orca-agent-launch、stuck-c
 
 # 叫醒系统 TLA+ 检查
 
-模型在 `wake/tla/`：`Wake.tla`（叫醒链路，P1/P1h/P2/P4/P5）、`Heartbeat.tla`（卡住检查自告警，P3）、`MC.tla`（cfg 用的组合）、`cfg/*.cfg`（每个检查一份）、`check.sh`（全部跑并对照期望）、`SOURCES.sha256`（建模时代码的 sha256）。性质、界限、假设、每个动作对应的代码行见 `wake/tla/README.md`。
+模型在 `wake/tla/`：`Wake.tla`（叫醒链路，P1/P1h/P2/P4/P5）、`Heartbeat.tla`（卡住检查自告警，P3）、`Launch.tla`（agent 没起来，P6）、`MC.tla`（cfg 用的组合）、`cfg/*.cfg`（每个检查一份）、`check.sh`（全部跑并对照期望）、`SOURCES.sha256`（建模时代码的 sha256）。性质、界限、假设、每个动作对应的代码行见 `wake/tla/README.md`。
 
 ## 1. 这次改动要不要跑
 
@@ -17,6 +17,7 @@ description: 叫醒系统（notify-run、orca-wake、orca-agent-launch、stuck-c
 | `wake/bin/orca-wake` 的 `dispatch_send`、`_send_now`（`ok = ...`、重试、`_mark_sent`、`mark_woken`）、`cmd_claude_hook` 的 Stop / idle_prompt、`cmd_recheck` / `candidate` / `_recheck_idle` | `AgentPause`、`OwAttempt`、`IdlePrompt`、`RecheckOW`/`RecheckKnown` |
 | `wake/pi/dispatch-wake.ts` 什么时候调 `orca-wake send` | `AgentPause`（同一条 idle 去重路径） |
 | `wake/bin/orca-agent-launch` 是否还强制 `notify-run --tty` | 模型前提：每个任务都经 notify-run 起 |
+| `wake/bin/orca-agent-launch` 的 `wake_reject`、`wake/bin/notify-run` 的 `start_watch` / `agent_started`（agent 没起来时叫醒） | `Launch.tla` 的 `RejectWake`、`WatchWake`（P6） |
 | `scripts/stuck-check.sh`：`post`、`send_all`（`broken`）、`check_agents` 里 agent_gone / agent_idle / 主目录 `main_seen`、`wake_recheck` 结果处理（`known[key]`）、`check_reported`（1 小时、放行干净工作区）、`gate`、`heartbeat`、`take_lock`、`main()` 的异常处理 | `Gone`、`IdleCand`、`RepCand`、`Scan`；`Heartbeat.tla` 的 `GateOpen`/`PrintsHB`/`nScan` |
 | `scripts/heartbeat-watch.sh` 的阈值和判断（`age > max`、`scan_age`、`UNREACH_MIN`、`alerted`） | `Heartbeat.tla` `Down`、`WatchNow` |
 | 自动任务 ops · 01（439cd438）/ ops · 29（94e4b0bc、5c2d0575）的 precheck、`timeoutSeconds`、rrule | `Heartbeat.tla` 常量 `PRE_TIMEOUT`、`WATCH_EVERY`、`HB_MAX` |

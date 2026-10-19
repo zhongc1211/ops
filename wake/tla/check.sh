@@ -52,6 +52,9 @@ RUNS=(
   "h04_p3_crash       Heartbeat pass     P3 每次扫描出错：会告警，且 75 分钟内（F8 已修）"
   "h05_p3_hang_mutant Heartbeat violated P3 改坏（修之前的代码）：last_scan 取扫描开始时间，超时被杀不告警"
   "h06_p3_crash_mutant Heartbeat violated P3 改坏（修之前的代码）：last_scan 取扫描开始时间，出错不告警"
+  "l01_p6             Launch    pass     P6 agent 没起来（被拒 / 一直没有第 1 个回合）：一定有 bot 收到，且 START+1 分钟内（第 6 组）"
+  "l02_p6_old_mutant  Launch    violated P6 改坏（修之前的代码）：两处都不叫醒"
+  "l03_p6_no_fallback_mutant Launch violated P6 改坏：只发派活 bot，发不出去不改发 Coding助手"
 )
 
 [ -x "$JAVA" ] || { echo "check.sh: 找不到 Java：$JAVA（见 README「安装」）" >&2; exit 2; }
