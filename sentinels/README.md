@@ -39,3 +39,4 @@ vllm-omni → `vllm-omni`，其他（ops 等）→ `coding-assistant`。同一�
 
 box：`cp sentinels/{prod_ledger.py,unpushed-scan.sh,unpushed_scan.py} /workspace/ops/sentinels/`。
 iMac：从 box `scp box:/workspace/ops/sentinels/{prod-watch.sh,prod_fetch.py,unpushed-scan.sh,unpushed_scan.py} ~/.orca-state/bin/sentinels/`。
+MBA：`scp sentinels/unpushed_scan.py mba:.orca-state/bin/sentinels/`，`scp sentinels/unpushed-scan-mba.sh mba:.orca-state/bin/sentinels/unpushed-scan.sh`（MBA 版入口：`--machine mba`，box 上日志名 `unpushed-scan-mba-YYYYMMDD.log`）。
