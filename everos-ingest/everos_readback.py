@@ -31,8 +31,9 @@ What a read back checks:
                agent_id, app_id and project_id.
 EverOS extracts after flush and its indexes lag (10-17: 0 episodes ~1 s after a 200 flush, 1 after ~18 s;
 10-19 rerun: 4 sessions still 0 at ~5 s). So every target is polled every POLL_S seconds until it passes or
-READBACK_TIMEOUT_S has gone by since the read back started. A request that fails (cannot connect, non-200)
-is retried inside the same time limit.
+READBACK_TIMEOUT_S has gone by since the read back started. A request that fails (cannot connect, non-200,
+no answer within REQUEST_TIMEOUT_S) is retried inside the same time limit; post() gets that shorter read
+timeout so one hung request cannot carry the read back past its limit.
 Failures are reported as readback_failed with a reason:
   not_found           every answer was 200 and the session / skill was never there
   not_more_than_before  the session has episodes, but not more than before this write
@@ -46,6 +47,7 @@ from pathlib import Path
 
 READBACK_TIMEOUT_S = 180   # upper limit for one read back, from its start; then it is readback_failed
 POLL_S = 10                # wait between two polls of a target that has not passed yet
+REQUEST_TIMEOUT_S = 30     # read timeout of one read back request (never past the read back's end)
 PAGE_SIZE = 100
 EXIT_READBACK_FAILED = 3
 
@@ -73,11 +75,11 @@ def _error_code(r):
     e = r.body.get("error")
     return e.get("code") if isinstance(e, dict) else None
 
-def _poll_episode(env, post, t, query, expect):
+def _poll_episode(env, post, t, query, expect, timeout):
     """-> (state, http, error, count, found); state: pass / wait / scope_mismatch / http."""
     r = post(env, "/api/v2/memory/get", {"app_id": query["app_id"], "project_id": query["project_id"],
                                          "user_id": query["user_id"], "memory_type": "episode",
-                                         "filters": {"session_id": t["session_id"]}, "page_size": PAGE_SIZE})
+                                         "filters": {"session_id": t["session_id"]}, "page_size": PAGE_SIZE}, timeout=timeout)
     if r.http != 200:
         return "http", r.http, _error_code(r), None, []
     eps = [e for e in (r.data.get("episodes") or []) if isinstance(e, dict)]
@@ -92,12 +94,12 @@ def _poll_episode(env, post, t, query, expect):
         return "scope_mismatch", 200, None, count, bad
     return ("pass" if count > (t.get("before") or 0) else "wait"), 200, None, count, found
 
-def _poll_skill(env, post, t, query, expect):
+def _poll_skill(env, post, t, query, expect, timeout):
     page, seen, total, match = 1, 0, None, []
     while True:
         r = post(env, "/api/v2/memory/get", {"app_id": query["app_id"], "project_id": query["project_id"],
                                              "agent_id": query["agent_id"], "memory_type": "agent_skill",
-                                             "page": page, "page_size": PAGE_SIZE})
+                                             "page": page, "page_size": PAGE_SIZE}, timeout=timeout)
         if r.http != 200:
             return "http", r.http, _error_code(r), None, []
         skills = [s for s in (r.data.get("agent_skills") or []) if isinstance(s, dict)]
@@ -117,7 +119,7 @@ def _poll_skill(env, post, t, query, expect):
 def readback(env, post, targets, project, ledger=None, query_scope=None):
     """Poll every target until it passes or READBACK_TIMEOUT_S is up. -> list of result dicts.
 
-    post(env, path, body) is the caller's transport (nightly_addflush.post / dv_ads_lessons.post: tailnet
+    post(env, path, body, timeout=...) is the caller's transport (nightly_addflush.post / dv_ads_lessons.post: tailnet
     first, public only when the connection cannot be made) and returns their Resp. query_scope replaces the
     queried app / project / user / agent (drill only); the expected scope stays the env's.
     """
@@ -139,7 +141,8 @@ def readback(env, post, targets, project, ledger=None, query_scope=None):
         still = []
         for t, res in pending:
             poll = _poll_episode if t["kind"] == "episode" else _poll_skill
-            state, http, err, count, found = poll(env, post, t, query, expect)
+            left = READBACK_TIMEOUT_S - (time.monotonic() - t0)
+            state, http, err, count, found = poll(env, post, t, query, expect, max(1, min(REQUEST_TIMEOUT_S, left)))
             res["polls"] += 1
             res["last_http"], res["last_error"] = http, err
             if http == 200:

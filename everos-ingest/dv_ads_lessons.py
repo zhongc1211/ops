@@ -87,7 +87,7 @@ def endpoints(env):
 class ConnectFailed(Exception):
     pass
 
-def send(base, host, path, data, headers):
+def send(base, host, path, data, headers, timeout=TIMEOUT):
     u = urlsplit(base)
     cls = http.client.HTTPSConnection if u.scheme == "https" else http.client.HTTPConnection
     conn = cls(u.hostname, u.port, timeout=CONNECT_TIMEOUT)
@@ -96,7 +96,7 @@ def send(base, host, path, data, headers):
             conn.connect()          # TCP (+TLS); nothing of the request has been sent yet
         except OSError as e:
             raise ConnectFailed(f"{type(e).__name__}: {e}"[:200])
-        conn.sock.settimeout(TIMEOUT)
+        conn.sock.settimeout(timeout)
         h = dict(headers, Host=host) if host else headers
         conn.request("POST", u.path.rstrip("/") + path, body=data, headers=h)
         r = conn.getresponse()
@@ -119,7 +119,8 @@ class Resp:
             f["fallback"] = self.fallback
         return f
 
-def post(env, path, body):
+def post(env, path, body, timeout=TIMEOUT):
+    """timeout: read timeout once connected (the read back passes a shorter one)."""
     data = json.dumps(body).encode()
     headers = {"Authorization": "Bearer " + env["EVEROS_API_KEY"], "Content-Type": "application/json",
                # Cloudflare answers the default Python-urllib UA with 403 (error 1010)
@@ -128,7 +129,7 @@ def post(env, path, body):
     eps = env.get("_write_endpoints") if path in WRITE_PATHS else None
     for name, base, host in eps or env["_endpoints"]:
         try:
-            st, raw = send(base, host, path, data, headers)
+            st, raw = send(base, host, path, data, headers, timeout)
         except ConnectFailed as e:
             fallback = f"{name} connect failed: {e}"
             continue
