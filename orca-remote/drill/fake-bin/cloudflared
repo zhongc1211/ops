@@ -1,0 +1,8 @@
+#!/bin/bash
+# Drill stand-in for cloudflared: logs a "Registered tunnel connection" line like the real one, clears the stale flag
+# (a fresh process has fresh edge connections), then idles. cf_ignore_term = behave like a hung cloudflared that ignores TERM.
+W=${DRILL_W:?}; echo "$(date +%s) start $$" >>"$W/cf_events"
+if [ -e "$W/cf_ignore_term" ]; then trap '' TERM; else trap 'echo "$(date +%s) term $$" >>"$W/cf_events"; exit 0' TERM; fi
+rm -f "$W/cf_stale"
+printf '{"level":"info","event":0,"connIndex":0,"protocol":"http2","time":"%s","message":"Registered tunnel connection"}\n' "$(date -u +%FT%TZ)" >>"$W/tunnel.log"
+while :; do sleep 1; done

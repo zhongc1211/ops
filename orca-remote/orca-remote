@@ -1,0 +1,119 @@
+#!/bin/bash
+# orca-remote: keep a headless Orca runtime (`orca-ide serve`; orcad binds 127.0.0.1:6768 by default) and the
+# Cloudflare tunnel "orca-bot" (https://orca-bot.deepvision.sg -> 127.0.0.1:6768) running in tmux
+# session "orca-remote". No systemd on this box (PID 1 is tini), so this is the supervisor.
+# Port $PORT is restricted to loopback with an iptables/ip6tables DROP rule (comment orca-remote-localhost-only).
+# Usage: orca-remote start|stop|restart|status|serve-loop|tunnel-loop
+# Pairing link (secret) is written to ~/.config/orca/remote-pairing/latest.json (mode 600), never to logs.
+# Installed 2026-10-08; see ~/backups/orca-config-20261008/CHANGES.md
+set -u
+SESSION=orca-remote
+U_HOME=/home/box
+PORT=6768
+PAIRING_ADDRESS=wss://orca-bot.deepvision.sg
+TUNNEL=orca-bot
+CF_CONFIG=$U_HOME/.cloudflared/config.yml
+STATE=$U_HOME/.local/state/orca-remote
+SECRET_DIR=$U_HOME/.config/orca/remote-pairing
+BASE_PATH=$U_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin
+SERVE_MATCH='out/cli/index.js serve --port 6768'
+
+read_env_var() { tr '\0' '\n' 2>/dev/null <"/proc/$1/environ" | sed -n "s/^$2=//p" | head -n1; }
+desktop_env() { # prints XDG_RUNTIME_DIR, DBUS_SESSION_BUS_ADDRESS of the desktop on $DISPLAY (for Computer Use)
+  local pid x d p best=""
+  for pid in $(pgrep -u "$(id -u)"); do
+    [ "$(read_env_var "$pid" DISPLAY)" = "$DISPLAY" ] || continue
+    x=$(read_env_var "$pid" XDG_RUNTIME_DIR); d=$(read_env_var "$pid" DBUS_SESSION_BUS_ADDRESS)
+    [ -n "$x" ] && [ -n "$d" ] && [ -d "$x" ] || continue
+    p=$(printf '%s' "$d" | sed -n 's/.*unix:path=\([^,;]*\).*/\1/p'); [ -z "$p" ] || [ -S "$p" ] || continue
+    if [ "$(cat /proc/$pid/comm 2>/dev/null)" = "at-spi-bus-laun" ]; then printf '%s\n%s\n' "$x" "$d"; return; fi
+    [ -z "$best" ] && best=$(printf '%s\n%s' "$x" "$d")
+  done
+  [ -n "$best" ] && printf '%s\n' "$best"
+}
+
+# Redacts pairing secrets from serve output; saves the pairing JSON block to $SECRET_DIR/latest.json.
+FILTER=$(cat <<'PY'
+import sys, re, os, json, time
+secret_dir = sys.argv[1]
+os.makedirs(secret_dir, mode=0o700, exist_ok=True)
+pat = re.compile(r'(orca://pair\?code=)[^\s"\']+|([?#&](?:pair|code|pairing)[^=\s"\']*=)[^\s"\']+')
+buf = []
+def save(obj):
+    p = obj.get("pairing") if isinstance(obj, dict) else None
+    if isinstance(p, dict) and p.get("url"):
+        tmp = os.path.join(secret_dir, ".latest.tmp")
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as f:
+            json.dump({"savedAt": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "advertisedEndpoint": obj.get("advertisedEndpoint"),
+                       "boundEndpoint": obj.get("boundEndpoint"), "pairing": p}, f, indent=1)
+        os.replace(tmp, os.path.join(secret_dir, "latest.json"))
+for line in sys.stdin:
+    if buf or line.lstrip().startswith("{"):
+        buf.append(line)
+        try:
+            save(json.loads("".join(buf))); buf = []
+        except Exception:
+            if len(buf) > 400: buf = []
+    sys.stdout.write(pat.sub(lambda m: (m.group(1) or m.group(2)) + "<redacted>", line)); sys.stdout.flush()
+PY
+)
+
+serve_loop() {
+  mkdir -p "$STATE"
+  while true; do
+    export DISPLAY=${DISPLAY:-:4}
+    local de x="" d=""
+    de=$(desktop_env); x=$(printf '%s\n' "$de" | sed -n 1p); d=$(printf '%s\n' "$de" | sed -n 2p)
+    [ -z "$x" ] && [ -d "/tmp/xdg-runtime-${DISPLAY#:}" ] && x="/tmp/xdg-runtime-${DISPLAY#:}"
+    echo "[$(date '+%F %T %Z')] starting orca-ide serve on 127.0.0.1:$PORT (advertise $PAIRING_ADDRESS)" | tee -a "$STATE/serve.log"
+    env -i HOME=$U_HOME USER=box LOGNAME=box SHELL=/bin/bash LANG=${LANG:-C.UTF-8} TERM=xterm-256color \
+      PATH="$BASE_PATH" DISPLAY="$DISPLAY" ${x:+XDG_RUNTIME_DIR=$x} ${d:+DBUS_SESSION_BUS_ADDRESS=$d} \
+      /workspace/ops/orca-app/Orca/resources/bin/orca-ide serve --port "$PORT" --pairing-address "$PAIRING_ADDRESS" --json 2>&1 \
+      | python3 -u -c "$FILTER" "$SECRET_DIR" | tee -a "$STATE/serve.log"
+    echo "[$(date '+%F %T %Z')] orca-ide serve exited (${PIPESTATUS[0]}); restarting in 5s" | tee -a "$STATE/serve.log"
+    sleep 5
+  done
+}
+
+tunnel_loop() {
+  mkdir -p "$STATE"
+  while true; do
+    echo "[$(date '+%F %T %Z')] starting cloudflared tunnel $TUNNEL" >>"$STATE/tunnel.log"
+    env -i HOME=$U_HOME PATH="$BASE_PATH" $(command -v cloudflared || echo $U_HOME/.local/bin/cloudflared) tunnel --config "$CF_CONFIG" \
+      --protocol http2 --edge 198.41.192.7:7844 --edge 198.41.200.13:7844 --edge 198.41.192.57:7844 --edge 198.41.200.33:7844 --loglevel info --logfile "$STATE/tunnel.log" run "$TUNNEL" >/dev/null 2>&1
+    echo "[$(date '+%F %T %Z')] cloudflared exited ($?); restarting in 5s" >>"$STATE/tunnel.log"
+    sleep 5
+  done
+}
+
+case "${1:-status}" in
+  start)
+    if tmux has-session -t "$SESSION" 2>/dev/null; then echo "already running (tmux session $SESSION)"; exit 0; fi
+    if pgrep -f '^(/opt/Orca|/workspace/ops/orca-app/Orca)/orca-ide( --no-sandbox)?$' >/dev/null; then
+      echo "Orca desktop app is running; quit it first (one Orca runtime per profile)." >&2; exit 1
+    fi
+    # Electron `orca-ide serve` binds 0.0.0.0 (no --bind in the CLI); keep the port loopback-only (best effort, needs sudo -n).
+    for t in iptables ip6tables; do
+      command -v $t >/dev/null || continue
+      sudo -n $t -C INPUT -p tcp --dport "$PORT" ! -i lo -m comment --comment orca-remote-localhost-only -j DROP 2>/dev/null \
+        || sudo -n $t -I INPUT 1 -p tcp --dport "$PORT" ! -i lo -m comment --comment orca-remote-localhost-only -j DROP 2>/dev/null \
+        || echo "warning: could not add $t loopback-only rule for port $PORT" >&2
+    done
+    tmux new-session -d -s "$SESSION" -n serve "DISPLAY=${DISPLAY:-:4} $0 serve-loop"
+    tmux new-window -d -t "$SESSION" -n tunnel "$0 tunnel-loop"
+    echo "started tmux session $SESSION (windows: serve, tunnel)";;
+  stop)
+    tmux kill-session -t "$SESSION" 2>/dev/null
+    pkill -f "cloudflared tunnel --config $CF_CONFIG" 2>/dev/null
+    pkill -TERM -f "$SERVE_MATCH" 2>/dev/null
+    echo "stopped";;
+  restart) "$0" stop; sleep 3; "$0" start;;
+  status)
+    tmux has-session -t "$SESSION" 2>/dev/null && echo "tmux session $SESSION: up" || echo "tmux session $SESSION: down"
+    pgrep -af "$SERVE_MATCH|orcad" | cut -c1-120 || true
+    pgrep -af "cloudflared tunnel --config" | cut -c1-120 || true;;
+  serve-loop) serve_loop;;
+  tunnel-loop) tunnel_loop;;
+  *) echo "usage: $0 start|stop|restart|status" >&2; exit 2;;
+esac

@@ -1,0 +1,11 @@
+#!/bin/bash
+# Drill stand-in for /workspace/ops/orca-remote/orca-remote (start|stop|restart). Every restart is counted in $W/restarts.
+# Orca "comes back" in whatever mode orca_mode_after_restart says (default: unchanged, i.e. a restart does not fix it).
+W=${DRILL_W:?}; S=${WATCHDOG_SESSION:?}
+case "$1" in
+  start) tmux has-session -t "$S" 2>/dev/null && { echo "already running"; exit 0; }
+         tmux new-session -d -s "$S" "DRILL_W=$W /drill-src/drill/fake-bin/tunnel-loop.sh"; echo "started tmux session $S";;
+  stop)  tmux kill-session -t "$S" 2>/dev/null; pkill -f "cloudflared tunnel --config $W/cf.yml"; echo "stopped";;
+  restart) echo "$(date +%s) restart" >>"$W/restarts"; "$0" stop
+         [ -f "$W/orca_mode_after_restart" ] && cp "$W/orca_mode_after_restart" "$W/orca_mode"; sleep 1; "$0" start;;
+esac
