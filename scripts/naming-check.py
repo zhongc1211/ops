@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """naming-check.py — pure-script naming check across both Orca hosts (no model).
 
-Flags (1) workspaces and Orca automations whose name is not "项目 · 编号 描述" (项目 in 心月/vllm/dv广告/dv运维/ops/dv官网,
-per dev-bot-rules; 编号 like PER-38, FDV-36/37 or digits) and (2) terminals with no title ("untitled") — a warning only.
+Flags (1) workspaces and Orca automations whose name is not "项目 · 编号 描述" (项目 in 心月/vllm/dv广告/dv运维/ops/dv官网/dv营销,
+per dev-bot-rules, plus dv营销: a bot in use, not yet in the rules' table; 编号 like PER-38, FDV-36/37 or digits) and
+(2) terminals with no title ("untitled") — a warning only.
 Exempt: main/primary worktrees (isMainWorktree or name "main"), and automation run workspaces ("auto-orca-run N").
 Legacy: names listed in naming-check-legacy-allowlist.json (next to this script, or $NAMING_ALLOWLIST) are reported as
 "legacy" and never renamed or counted; anything not in that file still fails.
@@ -20,7 +21,7 @@ exit 2 if the host query failed on every host; else 0. Warnings and legacy never
 """
 import json, os, re, subprocess, sys
 
-PROJECTS = ("心月", "vllm", "dv广告", "dv运维", "ops", "dv官网")
+PROJECTS = ("心月", "vllm", "dv广告", "dv运维", "ops", "dv官网", "dv营销")
 NAME_RE = re.compile(r"^(%s) · (?:[A-Z]{2,6}-\d+(?:[/、,+-]\d+)*|\d+)(?:\s+\S.*)$" % "|".join(map(re.escape, PROJECTS)))
 EXEMPT_RE = re.compile(r"^(main|auto[-_ ]?orca[-_ ]?run[-_ ]?\d+.*|自动任务 ?run ?\d+.*|.+ run \d+)$", re.I)
 STATE = os.environ.get("NAMING_STATE", os.path.expanduser("~/.orca-state/naming-check/reported.json"))

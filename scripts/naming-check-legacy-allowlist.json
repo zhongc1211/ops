@@ -351,15 +351,6 @@
    "where": "/Users/jiawenwang/orca/workspaces/ops/xinyue-night-review-guard",
    "added": "2026-10-19",
    "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
-  },
-  {
-   "key": "auto|iMac|827e1814-648b-41d5-bd9a-7d21c3e1f981",
-   "host": "iMac",
-   "kind": "automation_name",
-   "name": "dv营销 · 16 SEO/GEO 周检",
-   "where": "automation 827e1814",
-   "added": "2026-10-19",
-   "reason": "项目简称表按 dev-bot-rules 只留 心月/vllm/dv广告/dv运维/ops/dv官网，去掉了 dv营销；这个自动任务名 2026-10-18 已按整合方案改过，不改线上自动任务，先豁免"
   }
  ]
 }
