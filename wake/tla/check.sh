@@ -42,8 +42,10 @@ RUNS=(
   "w16_p5_fixed       MC pass     P5 假设修法 no_hol"
   "h01_p3_dead        Heartbeat pass     P3 自动任务不跑 / Orca 挂了：会告警，且 75 分钟内"
   "h02_p3_dead_mutant Heartbeat violated P3 改坏：查不到运行记录时不报"
-  "h03_p3_hang        Heartbeat violated P3 发现：每次扫描超时被杀，不告警"
-  "h04_p3_crash       Heartbeat violated P3 发现：每次扫描出错，不告警"
+  "h03_p3_hang        Heartbeat pass     P3 每次扫描超时被杀：会告警，且 75 分钟内（F7 已修：last_scan = 上次跑完的扫描）"
+  "h04_p3_crash       Heartbeat pass     P3 每次扫描出错：会告警，且 75 分钟内（F8 已修）"
+  "h05_p3_hang_mutant Heartbeat violated P3 改坏（修之前的代码）：last_scan 取扫描开始时间，超时被杀不告警"
+  "h06_p3_crash_mutant Heartbeat violated P3 改坏（修之前的代码）：last_scan 取扫描开始时间，出错不告警"
 )
 
 [ -x "$JAVA" ] || { echo "check.sh: 找不到 Java：$JAVA（见 README「安装」）" >&2; exit 2; }

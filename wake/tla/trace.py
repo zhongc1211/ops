@@ -16,8 +16,8 @@ CODE = {
     "WebhookDown": "派活 bot 的 webhook 开始不可用（环境）",
     "WebhookUp": "webhook 恢复（环境）",
     "Scan": "卡住检查一次扫描：check_agents + wake_recheck + send_all（scripts/stuck-check.sh:772-1071,1362-1421,1530-1548）",
-    "Tick": "过 15 分钟（下一次扫描，stuck-check.sh:1637）",
-    "Step": "过 1 分钟：ops · 01 precheck（scripts/stuck-check.sh:1700-1736）+ 每 5 分钟 heartbeat-watch（scripts/heartbeat-watch.sh:186-255）",
+    "Tick": "过 15 分钟（下一次扫描，stuck-check.sh:1638）",
+    "Step": "过 1 分钟：ops · 01 precheck（scripts/stuck-check.sh:1699-1739）+ 每 5 分钟 heartbeat-watch（scripts/heartbeat-watch.sh:188-257）",
     "Fail": "卡住检查出故障（自动任务停 / 每次出错 / 每次超时）",
 }
 

@@ -7,7 +7,7 @@
 ## 复跑
 
 ```bash
-wake/tla/check.sh            # 全部 25 个检查，约 10 分钟（不含等资源的时间）；退出码 0 = 和期望一致
+wake/tla/check.sh            # 全部 27 个检查，约 10 分钟（不含等资源的时间）；退出码 0 = 和期望一致
 wake/tla/check.sh w0 h0      # 只跑 P2、P3（一分钟内）
 wake/tla/trace.py wake/tla/out/w13a_p1h_only_recheck.out   # 把反例翻成「第几步、哪个动作、对应代码、变了什么」
 ```
@@ -47,8 +47,8 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | wake/bin/orca-wake-hooks | 1a5e66d777618c76 | 一致 | 一致 | 一致 |
 | wake/bin/agent-stop | 7cc0ebefd5b5c53a | 一致 | 一致 | 一致 |
 | scripts/agent-probe | 0fb882eb340a8004 | 一致 | 一致 | 一致 |
-| scripts/stuck-check.sh | c0bf9c6dad8c4a09 | — | `~/orca/workspaces/ops/scripts/`（ops · 01/02 跑的）一致 | **不一致**（d743f664…，MBA 上没有自动任务跑它） |
-| scripts/heartbeat-watch.sh | 682dfa079840cf2e | `~/.orca-state/bin/`（box ops · 29 跑的）一致 | `~/.orca-state/bin/`（iMac ops · 29 跑的）一致 | — |
+| scripts/stuck-check.sh | d5747aa4a77a5c31（F7/F8 修过；建模时 c0bf9c6dad8c4a09） | — | `~/orca/workspaces/ops/scripts/`（ops · 01/02 跑的）一致 | **不一致**（d743f664…，MBA 上没有自动任务跑它） |
+| scripts/heartbeat-watch.sh | a36d3dc8a88702a8（F8 同类修过；建模时 682dfa079840cf2e） | `~/.orca-state/bin/`（box ops · 29 跑的）一致 | `~/.orca-state/bin/`（iMac ops · 29 跑的）一致 | — |
 | wake/pi/dispatch-wake.ts | 350c898595552ed6 | 没核对（Pi 扩展装在各 agent 的扩展目录） | | |
 
 自动任务（`orca automations show`，只读）：iMac ops · 01 `439cd438` precheck `stuck-check.sh --scan`、rrule 每分钟、**precheck timeoutSeconds 300**；iMac ops · 02 `c7692ae9` codex 备用（`orca-fallback.sh stuck-check 25 60`，8–23 点每小时 53 分）；box ops · 29 `94e4b0bc` `heartbeat-watch.sh --precheck --target "iMac ops · 01 …|iMac|439cd438…|20"` 每 5 分钟；iMac ops · 29 `5c2d0575` 盯 box ops · 29。enabled-bots 三台都含全部真实 bot（coding-assistant、deepvision-ops、vllm-omni、xinyue、deepvision-ads、deepvision-marketing），所以模型里不建影子模式。
@@ -64,9 +64,9 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | `NrAttempt` | notify-run 120-128（一次 curl），成功判断 125，日志 124 | 一次 curl |
 | `MarkCompleted` | agent 把 Orca 工作区标 completed | |
 | `Scan` | stuck-check `main()` 一次扫描：`check_agents` 772-1071（agent_gone 962-976、主目录退出 886-894、idle → `wake_recheck` 978-1002/550-606、结果处理 1027-1069）、第二类 1530-1548 / `check_reported` 1216-1304、`send_all` 1362-1421 | 一次扫描是一个进程顺序执行（run.lock 保证同时只有一个），别的进程在扫描中途的交错对这些性质没有影响（见「假设」） |
-| `Tick` | 15 分钟（`INTERVAL_MIN` 138，闸门 1637） | |
+| `Tick` | 15 分钟（`INTERVAL_MIN` 138，闸门 1638） | |
 | `WebhookUp/Down` | 环境：bot 的 webhook 服务通不通 | |
-| Heartbeat `Step` | 每分钟一次 precheck（stuck-check 1700-1736：闸门关 1704-1707 打 `@@HB`，闸门开先写 gate.last 1720 再 `main()` 1725，异常 1726-1734）+ 每 5 分钟 heartbeat-watch `main()` 186-255 | |
+| Heartbeat `Step` | 每分钟一次 precheck（stuck-check 1699-1739：闸门关 1702-1706 打 `@@HB`，闸门开先写 gate.last 1721 再 `main()` 1726，异常 1727-1735，跑完才写 gate.done 1736-1737；@@HB 的 last_scan = done 1676）+ 每 5 分钟 heartbeat-watch `main()` 188-257 | |
 | Heartbeat `Fail` | 卡住检查出故障并一直坏：dead（自动任务不跑 / Orca 挂了）、crash（`main()` 每次抛异常）、hang（每次超过 300 秒被杀） | |
 
 ## 性质
@@ -118,7 +118,8 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | w16 P5 + 修法 no_hol | pass | |
 | h01 P3（dead）+ P3_BOUND + NoFalseAlarm | pass | 自动任务停 / Orca 挂了会告警，75 分钟内 |
 | h02 改坏：查不到运行记录不报 | violated | |
-| h03 P3（hang） / h04 P3（crash） | **violated** | 发现 F7、F8 |
+| h03 P3（hang） / h04 P3（crash） | pass（F7、F8 已修） | 加了 P3_BOUND：75 分钟内告警 |
+| h05 / h06 改坏：last_scan 取扫描开始时间（修之前的代码） | violated | |
 
 「修法」只在模型里（`Fixes` 常量），用来证明性质不是空的、模型不是怎么都失败；没有改任何产品代码。
 
@@ -132,8 +133,8 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 - **F4** 派活 bot 的 webhook 一直坏时，没有任何路径升级到 Coding助手（`bot_cfg` 只在没有 env 文件时转，stuck-check.sh:1347-1354）。
 - **F5** `send_all` 一条失败就停（`broken`，stuck-check.sh:1381-1382,1415-1416）：一个坏掉的 bot 每次扫描都排在前面，挡住给 Coding助手 的告警；挡路的还可能是 notify-run 已经送达过的重复 agent_gone。
 - **F6** 第二类「报了没人验收」最早 1 小时、按约每小时一次查，completed 任务最坏接近 2 小时才到 Coding助手，P4 的 1 小时在设计上就达不到。
-- **F7** 扫描每次超过 300 秒被杀时心跳照样新鲜：`last_scan` 取的是扫描**开始**时写的 gate.last（stuck-check.sh:1720 在 1725 `main()` 之前），heartbeat-watch 不会报。iMac 日志 10-16～10-19 最长一次扫描 253 秒，10-16 03:03:55 有一次开始没结束。
-- **F8** 扫描每次出错时（`main()` 抛异常）`--scan` 返回 0、照打新心跳，只会起一个 Claude 复核 agent（它的报告只进 Orca 运行记录），codex 备用失败后只写 `~/orca-alerts/stuck-check.flag`，没有任何 webhook 告警。
+- **F7**（已修，PER-67 F7+F8 PR：`last_scan` 改成上次跑完的扫描 gate.done）扫描每次超过 300 秒被杀时心跳照样新鲜：`last_scan` 取的是扫描**开始**时写的 gate.last（stuck-check.sh:1720 在 1725 `main()` 之前），heartbeat-watch 不会报。iMac 日志 10-16～10-19 最长一次扫描 253 秒，10-16 03:03:55 有一次开始没结束。
+- **F8**（已修，同上；heartbeat-watch 自己出错时 last_scan 也不再前进）扫描每次出错时（`main()` 抛异常）`--scan` 返回 0、照打新心跳，只会起一个 Claude 复核 agent（它的报告只进 Orca 运行记录），codex 备用失败后只写 `~/orca-alerts/stuck-check.flag`，没有任何 webhook 告警。
 
 ## 代码变了怎么办 / 结果变了怎么办
 

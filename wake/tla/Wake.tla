@@ -16,7 +16,7 @@
 (*       1401-1419），「报了没人验收」给 Coding助手（:1530-1548,1216-1304） *)
 (*                                                                         *)
 (* 时间：一个 Tick = 15 分钟 = 一次卡住检查扫描（stuck-check.sh:138        *)
-(* INTERVAL_MIN，闸门 :1637）。一次 POST 连重试都在 1～2 分钟内（notify-run 20s+45s，   *)
+(* INTERVAL_MIN，闸门 :1638）。一次 POST 连重试都在 1～2 分钟内（notify-run 20s+45s，   *)
 (* orca-wake 20s+45s，stuck-check 5/15/45s），所以 Tick 要等在途的发送都结束 *)
 (* 才走。webhook 是否可用用 up[b] 表示，随时可以变；down 时每次 POST 返回 *)
 (* 0（curl 000 / 超时 / 连不上）或 500。                                    *)
