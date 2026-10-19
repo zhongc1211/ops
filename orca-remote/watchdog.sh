@@ -75,7 +75,7 @@ froze(){ local n u wd ud; n=$(date +%s); u=$(up); wd=$((n-$1)); ud=$((u-$2)); [ 
     log "guest freeze detected ($4 took ${wd}s, guest clock advanced ${ud}s = box frozen inside the guest, e.g. memory thrash); grace ${STALL_GRACE}s, cloudflared left to re-register, no strikes"
     grace_until=$((n+STALL_GRACE)); resumed=0; last_stall=$n; setst stalled "frozen ${wd}s in $4"
   fi
-  f=0; ts=0; return 0; }
+  f=0; ts=0; wstate; return 0; }
 # cf_fresh: print how many seconds ago cloudflared last logged "Registered tunnel connection", if within CF_FRESH
 cf_fresh(){ local t a; t=$(tail -n 300 "$TLOG" 2>/dev/null | grep 'Registered tunnel connection' | tail -n 1 | sed -n 's/.*"time":"\([^"]*\)".*/\1/p')
   [ -n "$t" ] && t=$(date -d "$t" +%s 2>/dev/null) && a=$(( $(date +%s)-t )) && [ $a -le $CF_FRESH ] && echo $a; }
@@ -83,7 +83,9 @@ cf_fresh(){ local t a; t=$(tail -n 300 "$TLOG" 2>/dev/null | grep 'Registered tu
 # public every 3s for up to 60s; ok = 3 consecutive 200s. KILL if TERM is ignored (a stopped/hung cloudflared never handles TERM).
 # Returns 2 without killing when cloudflared re-registered within CF_FRESH s (it is reconnecting by itself).
 tunnel_fix(){ local a; a=$(cf_fresh); if [ -n "$a" ]; then log "cloudflared re-registered ${a}s ago -> not killing it ($1); recheck next loop"; return 2; fi
-  log "-> tunnel-only restart: $1 (cloudflared; Orca untouched)"; st tunnel-restart; setst restarting "cloudflared: $1"
+  log "-> tunnel-only restart: $1 (cloudflared; Orca untouched)"; st tunnel-restart
+  # after a VM pause the state stays "paused" (the reason the tunnel is down); otherwise "restarting". Written now: the fix takes up to 65s
+  if [ "$wst" = paused ]; then wdet="$wdet; restarting cloudflared"; else setst restarting "cloudflared: $1"; fi; wstate
   old=$(pgrep -f "$CF_MATCH"); [ -n "$old" ] && kill $old 2>/dev/null
   for i in 1 2 3 4 5; do kill -0 $old 2>/dev/null || break; sleep 1 9>&-; done
   kill -0 $old 2>/dev/null && { log "cloudflared $old ignored TERM -> KILL"; kill -KILL $old 2>/dev/null; }
