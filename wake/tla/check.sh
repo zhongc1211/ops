@@ -41,7 +41,7 @@ RUNS=(
   "w13b_p1h_only_main MC pass     P1h 只剩 F2 时：已修（主目录 agent 退出、notify-run 没发出去，卡住检查照报）"
   "w13f_p1h_main_mutant MC violated P1h 改坏（F2 修之前的代码）：主目录里包了 notify-run 的退出一律不报"
   "w13c_p1h_only_clean MC pass     P1h 只剩 F3 时：已修（最后一次停下没送达叫醒的干净工作区照报）"
-  "w13d_p1h_clean_mutant MC violated P1h 改坏（F3 修之前的代码）：completed 干净工作区一律放行"
+  "w13d_p1h_clean_mutant MC violated P1h 改坏（F3 修之前的代码，且去掉 F6 的 completed 没送达检查）：completed 干净工作区一律放行"
   "w14_p1h_fixed      MC pass     P1h 以前的假设修法都已在代码里（和 w13 同一份配置）"
   "w15_p5             MC pass     P5 一个 bot 的 webhook 坏了只挡发给它自己的（F5 已修）"
   "w15b_p5_hol_mutant MC violated P5 改坏（F5、F4 修之前的 send_all）：一个 bot 坏了挡住 Coding助手 的叫醒"

@@ -120,7 +120,7 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | w13a P1h 只剩 F1 | pass（F1 已修） | |
 | w13e 改坏：recheck 发送失败后不再补（F1 修之前的代码） | violated | |
 | w13c P1h 只剩 F3 | pass（F3 已修） | |
-| w13d 改坏：干净工作区一律放行（F3 修之前的代码） | violated | |
+| w13d 改坏：干净工作区一律放行（F3 修之前的代码），同时去掉 F6 的 completed 没送达检查（两层都兜这个场景） | violated | |
 | w14 P1h（以前的假设修法都已在代码里，和 w13 同一份配置） | pass | |
 | w15 P5 | pass（F5 已修：send_all 只挡发给同一个目标的） | |
 | w15b 改坏：一条失败其余全停、没有改报（F5、F4 修之前的 send_all） | violated | |

@@ -221,7 +221,9 @@ IdleCand(t) ==
 (* woken[turn] 和之后 notify-run 的 2xx；PER-67 F3）。代码只认 orca-wake / notify-run *)
 (* 的送达，比 accepted 窄（不认 stuck-check 自己的 agent_gone），只会多报不会少报， *)
 (* 所以模型里按 accepted = {} 才报。                                            *)
-(* Mutant "clean_pass"：修之前的代码，干净的一律放行。                           *)
+(* Mutant "clean_pass"：F3 修之前的代码，干净的一律放行；同时去掉 F6 的           *)
+(* check_undelivered（EscCand 里 completed 那条）——两层都兜这个场景，只去掉一层   *)
+(* 时另一层照样报，变体就查不出 F3 了（第 5 组全量 w13d 变成 pass 时发现）。      *)
 RepCand(t, doFull) ==
     /\ doFull /\ ws[t] = "completed" /\ agent[t] # "running"
     /\ cage[t] >= ACCEPT_TICKS /\ accepted[t] = {} /\ ~seen2[t]
@@ -248,7 +250,7 @@ EscCand(t) ==
     /\ agent[t] # "running" /\ accepted[t] = {} /\ ~esc[t]
     /\ Mutant \notin {"no_escalate", "old_send_all"} /\ age[t] >= ESC_TICKS
     /\ \/ disp[t] # CA /\ ScTries(t)
-       \/ Mutant # "slow_escalate" /\ kind[t] = "task" /\ ws[t] = "completed"
+       \/ Mutant \notin {"slow_escalate", "clean_pass"} /\ kind[t] = "task" /\ ws[t] = "completed"
 
 (* recheck 的结果（orca-wake cmd_recheck :938-987，candidate :893-910）：         *)
 (*   woken 有这次停顿 → already_woken → stuck-check 记 dismissed（:1161-1163）；  *)
