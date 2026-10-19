@@ -34,7 +34,7 @@ UPF=${WATCHDOG_UPTIME_FILE:-/proc/uptime}; PSIF=${WATCHDOG_PSI_MEM:-/proc/pressu
 export DISPLAY=:4 PATH=/home/box/.local/bin:/usr/local/bin:/usr/bin:/bin
 INT=${WATCHDOG_INT:-45}; MINGAP=${WATCHDOG_MINGAP:-90}; MAXGAP=${WATCHDOG_MAXGAP:-900}; GRACE=${WATCHDOG_GRACE:-120}
 STALL_SLACK=${WATCHDOG_STALL_SLACK:-30}; STALL_GRACE=${WATCHDOG_STALL_GRACE:-180}; STRIKE_WIN=$((2*INT+STALL_SLACK))
-CF_FRESH=${WATCHDOG_CF_FRESH:-60}; PSI_MAX=${WATCHDOG_PSI_MAX:-10}; DEFER_MAX=${WATCHDOG_DEFER_MAX:-300}
+T_LOCAL=10; T_PUB=15; CF_FRESH=${WATCHDOG_CF_FRESH:-60}; PSI_MAX=${WATCHDOG_PSI_MAX:-10}; DEFER_MAX=${WATCHDOG_DEFER_MAX:-300}
 grace_until=0; ts=0; resumed=0; last_strike=0; defer_since=0; rgap=$MINGAP; last_stall=0; wst=init; wsince=$(date +%s); wdet=""
 LOCAL=${WATCHDOG_LOCAL_URL:-http://127.0.0.1:6768/}
 PUB=${WATCHDOG_PUBLIC_URL:-https://orca-bot.deepvision.sg/}; PBODY=${WATCHDOG_PBODY:-/tmp/orca-remote-watchdog.public-body}
@@ -82,7 +82,7 @@ cf_fresh(){ local t a; t=$(tail -n 300 "$TLOG" 2>/dev/null | grep 'Registered tu
 # tunnel_fix WHY: restart ONLY cloudflared (the tmux tunnel-loop respawns it after 5s; Orca serve and tmux untouched), then recheck
 # public every 3s for up to 60s; ok = 3 consecutive 200s. KILL if TERM is ignored (a stopped/hung cloudflared never handles TERM).
 # Returns 2 without killing when cloudflared re-registered within CF_FRESH s (it is reconnecting by itself).
-tunnel_fix(){ local a; a=$(cf_fresh); if [ -n "$a" ]; then log "cloudflared re-registered ${a}s ago -> not killing it ($1); recheck next loop"; return 2; fi
+tunnel_fix(){ local a old i t0 ok c; a=$(cf_fresh); if [ -n "$a" ]; then log "cloudflared re-registered ${a}s ago -> not killing it ($1); recheck next loop"; return 2; fi
   log "-> tunnel-only restart: $1 (cloudflared; Orca untouched)"; st tunnel-restart
   # after a VM pause the state stays "paused" (the reason the tunnel is down); otherwise "restarting". Written now: the fix takes up to 65s
   if [ "$wst" = paused ]; then wdet="$wdet; restarting cloudflared"; else setst restarting "cloudflared: $1"; fi; wstate
@@ -110,10 +110,10 @@ setst ok "started"; wstate
 while true; do
   froze $last_loop $last_up $((INT+STALL_SLACK)) "sleep"
   t0=$(date +%s); u0=$(up)
-  st curl-local; l=$(curl -s -o /dev/null -w '%{http_code}' -m 10 $LOCAL)
-  st curl-public; p=$(curl -s -o $PBODY -w '%{http_code}' -m 15 $PUB)
-  # probes are capped at 10+15s; taking longer means the box froze under them -> their results describe the freeze, drop them
-  if froze $t0 $u0 $((25+STALL_SLACK)) "probes (local=$l public=$p)"; then st sleep; wstate; last_loop=$(date +%s); last_up=$(up); sleep $INT 9>&-; continue; fi
+  st curl-local; l=$(curl -s -o /dev/null -w '%{http_code}' -m $T_LOCAL $LOCAL)
+  st curl-public; p=$(curl -s -o $PBODY -w '%{http_code}' -m $T_PUB $PUB)
+  # probes are capped at T_LOCAL+T_PUB s; taking longer means the box froze under them -> their results describe the freeze, drop them
+  if froze $t0 $u0 $((T_LOCAL+T_PUB+STALL_SLACK)) "probes (local=$l public=$p)"; then st sleep; wstate; last_loop=$(date +%s); last_up=$(up); sleep $INT 9>&-; continue; fi
   now=$(date +%s); [ $now -ge $grace_until ] && resumed=0
   # strikes count as consecutive only if the previous strike is recent (a strike before a freeze must not pair with one after it)
   [ $((now-last_strike)) -gt $STRIKE_WIN ] && { f=0; ts=0; }

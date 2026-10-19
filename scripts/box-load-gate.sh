@@ -13,8 +13,10 @@
 # - load1 < 1.5 x cores.
 # - heavy jobs already running < 2 (dev-bot-rules: box takes at most 2 heavy jobs). A heavy job = a workspace (process cwd)
 #   with a process matching HEAVY_RE.
-# Overrides (tests / tuning): GATE_PROC (default /proc), GATE_EST_MB, GATE_MIN_LEFT_MB, GATE_MAX_HEAVY.
+# Overrides (tests / tuning): GATE_PROC (default /proc), GATE_EST_MB, GATE_MIN_LEFT_MB, GATE_MAX_HEAVY, GATE_MFULL_MAX,
+# GATE_MSOME_MAX, GATE_IO_MAX, GATE_LOAD_X.
 P=${GATE_PROC:-/proc}; EST=${GATE_EST_MB:-3072}; MIN_LEFT=${GATE_MIN_LEFT_MB:-3584}; MAX_HEAVY=${GATE_MAX_HEAVY:-2}; QUIET=0
+MFULL_MAX=${GATE_MFULL_MAX:-5}; MSOME_MAX=${GATE_MSOME_MAX:-20}; IO_MAX=${GATE_IO_MAX:-30}; LOAD_X=${GATE_LOAD_X:-1.5}
 while [ $# -gt 0 ]; do case $1 in --est-mb) EST=$2; shift 2;; --quiet) QUIET=1; shift;; *) echo "usage: $0 [--est-mb N] [--quiet]" >&2; exit 2;; esac; done
 HEAVY_RE='playwright|chrom(e|ium).*--headless|node .*(--test|tests/.*\.test\.m?js)|workerd serve|next build|next-build|vitest|jest|tlc2|java .*tla|cargo build|rustc|tsc( |$)|webpack|esbuild|pytest'
 avail=$(awk '/^MemAvailable:/ {print int($2/1024)}' "$P/meminfo" 2>/dev/null); swap=$(awk '/^SwapTotal:/ {print int($2/1024)}' "$P/meminfo" 2>/dev/null)
@@ -22,22 +24,22 @@ avail=$(awk '/^MemAvailable:/ {print int($2/1024)}' "$P/meminfo" 2>/dev/null); s
 psi(){ sed -n "s/^$2 .*avg60=\([0-9]*\)\..*/\1/p" "$P/pressure/$1" 2>/dev/null; }
 mfull=$(psi memory full); msome=$(psi memory some); iosome=$(psi io some)
 read -r l1 l5 l15 _ <"$P/loadavg"; cores=$(grep -c ^processor "$P/cpuinfo" 2>/dev/null); [ "${cores:-0}" -gt 0 ] || cores=$(nproc)
-claude=$(pgrep -xc claude 2>/dev/null || echo 0)
+claude=$(pgrep -xc claude 2>/dev/null); claude=${claude:-0}
 heavy=$(ps -eo pid=,args= 2>/dev/null | grep -E "$HEAVY_RE" | grep -v -E 'grep|box-load-gate' | while read -r pid _; do
   readlink "$P/$pid/cwd" 2>/dev/null; done | sed -E 's#^(.*/orca/workspaces/[^/]+/[^/]+).*#\1#; s#^(/tmp/claude-[0-9]+/[^/]+).*#\1#' | sort -u)
 nheavy=$(printf '%s' "$heavy" | grep -c .)
 why=()
 [ $((avail-EST)) -lt "$MIN_LEFT" ] && why+=("MemAvailable ${avail}MB - job ${EST}MB < ${MIN_LEFT}MB left")
-[ "${mfull:-0}" -ge 5 ] && why+=("PSI memory full avg60 ${mfull}% >= 5%")
-[ "${msome:-0}" -ge 20 ] && why+=("PSI memory some avg60 ${msome}% >= 20%")
-[ "${iosome:-0}" -ge 30 ] && why+=("PSI io some avg60 ${iosome}% >= 30%")
-awk -v l="$l1" -v c="$cores" 'BEGIN{exit !(l >= 1.5*c)}' && why+=("load1 $l1 >= 1.5 x $cores cores")
+[ "${mfull:-0}" -ge "$MFULL_MAX" ] && why+=("PSI memory full avg60 ${mfull}% >= ${MFULL_MAX}%")
+[ "${msome:-0}" -ge "$MSOME_MAX" ] && why+=("PSI memory some avg60 ${msome}% >= ${MSOME_MAX}%")
+[ "${iosome:-0}" -ge "$IO_MAX" ] && why+=("PSI io some avg60 ${iosome}% >= ${IO_MAX}%")
+awk -v l="$l1" -v c="$cores" -v x="$LOAD_X" 'BEGIN{exit !(l >= x*c)}' && why+=("load1 $l1 >= $LOAD_X x $cores cores")
 [ "$nheavy" -ge "$MAX_HEAVY" ] && why+=("$nheavy heavy jobs running (max $MAX_HEAVY)")
 if [ $QUIET = 0 ]; then
   echo "box: MemAvailable ${avail}MB, swap ${swap}MB, PSI mem full/some avg60 ${mfull:-?}/${msome:-?}%, io some ${iosome:-?}%, load $l1/$l5/$l15 on $cores cores, claude sessions $claude"
   echo "heavy jobs ($nheavy):"; printf '%s\n' "$heavy" | sed '/^$/d; s/^/  /'
 fi
 if [ ${#why[@]} -eq 0 ]; then echo "ALLOW: box can take a ~${EST}MB heavy job"; exit 0; fi
-echo "DENY: $(IFS=';'; echo "${why[*]}" | sed 's/;/; /g')"
+echo "DENY: $(printf '%s; ' "${why[@]}" | sed 's/; $//')"
 echo "-> dispatch to MBA (first choice); MBA busy or down -> iMac; box only after the above clears (dev-bot-rules「派到哪台电脑」)"
 exit 1
