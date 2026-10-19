@@ -33,7 +33,7 @@ vllm-omni → `vllm-omni`，其他（ops 等）→ `coding-assistant`。同一�
 
 演练：`UNPUSHED_LOG_NAME=drills/x.log unpushed-scan.sh --only <工作区路径> --state <单独的状态文件> --drill`；
 只看不叫：`unpushed_scan.py --dry-run`。
-不扫的工作区写在 `unpushed_scan.py` 的 `IGNORE`（按 `--machine` 和路径），现在只有 MBA 的 `~/orca/projects/local`（Orca 自动生成的占位仓库）。
+不扫的工作区写在 `unpushed_scan.py` 的 `IGNORE`（按 `--machine` 和路径），现在有 MBA 的 `~/orca/projects/local`（Orca 自动生成的占位仓库）和 iMac 的 `~/claude/worker`（停用的 Lark 秘书 worker，没有远程，2026-10-19 已归档到 `~/ops-archive/20261019/`）。
 
 ## 安装
 
