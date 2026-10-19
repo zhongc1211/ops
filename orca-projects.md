@@ -140,6 +140,8 @@ Box 与 iMac 是两套独立 Orca runtime；同名仓库在 box 上另有项目 
 ## 3c. 2026-10-12 14:5x deepvision 运维 收尾（Coding助手 派，Zack 已定）
 - 删除 iMac ~/cutover-20261008/build-fdv54（生产构建目录，git worktree remove）。~/cutover-20261008/build-testing 已不存在（3b 已删）。fdv-16-preview（FDV-25）此前已不在列表。
 | 心月网站 运维 | 心月 · EverOS 启动器 v2.1（iMac 099c800e::~/orca/workspaces/xinyue-site/心月-EverOS-启动器-v2.1；Claude term_4be9a6d2；in-review，2026-10-17） | xinyue-site | — |
+| 心月 | PER-71 | MBA ~/orca/workspaces/xinyue-site/per-71-colorfigures-a | 心月 · PER-71 Colorfigures 框架与总入口 | 2026-10-19 |
+| 心月 | PER-75 | iMac ~/orca/workspaces/xinyue-site/per-75-oss-games | 心月 · PER-75 开源游戏候选调研 | 2026-10-19 |
 
 ## 7. MBA（MacBook Air）Orca 项目（2026-10-18 16:00 SGT 建，box 上的 Claude Code 经 iMac `ssh mba` 做）
 
