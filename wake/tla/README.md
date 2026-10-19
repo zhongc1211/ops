@@ -7,7 +7,7 @@
 ## 复跑
 
 ```bash
-wake/tla/check.sh            # 全部 28 个检查，约 10 分钟（不含等资源的时间）；退出码 0 = 和期望一致
+wake/tla/check.sh            # 全部 29 个检查，约 10 分钟（不含等资源的时间）；退出码 0 = 和期望一致
 wake/tla/check.sh w0 h0      # 只跑 P2、P3（一分钟内）
 wake/tla/trace.py wake/tla/out/w13a_p1h_only_recheck.out   # 把反例翻成「第几步、哪个动作、对应代码、变了什么」
 ```
@@ -47,7 +47,7 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | wake/bin/orca-wake-hooks | 1a5e66d777618c76 | 一致 | 一致 | 一致 |
 | wake/bin/agent-stop | 7cc0ebefd5b5c53a | 一致 | 一致 | 一致 |
 | scripts/agent-probe | 0fb882eb340a8004 | 一致 | 一致 | 一致 |
-| scripts/stuck-check.sh | ce32eb2893418864（F7/F8、F3 修过；建模时 c0bf9c6dad8c4a09） | — | `~/orca/workspaces/ops/scripts/`（ops · 01/02 跑的）一致 | **不一致**（d743f664…，MBA 上没有自动任务跑它） |
+| scripts/stuck-check.sh | 84f9e0823d7eaec8（F7/F8、F3、F1 修过；建模时 c0bf9c6dad8c4a09） | — | `~/orca/workspaces/ops/scripts/`（ops · 01/02 跑的）一致 | **不一致**（d743f664…，MBA 上没有自动任务跑它） |
 | scripts/heartbeat-watch.sh | a36d3dc8a88702a8（F8 同类修过；建模时 682dfa079840cf2e） | `~/.orca-state/bin/`（box ops · 29 跑的）一致 | `~/.orca-state/bin/`（iMac ops · 29 跑的）一致 | — |
 | wake/pi/dispatch-wake.ts | 350c898595552ed6 | 没核对（Pi 扩展装在各 agent 的扩展目录） | | |
 
@@ -106,16 +106,18 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 |---|---|---|
 | w01 / w03 / w05 P2_NR / P2_OW / P2_SC_POST | pass（界限内成立） | 三处自己的成功判断都只认 2xx |
 | w02 / w04 / w06 改坏变体 | violated | 证明这三条查得出：把判断改成「任何 http」后立刻违反 |
-| w07 P2_SC_RECHECK | **violated** | 发现 F1 |
-| w08 同上 + 修法 sc_wait | pass | |
+| w07 P2_SC_RECHECK | pass（F1 已修） | |
+| w08 改坏：recheck 看到 send 就记 notified（F1 修之前的代码） | violated | |
 | w09 / w09a P4 | **violated** | 发现 F4、F6 |
 | w10 P4 + 修法 ca_escalate | pass | |
-| w11 / w11a P1 | **violated** | 发现 F4（w11 没加任何假设修法，F1、F2 也会让它违反） |
-| w12 P1 + 三个假设修法（F3 已在代码里） | pass | |
-| w13 / w13a / w13b P1h | **violated** | 发现 F1、F2（各自单独也违反） |
+| w11 / w11a P1 | **violated** | 发现 F4（w11 没加任何假设修法，F2 也会让它违反） |
+| w12 P1 + 两个假设修法 main_gone、ca_escalate（F3、F1 已在代码里） | pass | |
+| w13 / w13b P1h | **violated** | 发现 F2 |
+| w13a P1h 只剩 F1 | pass（F1 已修） | |
+| w13e 改坏：recheck 发送失败后不再补（F1 修之前的代码） | violated | |
 | w13c P1h 只剩 F3 | pass（F3 已修） | |
 | w13d 改坏：干净工作区一律放行（F3 修之前的代码） | violated | |
-| w14 P1h + 两个假设修法（F3 已在代码里） | pass | |
+| w14 P1h + 假设修法 main_gone（F3、F1 已在代码里） | pass | |
 | w15 P5 | **violated** | 发现 F5 |
 | w16 P5 + 修法 no_hol | pass | |
 | h01 P3（dead）+ P3_BOUND + NoFalseAlarm | pass | 自动任务停 / Orca 挂了会告警，75 分钟内 |
@@ -129,7 +131,7 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 
 见产物目录 `findings.md`（问题、触发步骤、影响、代码行、建议修法）。一句话版：
 
-- **F1** 卡住检查把 orca-wake 补叫醒记成「已通知」时还没发出去；发送失败后这次停顿永远不再补（stuck-check.sh:1045-1052）。
+- **F1**（已修，PER-67 F1 PR：交给 orca-wake 只记已交出，下次再 recheck，already_woken 才算送达）卡住检查把 orca-wake 补叫醒记成「已通知」时还没发出去；发送失败后这次停顿永远不再补（stuck-check.sh:1045-1052）。
 - **F2** ops 主目录里 agent 退出、notify-run 三次都发不出去（约 65 秒的中断）就没人知道：卡住检查对包了 notify-run 的退出一律不报（stuck-check.sh:889-894）。
 - **F3**（已修，PER-67 F3 PR：放行前看最后一次停下有没有送达过叫醒，没有就照报）工作区标 completed、停顿时 hook 没发（有后台 shell 时按设计不发）、工作区干净没 PR → 第二类放行，永远没人知道（stuck-check.sh:1294-1300 + orca-wake:731-732,769-771）。
 - **F4** 派活 bot 的 webhook 一直坏时，没有任何路径升级到 Coding助手（`bot_cfg` 只在没有 env 文件时转，stuck-check.sh:1347-1354）。
