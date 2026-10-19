@@ -47,7 +47,7 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | wake/bin/orca-wake-hooks | 1a5e66d777618c76 | 一致 | 一致 | 一致 |
 | wake/bin/agent-stop | 7cc0ebefd5b5c53a | 一致 | 一致 | 一致 |
 | scripts/agent-probe | af95da54bf99000a（F2/F6 加了 wake；建模时 0fb882eb340a8004） | 一致 | 一致 | 一致 |
-| scripts/stuck-check.sh | 6997ec21989c693b（F7/F8、F3、F1、F5/F4、F2/F6 修过；建模时 c0bf9c6dad8c4a09） | — | `~/orca/workspaces/ops/scripts/`（ops · 01/02 跑的）一致 | **不一致**（d743f664…，MBA 上没有自动任务跑它） |
+| scripts/stuck-check.sh | f7c44d4b864c3170（F7/F8、F3、F1、F5/F4、F2/F6 修过；建模时 c0bf9c6dad8c4a09） | — | `~/orca/workspaces/ops/scripts/`（ops · 01/02 跑的）一致 | **不一致**（d743f664…，MBA 上没有自动任务跑它） |
 | scripts/heartbeat-watch.sh | a36d3dc8a88702a8（F8 同类修过；建模时 682dfa079840cf2e） | `~/.orca-state/bin/`（box ops · 29 跑的）一致 | `~/.orca-state/bin/`（iMac ops · 29 跑的）一致 | — |
 | wake/pi/dispatch-wake.ts | 350c898595552ed6 | 没核对（Pi 扩展装在各 agent 的扩展目录） | | |
 
@@ -63,10 +63,10 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | `AgentExit` | notify-run wait 循环 196-205 → `finish` 144-158 | |
 | `NrAttempt` | notify-run 122-130（一次 curl），成功判断 127，日志 126 | 一次 curl |
 | `MarkCompleted` | agent 把 Orca 工作区标 completed | |
-| `Scan` | stuck-check `main()` 一次扫描：`check_agents` 844-1169（agent_gone 1047-1061、主目录退出 959-979、idle → `wake_recheck` 1063-1087/553-609、结果处理 1114-1167）、第二类 1729-1747 / `check_reported` 1364-1458、`send_all` 1534-1617 | 一次扫描是一个进程顺序执行（run.lock 保证同时只有一个），别的进程在扫描中途的交错对这些性质没有影响（见「假设」） |
+| `Scan` | stuck-check `main()` 一次扫描：`check_agents` 844-1179（agent_gone 1057-1071、主目录退出 959-987、idle → `wake_recheck` 1073-1097/553-609、结果处理 1124-1177）、第二类 1739-1757 / `check_reported` 1374-1468、`send_all` 1544-1627 | 一次扫描是一个进程顺序执行（run.lock 保证同时只有一个），别的进程在扫描中途的交错对这些性质没有影响（见「假设」） |
 | `Tick` | 15 分钟（`INTERVAL_MIN` 138，闸门 1694） | |
 | `WebhookUp/Down` | 环境：bot 的 webhook 服务通不通 | |
-| Heartbeat `Step` | 每分钟一次 precheck（stuck-check 1898-1938：闸门关 1901-1905 打 `@@HB`，闸门开先写 gate.last 1920 再 `main()` 1925，异常 1926-1934，跑完才写 gate.done 1935-1936；@@HB 的 last_scan = done 1875）+ 每 5 分钟 heartbeat-watch `main()` 188-257 | |
+| Heartbeat `Step` | 每分钟一次 precheck（stuck-check 1908-1948：闸门关 1911-1915 打 `@@HB`，闸门开先写 gate.last 1930 再 `main()` 1935，异常 1936-1944，跑完才写 gate.done 1945-1946；@@HB 的 last_scan = done 1885）+ 每 5 分钟 heartbeat-watch `main()` 188-257 | |
 | Heartbeat `Fail` | 卡住检查出故障并一直坏：dead（自动任务不跑 / Orca 挂了）、crash（`main()` 每次抛异常）、hang（每次超过 300 秒被杀） | |
 
 ## 性质

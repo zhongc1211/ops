@@ -12,8 +12,8 @@
 (*       （wake/bin/orca-wake:724-739,764-779,370-423,475-554）            *)
 (*   RC  卡住检查调 orca-wake recheck 补叫醒（scripts/stuck-check.sh:      *)
 (*       996-1002,1027-1069 + orca-wake:990-1014），和 OW 共用去重键      *)
-(*   SC  卡住检查自己 POST：agent_gone 给派活 bot（stuck-check.sh:1047-1061,  *)
-(*       1589-1615），「报了没人验收」给 Coding助手（:1729-1747,1364-1458） *)
+(*   SC  卡住检查自己 POST：agent_gone 给派活 bot（stuck-check.sh:1057-1071,  *)
+(*       1599-1625），「报了没人验收」给 Coding助手（:1739-1757,1374-1468） *)
 (*                                                                         *)
 (* 时间：一个 Tick = 15 分钟 = 一次卡住检查扫描（stuck-check.sh:141        *)
 (* INTERVAL_MIN，闸门 :1694）。一次 POST 连重试都在 1～2 分钟内（notify-run 20s+45s，   *)
@@ -27,10 +27,10 @@ CONSTANTS
     NT,            \* 任务数
     NR_TRIES,      \* notify-run 的 NOTIFY_RUN_TRIES，默认 3（notify-run:119）
     OW_TRIES,      \* orca-wake 非限流失败的总次数 = 1 + len(RETRY_DELAYS "20,45") = 3（orca-wake:79,539-543）
-    GONE_TICKS,    \* STUCK_GONE_MIN 10 分钟 → 至少 1 个 Tick（stuck-check.sh:115,1055）
-    IDLE_TICKS,    \* STUCK_IDLE_MIN 30 分钟 → 2 个 Tick（stuck-check.sh:114,1063；orca-wake --idle-min 30）
+    GONE_TICKS,    \* STUCK_GONE_MIN 10 分钟 → 至少 1 个 Tick（stuck-check.sh:115,1065）
+    IDLE_TICKS,    \* STUCK_IDLE_MIN 30 分钟 → 2 个 Tick（stuck-check.sh:114,1073；orca-wake --idle-min 30）
     ACCEPT_TICKS,  \* 「标完成超过 1 小时」→ 4 个 Tick（stuck-check.sh:112 THRESH_H，check_reported）
-    FULL_TICKS,    \* 第二类约每小时查一次：NOW - last_full >= 55 分钟 → 每 4 次扫描（stuck-check.sh:1729）
+    FULL_TICKS,    \* 第二类约每小时查一次：NOW - last_full >= 55 分钟 → 每 4 次扫描（stuck-check.sh:1739）
     LATE_TICKS,    \* P4 的「超过 1 小时」：停下后第 5 个 Tick 起（60～75 分钟）
     CAP,           \* 计数器封顶，保持状态有限
     CA_ALWAYS_UP,  \* TRUE：Coding助手 的 webhook 一直可用（P4 用）
@@ -196,24 +196,24 @@ WebhookUp(b) ==
 
 (* ---------------------------------------------------------------- stuck-check *)
 
-(* 第一类 agent_gone（stuck-check.sh:1047-1061）：任务工作区 in-progress、agent 进程 *)
+(* 第一类 agent_gone（stuck-check.sh:1057-1071）：任务工作区 in-progress、agent 进程 *)
 (* 不在、安静超过 STUCK_GONE_MIN、agents.json 里没有记录（:952-956）。          *)
 (* ops 主目录（kind = "main"）里退出的 agent：包了 notify-run 的，notify-run.log 里  *)
-(* 这个终端（pane）那次退出发送明确失败了才报（:963-979 → wrapped_exit，agent-probe *)
+(* 这个终端（pane）那次退出发送明确失败了才报（:963-987 → wrapped_exit，agent-probe *)
 (* 带回 notify-run.log；PER-67 F2）。Mutant "main_skip"：修之前的代码，包了的一律不报。*)
 Gone(t) ==
     /\ agent[t] = "exited" /\ age[t] >= GONE_TICKS /\ known[t] = "none"
     /\ \/ kind[t] = "task" /\ ws[t] = "in-progress"
        \/ Mutant # "main_skip" /\ kind[t] = "main" /\ nr[t].ph = "failed"
 
-(* 停在输入框超过 STUCK_IDLE_MIN，交给 orca-wake recheck（stuck-check.sh:1063-1087, *)
+(* 停在输入框超过 STUCK_IDLE_MIN，交给 orca-wake recheck（stuck-check.sh:1073-1097, *)
 (* wake_recheck :553-609）。主目录不看 workspaceStatus（:883-919,923-925）。     *)
 IdleCand(t) ==
     /\ agent[t] = "paused" /\ age[t] >= IDLE_TICKS /\ known[t] = "none"
     /\ (kind[t] = "main" \/ ws[t] = "in-progress")
 
-(* 第二类「报了没人验收」（check_reported，stuck-check.sh:1364-1458；合并成一条 *)
-(* 发 Coding助手，cfg "stuck"，:1729-1747）：completed、标完成超过 1 小时、agent *)
+(* 第二类「报了没人验收」（check_reported，stuck-check.sh:1374-1468；合并成一条 *)
+(* 发 Coding助手，cfg "stuck"，:1739-1757）：completed、标完成超过 1 小时、agent *)
 (* 没在工作。「已验收」在模型里 = 有 bot 收到过这次停下（假设收到的 bot 一小时内 *)
 (* 会 review / 评论 / 归档）。                                                 *)
 (* 工作区干净、没有本地提交、没有 PR 的（work = FALSE）：只在最后一次停下送达过    *)
@@ -251,8 +251,8 @@ EscCand(t) ==
        \/ Mutant # "slow_escalate" /\ kind[t] = "task" /\ ws[t] = "completed"
 
 (* recheck 的结果（orca-wake cmd_recheck :938-987，candidate :893-910）：         *)
-(*   woken 有这次停顿 → already_woken → stuck-check 记 dismissed（:1151-1153）；  *)
-(*   去重键 inflight → skip (inflight)（:1009-1012）→ 下次再查（:1166-1167）；      *)
+(*   woken 有这次停顿 → already_woken → stuck-check 记 dismissed（:1161-1163）；  *)
+(*   去重键 inflight → skip (inflight)（:1019-1022）→ 下次再查（:1176-1177）；      *)
 (*   否则打印 "send idle" 并 gate_and_send（:1013-1014）→ 新的 detached 发送任务。   *)
 (* stuck-check 看到 "send" 只记 known[key] = {handed: NOW, via: orca-wake}（:1051-1068），*)
 (* 不算叫醒过；带 handed 的 key 下次扫描不跳过（:952-956），再 recheck：送达过就是     *)
@@ -270,9 +270,9 @@ RecheckKnown(t) ==
     ELSE IF Mutant # "sc_handoff" THEN known[t]
     ELSE "notified_ow"
 
-(* send_all（stuck-check.sh:1534-1617）：先 direct（第二类合并的一条、以前没发出去的），*)
+(* send_all（stuck-check.sh:1544-1627）：先 direct（第二类合并的一条、以前没发出去的），*)
 (* 再 suspects（agent_gone）。一条 post 重试后仍失败 → 这次运行里发给同一个目标的不再发，    *)
-(* 发给别的目标的照发（broken 是目标的集合，:1564-1567,1608-1611；PER-67 F5），留到下次。     *)
+(* 发给别的目标的照发（broken 是目标的集合，:1574-1577,1618-1621；PER-67 F5），留到下次。     *)
 (* post（:295-309）：200<=code<300 才算成功。                                            *)
 (* Mutant "old_send_all"：修之前的代码，一条失败其余全停，也没有 F4 的改发。               *)
 (* 一次 post 连 3 次重试约 65 秒：模型里按「这一刻 up[to] 决定」折叠成一步。        *)

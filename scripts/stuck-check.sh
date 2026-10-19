@@ -963,6 +963,12 @@ def check_agents(host, known, track):
     if host["terms_ok"]:
         mains = {w["path"] for w in host["worktrees"] if is_main_watch(w)}
         for key in [k for k in main_seen if k.startswith(label + ":") and k not in main_now]:
+            # 报出去之前一直留着这条记录（每次扫描重新报，发送失败了下次还在，F4 的改报才接得上；PER-67 F2），
+            # 送达或复核排除后（known 里有记录）才删
+            rec = known.get(key) or {}
+            if rec.get("notified") or rec.get("dismissed"):
+                main_seen.pop(key)
+                continue
             ms = main_seen.pop(key)
             if ms.get("wrapped") is None or key.split(":", 1)[1].split("#")[0] not in mains:
                 continue  # 上次没查到进程、分不清
@@ -971,6 +977,8 @@ def check_agents(host, known, track):
                 if nr == "retrying":
                     main_seen[key] = ms  # notify-run 还在重试，下次再看
                 elif nr:
+                    main_seen[key] = ms
+                    eligible.add(key)
                     found.append({"key": key, "kind": GONE, "bot": nr.get("bot") or ms.get("bot") or FALLBACK_BOT,
                                   "task": ms.get("task") or key, "worktree": key, "machine": label, "env": env,
                                   "marker": ms.get("hook") or NOW, "terminals": [], "note":
@@ -983,6 +991,8 @@ def check_agents(host, known, track):
                 log("主目录 agent 退出 | %s | 有主动停止标记（%s 停的：%s），不报" % (key, sm.get("by"), sm.get("reason")))
                 continue
             alive = any(t["handle"] == ms.get("handle") for ts in host["terms"].values() for t in ts)
+            main_seen[key] = ms
+            eligible.add(key)
             found.append({"key": key, "kind": GONE, "bot": ms.get("bot") or FALLBACK_BOT, "task": ms.get("task") or key,
                           "worktree": key, "machine": label, "env": env, "marker": ms.get("hook") or NOW,
                           "terminals": [ms["handle"]] if alive else [],
