@@ -103,3 +103,22 @@ EVEROS_INGEST_ROOT=$HOME/.orca-state/bin/everos-ingest \
 - 采集器 `--machine` 多认一个 `mba`；`nightly_addflush.py` 多读 `sessions-mba.jsonl`，MBA 那份缺了记 WARN，不算失败（deepvision-site 仓库的 `dv_addflush.py` 同样改法，另一个 PR）。
 - automation（MBA 本机 ops 工作区，时间和 iMac 同）：`5a9491fe` 心月 · 13 EverOS 会话采集 MBA（21:50），`25ec90b7` dv运维 · 14 EverOS 官网会话采集 MBA（00:01），
   `679f7c06` dv广告 · 26 EverOS 广告会话采集 MBA（00:02），`fc1dd06a` vllm · 27 EverOS 会话采集 MBA（00:16）。
+
+## 夜审写入后读回（PER-67 第 4 步第 1 项，2026-10-19）
+
+- HTTP 200 不算写进去了（FDV-81：add/flush 都 200 却没有 episode；vllm 10-18 写进了错的作用域）。
+  共用模块 `everos_readback.py`：按 session_id 查 episode（`/memory/get` + `filters.session_id`），或按 name 查
+  agent_skill（get 没有 name 过滤，翻页精确匹配），逐条核对记录里的 app_id / project_id / user_id（skill 是
+  agent_id）/ session_id 和该项目 env 一致。EverOS 抽取是异步的：每 10s 轮询一次，上限 `READBACK_TIMEOUT_S=180`。
+  失败一律 `readback_failed`，reason 是 not_found / not_more_than_before / scope_mismatch / request_failed，退出码 3。
+- 四个入口：
+  - 心月、广告、vllm 会话：`nightly_addflush.py` 写完、count_after 之后读回每个 OK 会话（要比写前的 episode 多）；
+    读不回的行改成 `result=FAIL`、`reason=readback_failed: …`，台账多 `kind=readback` / `readback_summary`。
+  - 广告、vllm lesson：`dv_ads_lessons.py`（替换原来的 5/15/30/60s post_check）；ALREADY 也读回。
+  - 官网：写入脚本在 deepvision-site 仓库 `scripts/everos/dv_addflush.py`，不改它；夜审在它之后跑
+    `python3 -I everos_readback.py --project deepvision-site --from-log <D>-deepvision-site-addflush.json --session nightly-review-deepvision-site-<D>`。
+  - 只读复查：`everos_readback.py --project P --from-log LOG.json --session SID --skill NAME --report OUT.json`；
+    两个写入脚本也有 `--readback-only`（不 add/flush）。
+- 演练专用（夜审里不用）：`EVEROS_WRITE_STUB_URL`（add/flush 只发到这个地址，读回仍查真 EverOS）、
+  `everos_readback.py --query-project-id`、`EVEROS_PUBLIC_URL`（CLI 的公网回落地址）。
+- 演练产物：`/workspace/ops/reports/drills/per67-a-readback/`。
