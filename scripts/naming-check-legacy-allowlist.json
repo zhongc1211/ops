@@ -1,0 +1,365 @@
+{
+ "_doc": "naming-check.py 的老名字豁免表：命中 key 的报为 legacy，不算违规、不影响退出码。只收 2026-10-19 补完项目表（加 dv官网）后仍不合格的老工作区/自动任务；绝不为了过检查去改线上 Orca 名字。新建的工作区不进这张表，按「项目 · 编号 描述」起名。key = naming-check 输出的 key（ws|主机|项目ID::路径 或 auto|主机|自动任务ID）。",
+ "entries": [
+  {
+   "key": "ws|box|6e7df308-3fb4-40a1-be00-cbe5675ea4eb::/tmp/claude-1000/-home-box-orca-workspaces-deepvision-site-dv---FDV-65-----e2e/d7456b12-9520-4271-9560-9ef14e6b9c2b/scratchpad/base-683f287",
+   "host": "box",
+   "kind": "workspace_name",
+   "name": "deepvision-site",
+   "where": "/tmp/claude-1000/-home-box-orca-workspaces-deepvision-site-dv---FDV-65-----e2e/d7456b12-9520-4271-9560-9ef14e6b9c2b/scratchpad/base-683f287",
+   "added": "2026-10-19",
+   "reason": "临时目录下的工作区（scratchpad / nightly），显示名是仓库或分支名；老工作区不改名"
+  },
+  {
+   "key": "ws|box|6e7df308-3fb4-40a1-be00-cbe5675ea4eb::/tmp/claude-1000/-home-box-orca-workspaces-deepvision-site-dv---FDV-70-Ryze----/fb0f64bf-48f9-4786-bff6-fb4b1d7ad6fc/scratchpad/base-tree",
+   "host": "box",
+   "kind": "workspace_name",
+   "name": "deepvision-site",
+   "where": "/tmp/claude-1000/-home-box-orca-workspaces-deepvision-site-dv---FDV-70-Ryze----/fb0f64bf-48f9-4786-bff6-fb4b1d7ad6fc/scratchpad/base-tree",
+   "added": "2026-10-19",
+   "reason": "临时目录下的工作区（scratchpad / nightly），显示名是仓库或分支名；老工作区不改名"
+  },
+  {
+   "key": "ws|box|6e7df308-3fb4-40a1-be00-cbe5675ea4eb::/tmp/claude-1000/-home-box-orca-workspaces-deepvision-site-dv---FDV-70-Ryze----/fb0f64bf-48f9-4786-bff6-fb4b1d7ad6fc/scratchpad/e2e-tree",
+   "host": "box",
+   "kind": "workspace_name",
+   "name": "deepvision-site",
+   "where": "/tmp/claude-1000/-home-box-orca-workspaces-deepvision-site-dv---FDV-70-Ryze----/fb0f64bf-48f9-4786-bff6-fb4b1d7ad6fc/scratchpad/e2e-tree",
+   "added": "2026-10-19",
+   "reason": "临时目录下的工作区（scratchpad / nightly），显示名是仓库或分支名；老工作区不改名"
+  },
+  {
+   "key": "ws|box|2ce7debc-6211-416a-b5a0-81127a67f518::/home/box/orca/workspaces/xinyue-site/docs-lessons-everos-box",
+   "host": "box",
+   "kind": "workspace_name",
+   "name": "心月 · LESSONS 迁 EverOS",
+   "where": "/home/box/orca/workspaces/xinyue-site/docs-lessons-everos-box",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|box|2ce7debc-6211-416a-b5a0-81127a67f518::/home/box/orca/workspaces/xinyue-site/ops-everos-mcp-v2",
+   "host": "box",
+   "kind": "workspace_name",
+   "name": "心月 · EverOS MCP 样板 v2",
+   "where": "/home/box/orca/workspaces/xinyue-site/ops-everos-mcp-v2",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|box|2ce7debc-6211-416a-b5a0-81127a67f518::/home/box/orca/workspaces/xinyue-site/ops-everos-wireup",
+   "host": "box",
+   "kind": "workspace_name",
+   "name": "心月 · EverOS 接入冒烟",
+   "where": "/home/box/orca/workspaces/xinyue-site/ops-everos-wireup",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|box|2ce7debc-6211-416a-b5a0-81127a67f518::/home/box/orca/workspaces/xinyue-site/心月-EverOS-MCP-v2-G5验证",
+   "host": "box",
+   "kind": "workspace_name",
+   "name": "心月 · EverOS MCP v2 G5 验证",
+   "where": "/home/box/orca/workspaces/xinyue-site/心月-EverOS-MCP-v2-G5验证",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|box|d0561e2b-422a-43f1-8a0b-7c117ac910b2::/home/box/orca/workspaces/deepvision-ads/dvads-backup-unpushed",
+   "host": "box",
+   "kind": "workspace_name",
+   "name": "dv广告 · 备份本地独有commit",
+   "where": "/home/box/orca/workspaces/deepvision-ads/dvads-backup-unpushed",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|box|d0561e2b-422a-43f1-8a0b-7c117ac910b2::/home/box/orca/workspaces/deepvision-ads/dv广告-AGENTS先查EverOS",
+   "host": "box",
+   "kind": "workspace_name",
+   "name": "dv广告 · AGENTS先查EverOS",
+   "where": "/home/box/orca/workspaces/deepvision-ads/dv广告-AGENTS先查EverOS",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|box|d0561e2b-422a-43f1-8a0b-7c117ac910b2::/home/box/orca/workspaces/deepvision-ads/release-1",
+   "host": "box",
+   "kind": "workspace_name",
+   "name": "zhongc1211/release-1-r2-e2e",
+   "where": "/home/box/orca/workspaces/deepvision-ads/release-1",
+   "added": "2026-10-19",
+   "reason": "显示名是仓库/分支/目录名，不是「项目 · 编号 描述」；老工作区不改名"
+  },
+  {
+   "key": "ws|box|d0561e2b-422a-43f1-8a0b-7c117ac910b2::/tmp/claude-1000/-home-box-orca-workspaces-deepvision-ads-fdv-77-main-prep/6a981da0-eb1d-4d54-9cd9-8a44eae2b189/scratchpad/lock",
+   "host": "box",
+   "kind": "workspace_name",
+   "name": "zhongc1211/fdv-77-e2e-lock",
+   "where": "/tmp/claude-1000/-home-box-orca-workspaces-deepvision-ads-fdv-77-main-prep/6a981da0-eb1d-4d54-9cd9-8a44eae2b189/scratchpad/lock",
+   "added": "2026-10-19",
+   "reason": "临时目录下的工作区（scratchpad / nightly），显示名是仓库或分支名；老工作区不改名"
+  },
+  {
+   "key": "ws|box|d0561e2b-422a-43f1-8a0b-7c117ac910b2::/tmp/claude-1000/-home-box-orca-workspaces-deepvision-ads-fdv-77-main-prep/6a981da0-eb1d-4d54-9cd9-8a44eae2b189/scratchpad/mm",
+   "host": "box",
+   "kind": "workspace_name",
+   "name": "zhongc1211/fdv-77-main-merge",
+   "where": "/tmp/claude-1000/-home-box-orca-workspaces-deepvision-ads-fdv-77-main-prep/6a981da0-eb1d-4d54-9cd9-8a44eae2b189/scratchpad/mm",
+   "added": "2026-10-19",
+   "reason": "临时目录下的工作区（scratchpad / nightly），显示名是仓库或分支名；老工作区不改名"
+  },
+  {
+   "key": "ws|box|5aaefe84-ccfe-4c20-a77f-5af1226e2486::/home/box/orca/workspaces/ops/everos-vps-deploy",
+   "host": "box",
+   "kind": "workspace_name",
+   "name": "ops · EverOS VPS 部署",
+   "where": "/home/box/orca/workspaces/ops/everos-vps-deploy",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|box|5aaefe84-ccfe-4c20-a77f-5af1226e2486::/home/box/orca/workspaces/ops/ops-box-清理与自动任务同步",
+   "host": "box",
+   "kind": "workspace_name",
+   "name": "ops · box 清理与自动任务同步",
+   "where": "/home/box/orca/workspaces/ops/ops-box-清理与自动任务同步",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|box|5aaefe84-ccfe-4c20-a77f-5af1226e2486::/home/box/orca/workspaces/ops/ops-广告vllm会话采集",
+   "host": "box",
+   "kind": "workspace_name",
+   "name": "ops · 广告和vllm会话采集+vllm写入修复",
+   "where": "/home/box/orca/workspaces/ops/ops-广告vllm会话采集",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|099c800e-c50c-4cf1-91c6-5d6196a4d298::/private/tmp/nightly-xinyue-site",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "xinyue-site",
+   "where": "/private/tmp/nightly-xinyue-site",
+   "added": "2026-10-19",
+   "reason": "临时目录下的工作区（scratchpad / nightly），显示名是仓库或分支名；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|099c800e-c50c-4cf1-91c6-5d6196a4d298::/private/tmp/xy-combined-src",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "xinyue-site",
+   "where": "/private/tmp/xy-combined-src",
+   "added": "2026-10-19",
+   "reason": "临时目录下的工作区（scratchpad / nightly），显示名是仓库或分支名；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/orca/workspaces/xinyue-site/docs-lessons-to-everos",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "心月 · LESSONS 迁 EverOS",
+   "where": "/Users/jiawenwang/orca/workspaces/xinyue-site/docs-lessons-to-everos",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/orca/workspaces/xinyue-site/ops-everos-imac-mcp",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "心月 · EverOS MCP 样板 v2（iMac）",
+   "where": "/Users/jiawenwang/orca/workspaces/xinyue-site/ops-everos-imac-mcp",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/orca/workspaces/xinyue-site/pr83-merge",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "心月 · PR83 decisions 合并",
+   "where": "/Users/jiawenwang/orca/workspaces/xinyue-site/pr83-merge",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/orca/workspaces/xinyue-site/unpushed-cleanup-20261018",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "心月 · 未推送清理 1018",
+   "where": "/Users/jiawenwang/orca/workspaces/xinyue-site/unpushed-cleanup-20261018",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/orca/workspaces/xinyue-site/心月-AGENTS-对齐",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "心月 · AGENTS 对齐",
+   "where": "/Users/jiawenwang/orca/workspaces/xinyue-site/心月-AGENTS-对齐",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/orca/workspaces/xinyue-site/心月-CI-CD-第二阶段",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "心月 · CI/CD 第二阶段",
+   "where": "/Users/jiawenwang/orca/workspaces/xinyue-site/心月-CI-CD-第二阶段",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/orca/workspaces/xinyue-site/心月-EverOS-MCP-v2-接线",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "心月 · EverOS MCP v2 接线",
+   "where": "/Users/jiawenwang/orca/workspaces/xinyue-site/心月-EverOS-MCP-v2-接线",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/orca/workspaces/xinyue-site/心月-EverOS-启动器-v2.1",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "心月 · EverOS 启动器 v2.1",
+   "where": "/Users/jiawenwang/orca/workspaces/xinyue-site/心月-EverOS-启动器-v2.1",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/orca/workspaces/xinyue-site/心月-生产-Builds-接入",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "心月 · 生产 Builds 接入",
+   "where": "/Users/jiawenwang/orca/workspaces/xinyue-site/心月-生产-Builds-接入",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/pi/remote/xinyue-ci",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "ops · ci",
+   "where": "/Users/jiawenwang/pi/remote/xinyue-ci",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|099c800e-c50c-4cf1-91c6-5d6196a4d298::/Users/jiawenwang/pi/remote/xinyue-site-cicd",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "心月 · CI/CD 第一阶段",
+   "where": "/Users/jiawenwang/pi/remote/xinyue-site-cicd",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-AGENTS-测试规矩",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "dv官网 · AGENTS 测试规矩",
+   "where": "/Users/jiawenwang/orca/workspaces/site/dv官网-AGENTS-测试规矩",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "dv官网 · Open Design 重设计",
+   "where": "/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|f1681260-cc5c-456d-9b97-e9cd21e07e94::/Users/jiawenwang/orca/workspaces/site/dv运维-CI-自动部署",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "dv运维 · CI 自动部署",
+   "where": "/Users/jiawenwang/orca/workspaces/site/dv运维-CI-自动部署",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|4e597f43-7d06-4c29-867e-0252425bbbed::/Users/jiawenwang/orca/r2-F",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "zhongc1211/release-1-r2-fdv66-imac",
+   "where": "/Users/jiawenwang/orca/r2-F",
+   "added": "2026-10-19",
+   "reason": "显示名是仓库/分支/目录名，不是「项目 · 编号 描述」；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|e9b33f9c-7218-4f6c-b03a-3b85fd8933ac::/Users/jiawenwang/orca/workspaces/ops/everos-research",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "ops · EverOS 记忆接入调研",
+   "where": "/Users/jiawenwang/orca/workspaces/ops/everos-research",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|e9b33f9c-7218-4f6c-b03a-3b85fd8933ac::/Users/jiawenwang/orca/workspaces/ops/everos-vps-deploy",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "ops · EverOS VPS 部署",
+   "where": "/Users/jiawenwang/orca/workspaces/ops/everos-vps-deploy",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|e9b33f9c-7218-4f6c-b03a-3b85fd8933ac::/Users/jiawenwang/orca/workspaces/ops/ops-everos-ingest-commit",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "ops · everos-ingest 入库 PR",
+   "where": "/Users/jiawenwang/orca/workspaces/ops/ops-everos-ingest-commit",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|e9b33f9c-7218-4f6c-b03a-3b85fd8933ac::/Users/jiawenwang/orca/workspaces/ops/ops-PER-66-叫醒漏叫修复第二批",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "ops-PER-66-叫醒漏叫修复第二批",
+   "where": "/Users/jiawenwang/orca/workspaces/ops/ops-PER-66-叫醒漏叫修复第二批",
+   "added": "2026-10-19",
+   "reason": "显示名是仓库/分支/目录名，不是「项目 · 编号 描述」；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|e9b33f9c-7218-4f6c-b03a-3b85fd8933ac::/Users/jiawenwang/orca/workspaces/ops/xinyue-everos-recheck",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "心月 · EverOS 夜审补查+iMac 脚本同步",
+   "where": "/Users/jiawenwang/orca/workspaces/ops/xinyue-everos-recheck",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|e9b33f9c-7218-4f6c-b03a-3b85fd8933ac::/Users/jiawenwang/orca/workspaces/ops/xinyue-everos-tailnet",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "心月 · EverOS 走 tailnet PR",
+   "where": "/Users/jiawenwang/orca/workspaces/ops/xinyue-everos-tailnet",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "ws|iMac|e9b33f9c-7218-4f6c-b03a-3b85fd8933ac::/Users/jiawenwang/orca/workspaces/ops/xinyue-night-review-guard",
+   "host": "iMac",
+   "kind": "workspace_name",
+   "name": "心月 · 夜审台账与兜底 PR",
+   "where": "/Users/jiawenwang/orca/workspaces/ops/xinyue-night-review-guard",
+   "added": "2026-10-19",
+   "reason": "有项目前缀但缺 Linear 编号；老工作区不改名"
+  },
+  {
+   "key": "auto|iMac|827e1814-648b-41d5-bd9a-7d21c3e1f981",
+   "host": "iMac",
+   "kind": "automation_name",
+   "name": "dv营销 · 16 SEO/GEO 周检",
+   "where": "automation 827e1814",
+   "added": "2026-10-19",
+   "reason": "项目简称表按 dev-bot-rules 只留 心月/vllm/dv广告/dv运维/ops/dv官网，去掉了 dv营销；这个自动任务名 2026-10-18 已按整合方案改过，不改线上自动任务，先豁免"
+  }
+ ]
+}
