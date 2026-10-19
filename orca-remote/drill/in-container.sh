@@ -70,7 +70,8 @@ wait_in_sleep(){ for _ in $(seq 150); do pgrep -P "$WD" -x sleep >/dev/null && r
 # (full INT sleep, then the pause) has to start near the end of the sleep.
 wait_sleep_end(){ local sp left hz; hz=$(getconf CLK_TCK); for _ in $(seq 600); do sp=$(pgrep -P "$WD" -fx "sleep $WATCHDOG_INT" | head -1)
     if [ -n "$sp" ]; then left=$(awk -v hz="$hz" -v i="$WATCHDOG_INT" -v e="$1" -v u="$(cut -d' ' -f1 /proc/uptime)" '{printf "%.2f", $22/hz+i-e-u}' "/proc/$sp/stat" 2>/dev/null)
-      awk -v l="${left:--1}" 'BEGIN{exit !(l>=0.3)}' && { sleep "$left"; return 0; }; fi; sleep 0.2; done; return 1; }
+      awk -v l="${left:--1}" 'BEGIN{exit !(l>=0.3)}' && { sleep "$left"; return 0; }; fi; sleep 0.2; done
+  note "did not catch the end of a sleep"; return 1; }
 # freeze_line: how the watchdog measured the last freeze/pause (wall and guest seconds), for check details
 freeze_line(){ grep -oE '(took [0-9]+s, guest clock advanced [0-9]+s|guest clock advanced [0-9]+s while wall clock advanced [0-9]+s)' "$W/watchdog.log" | tail -1; }
 
@@ -158,7 +159,7 @@ S6b(){ setup S6b; sleep 18
 # D1: production INT/STALL_SLACK. VM pause of 37s at the end of a 45s sleep (guest clock stops; wall gap ~80s, guest ~43s);
 #   the tunnel is stuck on dead connections and does not heal by itself. 31-45s pauses fell between the old and new criterion.
 D1(){ export WATCHDOG_INT=45 WATCHDOG_STALL_SLACK=30; setup D1; sleep 5
-  wait_sleep_end 1.5 || note "did not catch the end of a sleep"; T0=$(now); touch "$W/cf_stale" "$W/paused"; kill -STOP -- "-$WD"
+  wait_sleep_end 1.5; touch "$W/cf_stale" "$W/paused"; kill -STOP -- "-$WD"
   note "VM pause 37s at the end of a ${WATCHDOG_INT}s sleep"; sleep 37
   rm -f "$W/paused"; sleep 0.5; kill -CONT -- "-$WD"; T1=$(now); sleep 2; snap_state after-pause
   for _ in $(seq 60); do [ "$(pub)" = 200 ] && break; sleep 1; done; T200=$(now); sleep 5
@@ -171,7 +172,7 @@ D1(){ export WATCHDOG_INT=45 WATCHDOG_STALL_SLACK=30; setup D1; sleep 5
 
 # D1b (control for D1): same timing, but the guest freezes (guest clock runs); cloudflared re-registers 3s after, public 200 at +6s.
 D1b(){ export WATCHDOG_INT=45 WATCHDOG_STALL_SLACK=30; setup D1b; sleep 5
-  wait_sleep_end 1.5 || note "did not catch the end of a sleep"; T0=$(now); touch "$W/cf_stale"; kill -STOP -- "-$WD"
+  wait_sleep_end 1.5; T0=$(now); touch "$W/cf_stale"; kill -STOP -- "-$WD"
   note "guest freeze 37s at the end of a ${WATCHDOG_INT}s sleep (guest clock runs)"; sleep 37
   kill -CONT -- "-$WD"; T1=$(now); ( sleep 3; register; sleep 3; rm -f "$W/cf_stale" ) & sleep 2; snap_state after-freeze; sleep 50
   check "D1b 37s guest freeze at production timing classified as a freeze (state stalled)" $(state_is after-freeze stalled; echo $?) "$(tr '\n' ' ' <"$W/state-after-freeze" | cut -c1-60); watchdog: $(freeze_line)"
@@ -194,17 +195,18 @@ D2(){ export WATCHDOG_GRACE=30; setup D2; sleep 12
   teardown; }
 
 # D3: MAXGAP=120 (MINGAP 40). Restart #1 fixes Orca; 125s healthy; then Orca dies for good: #1 -> #2 >= MAXGAP, so the gap
-#   before #3 must be back at MINGAP, and before #4 doubled again.
+#   before #3 must be back at MINGAP, and #4 must still happen, after a doubled gap (wait up to 240s for it).
 D3(){ export WATCHDOG_MAXGAP=120; setup D3; sleep 10
   echo ok >"$W/orca_mode_after_restart"; echo down >"$W/orca_mode"; T0=$(now); note "Orca down, the next restart fixes it"
   for _ in $(seq 60); do [ "$(restarts_after "$T0")" -ge 1 ] && break; sleep 1; done
   R1=$(awk -v t="$T0" '$1>t {print $1; exit}' "$W/restarts"); sleep $(( ${R1:-$(now)}+125-$(now) ))
-  echo down >"$W/orca_mode_after_restart"; echo down >"$W/orca_mode"; note "Orca down again, restarts no longer fix it"; sleep 180; TE=$(now)
+  echo down >"$W/orca_mode_after_restart"; echo down >"$W/orca_mode"; T2=$(now); note "Orca down again, restarts no longer fix it"
+  for _ in $(seq 240); do [ "$(restarts_after "$T2")" -ge 3 ] && break; sleep 1; done; sleep 2
   mapfile -t R < <(awk -v t="$T0" '$1>t {print $1}' "$W/restarts")
   gaps=""; for i in $(seq 1 $((${#R[@]}-1))); do gaps+="$((R[i]-R[i-1]))s "; done
   check "D3 precondition: restart #1 -> #2 >= MAXGAP" $([ ${#R[@]} -ge 2 ] && [ $((R[1]-R[0])) -ge $WATCHDOG_MAXGAP ]; echo $?) "restart gaps: ${gaps:-none}"
   check "D3 gap #2 -> #3 back to MINGAP (< 1.5x MINGAP)" $([ ${#R[@]} -ge 3 ] && [ $((R[2]-R[1])) -lt $((3*WATCHDOG_MINGAP/2)) ]; echo $?) "restart gaps: ${gaps:-none}"
-  check "D3 backoff doubles again after the fallback (gap #3 -> #4 >= 2x MINGAP)" $([ ${#R[@]} -ge 4 ] && [ $((R[3]-R[2])) -ge $((2*WATCHDOG_MINGAP)) ] || { [ ${#R[@]} -eq 3 ] && [ $((TE-R[2])) -ge $((2*WATCHDOG_MINGAP)) ]; }; echo $?) "restart gaps: ${gaps:-none}"
+  check "D3 backoff doubles again after the fallback (gap #3 -> #4 >= 2x MINGAP)" $([ ${#R[@]} -ge 4 ] && [ $((R[3]-R[2])) -ge $((2*WATCHDOG_MINGAP)) ]; echo $?) "restart gaps: ${gaps:-none}"
   teardown; }
 
 # D4: Orca down and PSI full 70% for good. The full restart is being deferred when the guest freezes 40s (guest clock runs):
@@ -214,10 +216,10 @@ D4(){ setup D4; sleep 10
   wait_log 'deferred' 30; dp=$?; sleep 8; wait_in_sleep; kill -STOP -- "-$WD"; TF=$(now); note "guest freeze 40s during the deferral"; sleep 40
   kill -CONT -- "-$WD"; T1=$(now); sleep $((WATCHDOG_STALL_GRACE+WATCHDOG_DEFER_MAX+25))
   nb=$(awk -v a="$T0" -v b="$TF" '$1>a && $1<=b' "$W/restarts" | wc -l); fr=$(awk -v t="$T1" '$1>=t {print $1-t; exit}' "$W/restarts")
-  lo=$((WATCHDOG_STALL_GRACE+WATCHDOG_DEFER_MAX-5)); hi=$((WATCHDOG_STALL_GRACE+WATCHDOG_DEFER_MAX+20))
+  fd="first restart after the freeze: $([ -n "$fr" ] && echo "+${fr}s" || echo none)"; lo=$((WATCHDOG_STALL_GRACE+WATCHDOG_DEFER_MAX-5)); hi=$((WATCHDOG_STALL_GRACE+WATCHDOG_DEFER_MAX+20))
   check "D4 precondition: restart was being deferred when the freeze hit" $([ $dp = 0 ] && [ "$nb" = 0 ]; echo $?) "deferred line $([ $dp = 0 ] && echo seen || echo 'not seen'), restarts before the freeze: $nb"
-  check "D4 deferral starts over after the freeze (no full restart within ${lo}s)" $([ -z "$fr" ] || [ "$fr" -ge $lo ]; echo $?) "first restart after the freeze: $([ -n "$fr" ] && echo "+${fr}s" || echo none)"
-  check "D4 full restart still happens after the new deferral (<= ${hi}s)" $([ -n "$fr" ] && [ "$fr" -le $hi ]; echo $?) "first restart after the freeze: $([ -n "$fr" ] && echo "+${fr}s" || echo none)"
+  check "D4 deferral starts over after the freeze (no full restart within ${lo}s)" $([ -z "$fr" ] || [ "$fr" -ge $lo ]; echo $?) "$fd"
+  check "D4 full restart still happens after the new deferral (<= ${hi}s)" $([ -n "$fr" ] && [ "$fr" -le $hi ]; echo $?) "$fd"
   teardown; }
 
 echo "drill $LABEL: $(sha256sum "$SCRIPT" | cut -c1-12) scenarios: $SCEN"
