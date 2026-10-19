@@ -1,7 +1,9 @@
 #!/bin/bash
 # box-load-gate.sh [--est-mb N] [--quiet]: before dispatching a heavy job (build, test suite, playwright, TLC) to box, check
 # whether box can take it without tipping into memory thrash. Only reads /proc and one `ps`; safe to run any time.
-# Exit 0 = ALLOW, 1 = DENY (dispatch elsewhere: MBA first, then iMac, per dev-bot-rules「派到哪台电脑」), 2 = cannot read.
+# Exit 0 = ALLOW, 1 = DENY (dispatch elsewhere: MBA first, then iMac, per dev-bot-rules「派到哪台电脑」), 2 = cannot read
+# meminfo or PSI (treat as DENY). The check is a snapshot: a dispatcher sending several jobs must run gate + launch one job at
+# a time (e.g. under one flock) and wait until the job is running before the next check, or two jobs pass on the same reading.
 #
 # Why these numbers (ops reports/orca-bot-tunnel-1019, 10-19 SGT): box is 8 cores / 16 GB / no swap. Each of the 4 outages
 # began when a batch of parallel tests/builds (+2-4 GB) met sand-host at its 6 GB peak; MemAvailable fell to ~1-2 GB, PSI memory
@@ -23,6 +25,7 @@ avail=$(awk '/^MemAvailable:/ {print int($2/1024)}' "$P/meminfo" 2>/dev/null); s
 [ -n "$avail" ] || { echo "box-load-gate: cannot read $P/meminfo" >&2; exit 2; }
 psi(){ sed -n "s/^$2 .*avg60=\([0-9]*\)\..*/\1/p" "$P/pressure/$1" 2>/dev/null; }
 mfull=$(psi memory full); msome=$(psi memory some); iosome=$(psi io some)
+[ -n "$mfull" ] && [ -n "$msome" ] && [ -n "$iosome" ] || { echo "box-load-gate: cannot read PSI under $P/pressure (memory full/some, io some)" >&2; exit 2; }
 read -r l1 l5 l15 _ <"$P/loadavg"; cores=$(grep -c ^processor "$P/cpuinfo" 2>/dev/null); [ "${cores:-0}" -gt 0 ] || cores=$(nproc)
 claude=$(pgrep -xc claude 2>/dev/null); claude=${claude:-0}
 heavy=$(ps -eo pid=,args= 2>/dev/null | grep -E "$HEAVY_RE" | grep -v -E 'grep|box-load-gate' | while read -r pid _; do

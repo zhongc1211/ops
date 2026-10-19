@@ -6,7 +6,7 @@
 # - after any restart/start -> same grace (orca-ide serve can take ~60-75s to come up)
 # - public 530/502 while local 200 (stale tunnel) -> after 2 consecutive strikes restart ONLY cloudflared (Orca untouched)
 # - other unhealthy states -> full restart after 2 consecutive strikes outside grace
-# - min 90s between restarts (anti-storm)
+# - min 90s between restarts (anti-storm; rev 2026-10-19: MINGAP, doubling up to MAXGAP)
 # rev 2026-10-18: after a resume the tunnel is usually what breaks (10-18 01:00..04:25 SGT, 5x local 200 / public 530 = CF 1033,
 #   each fixed by restarting cloudflared alone). So inside the resume grace, the first local 200 + public 530 restarts ONLY
 #   cloudflared right away (no strikes), then rechecks public for up to 60s and needs 3 consecutive 200s. If that fails the
@@ -20,10 +20,11 @@
 #   guest) -> no fast path (13:49 killed a cloudflared that would have healed); ${STALL_GRACE}s grace, strikes cleared.
 # - strikes are consecutive only if the previous one is <= STRIKE_WIN s old (13:02 strike 1 + 13:22 strike 2 across a freeze
 #   killed cloudflared 1s after it re-registered).
-# - cloudflared is never killed while tunnel.log has a "Registered tunnel connection" from the last CF_FRESH s.
+# - cloudflared is never killed while tunnel.log has a "Registered tunnel connection" from the last CF_FRESH s (after a VM
+#   pause the fast path then retries next loop, while the resume grace lasts).
 # - full Orca restart is deferred while memory PSI "full avg10" > PSI_MAX % (restarting into thrash only adds load; 11:55:59
-#   restarted an Orca that was back by itself at 11:56:45), at most DEFER_MAX s. Gap between restarts doubles MINGAP..MAXGAP,
-#   back to MINGAP once a restart is MAXGAP old.
+#   restarted an Orca that was back by itself at 11:56:45), at most DEFER_MAX s; a freeze starts the deferral over. Gap between
+#   restarts doubles MINGAP..MAXGAP, back to MINGAP once a restart is MAXGAP old.
 # - state file $STATE (state=ok|unhealthy|stalled|paused|deferred|restarting, since=epoch, ...) for whoever decides to wake
 #   someone (stuck-check / orca-bot-guard do not read it yet).
 # WATCHDOG_* env vars below are for the scratch drill (orca-remote/drill); defaults are production.
@@ -65,17 +66,18 @@ repair_app(){ app_ok && return 1
 [ -n "${WATCHDOG_REPAIR_ONLY:-}" ] && { repair_app; exit $?; }
 exec 9>${WATCHDOG_LOCK:-/tmp/orca-remote-watchdog.lock}; flock -n 9 || exit 0
 last_restart=0; last_loop=$(date +%s); last_up=$(up); f=0
-# froze WALL0 UP0 LIMIT PHASE: did more than LIMIT wall seconds pass since (WALL0, UP0)? If so classify by the guest clock,
-# open the matching grace, clear strikes, return 0. Guest clock advanced < half the wall time = VM paused; else the guest froze.
+# froze WALL0 UP0 LIMIT PHASE EXPECTED: did more than LIMIT wall seconds pass since (WALL0, UP0)? If so classify by the guest
+# clock, open the matching grace, clear strikes, return 0. EXPECTED = seconds the phase should take (INT for sleep). The guest
+# clock missed more than half of the overrun = VM paused (a 40s pause in a 45s sleep counts too); else the guest froze.
 froze(){ local n u wd ud; n=$(date +%s); u=$(up); wd=$((n-$1)); ud=$((u-$2)); [ $wd -le $3 ] && return 1
-  if [ $ud -lt $((wd/2)) ]; then
+  if [ $(( 2*(wd-ud) )) -gt $((wd-$5)) ]; then
     log "resume from pause detected ($4 took ${wd}s, guest clock advanced ${ud}s = VM paused/suspended); grace ${GRACE}s, stale tunnel -> cloudflared-only at once"
     grace_until=$((n+GRACE)); resumed=1; setst paused "guest clock stopped $((wd-ud))s of ${wd}s"
   else
     log "guest freeze detected ($4 took ${wd}s, guest clock advanced ${ud}s = box frozen inside the guest, e.g. memory thrash); grace ${STALL_GRACE}s, cloudflared left to re-register, no strikes"
     grace_until=$((n+STALL_GRACE)); resumed=0; last_stall=$n; setst stalled "frozen ${wd}s in $4"
   fi
-  f=0; ts=0; wstate; return 0; }
+  f=0; ts=0; defer_since=0; wstate; return 0; }
 # cf_fresh: print how many seconds ago cloudflared last logged "Registered tunnel connection", if within CF_FRESH
 cf_fresh(){ local t a; t=$(tail -n 300 "$TLOG" 2>/dev/null | grep 'Registered tunnel connection' | tail -n 1 | sed -n 's/.*"time":"\([^"]*\)".*/\1/p')
   [ -n "$t" ] && t=$(date -d "$t" +%s 2>/dev/null) && a=$(( $(date +%s)-t )) && [ $a -le $CF_FRESH ] && echo $a; }
@@ -102,18 +104,18 @@ restart(){ now=$(date +%s)
     log "memory pressure still ${psv}% after ${DEFER_MAX}s of deferral -> restarting anyway"; fi
   defer_since=0; prev=$last_restart
   log "-> restart: $1"; st restart; setst restarting "orca: $1"; wstate; timeout 180 $R restart >>$LOG 2>&1 9>&-; [ $? = 124 ] && log "restart TIMED OUT after 180s"; st restart-wait; last_restart=$(date +%s); f=0; ts=0; resumed=0; grace_until=$((last_restart+GRACE))
-  [ $prev -gt 0 ] && { rgap=$((rgap*2)); [ $rgap -gt $MAXGAP ] && rgap=$MAXGAP; log "next restart allowed after ${rgap}s"; }
+  if [ $prev -gt 0 ] && [ $((last_restart-prev)) -lt $MAXGAP ]; then rgap=$((rgap*2)); [ $rgap -gt $MAXGAP ] && rgap=$MAXGAP; log "next restart allowed after ${rgap}s"; else rgap=$MINGAP; fi
   sleep 20 9>&-
   log "post-restart local=$(curl -s -o /dev/null -w '%{http_code}' -m 10 $LOCAL) public=$(curl -s -o /dev/null -w '%{http_code}' -m 15 $PUB)"; }
 log "watchdog started pid $$ (interval ${INT}s, freeze slack ${STALL_SLACK}s, freeze grace ${STALL_GRACE}s, resume grace ${GRACE}s, restart gap ${MINGAP}..${MAXGAP}s, defer while PSI full > ${PSI_MAX}% for max ${DEFER_MAX}s)"
 setst ok "started"; wstate
 while true; do
-  froze $last_loop $last_up $((INT+STALL_SLACK)) "sleep"
+  froze $last_loop $last_up $((INT+STALL_SLACK)) "sleep" $INT
   t0=$(date +%s); u0=$(up)
   st curl-local; l=$(curl -s -o /dev/null -w '%{http_code}' -m $T_LOCAL $LOCAL)
   st curl-public; p=$(curl -s -o $PBODY -w '%{http_code}' -m $T_PUB $PUB)
   # probes are capped at T_LOCAL+T_PUB s; taking longer means the box froze under them -> their results describe the freeze, drop them
-  if froze $t0 $u0 $((T_LOCAL+T_PUB+STALL_SLACK)) "probes (local=$l public=$p)"; then st sleep; wstate; last_loop=$(date +%s); last_up=$(up); sleep $INT 9>&-; continue; fi
+  if froze $t0 $u0 $((T_LOCAL+T_PUB+STALL_SLACK)) "probes (local=$l public=$p)" 0; then st sleep; wstate; last_loop=$(date +%s); last_up=$(up); sleep $INT 9>&-; continue; fi
   now=$(date +%s); [ $now -ge $grace_until ] && resumed=0
   # strikes count as consecutive only if the previous strike is recent (a strike before a freeze must not pair with one after it)
   [ $((now-last_strike)) -gt $STRIKE_WIN ] && { f=0; ts=0; }
@@ -122,8 +124,8 @@ while true; do
   if [ $trc = 124 ]; then log "tmux has-session TIMED OUT after 20s (local=$l public=$p) - not starting a second session"
   elif [ $trc != 0 ]; then log "tmux session missing (local=$l public=$p) -> start"; st start; setst restarting "tmux session missing"; timeout 180 $R start >>$LOG 2>&1 9>&-; [ $? = 124 ] && log "start TIMED OUT after 180s"; st restart-wait; last_restart=$(date +%s); grace_until=$((last_restart+GRACE)); sleep 20 9>&-
   elif [ $resumed = 1 ] && [ "$l" = 200 ] && [ "$p" = 530 ]; then
-    resumed=0; log "stale tunnel after resume local=$l public=$p$(grep -qs 1033 $PBODY && echo ' (CF 1033)') -> immediate fix, no strikes"
-    tunnel_fix "resume + local 200 + public 530"; case $? in 0) f=0; ts=0;; 2) ts=0;; *) grace_until=0; ts=1; last_strike=$(date +%s); log "resume fast-path failed -> normal strike logic (stale strike 1)";; esac
+    log "stale tunnel after resume local=$l public=$p$(grep -qs 1033 $PBODY && echo ' (CF 1033)') -> immediate fix, no strikes"
+    tunnel_fix "resume + local 200 + public 530"; case $? in 0) resumed=0; f=0; ts=0;; 2) ts=0;; *) resumed=0; grace_until=0; ts=1; last_strike=$(date +%s); log "resume fast-path failed -> normal strike logic (stale strike 1)";; esac
   elif [ $now -lt $grace_until ] && { [ "$l" = 000 ] || [ "$p" != 200 ]; }; then log "unhealthy local=$l public=$p during grace ($((grace_until-now))s left) - not counted"
   elif [ "$l" = 200 ] && { [ "$p" = 530 ] || [ "$p" = 502 ]; }; then
     ts=$((ts+1)); f=0; last_strike=$now; log "stale tunnel local=$l public=$p (strike $ts)"; setst unhealthy "stale tunnel strike $ts"

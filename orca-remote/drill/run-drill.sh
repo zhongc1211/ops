@@ -4,6 +4,7 @@
 # touches no real tunnel, webhook or secret. pre = watchdog.sh at PRE_REF (default 10b4975 = the script live on box since
 # 2026-10-18, sha256 5845f11b...) made runnable by prefix-shim.sh; post = orca-remote/watchdog.sh in this checkout.
 # pre and post run in parallel, one container each. Output: OUT_DIR/{pre,post}/results.tsv, raw logs per scenario, summary.md.
+# Exit 0 = every requested variant produced results and post has no FAIL.
 set -euo pipefail
 OUT=${1:?usage: run-drill.sh OUT_DIR [pre|post|both] [SCENARIO...]}; WHICH=${2:-both}; shift $(( $# >= 2 ? 2 : 1 )); SCEN="$*"
 D=$(cd "$(dirname "$0")" && pwd); REPO=$(git -C "$D" rev-parse --show-toplevel); PRE_REF=${PRE_REF:-10b4975}
@@ -41,3 +42,8 @@ PY
   echo; for v in pre post; do [ -f "$OUT/$v/results.tsv" ] && echo "$v: $(grep -c $'\tPASS\t' "$OUT/$v/results.tsv") PASS, $(grep -c $'\tFAIL\t' "$OUT/$v/results.tsv") FAIL"; done
 } >"$OUT/summary.md"
 cat "$OUT/summary.md"
+# exit 1 when a requested variant produced no results or post has a FAIL (pre is expected to fail: that is the revert check)
+rc=0; for v in pre post; do { [ "$WHICH" = both ] || [ "$WHICH" = $v ]; } || continue
+  [ -s "$OUT/$v/results.tsv" ] || { echo "ERROR: $v produced no results.tsv (see $OUT/$v.console.log)" >&2; rc=1; }; done
+[ -f "$OUT/post/results.tsv" ] && grep -q $'\tFAIL\t' "$OUT/post/results.tsv" && { echo "post has FAIL rows" >&2; rc=1; }
+exit $rc

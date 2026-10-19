@@ -3,7 +3,7 @@
 写于 2026-10-19，改 watchdog.sh 之前。依据：box 侧中期证据
 `/workspace/ops/reports/orca-bot-tunnel-1019/interim.md` 和 box 上 10-19 的 watchdog.log。时间均为 SGT。
 
-每一条都对应 `run-drill.sh` 里的一个场景（S1–S7）。「修前」= base 上的 watchdog.sh（rev 2026-10-18），
+每一条都对应 `run-drill.sh` 里的一个场景（S1–S6b）。「修前」= base 上的 watchdog.sh（rev 2026-10-18），
 「修后」= 本分支的 watchdog.sh。
 
 ## A. 已经在 10-19 线上发生过的（修前应复现，修后应通过）
@@ -37,3 +37,13 @@
 | C3 | cloudflared、Orca、公网入口是替身 | 是。演练里的 cloudflared / orca-remote / 6768 / 公网都是本地替身进程，所以这份结果只能叫「scratch 演练（本地替身）」，不能叫线上 E2E。线上 E2E 要在 box 上替换 watchdog 之后跑，brief 不允许，没跑 |
 | C4 | 只挑跑通的那次 | 修前、修后各跑一轮全量，原始日志全部保留，不重跑挑结果 |
 | C5 | 时间常数缩小后行为变了 | 所有阈值由同一组环境变量给出，修前修后用同一组值；生产默认值写在脚本头 |
+
+## D. 代码审查后补的（2026-10-19 15:30，修改在先，演练没有覆盖）
+
+| # | 失败方式 | 修改 | 演练 |
+|---|---|---|---|
+| D1 | 生产间隔下（INT=45、STALL_SLACK=30）31–45 秒的 VM 暂停被判成 guest 内卡顿，不走 cloudflared 快速路径 | 按「guest 时钟少走的时间超过超时部分的一半」判暂停 | 没覆盖：演练间隔 INT=5 < STALL_SLACK=10，新旧判据结果相同 |
+| D2 | VM 暂停后快速路径因 cloudflared 刚注册而放弃，之后不再重试 | 返回 2 时保留 resumed=1，宽限期内下一轮重试 | 没覆盖 |
+| D3 | 两次重启相隔已超过 MAXGAP，间隔仍然翻倍 | 相隔 >= MAXGAP 时间隔回到 MINGAP | 没覆盖（S5 只覆盖翻倍） |
+| D4 | 推迟期间发生卡顿，卡顿后沿用旧的 defer_since，立刻重启 | 卡顿时 defer_since 清零 | 没覆盖 |
+| D5 | box-load-gate 读不到 PSI 时当成 0，放行 | 读不到 PSI 退出 2（按 DENY 处理） | 在 box 上手动跑过，见 PR |
