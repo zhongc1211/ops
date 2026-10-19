@@ -166,8 +166,8 @@ def readback(env, post, targets, project, ledger=None, query_scope=None):
             break
         time.sleep(POLL_S)
     for res in results:
-        if ledger:
-            ledger.write("readback", **res)
+        if ledger:   # Ledger.write takes kind itself: the target's kind goes in as target
+            ledger.write("readback", target=res["kind"], **{k: v for k, v in res.items() if k != "kind"})
         what = f"session_id={res['session_id']}" if res["kind"] == "episode" else f"name={res['name']}"
         q = "/".join(str(v) for v in res["query"].values())
         if res["result"] == "PASS":
