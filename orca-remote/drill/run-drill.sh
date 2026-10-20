@@ -2,7 +2,7 @@
 # run-drill.sh OUT_DIR [pre|post|both] [SCENARIO...]
 # Scratch drill for watchdog.sh (FAILURE-MODES.md). Runs in a throwaway Debian container on any Docker host, never on box,
 # touches no real tunnel, webhook or secret. pre = watchdog.sh at PRE_REF (default 10b4975 = the script live on box since
-# 2026-10-18, sha256 5845f11b...) made runnable by prefix-shim.sh; post = orca-remote/watchdog.sh in this checkout.
+# 2026-10-18, sha256 5845f11b...) made runnable by prefix-shim.sh (a newer PRE_REF runs as is); post = orca-remote/watchdog.sh in this checkout.
 # pre and post run in parallel, one container each. Output: OUT_DIR/{pre,post}/results.tsv, raw logs per scenario, summary.md.
 # Exit 0 = every requested variant produced results and post has no FAIL.
 set -euo pipefail
@@ -11,12 +11,14 @@ D=$(cd "$(dirname "$0")" && pwd); REPO=$(git -C "$D" rev-parse --show-toplevel);
 mkdir -p "$OUT"; OUT=$(cd "$OUT" && pwd)
 IMG=ops-watchdog-drill; docker build -q -t $IMG "$D" >/dev/null
 git -C "$REPO" show "$PRE_REF:orca-remote/watchdog.sh" >"$OUT/base-watchdog.sh"
-bash "$D/prefix-shim.sh" "$OUT/base-watchdog.sh" >"$OUT/pre-watchdog.sh"
+# a base that already reads the WATCHDOG_* overrides (rev 2026-10-19 and later, e.g. PRE_REF=origin/main) runs unshimmed
+if grep -q 'WATCHDOG_LOG:-' "$OUT/base-watchdog.sh"; then cp "$OUT/base-watchdog.sh" "$OUT/pre-watchdog.sh"
+else bash "$D/prefix-shim.sh" "$OUT/base-watchdog.sh" >"$OUT/pre-watchdog.sh"; fi
 diff "$OUT/base-watchdog.sh" "$OUT/pre-watchdog.sh" >"$OUT/pre-shim.diff" || true
 cp "$REPO/orca-remote/watchdog.sh" "$OUT/post-watchdog.sh"
 { echo "date: $(date '+%F %T %Z')"; echo "host: $(hostname) $(uname -sm), docker $(docker version -f '{{.Server.Version}}')"
   echo "repo HEAD: $(git -C "$REPO" rev-parse HEAD)$(git -C "$REPO" diff --quiet HEAD -- orca-remote || echo ' (orca-remote has uncommitted changes)')"
-  echo "pre: $PRE_REF:orca-remote/watchdog.sh sha256 $(shasum -a 256 "$OUT/base-watchdog.sh" | cut -c1-64) (shimmed: pre-shim.diff)"
+  echo "pre: $PRE_REF ($(git -C "$REPO" rev-parse --short "$PRE_REF")):orca-remote/watchdog.sh sha256 $(shasum -a 256 "$OUT/base-watchdog.sh" | cut -c1-64) (shimmed: pre-shim.diff)"
   echo "post: orca-remote/watchdog.sh sha256 $(shasum -a 256 "$OUT/post-watchdog.sh" | cut -c1-64)"
   echo "command: $0 $OUT $WHICH $SCEN"; } >"$OUT/run-info.txt"
 run(){ docker run --rm --init -e TZ=SGT-8 --name "drill-$1-$$" -v "$REPO/orca-remote:/drill-src:ro" -v "$OUT:/out" $IMG \

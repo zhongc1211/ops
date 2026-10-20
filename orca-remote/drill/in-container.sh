@@ -60,6 +60,7 @@ mark_log(){ LOG_MARK=$(wc -l <"$W/watchdog.log" 2>/dev/null || echo 0); }
 snap_state(){ cp "$W/watchdog.state" "$W/state-$1" 2>/dev/null || echo "missing" >"$W/state-$1"; }
 state_is(){ grep -qx "state=$2" "$W/state-$1"; }
 register(){ printf '{"level":"info","event":0,"connIndex":0,"protocol":"http2","time":"%s","message":"Registered tunnel connection"}\n' "$(date -u +%FT%TZ)" >>"$W/tunnel.log"; }
+. /drill-src/drill/display-scenarios.sh  # X1-X5: display-failure rule (FAILURE-MODES-display.md)
 # Wait until the watchdog is inside its local probe: make 6768 slow (8s) so curl-local is long enough to catch.
 wait_in_curl_local(){ echo slow >"$W/orca_mode"; for _ in $(seq 150); do pgrep -P "$WD" -f "curl.*:$LP/" >/dev/null && { sleep 0.5; return 0; }; sleep 0.1; done; return 1; }
 wait_in_sleep(){ for _ in $(seq 150); do pgrep -P "$WD" -x sleep >/dev/null && return 0; sleep 0.1; done; return 1; }
