@@ -14,6 +14,8 @@
 
 ### box（主机名 grok-bot-vm-418519647）
 
+10-21 起 box 不做开发（dev-bot-rules「Orca 项目与工作区」第 2 条），开发机器只剩 iMac 和 MBA。但所有 Grok Bot 仍在 box 上运行、读下表第一行这份 SKILL.md，所以 targets.tsv 的 box 行保留，照常同步。
+
 | 落点 | 类型 | 怎么查的 / 查到什么 |
 |---|---|---|
 | `/home/box/agent-data/workflows/dev-bot-rules/SKILL.md` | 实体副本（同步） | `ls -la` + `sha256sum`：目录里只有这一个 SKILL.md 和 8 个 `SKILL.md.bak-*`。当前 sha256 `f12040ef…71e9ae`，和仓库 `docs/bot-rules/dev-bot-rules/SKILL.md` 一致，最后修改 10-20 19:38。所有 Grok Bot 读这一份。 |
@@ -66,7 +68,7 @@ scripts/sync-bot-rules [--check|--apply] [--repo DIR] [--ref REF] [--no-fetch] [
 - `--apply`：只写 drift 和 missing 的文件。drift 的旧文件先复制到**同目录**的 `<文件>.bak-YYYYMMDD-HHMM`（重名时加秒），和 box 上已有的 `SKILL.md.bak-*` 一样放法；写完重算 sha256 打印。extra 只报不删。目标目录不存在就报错退出 2，不自己建。重复跑第二次是 0 改动。
 - 脚本不碰目标表以外的路径，不读 env 或密钥文件。
 
-上线后的用法（合并 main、Zack 批了同步以后，由 ops 系统在 box 上做）：
+上线后的用法（合并 main、Zack 批了同步以后，由 dr eggbot 在 targets.tsv 里有行的机器上做，即 box 和 MBA）：
 
 1. `scripts/sync-bot-rules --check`，看结果。
 2. 只有 drift 是「main 比 box 新」时才 `--apply`。drift 的来历先按下一节判断。

@@ -1,4 +1,5 @@
 # sync-bot-rules 的目标表（制表符分隔）：机器	主机名通配	源目录（仓库内）	目标目录（绝对路径）。说明见 SYNC.md。
 # 10-21 00:00 复查：MBA 有实体副本（~/agent-data/workflows/dev-bot-rules/，10-20 23:15 由 ops 系统手工拷过去），加一行；iMac 仍没有实体副本，所以没有行。
+# 10-21 起 box 不做开发，但 Grok Bot 在 box 上读 /home/box/agent-data/workflows/dev-bot-rules/，所以 box 行保留。
 box	grok-bot-vm-*	docs/bot-rules/dev-bot-rules/	/home/box/agent-data/workflows/dev-bot-rules/
 MBA	mba	docs/bot-rules/dev-bot-rules/	/Users/jiawenwang/agent-data/workflows/dev-bot-rules/

@@ -11,22 +11,21 @@ description: >-
 - 一律按 compound-engineering skill，给 Orca coding agent 派活时写明。代码由 coding agent 写、测、初审，我验收抽查。派活前先弄清 Zack 要解决什么、有没有更简单的做法；要自造的基础能力先找维护活跃、许可证合适的开源方案；小改动省掉方案和计划步骤，但仍由 coding agent 做。
 - 用哪个 agent、模型、effort 我自选，兼顾用量和能力；Coding助手 指派带理由就照做，没带理由只当建议。
 - 推送前对真实 base 看 git diff --stat，删掉脚手架、harness、重复测试和无关改动，按功能/测试/文档/其他拆分行数，确认后再推。每个 PR ≤2000 行，超了拆成叠加 PR，不为压行数牺牲可读性。
-- 分阶段推（Zack 10-18 01:00）：每做完一组提交就推到远端功能分支，第一次推完就开 draft PR；每份派活 brief 的最后一步写「退出前全部 push」。iMac 和 box 的工作区每小时扫一次，有没推的提交、或超过 2 小时没提交的改动，就叫醒负责的 bot；连续两次叫醒没处理，升级给 Coding助手。
-- 配置 Orca 只用原生设置、不装插件；一次性脚本和项目文件放进本项目自己的 Orca 项目，不进提交；box 上只放临时文件。
-- 动手的活（浏览网页、截图、调研、搬文件、写代码，含上生产/部署和 GPU/B200 这类要长时间盯的活）一律派给 Orca coding agent（派哪台见「Orca 项目与工作区」，派前看负载），我只做判断类的事（拍板、审稿、写文案、验收），省 Grok Bot 用量。不准用 Grok Bot 的后台助手（executor/Task、computerUse）或自己连跑 Shell 去做或盯，连「用 executor 给 Orca 发任务」也不要，直接用 orca CLI 派。Orca 实在做不了的才用 Grok，并在 status.md 写一句原因。做完或卡住都用 webhook 叫醒派活的 bot（box 上的 env 在 /home/box/.config/grokbot/webhooks/<bot>.env，600）。bot 不自建定时 routine（非 bot 不可的除外），定时检查和取数做成 Orca automation（配备用 agent）。浏览器操作按优先级从高到低（Zack 2026-10-13）：① coding agent 操作 Orca 浏览器；② coding agent 操作 Chrome；③ Grok Bot 自己操作 Orca 浏览器；④ Grok Bot 操作 Chrome；⑤ 都不行才找人完成 Chrome 操作（在自己和 Zack 的私聊里说明，不在别处找）。前一档做不了才降一档，降档时在 status.md 写一句原因。
+- 分阶段推（Zack 10-18 01:00）：每做完一组提交就推到远端功能分支，第一次推完就开 draft PR；每份派活 brief 的最后一步写「退出前全部 push」。iMac 和 MBA 的工作区每小时扫一次，有没推的提交、或超过 2 小时没提交的改动，就叫醒负责的 bot；连续两次叫醒没处理，升级给 Coding助手。
+- 配置 Orca 只用原生设置、不装插件；一次性脚本和项目文件放进本项目自己的 Orca 项目，不进提交。
+- 动手的活（浏览网页、截图、调研、搬文件、写代码，含上生产/部署和 GPU/B200 这类要长时间盯的活）一律派给 Orca coding agent（派哪台见「Orca 项目与工作区」，派前看负载），我只做判断类的事（拍板、审稿、写文案、验收），省 Grok Bot 用量。不准用 Grok Bot 的后台助手（executor/Task、computerUse）或自己连跑 Shell 去做或盯，连「用 executor 给 Orca 发任务」也不要，直接用 orca CLI 派。Orca 实在做不了的才用 Grok，并在 status.md 写一句原因。做完或卡住都用 webhook 叫醒派活的 bot（iMac、MBA 上的 env 在 ~/.config/grokbot/webhooks/<bot>.env，600）。bot 不自建定时 routine（非 bot 不可的除外），定时检查和取数做成 Orca automation（配备用 agent）。浏览器操作按优先级从高到低（Zack 2026-10-13）：① coding agent 操作 Orca 浏览器；② coding agent 操作 Chrome；③ Grok Bot 自己操作 Orca 浏览器；④ Grok Bot 操作 Chrome；⑤ 都不行才找人完成 Chrome 操作（在自己和 Zack 的私聊里说明，不在别处找）。前一档做不了才降一档，降档时在 status.md 写一句原因。
 - 每个项目用自己的 Orca 项目和工作区，按现有命名格式新建，绝不借用别的项目的工作区；项目的所有文件（文档、截图、脚本）都放进它自己的 Orca 项目里管理。
 - 部署和写 secret 用 Cloudflare CLI，不用 wrangler。
 - 后台不挂常驻进程：预览服务器、轮询用完就关，检查带超时。
-- 每次接到活先跑一次 `bash /workspace/ops/orca-remote/ensure-watchdog.sh`（不存在就跳过），保证 orca-bot 守护脚本活着。
 
 ## Orca 项目与工作区
 - 项目按仓库分，不按 bot 分：同一仓库可以有几个 bot 共用一个项目；新仓库（新产品）就新建自己的项目，不借别的仓库的项目；自动任务放 ops 项目。动 Orca 前先读 iMac ~/orca/workspaces/ops/orca-projects.md（仓库→项目 ID，bot→工作区），新建了项目或工作区，同一轮补进表里。
 - 每个 Linear 任务单独开一个自己的工作区，不要一个 bot 守着一个工作区一直用；绝不用别的 bot 的工作区，也不在别人的工作区里开标签或终端。
 - 建工作区一律 `worktree create --repo id:<仓库对应的项目ID> --no-parent --name <英文短名>`，再 `worktree set --worktree <新工作区> --display-name "<项目> · <Linear编号> <中文简述>"`（例：「心月 · PER-52 手机测试修复」；项目简称用 心月 / vllm / dv广告 / dv运维 / dv官网 / dv营销 / ops），工作区绝不建在 /tmp 或其他临时目录下。指定工作区用完整 ID `<项目ID>::<路径>`。不带 --repo 会继承当前工作区的项目。
-- 派到哪台电脑（Zack 2026-10-18 15:25 本人原话「你的电脑老断，mba 接活优先级最高，然后是 imac 和你按轻重分」，取代 10-14 那条；自动任务不受影响）：MBA（tailnet 100.64.0.7，iMac 上 `ssh mba`）配好并经 Coding助手 验收后，所有动手的活优先派到 MBA 的 Orca；MBA 忙或不可用时，重要但不吃资源的活（改 PR 描述、写草稿、rebase、合并、review）派到 iMac Orca，重活（编译、测试、GPU 相关、大功能开发）也不再派 box（Zack 2026-10-20 17:45 SGT 选「重活挪去 MBA/iMac，并反馈给平台」，原因是 box 宿主内存紧、当天冻结 27 次约 3.4 小时）：MBA 忙就派 iMac，MBA 和 iMac 都不可用时，重活等它们空出来，不放 box（见下条）。
-- box Orca（`orca` 不带 --environment）8 核 15G：Zack 2026-10-20 22:36 SGT 原话「你电脑上的活都挪走，按照负载分布到 imac 和 mba 上」「只有轻量且不在意被打断的才放你那」。box 上只放轻量、被打断也无所谓的活（不放重任务，也不放跑到一半断了要重来的长任务）；其余一律按负载派 MBA/iMac；起 agent 前看目标机内存和 swap，满了就换机器或排队（iMac 只有 8GB，10-20 同时 24 个 claude 撑爆过；上限由 orca-agent-launch 卡）。对照表里注明工作树在哪台。
+- 派到哪台电脑（Zack 2026-10-18 15:25 本人原话「你的电脑老断，mba 接活优先级最高，然后是 imac 和你按轻重分」，取代 10-14 那条；自动任务不受影响）：MBA（tailnet 100.64.0.7，iMac 上 `ssh mba`）配好并经 Coding助手 验收后，所有动手的活优先派到 MBA 的 Orca；MBA 忙或不可用时派到 iMac Orca，轻活重活都一样；MBA 和 iMac 都不可用时，活等它们空出来，不放 box（见下条）。
+- box 不做开发，不起 agent 或工作区（Zack 2026-10-21 01:06、01:10 SGT，dr eggbot 转述；取代 10-20 22:36 那条「轻量且不在意被打断的才放 box」）：开发机器只有 MBA 和 iMac，`orca` 不带 --environment 的 box Orca 不再派活。起 agent 前看目标机内存和 swap，满了就换机器或排队（iMac 只有 8GB，10-20 同时 24 个 claude 撑爆过；上限由 orca-agent-launch 卡）。对照表里注明工作树在哪台。
 - 功能多的开发要拆开：一个功能（一个 Linear issue）一个工作树，并行开发，不要把很多功能堆在一个工作树里；拆出来的工作树按叠加 PR 的顺序来定 base。
-- 在 Orca 里起 agent（claude / pi / codex）一律用 `orca-agent-launch`（2026-10-19 起，PER-65；iMac、box、MBA 都在 ~/.local/bin/）：`orca-agent-launch --bot <派活的 bot> --task "<Linear 编号> <简述>：agent 进程退出了" [--issue X --eta "YYYY-MM-DD HH:MM"] -- claude --dangerously-skip-permissions ...`。带 `--issue` 必须同时带 `--eta`（预计回复时间，SGT），它会先把 due 和「负责 bot」写进那张 Linear 卡，写不进去就不起 agent（退出码 3）；不想碰 Linear 的加 `--no-linear`（2026-10-19 起，PER-66）。它检查参数后 exec `notify-run --tty`；没带 --bot/--task、bot 没 webhook 配置、经 `bash -c`/`env`/`nohup` 转一层的都会被拒绝（退出码 2）。直接敲 `claude` 或没经 notify-run 起的，卡住检查会当 `agent_unwrapped` 报给派活的 bot，收到就关掉按这个写法重开。agent 进程退出、崩溃、断线、终端被关，都会叫醒派活的 bot（status 是 done / failed / killed）；收到这条，或被 Orca 启动自检/30 分钟巡检叫醒说「进行中但没 agent」，说明 agent 已经不在了：工作区还没做完就当场重开 agent 接着干，不等人确认；重开前先用 `orca terminal read` 确认那个终端里没有活的 agent，有就不敲。自己关终端也会收到一条 killed，不用处理。不能停下来等 Zack 授权。Orca agent 要审批时，由派活的 bot 自己处理：关掉会话，换成这个模式重开，然后接着干；绝不找 Zack。
+- 在 Orca 里起 agent（claude / pi / codex）一律用 `orca-agent-launch`（2026-10-19 起，PER-65；iMac、MBA 都在 ~/.local/bin/）：`orca-agent-launch --bot <派活的 bot> --task "<Linear 编号> <简述>：agent 进程退出了" [--issue X --eta "YYYY-MM-DD HH:MM"] -- claude --dangerously-skip-permissions ...`。带 `--issue` 必须同时带 `--eta`（预计回复时间，SGT），它会先把 due 和「负责 bot」写进那张 Linear 卡，写不进去就不起 agent（退出码 3）；不想碰 Linear 的加 `--no-linear`（2026-10-19 起，PER-66）。它检查参数后 exec `notify-run --tty`；没带 --bot/--task、bot 没 webhook 配置、经 `bash -c`/`env`/`nohup` 转一层的都会被拒绝（退出码 2）。直接敲 `claude` 或没经 notify-run 起的，卡住检查会当 `agent_unwrapped` 报给派活的 bot，收到就关掉按这个写法重开。agent 进程退出、崩溃、断线、终端被关，都会叫醒派活的 bot（status 是 done / failed / killed）；收到这条，或被 Orca 启动自检/30 分钟巡检叫醒说「进行中但没 agent」，说明 agent 已经不在了：工作区还没做完就当场重开 agent 接着干，不等人确认；重开前先用 `orca terminal read` 确认那个终端里没有活的 agent，有就不敲。自己关终端也会收到一条 killed，不用处理。不能停下来等 Zack 授权。Orca agent 要审批时，由派活的 bot 自己处理：关掉会话，换成这个模式重开，然后接着干；绝不找 Zack。
 - 显示名建的时候就用 --display-name 设好（格式见上），不能事后补；关联 Linear issue；开工、开 PR、卡住时用 `worktree set` 更新 --comment 和 --workspace-status，做完把卡片状态改成 completed。
 
 ## Orca 标签页
@@ -79,15 +78,15 @@ description: >-
 ## 派活必须叫醒、做完自己报（Zack 10-12 批）
 notify-run --tty 起的 agent 由 orca-wake 自动叫醒（见「叫醒 v5」）；本节手动 curl 只在没法用 notify-run --tty、或 orca-wake hook 没装好时兜底。
 - SendToAgent：要对方动手、验收或回话的（含改完 PR、卡住）一律 priority true，纯通知才用 false。转批准或派活的一方当场在 Linear issue 设 due date 和负责 bot；没开工或到点没交，由卡住工作检查叫醒（Zack 10-18 13:18）。
-- 谁派的 Orca coding agent，做完或卡住就直接叫醒谁，不经 Coding助手 转。每个开发 bot 有自己的 webhook routine「Orca 完工/卡住唤醒」，地址和密钥放在 box / MBA / iMac 三台的 `~/.config/grokbot/webhooks/<bot>.env`（URL=…、KEY=…）。bot 名分别是 deepvision-ops、deepvision-ads、vllm-omni、xinyue、deepvision-marketing、ops-system（营销 bot 也照此执行）。
+- 谁派的 Orca coding agent，做完或卡住就直接叫醒谁，不经 Coding助手 转。每个开发 bot 有自己的 webhook routine「Orca 完工/卡住唤醒」，地址和密钥放在 MBA / iMac 两台的 `~/.config/grokbot/webhooks/<bot>.env`（URL=…、KEY=…）。bot 名分别是 deepvision-ops、deepvision-ads、vllm-omni、xinyue、deepvision-marketing、ops-system（营销 bot 也照此执行）。
 - 验收要看 agent 的工作区或终端时，brief 和工作区名写明要留（如加「[演练」前缀），起跑前告诉各 bot 别关。
 - 兜底时，派活任务里只写文件路径，不写密钥：完成或卡住时执行 `source ~/.config/grokbot/webhooks/<bot>.env && curl -fsS -X POST "$URL" -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' -d '{"bot":"<bot>","task":"<Linear 编号>","worktree":"<路径>","status":"done|stuck","note":"..."}'`。
 - 被 routine 叫醒后读 payload，按本 skill 验收或处理；需要时回 Coding助手，不找 Zack；bot=test 只确认收到。
-- 兜底：Coding助手 的 webhook（`~/.config/grokbot/stuck-webhook.env`）只用于兜底。iMac Orca ops 自动任务「卡住工作检查」每天 8–23 点每 15 分钟跑一次、0–7 点每小时一次（2026-10-17 起周末也跑），iMac 和 box 两边的 Orca 都查。completed / in-review 的工作区叫醒后超过 1 小时还没人验收，才 POST 兜底 webhook。
+- 兜底：Coding助手 的 webhook（`~/.config/grokbot/stuck-webhook.env`）只用于兜底。iMac Orca ops 自动任务「卡住工作检查」每天 8–23 点每 15 分钟跑一次、0–7 点每小时一次（2026-10-17 起周末也跑），iMac 和 MBA 两边的 Orca 都查。completed / in-review 的工作区叫醒后超过 1 小时还没人验收，才 POST 兜底 webhook。
 - 「卡住工作检查」对 in-progress 的工作区直接叫醒派活的 bot（payload 里 status=stuck、source=stuck-check，kind 说明是哪一种），只报三种：agent 进程不在了而工作区没标完成（agent_gone）；agent 停在输入框等输入超过 30 分钟（agent_idle）；agent 还在、不在等输入，但 30 分钟没有新输出，也没有 notify-run 在跑（agent_silent）。同一工作区有新活动前只报一次。todo / in-review / completed / Sleep 的工作区不查，所以状态要随时改准：等 review 或等拍板就改 in-review 或 Sleep，做完改 completed，不然会被当成卡住。
 
 ## 叫醒 v5 bot 端处理（Zack 10-15 16:55 批；分批生效）
-只对放进 enabled-bots（各机 `~/.config/orca-wake/enabled-bots`，三台应一致，用 `wake/install.sh --check` 核对）的 bot 生效；10-17 起 coding-assistant、deepvision-ops、deepvision-ads、vllm-omni、xinyue、deepvision-marketing 都已放行，10-20 起 ops-system 也已放行。
+只对放进 enabled-bots（各机 `~/.config/orca-wake/enabled-bots`，两台应一致，用 `wake/install.sh --check` 核对）的 bot 生效；10-17 起 coding-assistant、deepvision-ops、deepvision-ads、vllm-omni、xinyue、deepvision-marketing 都已放行，10-20 起 ops-system 也已放行。
 叫醒系统代码（orca-wake、orca-wake-hooks、notify-run、Pi 扩展 dispatch-wake.ts）在 ops 仓库 `wake/`（原 orca-agent-wake 仓库，10-17 并入后已只读归档），卡住检查在 ops `scripts/stuck-check.sh`。装或核对已装版本用 ops 里的 `wake/install.sh`（`--check` 只比对不写）。
 1. 去重：叫醒脚本先过滤（已处理的 dedup_key、completed/Sleep 工作区、主动关终端的 killed、同任务 done+idle 双发），命中只记 wake.log、不叫醒；漏过来的查 status.md，记过就忽略。
 2. 同一任务收到多条，以最新的 status 为准：
@@ -122,10 +121,10 @@ notify-run --tty 起的 agent 由 orca-wake 自动叫醒（见「叫醒 v5」）
 
 ## 派活前核对 AGENTS.md（Zack 2026-10-16）
 - 派活给 coding agent 前，先打开该工作区里的 `AGENTS.md`，核对是否含最新「测试规矩」段（至少要有：不事后补单测、诚实 E2E、可复现产物、每个 PR 在 head 上跑 E2E、报告含命令/硬件/commit/结果）。
-- 若文件缺失、段落过时，或仍写着「优先补回归测试 / Vitest / 纯 npm test / unit over e2e」等冲突条款：不要假设 worktree 会自动跟上主分支。任选其一写进本次派活 prompt：（1）要求先拉取或 rebase 到已合并最新 AGENTS 的主分支；（2）直接把 `/workspace/ops/wake-design/agents-align-draft/00-shared-testing-block.md`（iMac 同名路径）里对应语言的测试段贴进 prompt。贴了就要按贴的内容验收。
+- 若文件缺失、段落过时，或仍写着「优先补回归测试 / Vitest / 纯 npm test / unit over e2e」等冲突条款：不要假设 worktree 会自动跟上主分支。任选其一写进本次派活 prompt：（1）要求先拉取或 rebase 到已合并最新 AGENTS 的主分支；（2）直接把 iMac `~/orca/wake-design/agents-align-draft/00-shared-testing-block.md`里对应语言的测试段贴进 prompt。贴了就要按贴的内容验收。
 - 任何项目都不指定用哪种 coding agent，只有 pstack 验证 skill（`/pstack:*verification-skill`，只能 slash 触发）例外：只派 Claude Code，派活首行就是该 slash 命令；生成的 skill 放 `.claude/skills/`，另建 `.agents/skills` 软链；临时改坏只在本任务分支工作区做，跑完 `git restore` 并附 diff；起不来只报告不修。派活只写任务、验收标准和权限（能否 push / 开 PR / 部署以派活正文为准）。
-- **vllm-omni / 上游 vLLM**：不改上游 AGENTS.md。每次派活把 `/workspace/ops/wake-design/agents-align-draft/05-vllm-dispatch-overlay.md`（iMac 同名路径）里的覆盖段贴进 prompt 开头；以 Zack E2E 规矩为准，不按上游 unit-first。上游其他约定（风格、目录、提交、sign-off）照常遵守。
-- iMac 与 box 全局兜底：`~/.pi/agent/AGENTS.md`（`~/.claude/CLAUDE.md` 用 `@~/.pi/agent/AGENTS.md` 引用）。全局有测试规矩，但仓库 AGENTS 仍以本仓库最新版为准；冲突时以 Zack E2E 规矩 + 本 skill 为准。
+- **vllm-omni / 上游 vLLM**：不改上游 AGENTS.md。每次派活把 iMac `~/orca/wake-design/agents-align-draft/05-vllm-dispatch-overlay.md`里的覆盖段贴进 prompt 开头；以 Zack E2E 规矩为准，不按上游 unit-first。上游其他约定（风格、目录、提交、sign-off）照常遵守。
+- iMac 与 MBA 全局兜底：`~/.pi/agent/AGENTS.md`（`~/.claude/CLAUDE.md` 用 `@~/.pi/agent/AGENTS.md` 引用）。全局有测试规矩，但仓库 AGENTS 仍以本仓库最新版为准；冲突时以 Zack E2E 规矩 + 本 skill 为准。
 
 ## 长命令用 notify-run 包（Zack 2026-10-13）
 
