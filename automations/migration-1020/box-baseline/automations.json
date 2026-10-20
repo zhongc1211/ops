@@ -1,0 +1,128 @@
+{
+ "75b324a4": {
+  "id": "75b324a4-bf7d-414d-83b7-325a4030a3ea",
+  "name": "心月 · 18 夜审",
+  "rrule": "30 23 * * *",
+  "timezone": "Asia/Singapore",
+  "enabled": true,
+  "missedRunPolicy": "run_once_within_grace",
+  "missedRunGraceMinutes": 720,
+  "extraAgentArgs": "--model opus --effort high",
+  "precheck": null,
+  "workspaceId": "5aaefe84-ccfe-4c20-a77f-5af1226e2486::/workspace/repos/ops",
+  "agentId": "claude"
+ },
+ "43c55a22": {
+  "id": "43c55a22-35fb-428e-b0a5-65128ca3c332",
+  "name": "dv运维 · 20 夜审 官网",
+  "rrule": "10 0 * * *",
+  "timezone": "Asia/Singapore",
+  "enabled": true,
+  "missedRunPolicy": "run_once_within_grace",
+  "missedRunGraceMinutes": 720,
+  "extraAgentArgs": "--model opus --effort high",
+  "precheck": null,
+  "workspaceId": "5aaefe84-ccfe-4c20-a77f-5af1226e2486::/workspace/repos/ops",
+  "agentId": "claude"
+ },
+ "9b5c20e7": {
+  "id": "9b5c20e7-919f-4e74-80ea-2b57eb9270d9",
+  "name": "dv广告 · 21 夜审",
+  "rrule": "10 0 * * *",
+  "timezone": "Asia/Singapore",
+  "enabled": true,
+  "missedRunPolicy": "run_once_within_grace",
+  "missedRunGraceMinutes": 720,
+  "extraAgentArgs": "--model opus --effort high",
+  "precheck": null,
+  "workspaceId": "5aaefe84-ccfe-4c20-a77f-5af1226e2486::/workspace/repos/ops",
+  "agentId": "claude"
+ },
+ "c392a743": {
+  "id": "c392a743-f062-426b-8c89-4a4bbcf72a69",
+  "name": "vllm · 22 夜审",
+  "rrule": "30 0 * * *",
+  "timezone": "Asia/Singapore",
+  "enabled": true,
+  "missedRunPolicy": "run_once_within_grace",
+  "missedRunGraceMinutes": 720,
+  "extraAgentArgs": "--model opus --effort high",
+  "precheck": null,
+  "workspaceId": "5aaefe84-ccfe-4c20-a77f-5af1226e2486::/workspace/repos/ops",
+  "agentId": "claude"
+ },
+ "bc9ee42b": {
+  "id": "bc9ee42b-77f7-46e2-b6ca-283548db6334",
+  "name": "ops · 12 Linear 状态对齐",
+  "rrule": "47 8 * * *",
+  "timezone": "Asia/Singapore",
+  "enabled": true,
+  "missedRunPolicy": "run_once_within_grace",
+  "missedRunGraceMinutes": 720,
+  "extraAgentArgs": "--model sonnet --effort medium",
+  "precheck": {
+   "command": "orca linear team list >/dev/null",
+   "timeoutSeconds": 60
+  },
+  "workspaceId": "5aaefe84-ccfe-4c20-a77f-5af1226e2486::/workspace/repos/ops",
+  "agentId": "claude"
+ },
+ "349967f6": {
+  "id": "349967f6-8d47-46f4-9df0-e3c10107bb4e",
+  "name": "vllm · 17 上游 PR 监控",
+  "rrule": "17 */3 * * *",
+  "timezone": "Asia/Singapore",
+  "enabled": true,
+  "missedRunPolicy": "run_once_within_grace",
+  "missedRunGraceMinutes": 720,
+  "extraAgentArgs": "--model sonnet --effort medium",
+  "precheck": {
+   "command": "/workspace/repos/ops/scripts/vllm-upstream-precheck.sh",
+   "timeoutSeconds": 60
+  },
+  "workspaceId": "5aaefe84-ccfe-4c20-a77f-5af1226e2486::/workspace/repos/ops",
+  "agentId": "claude"
+ },
+ "1191c819": {
+  "id": "1191c819-9bb6-4f71-9f1e-7ad5776f3485",
+  "name": "ops · 11 Orca 工作区夜间清理 box",
+  "rrule": "17 2 * * *",
+  "timezone": "Asia/Singapore",
+  "enabled": true,
+  "missedRunPolicy": "run_once_within_grace",
+  "missedRunGraceMinutes": 720,
+  "extraAgentArgs": "--model sonnet --effort medium",
+  "precheck": null,
+  "workspaceId": "5aaefe84-ccfe-4c20-a77f-5af1226e2486::/workspace/repos/ops",
+  "agentId": "claude"
+ },
+ "8c40fa83": {
+  "id": "8c40fa83-8943-4ae3-8d41-8faa3e47d588",
+  "name": "ops · 10 内存与 CPU 日常清理 box",
+  "rrule": "37 4 * * *",
+  "timezone": "Asia/Singapore",
+  "enabled": true,
+  "missedRunPolicy": "run_once_within_grace",
+  "missedRunGraceMinutes": 720,
+  "extraAgentArgs": "--model sonnet --effort medium",
+  "precheck": null,
+  "workspaceId": "5aaefe84-ccfe-4c20-a77f-5af1226e2486::/workspace/repos/ops",
+  "agentId": "claude"
+ },
+ "27383c07": {
+  "id": "27383c07-27b1-4417-9aaa-b15a46fd68b3",
+  "name": "心月 · 19 夜审兜底",
+  "rrule": "30 0 * * *",
+  "timezone": "Asia/Singapore",
+  "enabled": true,
+  "missedRunPolicy": "run_once_within_grace",
+  "missedRunGraceMinutes": 600,
+  "extraAgentArgs": "--model haiku --effort low",
+  "precheck": {
+   "command": "bash /workspace/ops/everos-ingest/night-review-guard-xinyue.sh",
+   "timeoutSeconds": 60
+  },
+  "workspaceId": "5aaefe84-ccfe-4c20-a77f-5af1226e2486::/workspace/repos/ops",
+  "agentId": "claude"
+ }
+}

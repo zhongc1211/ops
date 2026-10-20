@@ -36,6 +36,8 @@ Orca 项目和工作区清单见 [orca-projects.md](orca-projects.md)。
 | 路径 | 内容 |
 |---|---|
 | [`scripts/box-cleanup.sh`](scripts/box-cleanup.sh) | box 清理（夜间 / 负载高时） |
+| [`automations/migration-1020/`](automations/migration-1020/) | PER-79 重活迁移：夜审挪到 MBA（iMac 看守和备用、box 兜底），定义文件、注册脚本（默认 dry-run）、上线顺序和回滚 |
+| [`scripts/heavy-lock.sh`](scripts/heavy-lock.sh)、[`scripts/night-review-gate.sh`](scripts/night-review-gate.sh)、[`scripts/sync-manifests-from-box.sh`](scripts/sync-manifests-from-box.sh)、[`scripts/review-date.sh`](scripts/review-date.sh)、[`scripts/cleanup-precheck.sh`](scripts/cleanup-precheck.sh) | 每台机器一个重活的锁、夜审的预检和收尾、从 box 拉当晚清单、macOS 上的日期计算、box 两个清理的预检 |
 | [`scripts/orca-due.sh`](scripts/orca-due.sh)、[`scripts/orca-ok.sh`](scripts/orca-ok.sh) | Orca 自动化的到期 / 成功标记 |
 | [`scripts/naming-check.py`](scripts/naming-check.py) | Orca 工作区命名检查 |
 | [`scripts/seo-weekly-precheck.sh`](scripts/seo-weekly-precheck.sh)、[`scripts/vllm-upstream-precheck.sh`](scripts/vllm-upstream-precheck.sh) | 定时任务的预检 |
