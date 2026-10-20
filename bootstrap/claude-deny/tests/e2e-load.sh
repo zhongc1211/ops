@@ -142,10 +142,23 @@ cc = fix(m)
 cc["hooks"]["UserPromptExpansion"] = [e for e in cc["hooks"]["UserPromptExpansion"] if not any("PER-89" in h["command"] for h in e["hooks"])]
 cc["hooks"]["UserPromptSubmit"] = [e for e in cc["hooks"]["UserPromptSubmit"] if not any("disabled-cmd-prompt-guard" in h["command"] for h in e["hooks"])]
 save("fault-c", cc)
+# pstack's poteto-mode/tdd/reflect carry disable-model-invocation, which refuses the Skill call before any
+# permission rule is consulted. The *-mi configs load a temp copy of pstack without that flag (--plugin-dir)
+# so the deny rules themselves are tested; nodeny-mi drops every Skill(...) deny rule as the control.
+mi = fix(m); mi.setdefault("enabledPlugins", {})["pstack@cursor-plugins"] = False; save("pr-mi", mi)
+nd = json.loads(json.dumps(mi)); nd["permissions"]["deny"] = [r for r in nd["permissions"]["deny"] if not r.startswith("Skill(")]; save("nodeny-mi", nd)
 PY
-  cp "$T"/{pr,upe-only,control,fault-a,fault-a2,fault-a2-nofail,fault-b,fault-c}.json "$out/" 2>/dev/null
+  local src
+  src=$(python3 -c 'import json,os;print(json.load(open(os.path.expanduser("~/.claude/plugins/installed_plugins.json")))["plugins"]["pstack@cursor-plugins"][0]["installPath"])')
+  cp -R "$src" "$T/pstack-mi"
+  for k in poteto-mode tdd reflect; do
+    sed -i.orig '/^disable-model-invocation:/d' "$T/pstack-mi/skills/$k/SKILL.md"
+    log "pstack-mi: $k disable-model-invocation lines left: $(grep -c '^disable-model-invocation:' "$T/pstack-mi/skills/$k/SKILL.md")"
+  done
+  log "pstack-mi source: $src"
+  cp "$T"/{pr,upe-only,control,fault-a,fault-a2,fault-a2-nofail,fault-b,fault-c,pr-mi,nodeny-mi}.json "$out/" 2>/dev/null
   # settings copies contain env values from the live file; keep only the hooks/permissions parts as evidence
-  for n in pr upe-only control fault-a fault-a2 fault-a2-nofail fault-b fault-c; do
+  for n in pr upe-only control fault-a fault-a2 fault-a2-nofail fault-b fault-c pr-mi nodeny-mi; do
     python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));json.dump({"permissions":{"deny":d.get("permissions",{}).get("deny")},"hooks":{k:d["hooks"].get(k) for k in ("UserPromptExpansion","UserPromptSubmit")}},open(sys.argv[1],"w"),indent=1)' "$out/$n.json"
   done
 }
@@ -187,11 +200,12 @@ run() { # case config kind(human|model) input expect
   load_ensure
   if [ "$kind" = human ]; then prompt="$input"; turns=1
   else prompt="Call the Skill tool exactly once with skill=\"$input\" and no args. Do not use any other tool. After the tool result, reply with the tool result text verbatim."; turns=3; fi
-  local l0 t0 t1 f="$out/$case.jsonl"
+  local l0 t0 t1 f="$out/$case.jsonl" extra=()
+  [[ $cfg == *-mi ]] && extra=(--plugin-dir "$T/pstack-mi")
   l0=$(load1); t0=$(date +%s)
   cd "$T/proj"
   perl -e 'alarm shift; exec @ARGV or die' "$run_timeout" claude -p "$prompt" \
-    --setting-sources project --settings "$T/$cfg.json" --strict-mcp-config --model haiku --max-turns "$turns" \
+    --setting-sources project --settings "$T/$cfg.json" --strict-mcp-config "${extra[@]}" --model haiku --max-turns "$turns" \
     --dangerously-skip-permissions --disallowedTools "Bash Edit Write NotebookEdit WebFetch WebSearch Agent" \
     --output-format stream-json --verbose --debug-file "$T/$case.debug.log" </dev/null > "$f" 2> "$out/$case.stderr" &
   CHILD=$!; wait "$CHILD"; local rc=$?; CHILD=""; t1=$(date +%s); cd - >/dev/null
@@ -199,7 +213,7 @@ run() { # case config kind(human|model) input expect
   grep -i -E 'hook' "$T/$case.debug.log" 2>/dev/null | grep -v -i -E 'token|secret|key=|bearer|cookie' > "$out/$case.hooks.log"
   local row
   row=$(python3 - "$f" "$kind" "$input" "$expect" "$rc" <<'PY'
-import json, sys
+import glob, json, os, sys
 f, kind, inp, expect, rc = sys.argv[1:6]
 ev = []
 for l in open(f):
@@ -211,7 +225,10 @@ cost = r.get("total_cost_usd", 0) or 0
 text = str(r.get("result", ""))
 assistant = [e for e in ev if e.get("type") == "assistant" and e.get("message", {}).get("model") != "<synthetic>"]
 users = [e for e in ev if e.get("type") == "user"]
-body = any(("Base directory for this skill" in json.dumps(u)) or ("<command-message>" in json.dumps(u)) for u in users)
+# stream-json does not echo the expanded command; the session transcript does
+sid = next((e["session_id"] for e in ev if e.get("session_id")), None)
+tr = glob.glob(os.path.expanduser("~/.claude/projects/*/%s.jsonl" % sid)) if sid else []
+body = bool(tr) and "Base directory for this skill" in open(tr[0]).read()
 blocked_by = "-"
 for k in ("UserPromptExpansion", "UserPromptSubmit"):
     if k + " operation blocked by hook" in text: blocked_by = k
@@ -227,8 +244,14 @@ else:
         o = outs[0] if outs else {}
         oc = o.get("content")
         otext = oc if isinstance(oc, str) else json.dumps(oc, ensure_ascii=False)
-        denied = bool(o.get("is_error")) and any(w in otext.lower() for w in ("denied", "permission", "not allowed", "blocked"))
-        result = "denied" if denied else "allowed"
+        if "disable-model-invocation" in otext:
+            result = "refused (disable-model-invocation)"
+        elif o.get("is_error") and "has been denied" in otext:
+            result = "denied"
+        elif o.get("is_error"):
+            result = "error"
+        else:
+            result = "allowed"
         detail = ("input=" + json.dumps(calls[0].get("input"), ensure_ascii=False) + " tool_result=" + otext.replace("\n", " "))[:300]
 if not res:
     result = "no result (rc=%s)" % rc
@@ -258,13 +281,18 @@ if [ "$only" != selftest ]; then
   gen_settings
   for c in $humans; do run "pr-human-$(slug "$c")" pr human "$c" blocked; done
   for c in $humans; do run "upe-only-human-$(slug "$c")" upe-only human "$c" blocked; done
-  for s in $skills; do run "pr-model-$(slug "$s")" pr model "$s" denied; done
+  for s in $skills; do
+    case $s in pstack:poteto-mode|pstack:tdd|pstack:reflect) e="refused (disable-model-invocation)" ;; *) e=denied ;; esac
+    run "pr-model-$(slug "$s")" pr model "$s" "$e"
+  done
+  for s in pstack:poteto-mode pstack:tdd pstack:reflect; do run "pr-mi-model-$(slug "$s")" pr-mi model "$s" denied; done
+  run nodeny-mi-model-pstack_tdd nodeny-mi model pstack:tdd allowed
   run pr-allow-pstack-how pr human /pstack:how passed
   run fault-a-human-pstack-tdd fault-a human /pstack:tdd blocked
   run fault-a2-human-pstack-tdd fault-a2 human /pstack:tdd blocked
   run fault-a2-nofail-human-pstack-tdd fault-a2-nofail human /pstack:tdd passed
   run fault-b-human-pstack-tdd fault-b human /pstack:tdd blocked
-  run fault-c-model-pstack-tdd fault-c model pstack:tdd denied
+  run fault-c-model-pstack_setup-pstack fault-c model pstack:setup-pstack denied
   run fault-c-human-pstack-tdd fault-c human /pstack:tdd passed
   for c in $humans; do run "control-human-$(slug "$c")" control human "$c" passed; done
   load_stop
