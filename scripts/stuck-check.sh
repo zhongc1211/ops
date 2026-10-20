@@ -180,7 +180,8 @@ TIMEOUT_ERR = "超时"
 # orca-projects.md 里的 bot 名 → ~/.config/grokbot/webhooks/ 下的文件名
 BOT_SLUG = {"心月网站 运维": "xinyue", "deepvision 运维": "deepvision-ops", "deepvision 广告产品": "deepvision-ads",
             "vllm-omni 开发": "vllm-omni", "定时任务": "ops", "deepvision 营销": "deepvision-marketing",
-            "营销": "deepvision-marketing"}
+            "营销": "deepvision-marketing", "ops 系统": "ops-system", "Coding助手": "coding-assistant",
+            "dr eggbot": "dr-eggbot"}
 # 工作区显示名前缀 → bot（营销没有自己的仓库和 Linear 团队，FDV 编号和广告、运维混用，只能靠显示名或 notify-run --bot 认）
 NAME_BOT = [(re.compile(r"^\s*(?:dv\s*)?营销\s*·|^\s*deepvision[\s-]*marketing\b|^\s*marketing\s*·", re.I),
              "deepvision-marketing")]

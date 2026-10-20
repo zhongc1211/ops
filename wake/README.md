@@ -1,6 +1,6 @@
 # wake：派活 agent 叫醒
 
-> **状态：已上线（iMac + box）。** 2026-10-17 起，五个派活 bot 都已列进 `enabled-bots` 真发叫醒，不再是影子模式（之前只有 Coding助手放行）。
+> **状态：已上线（iMac + box）。** 2026-10-17 起，五个派活 bot 都已列进 `enabled-bots` 真发叫醒，不再是影子模式（之前只有 Coding助手放行）。10-20 起 ops-system、10-21 起 dr-eggbot 也已放行（三台 `enabled-bots` 都有）。
 >
 > 本目录原是独立仓库 `zhongc1211/orca-agent-wake`，2026-10-17 用 `git subtree` 并进 ops（保留提交历史），原仓库设为只读归档。以后只在 ops 里改、从 ops 安装。
 
