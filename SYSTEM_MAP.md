@@ -4,7 +4,9 @@ ops 管的系统层（机器、bot、叫醒链路、守护、夜审、Orca 自�
 
 - 只管系统层，只在 ops 仓库。项目层（deepvision-site 的驱动 CLI + FEATURE_MAP）是 FDV-92，不在这里；两边报告字段一致（ID / 功能 / 结果 / 证据），方便将来共用一种报告。
 - 这里不写任何 key、token、webhook URL 的值，只写文件路径和变量名。
-- 自动任务的权威清单：`/workspace/ops/backups/consolidation-20261019/automations/{box,imac,mba}-automations.json`（2026-10-19 03:45 SGT，`orca automations list --json`，box 21 / iMac 16 / MBA 8，共 45 条）。之后新增的单独标出。
+- 自动任务清单：2026-10-20 20:15 SGT 三台实时 `orca automations list --json`（box 22 / iMac 16 / MBA 8，共 46 条），和 10-19 的备份 `/workspace/ops/backups/consolidation-20261019/automations/{box,imac,mba}-automations.json`（03:45，45 条）比只多 box `ops · 30`，见第 7 节。
+- 现状日期：2026-10-20（PER-92）。只写已合进 main 并装到线上的东西；在跑没合的 PR 只列在第 9 节「待合」，不当成已上线。
+- 根 README 里 ops-verify 那一节保持 #28 原样（#48 也在改根 README）；补充说明都写在这里。
 - 地图有改动（加机器、加自动任务、改名、停用）时同一个 PR 里改这张表；`ops-verify` 发现实时和地图不一致就判 FAIL。
 
 ## 怎么跑
@@ -23,7 +25,7 @@ scripts/ops-verify --out DIR            # 报告写到 DIR
 | 机器 | 通道 | 能查什么 |
 |---|---|---|
 | box | 本机 | 全部 |
-| iMac | box 上 `orca --environment iMac <只读命令>`（`status`、`automations list`、`automations runs`）；box 没有到 iMac 的 ssh key | 自动任务、运行记录、心跳。iMac 上的文件（脚本版本、入口文件、heartbeat.json）要开终端探针：`OPS_VERIFY_IMAC_TERMINAL=1`，会在 iMac ops 主工作区开一个临时终端跑一段只读 Python、读完关掉；默认不开，这几项记 SKIP |
+| iMac | box 上 `orca --environment iMac <只读命令>`（`status`、`automations list`、`automations runs`）；box 没有到 iMac 的 ssh key | 自动任务、运行记录、心跳。iMac 上的文件（脚本版本、入口文件、heartbeat.json、webhook 变量名）要开终端探针：`OPS_VERIFY_IMAC_TERMINAL=1`，会在 iMac 的一个工作区（默认 ops 主工作区，`OPS_VERIFY_IMAC_WORKTREE` 可改）开一个临时终端跑一段只读 Python、读完关掉；默认不开，这几项记 SKIP。10-20 20:1x SGT 这个通道间歇报过 `remote_runtime_unavailable`（box 上 environment `iMac` 走 `wss://orca.deepvision.sg/client-ws`），重试后恢复；连不上时 iMac 各项记 FAIL，不当通过 |
 | MBA | tailnet ssh（`ssh mba`，`~/.ssh/config` 里的 Host） | 全部（Orca CLI 用 `/Applications/Orca.app/Contents/Resources/bin/orca`） |
 
 可调的环境变量（演练和排障用）：
@@ -35,9 +37,10 @@ scripts/ops-verify --out DIR            # 报告写到 DIR
 | `OPS_VERIFY_EVEROS_HOST` | 脚本内置 | health 请求带的 Host 头 |
 | `OPS_VERIFY_HB_FILE` | `~/.orca-state/heartbeat-watch/heartbeat.json` | box 心跳文件 |
 | `OPS_VERIFY_HB_MAX_MIN` | `20` | 心跳最长间隔（分钟），和 heartbeat-watch 的 N 一致 |
-| `OPS_VERIFY_WAKE_REF` | `origin/zhongc1211/ops-PER-66-叫醒漏叫修复第二批`（#27 head，线上版本），不存在时回落 `origin/main` | 叫醒脚本版本比对的 git ref |
+| `OPS_VERIFY_WAKE_REF` | `origin/main`（F1–F8 已合进 main 并装三台） | W-bin-*、W-scripts-*、G-box-watchdog-rev 版本比对的 git ref（ops-verify 不 fetch，跑前自己 `git fetch`） |
 | `OPS_VERIFY_MBA_SSH` | `mba` | MBA 的 ssh 目标 |
 | `OPS_VERIFY_IMAC_TERMINAL` | 空 | `1` = 开 iMac 终端探针 |
+| `OPS_VERIFY_IMAC_WORKTREE` | iMac ops 主工作区 | 探针终端开在哪个 iMac 工作区（Orca worktree selector，如 `id:<repoId>::<path>`）；演练时指到自己的工作区，不在别人的工作区开终端 |
 
 ## 1. 机器
 
@@ -45,7 +48,7 @@ scripts/ops-verify --out DIR            # 报告写到 DIR
 |---|---|---|---|---|
 | M-box-orca | box（Grok Bot 电脑，Linux，tailnet 100.64.0.6）：Orca 服务端、box 自动任务、bot 派活的 agent | `orca-ide serve`（tmux `orca-remote`，看门狗拉起） | `orca status --json`：`runtime.state=ready`、`reachable=true` | `scripts/ops-verify --only M-box-orca` |
 | M-imac-orca | iMac（macOS，tailnet 100.64.0.4）：卡住检查、orca-bot 守护、哨兵、iMac 采集 | Orca.app；box 侧 environment 名 `iMac` | `orca --environment iMac status --json`：`ready` | `scripts/ops-verify --only M-imac-orca` |
-| M-mba-orca | MBA（macOS，tailnet 100.64.0.7）：MBA 采集、清理、未推送扫描 | Orca.app；`ssh mba` | `ssh mba <orca> status --json`：`ready` | `scripts/ops-verify --only M-mba-orca` |
+| M-mba-orca | MBA（macOS，tailnet 100.64.0.7）：正式机器（和 box、iMac 同等：叫醒脚本、hook、webhook 配置、自动任务都在册）；MBA 采集、清理、未推送扫描 | Orca.app；`ssh mba` | `ssh mba <orca> status --json`：`ready` | `scripts/ops-verify --only M-mba-orca` |
 | T-site-node | EverOS VPS（site，tailnet 100.64.0.5）：EverOS 服务 | tailnet 节点 `site` | `tailscale status --json`：`site` 在线 | `scripts/ops-verify --only T-site-node` |
 | E-everos-health | EverOS 服务活着 | tailnet 上 `/health`（带 Host 头；地址见夜审 prompt / `~/.config/everos/*.env` 的 `EVEROS_BASE_URL`） | HTTP 200 | `scripts/ops-verify --only E-everos-health` |
 | T-headscale | headscale（tailnet 控制面，`tailscale status` 的 `CurrentTailnet.Name`） | box 的 tailscaled | `BackendState=Running`、本机在线、控制面名字是 headscale | `scripts/ops-verify --only T-headscale` |
@@ -54,7 +57,7 @@ scripts/ops-verify --out DIR            # 报告写到 DIR
 
 ## 2. Bot
 
-bot 本身跑在 Grok 侧，box 只存叫醒它们的 webhook 配置。只读能验证的是「配置在、放行名单里有」；bot 真能收到要发一条测试叫醒，见第 8 节（未实现，等 Zack 定）。
+bot 本身跑在 Grok 侧，各机器只存叫醒它们的 webhook 配置（`~/.config/grokbot/webhooks/<bot>.env`，变量名 `URL`、`KEY`；放行名单 `~/.config/orca-wake/enabled-bots`）。只读能验证的是「配置在、放行名单里有」；bot 真能收到要发一条测试叫醒，见第 8 节（未实现，等 Zack 定）。`B-<bot>` 查 box，`B-mba-<bot>`、`B-imac-<bot>` 查 MBA、iMac（iMac 要终端探针，默认 SKIP）。
 
 | ID | 功能 | 入口 | 怎么验证 | 验证命令 |
 |---|---|---|---|---|
@@ -65,19 +68,28 @@ bot 本身跑在 Grok 侧，box 只存叫醒它们的 webhook 配置。只读能
 | B-vllm-omni | vllm bot | `~/.config/grokbot/webhooks/vllm-omni.env` | 同上 | `scripts/ops-verify --only B-vllm-omni` |
 | B-xinyue | 心月 bot | `~/.config/grokbot/webhooks/xinyue.env` | 同上 | `scripts/ops-verify --only B-xinyue` |
 | B-test | test bot：演练专用（`--bot test`、`*_FORCE_BOT=test`），不在放行名单里也正常 | `~/.config/grokbot/webhooks/test.env` | 文件在、有 `URL=`、`KEY=` | `scripts/ops-verify --only B-test` |
+| B-ops-system | ops 系统 bot：接 ops 派活的叫醒（`orca-agent-launch --bot ops-system`）；EverOS 唯一写入方（见第 5b 节）。#45 合并后卡住检查的告警也改发它（第 9 节） | box `~/.config/grokbot/webhooks/ops-system.env` | 文件在、有 `URL=`、`KEY=`；在 enabled-bots | `scripts/ops-verify --only B-ops-system` |
+| B-mba-ops-system | 同上，MBA | MBA `~/.config/grokbot/webhooks/ops-system.env` | 同上（`ssh mba` 跑只读探针，只回变量名） | `scripts/ops-verify --only B-mba-ops-system` |
+| B-imac-ops-system | 同上，iMac | iMac `~/.config/grokbot/webhooks/ops-system.env` | 同上（终端探针；默认 SKIP） | `scripts/ops-verify --only B-imac-ops-system` |
+| B-imac-coding-assistant | Coding助手，iMac 侧配置：iMac 上的 stuck-check、heartbeat-watch、orca-bot 守护从这里读 | iMac `~/.config/grokbot/webhooks/coding-assistant.env` | 同上（终端探针；默认 SKIP） | `scripts/ops-verify --only B-imac-coding-assistant` |
 
-dr eggbot 是 Grok Bot 侧的系统 bot（违规检查、周一体检、EverOS 唯一导入者），box 上没有它的 webhook，不在叫醒链路里。
+- box 还有一个 `e2e-down`（`e2e-down.env`，在 box 的 enabled-bots 里）：PER-67 真 E2E 缺口 4/7/8 演练用的「发送必失败」bot，不叫醒任何人，地图不设检查；演练结束删掉时不用改地图。
+- dr eggbot 是 Grok Bot 侧的系统 bot（违规检查、周一体检），对 EverOS 只读（查询、核对），box 上没有它的 webhook，不在叫醒链路里。
 
 ## 3. 叫醒链路
 
+叫醒修复 F1–F8（#37–#43，main `1883faf`）已合并并装到三台：三台 `~/.local/bin/` 下 6 个叫醒脚本、box/iMac 的 heartbeat-watch、iMac 的 stuck-check 和 `1883faf` 之后的 main 一致（10-20 20:15 SGT 逐个 sha256 对过）。W-bin-*、W-scripts-* 盯的就是这件事：线上和 main 不一致判 FAIL。
+
 | ID | 功能 | 入口 | 怎么验证 | 验证命令 |
 |---|---|---|---|---|
-| W-bin-box | Orca 完成 → notify-run → webhook → bot：派活统一入口 `orca-agent-launch` 包 `notify-run --tty`，agent 退出时 notify-run 发 webhook；agent 停在输入框时 Claude hook / Pi 扩展调 `orca-wake` 发 | box `~/.local/bin/{notify-run,orca-agent-launch,orca-wake,orca-wake-hooks,agent-probe}` | 5 个文件都在，sha256 和 `OPS_VERIFY_WAKE_REF` 里 `wake/bin/*`、`scripts/agent-probe` 一致 | `scripts/ops-verify --only W-bin-box` |
+| W-bin-box | Orca 完成 → notify-run → webhook → bot：派活统一入口 `orca-agent-launch` 包 `notify-run --tty`，agent 退出时 notify-run 发 webhook；agent 停在输入框时 Claude hook / Pi 扩展调 `orca-wake` 发；`agent-stop` 写主动停止标记 | box `~/.local/bin/{notify-run,orca-agent-launch,orca-wake,orca-wake-hooks,agent-stop,agent-probe}`（`wake/install.sh` 装的 6 个） | 6 个文件都在，sha256 和 `OPS_VERIFY_WAKE_REF` 里 `wake/bin/*`、`scripts/agent-probe` 一致 | `scripts/ops-verify --only W-bin-box` |
 | W-bin-mba | 同上，MBA | MBA `~/.local/bin/*` | 同上（`ssh mba` 算 sha256） | `scripts/ops-verify --only W-bin-mba` |
 | W-bin-imac | 同上，iMac | iMac `~/.local/bin/*` | 同上（终端探针；默认 SKIP） | `scripts/ops-verify --only W-bin-imac` |
+| W-scripts-box | 叫醒相关的其他已装脚本，box：heartbeat-watch（ops · 29）、automation-reaper（ops · 30） | box `~/.orca-state/bin/{heartbeat-watch.sh,automation-reaper.sh}` | sha256 和 ref 里 `scripts/` 同名文件一致 | `scripts/ops-verify --only W-scripts-box` |
+| W-scripts-imac | 同上，iMac：heartbeat-watch（ops · 29）、stuck-check（ops · 01，直接从 ops 主工作区跑）、orca-bot 守护（ops · 03） | iMac `~/.orca-state/bin/heartbeat-watch.sh`、`~/orca/workspaces/ops/scripts/{stuck-check.sh,orca-bot-guard.sh}` | 同上（终端探针；默认 SKIP） | `scripts/ops-verify --only W-scripts-imac` |
 | W-hooks-box | Claude Code 的 orca-wake hook 条目 | box `~/.claude/settings.json` | `orca-wake-hooks check`（只读）退出 0 | `scripts/ops-verify --only W-hooks-box` |
 | W-hooks-mba | 同上，MBA | MBA `~/.claude/settings.json` | `ssh mba ~/.local/bin/orca-wake-hooks check` 退出 0 | `scripts/ops-verify --only W-hooks-mba` |
-| W-stuck-chain | stuck-check → coding-assistant：iMac「ops · 01 卡住工作检查」每分钟 `stuck-check.sh --scan`，漏叫的兜底补叫 | iMac `$HOME/orca/workspaces/ops/scripts/stuck-check.sh` | 心跳见 H-imac-01-hb；收件人配置见 B-coding-assistant。**不跑 `--send`** | `scripts/ops-verify --only H-imac-01-hb,B-coding-assistant` |
+| W-stuck-chain | stuck-check → coding-assistant：iMac「ops · 01 卡住工作检查」每分钟 `stuck-check.sh --scan`，漏叫的兜底补叫（#45 合并后改发 ops-system） | iMac `$HOME/orca/workspaces/ops/scripts/stuck-check.sh` | 心跳见 H-imac-01-hb；收件人配置见 B-imac-coding-assistant（iMac 上的配置，默认 SKIP）。**不跑 `--send`** | `scripts/ops-verify --only H-imac-01-hb,B-imac-coding-assistant` |
 
 ## 4. 守护与心跳
 
@@ -88,7 +100,8 @@ dr eggbot 是 Grok Bot 侧的系统 bot（违规检查、周一体检、EverOS �
 | H-box-hbfile | 同上，心跳文件 | box `~/.orca-state/heartbeat-watch/heartbeat.json` | `ts` 不超过 20 分钟、`rc` 是 0 | `scripts/ops-verify --only H-box-hbfile` |
 | H-imac-29-hb | heartbeat-watch 互查（iMac 侧，盯 box ops · 29） | iMac 自动任务 `5c2d0575`（ops · 29） | iMac 运行记录最新 `@@HB` 不超过 20 分钟 | `scripts/ops-verify --only H-imac-29-hb` |
 | H-imac-hbfile | 同上，iMac 心跳文件 | iMac `~/.orca-state/heartbeat-watch/heartbeat.json` | 终端探针读 `ts`、`rc`（默认 SKIP） | `scripts/ops-verify --only H-imac-hbfile` |
-| G-box-watchdog | box Orca 看门狗：45 秒一轮，Orca/隧道不健康时重启 | `/workspace/ops/orca-remote/watchdog.sh`（`ensure-watchdog.sh` 拉起） | 进程在；证据附 `watchdog.log` 最近 60 分钟重启次数 | `scripts/ops-verify --only G-box-watchdog` |
+| G-box-watchdog | box Orca 看门狗：45 秒一轮，Orca/隧道不健康时重启；#40 起卡顿/暂停后不误杀 cloudflared、不马上整套重启，每轮写状态文件 | `/workspace/ops/orca-remote/watchdog.sh`（`ensure-watchdog.sh` 拉起），状态 `/workspace/ops/orca-remote/watchdog.state` | 进程在；`watchdog.state` 的 `updated` 不超过 5 分钟（证据附 `state`、local/public 码）；证据附 `watchdog.log` 最近 60 分钟重启次数 | `scripts/ops-verify --only G-box-watchdog` |
+| G-box-watchdog-rev | 看门狗版本：#40 的 rev 2026-10-19（`3d8294b` 起在 main，含 #44 的 D 演练） | `/workspace/ops/orca-remote/{watchdog.sh,orca-remote}` | sha256 和 ref 里 `orca-remote/watchdog.sh`、`orca-remote/orca-remote` 一致 | `scripts/ops-verify --only G-box-watchdog-rev` |
 | G-imac-orca-bot-guard | orca-bot 守护：iMac 每 5 分钟探 box 的 Orca 公网入口，连续 2 次不通叫 Coding助手 | iMac 自动任务 `30e9bcaa`（ops · 03）`scripts/orca-bot-guard.sh` | iMac 运行记录：最新一次不超过 15 分钟 | `scripts/ops-verify --only G-imac-orca-bot-guard` |
 
 ## 5. 夜审
@@ -103,7 +116,13 @@ dr eggbot 是 Grok Bot 侧的系统 bot（违规检查、周一体检、EverOS �
 | N-box-9b5c20e7 | 广告夜审 | box 自动任务 `9b5c20e7`（dv广告 · 21） | 同上 | `scripts/ops-verify --only N-box-9b5c20e7` |
 | N-box-c392a743 | vllm 夜审 | box 自动任务 `c392a743`（vllm · 22） | 同上 | `scripts/ops-verify --only N-box-c392a743` |
 
-## 6. Orca 自动任务（46 条 = 备份 45 条 + 备份后新增 1 条）
+## 5b. EverOS 归属（#47，PER-84）
+
+- **ops 系统是 EverOS 唯一写入方**：服务端、部署、教训/skill 导入、写入都归 ops 系统（`everos-deploy/*`、`everos-mcp/MCP-WIRING-STANDARD-v2.md`、`everos/deepvision-ads-import/*` 已改）。会写 EverOS 的自动任务：5 条夜审（第 5 节）、各机会话采集（第 6 节名字带「EverOS … 采集」的）、iMac `心月 · 28 EverOS 经验写入`。
+- **dr eggbot 只读**：只做查询、核对，不写。
+- ops-verify 只查 EverOS 活着（E-everos-health）和这些自动任务在册、在跑；「谁有写权限」要读 key 或发写请求才能验，ops-verify 不做（只读、不读 key 值），不设检查 ID。
+
+## 6. Orca 自动任务（46 条 = 10-20 20:15 三台实时清单）
 
 每条：实时 `orca automations list` 里有同 id、名字一致、enabled 一致；有 precheck 的，入口文件存在且可执行（iMac 的入口文件要终端探针，默认只核对列表并在证据里注明没查文件）。另外每台机器一条汇总检查 `A-<机器>-list`：实时条数和地图一致，多出来的（地图里没有）判 FAIL。
 
@@ -166,11 +185,21 @@ dr eggbot 是 Grok Bot 侧的系统 bot（违规检查、周一体检、EverOS �
 | 备份 2026-10-19 03:45（权威清单） | 21 | 16 | 8 | 45 |
 | 本地图 | 22 | 16 | 8 | 46 |
 | 差异 | +1：`ops · 30 自动任务 claude 清理（box）`（`b33089be`，10-19 04:54 建，PER-66 第 6 项） | 0 | 0 | +1 |
+| 实时 2026-10-20 20:15 SGT（`orca automations list --json`，box 本机 / iMac 本机 / MBA `ssh mba`） | 22 | 16 | 8 | 46 |
+| 实时和本地图 | 一致（id、名字、enabled、precheck 入口） | 一致 | 一致 | 0 |
 
 ## 8. 可选项（等 Zack 定，未实现）
 
 - **发测试 wake 看 bot 收到**：给 test bot 发一条叫醒（`--bot test`），确认 webhook → bot 整条通。这其实就是演练（Zack 10-19 01:59「演练先不搞」），而且只能发 test bot，不能叫醒真 bot（花 Grok 额度、会打断审批卡片）。`ops verify` 默认只读，不做这项；Zack 同意后再加，加了也只发 test。
 - **stuck-check 跑一轮**：`--scan` 有状态写入（pending.json、指纹），`--send` 会发 webhook，都不是只读；现在只读它留在运行记录里的心跳。
+
+## 9. 待合（在跑、没合 main，不算已上线）
+
+| PR / 工作 | 改什么 | 合并装上后地图要改 |
+|---|---|---|
+| #45 | 卡住检查：ops 工作区的告警发 ops-system；脱离父进程的子 agent 不再报「没包 notify-run」（`scripts/stuck-check.sh`、`scripts/agent-probe`） | W-stuck-chain 收件人改 B-imac-ops-system；W-bin-*、W-scripts-imac 跟着比新版本 |
+| PER-88 叫醒预过滤 | `wake/**` 预过滤 | W-bin-* 跟着比新版本 |
+| #48（PER-83/PER-89） | bootstrap/claude-plugins：pstack、compound-engineering 锁版本；根 README | 如果加了三台插件版本检查，同步加 ID |
 
 ## 报告格式
 
