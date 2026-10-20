@@ -24,12 +24,12 @@ import sys, os
 b = sys.argv[1]
 rd = lambda m: {l.split("\t")[0]: l.split("\t")[1] for l in open(os.path.join(b, m, "results.tsv"), encoding="utf-8")}
 pre, post = rd("pre"), rd("post")
-bad = [i for i in post if post[i] == "PASS" and pre.get(i) == "PASS"]
+bad = [i for i in post if post[i] == "PASS" and pre.get(i) != "FAIL"]   # missing on pre counts as not caught
 with open(os.path.join(b, "revert.tsv"), "w", encoding="utf-8") as f:
     for i in post:
         f.write(f"{i}\tpost={post[i]}\tpre={pre.get(i, 'missing')}\n")
 print(f"revert: {len(post)} checks, {sum(v == 'PASS' for v in post.values())} PASS on post, "
-      f"{sum(pre.get(i) == 'FAIL' for i in post)} FAIL on pre; passing on pre too: {', '.join(bad) or 'none'}")
+      f"{sum(pre.get(i) == 'FAIL' for i in post)} FAIL on pre; not FAIL on pre: {', '.join(bad) or 'none'}")
 sys.exit(1 if bad else 0)
 PY
   rv=$?; echo "artifacts: $base"; exit $(( rc | rv ));;
@@ -53,7 +53,7 @@ S=$OPS/scripts; RMIG=$OPS/automations/migration-1020
   echo "box=$(ssh -o BatchMode=yes box 'hostname; bash -c "echo \$BASH_VERSION"' 2>/dev/null | tr '\n' ' ')"; } > "$T/META"
 n=0
 ck(){ local id=$1 what=$2; shift 2; n=$((n+1))
-  if eval "$*" >>"$T/log" 2>&1; then r=PASS; else r=FAIL; fi
+  if ( eval "$*" ) >>"$T/log" 2>&1; then r=PASS; else r=FAIL; fi   # subshell: a check that exits must not end the drill
   printf '%s\t%s\t%s\t%s\n' "$id" "$r" "$what" "$(echo "$*" | tr '\n\t' '  ')" >> "$T/results.tsv"; echo "$r $id $what"; }
 run(){ echo "+ $*" >> "$T/log"; "$@" >> "$T/log" 2>&1; }
 out(){ echo "+ $*" >> "$T/log"; "$@" 2>>"$T/log" | tee -a "$T/log"; }
