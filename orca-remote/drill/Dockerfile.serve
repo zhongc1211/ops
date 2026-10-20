@@ -1,0 +1,11 @@
+# Linux amd64 userland for e2e-serve-display.sh --real: the real orca-ide 1.4.224 serve plus xvfb, laid out like box
+# (/workspace/ops/orca-app/Orca, user box, chrome-sandbox root 4755 as watchdog's repair_app sets it).
+# Build context = the directory holding orca-ide_1.4.224_amd64.deb (copied from box /workspace/ops/orca-app/); see run-serve-e2e.sh.
+FROM --platform=linux/amd64 debian:bookworm-slim
+COPY orca-ide_1.4.224_amd64.deb /tmp/
+RUN apt-get update && apt-get install -y --no-install-recommends bash curl python3 procps psmisc util-linux ca-certificates xvfb \
+      /tmp/orca-ide_1.4.224_amd64.deb \
+ && rm -rf /var/lib/apt/lists/* /tmp/orca-ide_1.4.224_amd64.deb \
+ && mkdir -p /workspace/ops/orca-app && cp -a /opt/Orca /workspace/ops/orca-app/Orca \
+ && chown root /workspace/ops/orca-app/Orca/chrome-sandbox && chmod 4755 /workspace/ops/orca-app/Orca/chrome-sandbox \
+ && useradd -m -s /bin/bash box
