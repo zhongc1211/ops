@@ -63,7 +63,7 @@ def cwds_of(pids):
         return out
     try:
         r = subprocess.run(["lsof", "-a", "-d", "cwd", "-Fpn", "-p", ",".join(str(p) for p in pids)],
-                           capture_output=True, text=True, timeout=30)
+                           capture_output=True, text=True, errors="replace", timeout=30)
     except (OSError, subprocess.TimeoutExpired):
         return out
     cur = None
@@ -88,7 +88,7 @@ def panes_of(pids):
         else:
             try:
                 env = subprocess.run(["ps", "-E", "-o", "command=", "-p", str(p)], capture_output=True, text=True,
-                                     timeout=10).stdout
+                                     errors="replace", timeout=10).stdout
             except (OSError, subprocess.TimeoutExpired):
                 continue
         m = re.search(r"(?:^|\s)ORCA_PANE_KEY=([\w:.-]+)", env)
@@ -159,7 +159,9 @@ def wake_facts():
 
 
 def main():
-    r = subprocess.run(["ps", "-axo", "pid=,ppid=,stat=,etime=,args="], capture_output=True, text=True, timeout=30)
+    # 命令行不一定是 UTF-8（10-20 23:43 一个 agent 的参数是乱码，整个探测抛 UnicodeDecodeError，卡住检查看不到 iMac 的进程）
+    r = subprocess.run(["ps", "-axo", "pid=,ppid=,stat=,etime=,args="], capture_output=True, text=True, errors="replace",
+                       timeout=30)
     procs = {}
     for ln in r.stdout.splitlines():
         f = ln.split(None, 4)

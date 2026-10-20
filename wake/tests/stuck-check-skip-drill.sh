@@ -9,7 +9,8 @@
 #
 #   wake/tests/stuck-check-skip-drill.sh [--src <目录>] [--out <产物目录>]
 #     --src  里面要有 scripts/stuck-check.sh、scripts/agent-probe、orca-projects.md（默认本仓库）；回退测试用
-#            git archive 7d12370 解出来的目录，应当失败（演练工作区也被报）。
+#            git archive 7d12370 解出来的目录，应当失败（演练工作区也被报）。7d12370 的 agent-probe 遇到不是 UTF-8 的
+#            命令行会整个失败，回退时换成本分支的 agent-probe，只对比 stuck-check.sh。
 #     --out  产物目录（默认 mktemp）：requests.jsonl、stuck-check.log、run-*.txt、orca-*.json、assert.txt
 # 退出码：0 断言全过；1 断言失败；9 离线上下次扫描太近不开跑（E2E_NEED_MIN，默认 10 分钟）。
 #
@@ -125,7 +126,7 @@ run_check() { # 轮次
 date '+第一轮（claude 活着）%T'; run_check 1-alive
 for p in $(e2e_pids); do [ "$(ps -o comm= -p "$p")" = claude ] && kill "$p"; done
 sleep 5
-echo "杀掉 claude 后剩 $(for p in $(e2e_pids); do ps -o comm= -p "$p"; done | grep -c claude) 个，终端：$(orca terminal list --json | grep -c "per119-e2e-.*-$TS")"
+echo "杀掉 claude 后剩 $(for p in $(e2e_pids); do ps -o comm= -p "$p"; done | grep -c claude) 个，还开着的终端：$(orca terminal list --json | grep -o "per119-e2e-[a-z]*-$TS" | sort -u | wc -l | tr -d ' ') 个工作区"
 date '+第二轮（claude 没了）%T'; run_check 2-gone
 sleep 2
 cp "$OUT/state/stuck-check.log" "$OUT/stuck-check.log" 2>/dev/null
