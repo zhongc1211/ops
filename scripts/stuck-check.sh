@@ -91,7 +91,7 @@
 # 全部失败才算失败，这次运行里发给同一个目标的不再发（别的照发），下次再试；发给派活 bot 的从第一次失败起满 STUCK_ESCALATE_MIN（默认 45）分钟改发 coding-assistant。URL 和 KEY 不会出现在输出和日志里。
 # 退出码：0 正常（--scan 见上）；2 iMac Orca 查询失败；3 有 webhook 重试后仍然失败；4 脚本自己出错
 #   （--scan 时出错或 iMac Orca 查询失败也返回 0，让自动化启动 agent 把错误报出来）。
-# 测试用环境变量：STUCK_STATE_DIR、STUCK_ENV_FILE、STUCK_WEBHOOK_DIR、STUCK_RUNS_DIR、STUCK_FORCE_BOT（所有 bot 改发到它；演练用 ops-system，task 带「[演练 叫醒通路]」前缀）、
+# 测试用环境变量：STUCK_STATE_DIR、STUCK_ENV_FILE、STUCK_WEBHOOK_DIR、STUCK_RUNS_DIR、STUCK_FORCE_BOT（所有 bot 改发到它；演练用 ops-system；只换收件 bot，task 不加「[演练 叫醒通路]」前缀）、
 #   STUCK_ONLY（正则，只查路径匹配的工作区；没包 notify-run 的 agent 按 cwd 匹配）、STUCK_BOX_ENV、STUCK_MBA_ENV、STUCK_ORCA_WAKE（本机 orca-wake 路径）、
 #   STUCK_BOX_WAKE_CONFIG_DIR（box 上 orca-wake 的 ORCA_WAKE_CONFIG_DIR；本机的直接继承环境变量）。
 set -u

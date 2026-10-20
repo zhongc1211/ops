@@ -16,7 +16,7 @@
 iMac 上是本机镜像，由 unpushed-scan.sh 再经 ssh 追加到 box 的同一个文件）。
 忽略名单 IGNORE：按 --machine 和路径跳过的工作区（如 MBA 的 ~/orca/projects/local 占位仓库）。
 演练：--only <路径前缀> 只扫这些工作区，--state 用单独的状态文件，--drill 让叫醒标题带「【演练】」，
-  环境变量 UNPUSHED_FORCE_BOT=<bot> 让所有叫醒改发给这个 bot（演练用 ops-system，task 带「[演练 叫醒通路]」前缀，不叫醒业务 bot）。
+  环境变量 UNPUSHED_FORCE_BOT=<bot> 让所有叫醒改发给这个 bot（演练用 ops-system，不叫醒业务 bot；只换收件 bot，标题不加「[演练 叫醒通路]」，--drill 时带「【演练】」）。
 退出码：0 = 扫完（不管有没有发现）；2 = 拿不到工作区列表。
 """
 import argparse
