@@ -15,6 +15,7 @@ description: 叫醒系统（notify-run、orca-wake、orca-agent-launch、stuck-c
 |---|---|
 | `wake/bin/notify-run` 的 `send_webhook`（重试次数、`case "$http" in 2??)`、`log_send`） | `Wake.tla` `NrAttempt` |
 | `wake/bin/orca-wake` 的 `dispatch_send`、`_send_now`（`ok = ...`、重试、`_mark_sent`、`mark_woken`）、`cmd_claude_hook` 的 Stop / idle_prompt、`cmd_recheck` / `candidate` / `_recheck_idle` | `AgentPause`、`OwAttempt`、`IdlePrompt`、`RecheckOW`/`RecheckKnown` |
+| `wake/bin/wake-prefilter` 的规则 a（notify-run done ↔ orca-wake idle 互相覆盖）、e（完成后提醒）、`NEVER` 集合、`record` 账本；notify-run / orca-wake / stuck-check 里调它的地方（PER-88） | `AgentExit` 的 drop（`NrDropOK`）、`OwDrop`、`PfDropRem`、`Scan` 的 rep0/rep/escDrop；性质 P1pf / P1hpf / P2_OW（w17～w19） |
 | `wake/pi/dispatch-wake.ts` 什么时候调 `orca-wake send` | `AgentPause`（同一条 idle 去重路径） |
 | `wake/bin/orca-agent-launch` 是否还强制 `notify-run --tty` | 模型前提：每个任务都经 notify-run 起 |
 | `wake/bin/orca-agent-launch` 的 `wake_reject`、`wake/bin/notify-run` 的 `start_watch` / `agent_started`（agent 没起来时叫醒） | `Launch.tla` 的 `RejectWake`、`WatchWake`（P6） |
@@ -53,10 +54,27 @@ wake/tla/check.sh w0 h0           # 只跑名字以 w0、h0 开头的（P2、P3�
 1. `git diff` 看改动落在第 1 节表里哪个动作。
 2. 改 `Wake.tla` / `Heartbeat.tla` 对应动作，动作上方注释里的 `文件:行号` 一起改对（用 `grep -n` 找新行号）。一个动作只能是代码里一步不可分的事；新加的重试、分支、状态文件要有对应变量。
 3. 新的判断要能失败：给它加一个 `Mutant` 分支（模拟删掉这行检查），在 `cfg/` 加一份 `*_mutant.cfg`、在 `check.sh` 表里加一行「期望 violated」，跑一次看到它失败。
-4. `sha256sum <8 个文件> > wake/tla/SOURCES.sha256`（文件列表就是现在那份的第二列），再跑 `wake/tla/check.sh` 到退出码 0。
+4. `sha256sum <9 个文件> > wake/tla/SOURCES.sha256`（文件列表就是现在那份的第二列），再跑 `wake/tla/check.sh` 到退出码 0。
 5. 结果和 README「结果」表不同的，更新 README。
 
-## 5. 不要做
+## 5. 预过滤的真进程演练（PER-88）
+
+模型只管「被覆盖」的挡法（README「界限」）。改了 `wake/bin/wake-prefilter` 的任何规则，或改了三个调用点，除了跑 w17～w19，还要在 PR head 上跑真进程演练：
+
+```bash
+wake/tests/prefilter-drill.sh <产物目录>        # 当前分支；全部用临时 HOME、本机假接收端 wake/tests/mock_webhook.py、假 key
+WAKE_DRILL_BASE=1 wake/tests/prefilter-drill.sh <产物目录>   # 回退测试：同一套输入跑 main 的代码，该挡的都会发出
+```
+
+| 演练 | 期望（开关 on） |
+|---|---|
+| a1 a2 b1 b2 b3 c1 d1 e1 e2 f1 | 挡掉：假接收端 0 条，prefilter.log 一行（规则字母对得上） |
+| r1～r11 | 照发：假接收端条数和 main 一样，prefilter.log 没有这一条 |
+| s1 off / s2 shadow | 全部照发；off 的 payload 和 main 逐字节相同；shadow 的 prefilter.log 记「shadow 会挡」 |
+
+逐条输入和判定写在脚本里，说明在 `wake/docs/TESTS.md`「叫醒前预过滤演练」。只在两次线上卡住检查扫描之间跑，不发真叫醒、不读真 env。
+
+## 6. 不要做
 
 - 不要为了让检查通过去放宽性质、删 cfg、把期望改成实际结果却不解释。
 - 不要在检查时发真实叫醒；这些模型不碰网络和线上状态。要在真环境演练叫醒，只发 test bot（`--bot test` / `STUCK_FORCE_BOT=test`）。

@@ -63,11 +63,17 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | `AgentExit` | notify-run wait 循环 196-205 → `finish` 144-158 | |
 | `NrAttempt` | notify-run 122-130（一次 curl），成功判断 127，日志 126 | 一次 curl |
 | `MarkCompleted` | agent 把 Orca 工作区标 completed | |
+| `AgentExit` 的 drop（PF on） | notify-run 142-148 调 `wake-prefilter check --source notify-run`，退出码 3 就 exit 0 不发；2xx 后 157 调 `record` 写账本（PER-88 head 的行号） | 一次子进程调用，3 秒超时 |
+| `OwDrop` | orca-wake `_send_now` 516-524：第一次 POST 前调 `prefilter(job)`，挡掉记 log skip，被覆盖的 `mark_woken(..., "prefilter")`，不写 sent/ | 同上，在发送进程里，第一次 POST 之前 |
+| `Handle` | 人处理完这件活（Linear 标完成、PR 合并且工作区干净、评论 `[Zack答-…merge…]`） | 环境 |
+| `Scan` 里的 rep0/rep/escDrop + `PfDropRem` | stuck-check `send_all` 1603、1651，`main()` 合并「报了没人验收」前 1790（PER-88 head 的行号） | 在扫描进程里 |
 | `Scan` | stuck-check `main()` 一次扫描：`check_agents` 844-1179（agent_gone 1057-1071、主目录退出 959-987、idle → `wake_recheck` 1073-1097/553-609、结果处理 1124-1177）、第二类 1739-1757 / `check_reported` 1374-1468、`send_all` 1544-1627 | 一次扫描是一个进程顺序执行（run.lock 保证同时只有一个），别的进程在扫描中途的交错对这些性质没有影响（见「假设」） |
 | `Tick` | 15 分钟（`INTERVAL_MIN` 138，闸门 1694） | |
 | `WebhookUp/Down` | 环境：bot 的 webhook 服务通不通 | |
 | Heartbeat `Step` | 每分钟一次 precheck（stuck-check 1908-1948：闸门关 1911-1915 打 `@@HB`，闸门开先写 gate.last 1930 再 `main()` 1935，异常 1936-1944，跑完才写 gate.done 1945-1946；@@HB 的 last_scan = done 1885）+ 每 5 分钟 heartbeat-watch `main()` 188-257 | |
 | Heartbeat `Fail` | 卡住检查出故障并一直坏：dead（自动任务不跑 / Orca 挂了）、crash（`main()` 每次抛异常）、hang（每次超过 300 秒被杀） | |
+
+上表 PER-88 之前的行号是建模时（PER-67）的，PER-88 没有逐行重核（notify-run 的 `finish` 在 base b28b7a5 已经是 177 行，不是 144）；PER-88 新增的行用 PER-88 head 的行号。
 
 ## 性质
 
@@ -80,6 +86,8 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | P4 | 没有任务停下超过 1 小时、没有任何 bot 收到、也没叫醒 Coding助手 | 同 P1，且时间有上限 | 安全性；前提 Coding助手 webhook 一直可用（`CA_ALWAYS_UP`） |
 | P5（代码里找到的） | 一个 bot 的 webhook 坏了，不挡派给 Coding助手 的任务被收到 | 一个坏掉的 bot 让所有卡住告警（含给 Coding助手 的）都发不出去 | 前提 Coding助手 webhook 最终一直可用 |
 | P6（第 6 组） | agent 没起来（orca-agent-launch 拒绝，或 notify-run 起了 claude 却一直没有第 1 个回合），最终有 bot 收到「没起来」（或者它后来起来了）；P6_BOUND：一直没起来的 START+1 分钟内 | 派活 bot 以为 agent 在干活，其实一个都没起（10-19 07:24 iMac term_b8179e9b） | `Launch.tla`；前提 Coding助手 webhook 一直可用 |
+| P1pf / P1hpf（PER-88） | 预过滤开着（`PF = "on"`）时，每个停下最终有 bot 收到，**或者人已经处理完这件活**（ghost 变量 `handled`）；前提分别同 P1 / P1h | 预过滤挡掉了真该叫醒的，活没人管 | 同 P1 / P1h；`Handle` 没有公平性（人可以一直不处理） |
+| P2_OW 在 PF on 下 | woken 只来自 2xx，或来自「同一件活的 notify-run done 已经 2xx」的覆盖挡掉 | 挡掉了没送达的 idle 还记成已叫醒，recheck 不再补 | 安全性 |
 
 ## 界限和简化
 
@@ -92,6 +100,8 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 - 每个任务只停一次（一次停顿 / 一次退出，停顿后可以再退出）；之后的新回合不建模。
 - 主动停止标记（agent-stop）、mute 文件、影子模式、没经 notify-run 起的 agent、ws_broken、due 对账、box/MBA 连不上告警没建模。
 - 卡住检查的人工复核（Claude 读屏幕后 `--dismiss`）按「不误排除」算。
+- 预过滤（PER-88）只建模「被覆盖」的挡法：notify-run 的 done 被已 2xx 的 idle 覆盖（规则 a）、orca-wake 的 idle 被已 2xx 的 done 覆盖（规则 a）、stuck-check 完成后提醒在人已处理完时挡掉（规则 e）。b（Sleep / mute、同一件活另一个 notify-run 的 done 已送达）、c（主动关终端）、d（演练）、f（嵌套 notify-run）这几种「不覆盖」的挡法没建模，它们的安全性靠规则本身（只挡这几种明确的场景，failed / needs_input / error / blocked 从不挡）和演练。
+- 预过滤只在 P1pf / P1hpf / P2_OW 下查了 PF on；P4（1 小时上限）、P5 在 PF on 下没查（`PF = "off"` 的配置结果和以前一样）。
 
 ## 假设（模型外的事实，错了结论就要重看）
 
@@ -132,6 +142,12 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | l01 P6 + P6_BOUND | pass | 第 6 组：orca-agent-launch 拒绝时、notify-run 起的 claude 5 分钟没有第 1 个回合时叫醒派活 bot，发不出去改发 Coding助手 |
 | l02 改坏：两处都不叫醒（修之前的代码） / l03 改坏：不改发 Coding助手 | violated | |
 | h05 / h06 改坏：last_scan 取扫描开始时间（修之前的代码） | violated | |
+| w17 P1hpf / w18 P1pf（PER-88，PF on） | pass | 预过滤开着，每个停下最终有人收到或人已处理完 |
+| w17b 改坏：notify-run 的 done 没被覆盖也挡 / w17c 改坏：完成后提醒不管处理没处理都挡 | violated | 证明 P1hpf 查得出预过滤挡错 |
+| w19 P2_OW（PF on） | pass | 挡掉 idle 只在 done 已 2xx 时记 woken |
+| w19b 改坏：done 没送达也挡 idle 并记 woken | violated | |
+
+PER-88 的结果原文在 box `/workspace/ops/reports/wake-prefilter-1020/head-<短sha>/tla/`。所有 PER-88 之前的配置都加了 `PF = "off"`，结果和以前一样（见同一目录的 summary.tsv）。
 
 「修法」只在模型里（`Fixes` 常量），用来证明性质不是空的、模型不是怎么都失败；没有改任何产品代码。
 

@@ -42,7 +42,8 @@ CONSTANTS
     MayPause,      \* 哪些任务可以停在输入框（场景限制，Tasks = 不限）
     MayComplete,   \* 哪些任务可以标 completed（场景限制，Tasks = 不限）
     HASWORK,       \* 任务工作区做完后有没有要验收的东西（PR / 提交 / 改动）的可选值
-    FailCodes      \* webhook 不可用时一次 POST 的 http：0 = curl 000 / 超时 / 连不上，500 = 非 2xx
+    FailCodes,     \* webhook 不可用时一次 POST 的 http：0 = curl 000 / 超时 / 连不上，500 = 非 2xx
+    PF             \* 叫醒前预过滤（PER-88，wake/bin/wake-prefilter）："off" = 不调用（和以前一样），"on"
 
 CA   == "coding-assistant"
 Bots == {"ops-bot", CA}
@@ -68,10 +69,11 @@ VARIABLES
     age,       \* 停下后过了几个 Tick（封顶 CAP）
     cage,      \* 标 completed 后过了几个 Tick
     fullAge,   \* 距上次第二类检查几个 Tick
-    scanned    \* 这个 Tick 里已经扫描过
+    scanned,   \* 这个 Tick 里已经扫描过
+    handled    \* 真相（ghost，PER-88）：人已经处理完这件活（分支合进 main、Linear Done、[Zack答-*-merge]）
 
 vars == <<disp, work, kind, agent, ws, up, nr, ow, idlep, woken, known, scLast, seen2, esc,
-          accepted, age, cage, fullAge, scanned>>
+          accepted, age, cage, fullAge, scanned, handled>>
 
 Inc(x) == IF x < CAP THEN x + 1 ELSE x
 Codes(b) == IF up[b] THEN {OK} ELSE FailCodes
@@ -107,6 +109,7 @@ Init ==
     /\ cage = [t \in Tasks |-> 0]
     /\ fullAge \in FULL0
     /\ scanned = FALSE
+    /\ handled = [t \in Tasks |-> FALSE]
 
 NewJob(src) == [ph |-> "inflight", n |-> 0, src |-> src, last |-> 0]
 
@@ -122,23 +125,29 @@ AgentPause(t) ==
     /\ \E hookFired \in BOOLEAN :
          ow' = [ow EXCEPT ![t] = IF hookFired THEN NewJob("hook") ELSE @]
     /\ age' = [age EXCEPT ![t] = 0]
-    /\ UNCHANGED <<disp, work, kind, ws, up, nr, idlep, woken, known, scLast, seen2, esc, accepted, cage, fullAge, scanned>>
+    /\ UNCHANGED <<disp, work, kind, ws, up, nr, idlep, woken, known, scLast, seen2, esc, accepted, cage, fullAge, scanned, handled>>
 
 (* agent 进程退出（做完 /exit、崩溃、被 kill）。notify-run 的 wait 返回        *)
-(* （notify-run:196-205），EXIT trap → finish → send_webhook（notify-run:144-158）。*)
+(* （notify-run:262-268），EXIT trap → finish → send_webhook（notify-run:200-217）。*)
+(* 预过滤（PER-88，notify-run:142-148 → wake-prefilter 规则 a）：               *)
+(* 这次停顿的 orca-wake idle 已经 2xx（woken），之后没有新回合 → 可以挡掉 done，    *)
+(* nr 记 "dropped"（不发、不写 notify-run.log）。可以挡不等于一定挡（超时、出错照发）。*)
+(* Mutant "pf_uncovered"：没有送达过的也挡。                                       *)
+NrDropOK(t) == PF = "on" /\ (woken[t] \/ Mutant = "pf_uncovered")
 AgentExit(t) ==
     /\ agent[t] \in {"running", "paused"}
     /\ agent' = [agent EXCEPT ![t] = "exited"]
-    /\ nr' = [nr EXCEPT ![t] = [ph |-> "sending", n |-> 0, last |-> 0]]
+    /\ \E drop \in IF NrDropOK(t) THEN BOOLEAN ELSE {FALSE} :
+         nr' = [nr EXCEPT ![t] = [ph |-> IF drop THEN "dropped" ELSE "sending", n |-> 0, last |-> 0]]
     /\ age' = [age EXCEPT ![t] = IF agent[t] = "running" THEN 0 ELSE @]
-    /\ UNCHANGED <<disp, work, kind, ws, up, ow, idlep, woken, known, scLast, seen2, esc, accepted, cage, fullAge, scanned>>
+    /\ UNCHANGED <<disp, work, kind, ws, up, ow, idlep, woken, known, scLast, seen2, esc, accepted, cage, fullAge, scanned, handled>>
 
 (* agent 做完时把任务工作区标 completed（之后再停下 / 退出）。              *)
 MarkCompleted(t) ==
     /\ agent[t] = "running" /\ kind[t] = "task" /\ ws[t] = "in-progress" /\ t \in MayComplete
     /\ ws' = [ws EXCEPT ![t] = "completed"]
     /\ cage' = [cage EXCEPT ![t] = 0]
-    /\ UNCHANGED <<disp, work, kind, agent, up, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted, age, fullAge, scanned>>
+    /\ UNCHANGED <<disp, work, kind, agent, up, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted, age, fullAge, scanned, handled>>
 
 (* ---------------------------------------------------------------- notify-run *)
 
@@ -154,7 +163,7 @@ NrAttempt(t) ==
          IN /\ nr' = [nr EXCEPT ![t] = [ph |-> IF ok THEN "ok" ELSE IF n1 >= NR_TRIES THEN "failed" ELSE "sending",
                                         n |-> n1, last |-> code]]
             /\ accepted' = [accepted EXCEPT ![t] = IF code = OK THEN @ \cup {disp[t]} ELSE @]
-    /\ UNCHANGED <<disp, work, kind, agent, ws, up, ow, idlep, woken, known, scLast, seen2, esc, age, cage, fullAge, scanned>>
+    /\ UNCHANGED <<disp, work, kind, agent, ws, up, ow, idlep, woken, known, scLast, seen2, esc, age, cage, fullAge, scanned, handled>>
 
 (* ---------------------------------------------------------------- orca-wake *)
 
@@ -162,6 +171,17 @@ NrAttempt(t) ==
 (* ok → _mark_sent：写 sent/<sha1> 和 woken[seq]（:525-528,450-453）；         *)
 (* 不 ok 且重试用完 → log failed（:541-548），inflight 文件删掉（:442-446）。   *)
 (* Mutant "ow_any_http"：把 :518 改成 ok = code is not None（任何 HTTP 回答都算）。*)
+(* 预过滤（PER-88，orca-wake:516-524，_send_now 在第一次 POST 之前 → wake-prefilter 规则 a/b）：        *)
+(* 同一件活的 notify-run done 已经 2xx（nr ok）→ 可以挡掉这条 idle；挡掉的照 muted 那条路径不写 sent/，  *)
+(* 只因为是「被覆盖」才写 woken（mark_woken source=prefilter），ph 记 "pfcovered"。                  *)
+(* Mutant "pf_mark_uncovered"：done 没送达也挡，还记 woken。                                        *)
+OwDrop(t) ==
+    /\ ow[t].ph = "inflight" /\ ow[t].n = 0 /\ PF = "on"
+    /\ (nr[t].ph = "ok" \/ Mutant = "pf_mark_uncovered")
+    /\ ow' = [ow EXCEPT ![t] = [@ EXCEPT !.ph = "pfcovered"]]
+    /\ woken' = [woken EXCEPT ![t] = TRUE]
+    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, idlep, known, scLast, seen2, esc, accepted, age, cage, fullAge, scanned, handled>>
+
 OwAttempt(t) ==
     /\ ow[t].ph = "inflight"
     /\ \E code \in Codes(disp[t]) :
@@ -171,7 +191,7 @@ OwAttempt(t) ==
                                         n |-> n1, src |-> ow[t].src, last |-> code]]
             /\ woken' = [woken EXCEPT ![t] = IF ok THEN TRUE ELSE @]
             /\ accepted' = [accepted EXCEPT ![t] = IF code = OK THEN @ \cup {disp[t]} ELSE @]
-    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, idlep, known, scLast, seen2, esc, age, cage, fullAge, scanned>>
+    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, idlep, known, scLast, seen2, esc, age, cage, fullAge, scanned, handled>>
 
 (* Claude 约 60 秒没操作发 idle_prompt（orca-wake:764-779），同一个去重键再走  *)
 (* dispatch_send：sent 已有 → already_sent（:378-380）；inflight 活着 → 跳过    *)
@@ -179,20 +199,20 @@ OwAttempt(t) ==
 IdlePrompt(t) ==
     /\ agent[t] = "paused" /\ ~idlep[t]
     /\ idlep' = [idlep EXCEPT ![t] = TRUE]
-    /\ ow' = [ow EXCEPT ![t] = IF @.ph \in {"none", "failed"} THEN NewJob("hook") ELSE @]
-    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, woken, known, scLast, seen2, esc, accepted, age, cage, fullAge, scanned>>
+    /\ ow' = [ow EXCEPT ![t] = IF @.ph \in {"none", "failed", "pfcovered"} THEN NewJob("hook") ELSE @]
+    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, woken, known, scLast, seen2, esc, accepted, age, cage, fullAge, scanned, handled>>
 
 (* ---------------------------------------------------------------- webhook 环境 *)
 
 WebhookDown(b) ==
     /\ up[b] /\ ~(b = CA /\ CA_ALWAYS_UP)
     /\ up' = [up EXCEPT ![b] = FALSE]
-    /\ UNCHANGED <<disp, work, kind, agent, ws, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted, age, cage, fullAge, scanned>>
+    /\ UNCHANGED <<disp, work, kind, agent, ws, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted, age, cage, fullAge, scanned, handled>>
 
 WebhookUp(b) ==
     /\ ~up[b]
     /\ up' = [up EXCEPT ![b] = TRUE]
-    /\ UNCHANGED <<disp, work, kind, agent, ws, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted, age, cage, fullAge, scanned>>
+    /\ UNCHANGED <<disp, work, kind, agent, ws, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted, age, cage, fullAge, scanned, handled>>
 
 (* ---------------------------------------------------------------- stuck-check *)
 
@@ -211,6 +231,17 @@ Gone(t) ==
 IdleCand(t) ==
     /\ agent[t] = "paused" /\ age[t] >= IDLE_TICKS /\ known[t] = "none"
     /\ (kind[t] = "main" \/ ws[t] = "in-progress")
+
+(* 人处理完了这件活（PER-88 ghost）：工作区标完成后，分支被合进 main / Linear 标 Done / Zack 答了 merge。*)
+Handle(t) ==
+    /\ ws[t] = "completed" /\ ~handled[t] /\ PF = "on"
+    /\ handled' = [handled EXCEPT ![t] = TRUE]
+    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted, age, cage, fullAge, scanned>>
+
+(* stuck-check 的预过滤（PER-88，stuck-check.sh:1603,1651 send_all 的 post 前 / :1790 合并前 → 规则 e）：  *)
+(* completed / in-review 的提醒（reported_not_accepted、stop_not_delivered）在人已处理完时挡掉，按报过记。 *)
+(* 模型里 completed 的提醒就是 RepCand 和 EscCand 的 completed 那条。Mutant "pf_e_any"：不管处理没处理都挡。*)
+PfDropRem(t) == PF = "on" /\ ws[t] = "completed" /\ (handled[t] \/ Mutant = "pf_e_any")
 
 (* 第二类「报了没人验收」（check_reported，stuck-check.sh:1374-1468；合并成一条 *)
 (* 发 Coding助手，cfg "stuck"，:1739-1757）：completed、标完成超过 1 小时、agent *)
@@ -283,9 +314,11 @@ RecheckKnown(t) ==
 Scan ==
     /\ ~scanned
     /\ LET doFull == fullAge >= FULL_TICKS
-           rep == {t \in Tasks : RepCand(t, doFull)}
+           rep0 == {t \in Tasks : RepCand(t, doFull)}
+           rep == {t \in rep0 : ~PfDropRem(t)}
+           escDrop == {t \in Tasks : EscCand(t) /\ kind[t] = "task" /\ ws[t] = "completed" /\ PfDropRem(t)}
            RepItem == IF rep # {} THEN <<[k |-> "rep", t |-> 0, to |-> CA]>> ELSE <<>>
-           EscItems == SelectSeq([i \in Tasks |-> [k |-> "esc", t |-> i, to |-> CA]], LAMBDA x : EscCand(x.t))
+           EscItems == SelectSeq([i \in Tasks |-> [k |-> "esc", t |-> i, to |-> CA]], LAMBDA x : EscCand(x.t) /\ x.t \notin escDrop)
            GoneItems == SelectSeq([i \in Tasks |-> [k |-> "gone", t |-> i, to |-> disp[i]]], LAMBDA x : Gone(x.t))
            items == RepItem \o EscItems \o GoneItems
            L == Len(items)
@@ -307,14 +340,14 @@ Scan ==
                 IF \E i \in gotT(t, "gone") : good(i) THEN "notified" ELSE RecheckKnown(t)]
           /\ scLast' = [t \in Tasks |->
                 IF \E i \in gotT(t, "gone") : posted(i) THEN code(CHOOSE i \in gotT(t, "gone") : TRUE) ELSE scLast[t]]
-          /\ seen2' = [t \in Tasks |-> IF t \in rep /\ \E i \in repI : good(i) THEN TRUE ELSE seen2[t]]
-          /\ esc' = [t \in Tasks |-> IF \E i \in gotT(t, "esc") : good(i) THEN TRUE ELSE esc[t]]
+          /\ seen2' = [t \in Tasks |-> IF (t \in rep /\ \E i \in repI : good(i)) \/ t \in rep0 \ rep THEN TRUE ELSE seen2[t]]
+          /\ esc' = [t \in Tasks |-> IF (\E i \in gotT(t, "esc") : good(i)) \/ t \in escDrop THEN TRUE ELSE esc[t]]
           /\ accepted' = [t \in Tasks |-> accepted[t]
                 \cup (IF \E i \in gotT(t, "gone") : real(i) THEN {disp[t]} ELSE {})
                 \cup (IF (t \in rep /\ \E i \in repI : real(i)) \/ (\E i \in gotT(t, "esc") : real(i)) THEN {CA} ELSE {})]
           /\ fullAge' = IF doFull THEN 0 ELSE fullAge
     /\ scanned' = TRUE
-    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, idlep, woken, age, cage>>
+    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, idlep, woken, age, cage, handled>>
 
 (* 过 15 分钟。在途的 POST（最多约 1～2 分钟）都已结束。                       *)
 Tick ==
@@ -324,12 +357,12 @@ Tick ==
     /\ age' = [t \in Tasks |-> IF agent[t] # "running" THEN Inc(age[t]) ELSE age[t]]
     /\ cage' = [t \in Tasks |-> IF ws[t] = "completed" THEN Inc(cage[t]) ELSE cage[t]]
     /\ fullAge' = IF fullAge < FULL_TICKS THEN fullAge + 1 ELSE fullAge
-    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted>>
+    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted, handled>>
 
 Next ==
     \/ Tick \/ Scan
     \/ \E t \in Tasks : AgentPause(t) \/ AgentExit(t) \/ MarkCompleted(t)
-                        \/ NrAttempt(t) \/ OwAttempt(t) \/ IdlePrompt(t)
+                        \/ NrAttempt(t) \/ OwAttempt(t) \/ OwDrop(t) \/ IdlePrompt(t) \/ Handle(t)
     \/ \E b \in Bots : WebhookDown(b) \/ WebhookUp(b)
 
 (* 公平性：扫描和时间一直往前走（卡住检查活着，P3 另查）；在途的发送进程会跑完。 *)
@@ -358,10 +391,17 @@ P5 == (<>[]up[CA]) => \A t \in Tasks : (disp[t] = CA /\ Stopped(t)) ~> Accepted(
 
 (* P2：发送失败绝不会被记成已叫醒 / 成功。分四处记录分别检查。                   *)
 P2_NR == \A t \in Tasks : nr[t].ph = "ok" => nr[t].last = OK          \* notify-run exit 0 / notify-run.log
-P2_OW == \A t \in Tasks : woken[t] => ow[t].last = OK                  \* sent/<sha1> + woken[seq]
+P2_OW == \A t \in Tasks : woken[t] => (ow[t].last = OK                \* sent/<sha1> + woken[seq]
+                                      \/ (ow[t].ph = "pfcovered" /\ nr[t].ph = "ok"))  \* PER-88：被覆盖的才记 woken
 P2_SC_POST == \A t \in Tasks : known[t] = "notified" => scLast[t] = OK  \* agents.json notified（stuck-check 自己 POST）
 P2_SC_RECHECK == \A t \in Tasks :                                      \* agents.json notified via orca-wake
     ~(known[t] = "notified_ow" /\ ow[t].src = "recheck" /\ ow[t].ph = "failed")
+
+(* P1pf / P1hpf（PER-88，PF = "on"）：同 P1 / P1h，「有人收到」之外多认一种结局：人已经处理完这件活。*)
+(* 预过滤只挡被覆盖的（另一条已 2xx）和人已处理完的提醒，所以别的停下照样最终有人收到。             *)
+Done(t) == Accepted(t) \/ handled[t]
+P1pf == (<>[]up[CA]) => \A t \in Tasks : Stopped(t) ~> Done(t)
+P1hpf == (\A b \in Bots : <>[]up[b]) => \A t \in Tasks : Stopped(t) ~> Done(t)
 
 (* P4：没有任务停下超过 1 小时、没有任何 bot 收到、也没叫醒 Coding助手。           *)
 (* 前提 CA_ALWAYS_UP = TRUE（升级通道本身是好的）。                              *)
