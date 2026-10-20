@@ -1575,7 +1575,8 @@ def send_all(pending, known, track, seen):
                 d["payload"].update(bot=to, note=note2)
         else:
             to, cfg = ("stuck-webhook", read_env(ENV_FILE)) if d["cfg"] == "stuck" else bot_cfg(FALLBACK_BOT)
-        drill(d["payload"], to)
+        if FORCE_BOT and to == FORCE_BOT:  # 前缀只加在这次发的副本上，没发出去的原样留在 pending 里（stored）
+            d = dict(d, payload=drill(dict(d["payload"]), to), stored=d)
         if cfg is None:
             log("webhook 未配置，只记日志不发：%s" % d["payload"]["task"])
             continue
@@ -1634,7 +1635,7 @@ def send_all(pending, known, track, seen):
             continue
         fails.pop(iid, None)
         known[s["key"]] = {"kind": s["kind"], "marker": s["marker"], "notified": NOW, "to": to}
-    pending["direct"], pending["suspects"] = left_direct, left_suspects
+    pending["direct"], pending["suspects"] = [d.get("stored", d) for d in left_direct], left_suspects
     return failed
 
 

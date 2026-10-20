@@ -15,6 +15,8 @@
 #   F6 没设 STUCK_FORCE_BOT 时 payload 和旧代码不一样（同一份 pending）                     → S6
 #   F7 heartbeat-watch.sh 强制演练没前缀 / 没设时和旧代码不一样                             → H1、H2
 #   F8 unpushed_scan.py 强制演练标题没前缀；--drill 时「【演练】」跑到前缀前面；没设时变了   → U1、U2、U3
+#   F10 演练时 ops-system 发不出去，带前缀的直发存进 pending.json，下次正常运行原样发给真 bot
+#       （PER-88 合进来后真 bot 那条被规则 d 挡掉）                                         → S7
 #   F9 检查读到真配置：HOME、webhook 目录、状态目录全在临时目录，假 env 里的 URL 只到 127.0.0.1
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -92,8 +94,8 @@ json.dump({"created": now, "suspects": [sus("S1", "fbp 嫌疑"), sus("S2", "[演
           open(sys.argv[1], "w", encoding="utf-8"), ensure_ascii=False)
 PY
 }
-stuck() {  # stuck <代码目录> <名字> [FORCE_BOT]
-    rm -rf "$T/st"; mkdir -p "$T/st"; pending "$T/st/pending.json"
+stuck() {  # stuck <代码目录> <名字> [FORCE_BOT]；KEEP=1 时沿用上一轮留下的状态目录
+    [ "${KEEP:-}" = 1 ] || { rm -rf "$T/st"; mkdir -p "$T/st"; pending "$T/st/pending.json"; }
     $E STUCK_STATE_DIR="$T/st" STUCK_WEBHOOK_DIR="$H" STUCK_ENV_FILE="$T/home/.config/grokbot/stuck-webhook.env" \
         STUCK_POST_GAP=0 STUCK_BACKOFF=1 STUCK_NO_GATE=1 WAKE_PREFILTER=off ${3:+STUCK_FORCE_BOT=$3} \
         /bin/bash "$1/scripts/stuck-check.sh" --send >"$OUT/$2.out" 2>&1
@@ -120,6 +122,14 @@ CUR=$OUT/stuck-plain.jsonl
 check S6a "没设 FORCE_BOT：5 条，只有原本就带前缀的那条有前缀" \
     'len(rows) == 5 and sum(P in r["body"]["task"] for r in rows) == 1'
 same S6 "没设 FORCE_BOT：payload 和旧代码一样" "$OUT/stuck-plain.jsonl" "$OUT/stuck-plain-base.jsonl"
+touch "$T/req.jsonl.fail-ops-system"  # 假接收端对 /hook/ops-system 回 503
+stuck "$CODE" stuck-force-fail ops-system
+rm -f "$T/req.jsonl.fail-ops-system"
+cp "$T/st/pending.json" "$OUT/stuck-force-fail.pending.json"
+KEEP=1 stuck "$CODE" stuck-after-fail
+CUR=$OUT/stuck-after-fail.jsonl
+check S7 "演练没发出去的直发，下次正常运行发给原来的 bot，task、bot 都不带演练的改动" \
+    'any(r["path"] == "/hook/xinyue" and r["body"]["task"] == "fbp 停下没送达" for r in rows) and any(r["path"] == "/hook/coding-assistant" and r["body"]["task"] == "自动任务没跑完：fbp" and r["body"]["bot"] == "coding-assistant" for r in rows)'
 
 # ---- heartbeat-watch.sh ----
 old=$(( $(date +%s) - 3600 ))
