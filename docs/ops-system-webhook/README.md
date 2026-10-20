@@ -16,7 +16,7 @@
 
 stuck-check 按「agent 外面包的 `notify-run --bot`」优先定 bot。orca-agent-launch 已经用 `notify-run --bot ops-system` 包住 ops 系统派的 agent，所以这类会发给 ops-system。
 
-没有被 notify-run 包住的 ops 工作区（例如手开的终端）：orca-projects.md 里 ops 仓库映射到 bot `ops`（「定时任务」），三台都没有 `ops.env`，stuck-check 会转发 coding-assistant，不会到 ops-system。要改需要动 orca-projects.md 或 stuck-check.sh 的 BOT_SLUG，不在本次范围。
+没有被 notify-run 包住的 ops 工作区（例如手开的终端）：origin/main（b28b7a5）的 stuck-check.sh 把 ops 仓库（「定时任务」）映射到 bot `ops`，三台都没有 `ops.env`，会转发 coding-assistant，不会到 ops-system。PR #45（`ops-stuck-routing-1020`）把这条映射改成 ops-system；合并并装到 iMac 之前，这条路径仍到 coding-assistant。本 PR 不改 stuck-check.sh。
 
 ## 怎么核对
 
