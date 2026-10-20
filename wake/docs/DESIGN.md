@@ -106,7 +106,7 @@ hook 全部 `async: true`、`timeout: 10`。orca-wake 判断完立即返回，�
 ## 静音与影子模式
 
 - 人接手会话：在工作目录（向上到 git 根）放 `.orca-wake-mute`，该会话不再叫醒，删掉恢复。保留 Stop 立即叫醒（方案 A）。
-- 实现补充：影子模式。`~/.config/orca-wake/enabled-bots` 里没有的 bot 只写 `wake.log`（`event: shadow`）并按已发处理去重，不发 webhook。用于上线前在真实会话上观察判断结果。
+- 实现补充：影子模式。`~/.config/orca-wake/enabled-bots` 里没有的 bot 只写 `wake.log`（`event: shadow`），不发 webhook。用于上线前在真实会话上观察判断结果。影子记在 `shadow/<sha1>`（只用来不重复写日志），不写 `sent/`、不算「已叫醒」：卡住检查的补叫醒照样能看到这次停顿；bot 加进名单后同一个去重键会真的发出去。（2026-10-19 前影子也写 `sent/`，卡住检查会把没发出去的停顿当成已叫醒跳过。）
 
 ## bot 端约定（不在本仓库实现）
 

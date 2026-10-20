@@ -29,13 +29,15 @@
 | （停用，保留） | iMac 旧 per-38-swing-swing（099c800e::~/orca/workspaces/xinyue-site/per-38-swing-swing；无提交，2026-10-12 迁到 box） | xinyue-site | PER-38 |
 | 心月网站 运维 | **box** 心月 · PER-39 大嘴洞洞（2ce7debc::/home/box/orca/workspaces/xinyue-site/心月-PER-39-大嘴洞洞；in-progress，Claude Code 在 box term_83a12bdf） | xinyue-site(box) | PER-39 |
 | （停用，保留） | iMac 旧 per-39-gobble-hole（099c800e::~/orca/workspaces/xinyue-site/per-39-gobble-hole；无提交，2026-10-12 迁到 box） | xinyue-site | PER-39 |
-| deepvision 运维 | dv运维 · FDV-25 本地预览和截图（fdv-16-preview，completed） | site | FDV-25 |
-| deepvision 运维 | dv运维 · FDV-16 主站改版方案（fdv-16-redesign-v2，completed） | site | FDV-16 |
-| deepvision 运维 | dv运维 · Orca 工作区整理（dv-ops-orca-tidy，completed，10-12 新建，无 Linear） | site | — |
+| 心月网站 运维 | 心月 · PER-42 摇摇荡荡 3D（心月-PER-42-摇摇荡荡-3D，**box** 2ce7debc::/home/box/orca/workspaces/xinyue-site/心月-PER-42-摇摇荡荡-3D；Claude term_b9778321；in-progress） | xinyue-site | PER-42 |
+| 心月网站 运维 | 心月 · PER-43 大嘴洞洞 3D（心月-PER-43-大嘴洞洞-3D，**box** 2ce7debc::/home/box/orca/workspaces/xinyue-site/心月-PER-43-大嘴洞洞-3D；Claude term_e66dc20c；in-progress） | xinyue-site | PER-43 |
+| 心月网站 运维 | 心月 · PER-41 涨水逃生 3D（心月-PER-41-涨水逃生-3D，**box 排队** 2ce7debc::/home/box/orca/workspaces/xinyue-site/心月-PER-41-涨水逃生-3D；flood-3d-queue.sh 等 42/43 done；iMac load≈11.5 未用 iMac） | xinyue-site | PER-41 |
+| deepvision 运维 | （site 项目无打开的工作区，只剩主目录 ~/claude/site；见 3c） | site | — |
 | deepvision 广告产品 | deepvision-ads · 主目录 | deepvision-ads | （FDV-35 未关联） |
 | vllm-omni 开发 | vllm · PER-7/8/9/10/11 C1 栈 1–5（c1-1…c1-5） | vllm-omni | PER-7 / 8 / 9 / 10 / 11（in-progress） |
 | vllm-omni 开发 | vllm · PER-12 C2 sigma 窗口策略（c2-1-sigma-policy）、vllm · PER-12 C2-1 mypy 修复（c2-1-r3-mypy） | vllm-omni | PER-12（in-progress） |
 | vllm-omni 开发 | vllm · PER-13 C2-2 sigma CUDA graph（c2-2-sigma-graphs，跟进见 PER-18） | vllm-omni | PER-13（in-progress） |
+| vllm-omni 开发 | vllm · PER-40 调度开销分析（b8e788b7::~/orca/workspaces/repository/vllm-PER-40-调度开销分析；base #8746 head 48f7dac47；in-progress，Claude Code Opus max 在 term_a9e6a444；2026-10-12 19:4x 建） | vllm-omni | PER-40（in-progress） |
 | vllm-omni 开发 | vllm · PER-22 C2-1 性能优化（per-22-direct-register） | vllm-omni | PER-22（in-progress） |
 | vllm-omni 开发 | 已标 completed（未删）：PER-14 trim（stack-trim）、PER-1/PER-2 rebased ×2、PER-2 H3/C1 原开发目录（h3-c1-lab/worktree） | vllm-omni | PER-14 / 1 / 2 |
 | 定时任务 | ops 主目录（显示名 main） | ops | — |
@@ -134,3 +136,25 @@ Box 与 iMac 是两套独立 Orca runtime；同名仓库在 box 上另有项目 
 3. 需要看野 worktree 时，对该 repo 开 `external-worktree-visibility show`。
 4. treehouse / `.claude/worktrees` 视为 Claude 私货，有未提交内容才考虑迁入 Orca；干净的可删（要 Zack 点头）。
 
+
+## 3c. 2026-10-12 14:5x deepvision 运维 收尾（Coding助手 派，Zack 已定）
+- 删除 iMac ~/cutover-20261008/build-fdv54（生产构建目录，git worktree remove）。~/cutover-20261008/build-testing 已不存在（3b 已删）。fdv-16-preview（FDV-25）此前已不在列表。
+| 心月网站 运维 | 心月 · EverOS 启动器 v2.1（iMac 099c800e::~/orca/workspaces/xinyue-site/心月-EverOS-启动器-v2.1；Claude term_4be9a6d2；in-review，2026-10-17） | xinyue-site | — |
+| 心月 | PER-71 | MBA ~/orca/workspaces/xinyue-site/per-71-colorfigures-a | 心月 · PER-71 Colorfigures 框架与总入口 | 2026-10-19 |
+| 心月 | PER-75 | iMac ~/orca/workspaces/xinyue-site/per-75-oss-games | 心月 · PER-75 开源游戏候选调研 | 2026-10-19 |
+
+## 7. MBA（MacBook Air）Orca 项目（2026-10-18 16:00 SGT 建，box 上的 Claude Code 经 iMac `ssh mba` 做）
+
+MBA：Apple M2 / 8 核 / 8 GB，macOS 26.6.2，Orca 1.4.229，用户 jiawenwang，tailnet 100.64.0.7。iMac 上 `orca --environment mba …`（环境名小写 mba）。
+MBA 是第三套独立 Orca runtime，同名仓库在 MBA 上另有项目 ID。主 checkout 放 `~/orca/projects/<repo>`（ops 和 iMac 一样放 `~/orca/workspaces/ops`），工作区按 Orca 默认建在 `~/orca/workspaces/<repo>/…`。
+
+| Repo | Orca 项目 | 项目 ID | 路径 | 分支 |
+|---|---|---|---|---|
+| zhongc1211/ops | ops | 659a8841-0b19-4204-859d-85fdaf05f7b3 | ~/orca/workspaces/ops | main |
+| zhongc1211/xinyue-site | xinyue-site | 1c963975-d649-4453-8e06-b755dfafa113 | ~/orca/projects/xinyue-site | feat/xinyue-site |
+| zhongc1211/deepvision-site（现 futuredeepvision/deepvision-site） | deepvision-site | d1fae3d4-64a2-4d93-96fe-a5a454e63cfc | ~/orca/projects/deepvision-site | main |
+| zhongc1211/deepvision-ads | deepvision-ads | 4e5bd73a-a952-4b4a-bfe5-d455ffa26454 | ~/orca/projects/deepvision-ads | main |
+| vllm-omni：origin = fork zhongc1211/vllm-omni（blob:none），upstream = vllm-project/vllm-omni | vllm-omni | c1ee517c-7679-44df-b3dd-2a5e761700d4 | ~/orca/projects/vllm-omni | main |
+
+另有 Zack 自己建的 `local`（25037673-35e6-4129-a963-7016a63d6101，~/orca/projects/local），不动。
+EverOS：上面 4 个业务仓库的主 checkout 都用 `claude mcp add -s local everos` 接好；pi 扩展 `everos.ts` 的根目录表加了 `~/orca/projects/<repo>`。

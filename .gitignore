@@ -12,3 +12,16 @@ __pycache__/
 *.key
 id_rsa*
 id_ed25519*
+
+# nested worktrees in the iMac ops main workspace
+/everos-research/
+/everos-vps-deploy/
+/ops-PER-66-叫醒漏叫修复第二批/
+/ops-everos-ingest-commit/
+/xinyue-everos-recheck/
+/xinyue-everos-tailnet/
+/xinyue-night-review-guard/
+
+# TLC 输出（wake/tla/check.sh）
+wake/tla/out/
+states/

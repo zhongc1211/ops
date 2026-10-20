@@ -20,10 +20,12 @@
 | `bin/orca-wake` | `~/.local/bin/orca-wake` | 共用脚本（Python 3，只用标准库） |
 | `bin/orca-wake-hooks` | `~/.local/bin/orca-wake-hooks` | 在 `~/.claude/settings.json` 里添加、删除、检查本项目的 hook 条目，其他条目不动 |
 | `bin/notify-run` | `~/.local/bin/notify-run` | 派活包装脚本，`--tty` 时导出 `ORCA_DISPATCH_*` |
+| `bin/orca-agent-launch` | `~/.local/bin/orca-agent-launch` | 统一的起 agent 入口：检查后 exec `notify-run --tty`；没带 `--bot`、没有 webhook 配置、经 `bash -c` 转一层的一律拒绝 |
 | `pi/dispatch-wake.ts` | `~/.pi/agent/extensions/dispatch-wake.ts` | Pi 扩展 |
 | `hooks/claude-settings.example.json` | — | hook 条目示例（`orca-wake-hooks install` 写入的就是这些） |
 | `.env.example` | `~/.config/grokbot/webhooks/<bot>.env` | webhook 配置格式（与 notify-run 共用） |
 | `tests/unit.sh`、`tests/mock_webhook.py` | — | 离线测试和本地模拟 webhook |
+| `tests/lint-bash32-utf8.sh` | — | 在仓库根目录跑：查 wake/、scripts/ 的 shell 里 `$name` 紧跟全角字符（/bin/bash 3.2 会报 unbound variable，要写 `${name}`），有命中打印「文件:行」并 exit 1 |
 
 ## 安装
 
@@ -45,18 +47,22 @@ orca-wake-hooks check
 
 webhook 配置沿用 notify-run 的 `~/.config/grokbot/webhooks/<bot>.env`（`URL=`、`KEY=`，权限 600）。KEY 只放在请求头里，不写进日志。
 
-派活时 agent 必须是 `notify-run` 的直接子进程：
+派活一律用 `orca-agent-launch` 起 agent（2026-10-19 起，PER-65）。它检查参数后 exec `notify-run --tty`，agent 是 notify-run 的直接子进程：
 
 ```bash
-notify-run --bot <bot> --task "<任务>" --tty -- claude --dangerously-skip-permissions ...
-notify-run --bot <bot> --task "<任务>" --tty -- pi ...
+orca-agent-launch --bot <bot> --task "<任务>" [--issue X] -- claude --dangerously-skip-permissions ...
+orca-agent-launch --bot <bot> --task "<任务>" -- pi ...
+# 作为 Orca 终端命令：
+orca terminal create --worktree <wt> --command "orca-agent-launch --bot coding-assistant --task 'PER-65 xxx' -- claude --dangerously-skip-permissions '读 BRIEF 并照做'"
 ```
+
+没带 `--bot`/`--task`、bot 没有 webhook 配置、要起的不是 claude / pi / codex、经 `bash -c` / `env` / `nohup` 转一层、已经在一个活着的 notify-run 里，都拒绝（退出码 2，什么都不起）。漏网的由卡住检查兜底：三台机器上活着、父链里没有 notify-run 的 claude / pi / codex（Orca 自动任务起的除外）会报给派活的 bot（`agent_unwrapped`，见 `scripts/stuck-check.sh`）。直接写 `notify-run --bot <bot> --task "<任务>" --tty -- claude ...` 效果相同，但没有这些检查。
 
 不要写成 `notify-run ... -- bash -c "cd x; claude ..."`：这时 agent 的父进程是 bash，hook 会按「不是派出的主会话」跳过并在 `wake.log` 记 `parent_mismatch`。（bash 对 `bash -c "claude ..."` 这种单条命令会直接 exec，碰巧能用，但不要依赖。）
 
 ## 放行与静音
 
-- **影子模式**：`~/.config/orca-wake/enabled-bots` 一行一个 bot 名，写 `*` 表示全部放行。不在名单里的 bot 照常判断、去重、写 `wake.log`（`event: shadow`），但不发 webhook。
+- **影子模式**：`~/.config/orca-wake/enabled-bots` 一行一个 bot 名，写 `*` 表示全部放行。不在名单里的 bot 照常判断、写 `wake.log`（`event: shadow`），但不发 webhook，也不记成已发（见下方「卡住检查补叫醒」）。
 - **人接手会话**：在会话工作目录（或它到 git 根之间的任一上级目录）放一个 `.orca-wake-mute` 文件，该会话停止叫醒；删掉后恢复。
 
 ## 回滚
@@ -72,7 +78,7 @@ rm -rf ~/.local/state/orca-wake ~/.config/orca-wake      # 可选：删状态和
 
 `orca-wake recheck --agent-pid <pid>`：调用方（卡住检查）发现 agent 停在输入框时调用。该停顿已有成功的叫醒就跳过，否则补发一次（`source=stuck-check-recheck`），默认要求会话至少 30 分钟没有新动静（`--idle-min`）。`orca-wake recheck --waiting-pid <pid>[:<since_ms>]`：agent 停在对话框（Orca 状态 waiting）时调用，只补发该对话框的 needs_input，去重键与 hook 相同；hook 已送达时返回 `already_asked`，不重发。`orca-wake recheck --list` 只列出候选，不发送。卡住检查脚本是 ops 的 `scripts/stuck-check.sh`，接入方式（包括 orca-wake 不认识的会话怎么兜底）见 DESIGN。
 
-**依赖关系：** 卡住检查读 orca-wake 的状态目录（`~/.local/state/orca-wake/sent/`，经 `orca-wake recheck`）判断一次停顿是否已叫醒过，所以改 `sent/` 的写法或去重键时要同时看 `scripts/stuck-check.sh`。注意影子模式下 `sent/` 也会写（mode=shadow），卡住检查会当成已处理；所以派活 bot 必须列在 `enabled-bots` 里，否则停顿只记日志、没人收到。
+**依赖关系：** 卡住检查读 orca-wake 的状态目录（`~/.local/state/orca-wake/sent/`，经 `orca-wake recheck`）判断一次停顿是否已叫醒过，所以改 `sent/` 的写法或去重键时要同时看 `scripts/stuck-check.sh`。影子模式不写 `sent/`（只写 `shadow/`），不算已叫醒；卡住检查发现影子停顿时转报 coding-assistant（派活 bot 不在 `enabled-bots` 里），不会悄悄漏掉。
 
 ## 已知限制
 

@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """deepvision广告夜审 9b5c20e7 step 4: the night's lessons -> one EverOS session -> /memory/add -> /memory/flush.
 
-Usage: python3 -I dv_ads_lessons.py --lessons L.json --log OUT.json [--ledger L.jsonl] [--dry-run]
+Usage: python3 -I dv_ads_lessons.py --lessons L.json --log OUT.json [--ledger L.jsonl] [--dry-run | --readback-only] [--project P]
 Reads ~/.config/everos/dv-ads.env (scope deepvision / deepvision-ads / zack / coding-deepvision-ads);
 the key goes only into the Authorization header.
+--project vllm-omni (2026-10-18) is the vllm night review c392a743: ~/.config/everos/vllm-omni.env (scope
+vllm-omni / vllm-omni / zack / coding-vllm-omni), session nightly-review-vllm-omni-<D>,
+ledger <D>-vllm-omni-ledger.jsonl. Everything else is the same.
 
 Why a user message (FDV-81): on 2026-10-16 the night review added its 4 lessons as assistant messages only;
 add 200 and flush 200 extracted, but no episode was made. EverOS builds the user's episodes from a
@@ -25,18 +28,30 @@ public EVEROS_BASE_URL only when the connection cannot be made; 502/504/524, a r
 connection is an unknown result, rechecked after 5/15/30/60 s (session_id episodes, unflushed buffer,
 total_count), and resent at most once. Ledger lines (default
 ~/xinyue-deploy/nightly-review/<D>-deepvision-ads-ledger.jsonl) have the same kinds; see that file's docstring.
-After an OK write the script rechecks the session's episodes at 5/15/30/60 s (kind=post_check, read-only)
-until the session_id index shows it, then takes count_after; summary.new_episode_ids is the difference.
+Read back (PER-67, everos_readback.py; replaces the 5/15/30/60 s post_check): HTTP 200 is not success.
+After an OK write, and for an ALREADY session, the session is read back by session_id under the env's
+scope, polled up to everos_readback.READBACK_TIMEOUT_S (180 s); it needs at least one episode. Then
+count_after; summary.new_episode_ids is the difference. Not read back -> result=FAIL with reason
+"readback_failed: <why>", ledger kind=readback / readback_summary, exit 3 (a write FAIL is still 1).
 --dry-run sends no add/flush: it takes the read-only counts and prints the messages it would send
 (role, sender, length, first 60 characters).
+--readback-only sends no add/flush either: it reads back the lessons file's session (the same check).
+EVEROS_WRITE_STUB_URL (drill only): add and flush go to this address and nowhere else; see nightly_addflush.py.
 """
 import argparse, http.client, json, os, re, sys, time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))   # python3 -I leaves the script's directory out
+import everos_readback
+
 SGT = timezone(timedelta(hours=8))
-SCOPE = ("deepvision", "deepvision-ads", "zack", "coding-deepvision-ads")
+# --project -> (env file, expected app / project / user / assistant sender); ID 10-16 批
+PROJECTS = {
+    "deepvision-ads": ("~/.config/everos/dv-ads.env", ("deepvision", "deepvision-ads", "zack", "coding-deepvision-ads")),
+    "vllm-omni": ("~/.config/everos/vllm-omni.env", ("vllm-omni", "vllm-omni", "zack", "coding-vllm-omni")),
+}
 
 def load_env(p):
     env = {}
@@ -61,6 +76,7 @@ RECHECK_DELAYS = (5, 15, 30, 60)   # seconds to wait before each recheck of an u
 LANDED = "unknown→landed"
 RESENT = "unknown→resent"
 OUTCOME_OF_DECISION = {"landed": LANDED, "resend": RESENT}   # recheck decision -> add/flush outcome; else failed
+WRITE_PATHS = ("/api/v2/memory/add", "/api/v2/memory/flush")   # the calls EVEROS_WRITE_STUB_URL takes over
 
 def endpoints(env):
     """[(name, base url, Host header or None)], tailnet first."""
@@ -71,7 +87,7 @@ def endpoints(env):
 class ConnectFailed(Exception):
     pass
 
-def send(base, host, path, data, headers):
+def send(base, host, path, data, headers, timeout=TIMEOUT):
     u = urlsplit(base)
     cls = http.client.HTTPSConnection if u.scheme == "https" else http.client.HTTPConnection
     conn = cls(u.hostname, u.port, timeout=CONNECT_TIMEOUT)
@@ -80,7 +96,7 @@ def send(base, host, path, data, headers):
             conn.connect()          # TCP (+TLS); nothing of the request has been sent yet
         except OSError as e:
             raise ConnectFailed(f"{type(e).__name__}: {e}"[:200])
-        conn.sock.settimeout(TIMEOUT)
+        conn.sock.settimeout(timeout)
         h = dict(headers, Host=host) if host else headers
         conn.request("POST", u.path.rstrip("/") + path, body=data, headers=h)
         r = conn.getresponse()
@@ -103,15 +119,17 @@ class Resp:
             f["fallback"] = self.fallback
         return f
 
-def post(env, path, body):
+def post(env, path, body, timeout=TIMEOUT):
+    """timeout: read timeout once connected (the read back passes a shorter one)."""
     data = json.dumps(body).encode()
     headers = {"Authorization": "Bearer " + env["EVEROS_API_KEY"], "Content-Type": "application/json",
                # Cloudflare answers the default Python-urllib UA with 403 (error 1010)
                "User-Agent": "deepvision-ads-nightly-lessons/1.0"}
     fallback = None
-    for name, base, host in env["_endpoints"]:
+    eps = env.get("_write_endpoints") if path in WRITE_PATHS else None
+    for name, base, host in eps or env["_endpoints"]:
         try:
-            st, raw = send(base, host, path, data, headers)
+            st, raw = send(base, host, path, data, headers, timeout)
         except ConnectFailed as e:
             fallback = f"{name} connect failed: {e}"
             continue
@@ -339,7 +357,7 @@ def write_session(env, ledger, scope, o, msgs):
     f3 = send_or_settle("flush", r3, dict(fline, resend=True), last_ts)
     return adds, f3, r3.outcome not in ("failed", "unknown")
 
-def build_messages(env, spec, key):
+def build_messages(env, spec, key, project="deepvision-ads"):
     """(session_id, messages) from the lessons file; raises ValueError on a bad file or a secret-like text."""
     date = spec.get("date") or ""
     datetime.strptime(date, "%Y-%m-%d")
@@ -349,7 +367,7 @@ def build_messages(env, spec, key):
         raise ValueError("context (the zack message) is empty")
     if not lessons or not all(isinstance(l, dict) and (l.get("text") or "").strip() for l in lessons):
         raise ValueError("lessons must be a non-empty list of {label, text}")
-    sid = spec.get("session_id") or f"nightly-review-deepvision-ads-{date}"
+    sid = spec.get("session_id") or f"nightly-review-{project}-{date}"
     at = datetime.fromisoformat(spec["at"]) if spec.get("at") else datetime.now(SGT)
     t0 = int(at.timestamp() * 1000)
     texts = [("user", context)] + [("assistant", (f"[{l['label']}] " if l.get("label") else "") + l["text"].strip())
@@ -368,22 +386,30 @@ def build_messages(env, spec, key):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--lessons", required=True, help="lessons JSON (see the docstring)")
-    ap.add_argument("--dry-run", action="store_true")
+    mode = ap.add_mutually_exclusive_group()
+    mode.add_argument("--dry-run", action="store_true")
+    mode.add_argument("--readback-only", action="store_true", help="no add/flush: read back the session only")
     ap.add_argument("--log", required=True)
-    ap.add_argument("--ledger", help="ledger jsonl (default ~/xinyue-deploy/nightly-review/<date>-deepvision-ads-ledger.jsonl)")
-    ap.add_argument("--env", default="~/.config/everos/dv-ads.env")
+    ap.add_argument("--ledger", help="ledger jsonl (default ~/xinyue-deploy/nightly-review/<date>-<project>-ledger.jsonl)")
+    ap.add_argument("--project", default="deepvision-ads", choices=sorted(PROJECTS))
+    ap.add_argument("--env", help="env file (default: the project's, see PROJECTS)")
     a = ap.parse_args()
+    env_path, scope_want = PROJECTS[a.project]
+    a.env = a.env or env_path
     env = load_env(a.env)
-    if (env.get("EVEROS_APP_ID"), env.get("EVEROS_PROJECT_ID"), env.get("EVEROS_USER_ID"), env.get("EVEROS_ASSISTANT_SENDER_ID")) != SCOPE:
+    if (env.get("EVEROS_APP_ID"), env.get("EVEROS_PROJECT_ID"), env.get("EVEROS_USER_ID"), env.get("EVEROS_ASSISTANT_SENDER_ID")) != scope_want:
         sys.exit("scope mismatch in " + a.env)
     env["_endpoints"] = endpoints(env)
+    if os.environ.get("EVEROS_WRITE_STUB_URL"):
+        env["_write_endpoints"] = [("write-stub", os.environ["EVEROS_WRITE_STUB_URL"], None)]
+        print(f"WRITE STUB: add/flush go to {os.environ['EVEROS_WRITE_STUB_URL']} only (drill)", flush=True)
     key = env.get("EVEROS_API_KEY", "")
     scope = {"app_id": env["EVEROS_APP_ID"], "project_id": env["EVEROS_PROJECT_ID"]}
     try:
-        date, sid, msgs = build_messages(env, json.loads(Path(a.lessons).read_text()), key)
+        date, sid, msgs = build_messages(env, json.loads(Path(a.lessons).read_text()), key, a.project)
     except (ValueError, KeyError, OSError) as e:
         sys.exit(f"lessons file {a.lessons}: {e}")
-    ledger = Ledger(a.ledger or f"~/xinyue-deploy/nightly-review/{date}-deepvision-ads-ledger.jsonl", key, a.dry_run)
+    ledger = Ledger(a.ledger or f"~/xinyue-deploy/nightly-review/{date}-{a.project}-ledger.jsonl", key, a.dry_run)
     print(f"ledger: {ledger.path}", flush=True)
     print("endpoints: " + " -> ".join(f"{n} {u}" for n, u, _ in env["_endpoints"]), flush=True)
     print(f"session_id: {sid}  messages: {len(msgs)} (user {sum(m['role'] == 'user' for m in msgs)}, "
@@ -396,7 +422,9 @@ def main():
            "user_messages": sum(m["role"] == "user" for m in msgs)}
     hits, _, rs, _ = session_counts(env, sid)
     print(f"session {sid}: endpoint={rs.endpoint} http={rs.http} episodes already={hits}", flush=True)
-    if hits is None or before.get("http") != 200:
+    if a.readback_only:
+        rec["result"] = "OK"; rec["readback_only"] = True
+    elif hits is None or before.get("http") != 200:
         rec["result"] = "FAIL"; rec["reason"] = "could not read episodes before writing"
     elif hits:
         rec["result"] = "ALREADY"; rec["reason"] = f"session already has {hits} episode(s); not written again"
@@ -409,15 +437,13 @@ def main():
         if not ok and flush is None:
             rec["reason"] = "add failed; session stopped before flush"
     print(json.dumps(rec, ensure_ascii=False), flush=True)
-    if rec["result"] == "OK":
-        # the session_id index lags the flush (~18 s on 2026-10-17): wait for it before the final count
-        for delay in RECHECK_DELAYS:
-            time.sleep(delay)
-            n, total, rs, _ = session_counts(env, sid)
-            ledger.write("post_check", session_id=sid, delay_s=delay, session_hits=n, total_count=total,
-                         http=rs.http, endpoint=rs.endpoint)
-            if n:
-                break
+    read_back = rec["result"] in everos_readback.OK_ROWS
+    if read_back:
+        # the session_id index lags the flush (~18 s on 2026-10-17): the read back polls for it
+        res = everos_readback.readback(env, post, [everos_readback.episode_target(sid)], a.project, ledger)[0]
+        rec["readback"] = {k: res.get(k) for k in ("result", "reason", "count", "polls", "seconds", "found")}
+        if res["result"] != "PASS":
+            rec["result"], rec["reason"] = "FAIL", everos_readback.failure_reason(res)
     after = episode_count(env, ledger, "count_after") if rec["result"] in ("OK", "FAIL") else before
     new_ids = sorted(set(after.get("episode_ids") or []) - set(before.get("episode_ids") or []))
     ledger.write("summary", sessions=1, result=rec["result"], ok=int(rec["result"] == "OK"),
@@ -425,6 +451,9 @@ def main():
     Path(a.log).write_text(json.dumps([rec], ensure_ascii=False, indent=1))
     print(f"{rec['result']} {sid} {rec.get('reason', '')}".rstrip())
     print(f"episodes before={before.get('total_count')} after={after.get('total_count')} new={new_ids}")
+    if read_back and rec["readback"]["result"] != "PASS":
+        print("readback_failed: see the readback_failed line above", flush=True)
+        return everos_readback.EXIT_READBACK_FAILED
     return 1 if rec["result"] == "FAIL" else 0
 
 if __name__ == "__main__":

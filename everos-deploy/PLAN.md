@@ -153,7 +153,7 @@
 
 ## 8. 分工与阻塞
 
-**Owner**：dr eggbot（EverOS 系统；Orca CLI 装管）
+**Owner**：ops 系统（EverOS 服务端、部署、教训导入、写入的唯一写入方；Orca CLI 装管）；dr eggbot 只读，只做查询/核对
 
 **进行中 / 已完成（eggbot）**
 1. deepvision 运维：开机 `157.230.194.108`、DNS `everos.deepvision.sg`（橙云）、SSH/证书可达 — **已完成**
