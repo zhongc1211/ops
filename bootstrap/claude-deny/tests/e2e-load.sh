@@ -123,6 +123,11 @@ pr = fix(m); save("pr", pr)
 c = json.loads(json.dumps(live))
 c["hooks"]["UserPromptSubmit"] = [e for e in c["hooks"]["UserPromptSubmit"] if not any("block-disabled-skills" in h["command"] for h in e["hooks"])]
 save("control", c)
+# UserPromptSubmit runs before UserPromptExpansion, so with both hooks the guard script blocks first.
+# upe-only drops the guard script to exercise the main hook alone (what happens when the guard times out).
+u = fix(m)
+u["hooks"]["UserPromptSubmit"] = [e for e in u["hooks"]["UserPromptSubmit"] if not any("disabled-cmd-prompt-guard" in h["command"] for h in e["hooks"])]
+save("upe-only", u)
 # (a) UserPromptExpansion hook hangs past its timeout
 a = fix(m); h = a["hooks"]["UserPromptExpansion"][-1]["hooks"][0]; h["command"] = "sleep 10"; h["timeout"] = 1; save("fault-a", a)
 # (b) UserPromptSubmit guard hangs past its timeout
@@ -133,9 +138,9 @@ cc["hooks"]["UserPromptExpansion"] = [e for e in cc["hooks"]["UserPromptExpansio
 cc["hooks"]["UserPromptSubmit"] = [e for e in cc["hooks"]["UserPromptSubmit"] if not any("disabled-cmd-prompt-guard" in h["command"] for h in e["hooks"])]
 save("fault-c", cc)
 PY
-  cp "$T"/{pr,control,fault-a,fault-b,fault-c}.json "$out/" 2>/dev/null
+  cp "$T"/{pr,upe-only,control,fault-a,fault-b,fault-c}.json "$out/" 2>/dev/null
   # settings copies contain env values from the live file; keep only the hooks/permissions parts as evidence
-  for n in pr control fault-a fault-b fault-c; do
+  for n in pr upe-only control fault-a fault-b fault-c; do
     python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));json.dump({"permissions":{"deny":d.get("permissions",{}).get("deny")},"hooks":{k:d["hooks"].get(k) for k in ("UserPromptExpansion","UserPromptSubmit")}},open(sys.argv[1],"w"),indent=1)' "$out/$n.json"
   done
 }
@@ -241,6 +246,7 @@ if [ "$only" != main ]; then selftest || st=1; fi
 if [ "$only" != selftest ]; then
   gen_settings
   for c in $humans; do run "pr-human-$(slug "$c")" pr human "$c" blocked; done
+  for c in $humans; do run "upe-only-human-$(slug "$c")" upe-only human "$c" blocked; done
   for s in $skills; do run "pr-model-$(slug "$s")" pr model "$s" denied; done
   run pr-allow-pstack-how pr human /pstack:how passed
   run fault-a-human-pstack-tdd fault-a human /pstack:tdd blocked
