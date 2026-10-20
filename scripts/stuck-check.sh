@@ -2171,8 +2171,15 @@ def hist_save():
 
 
 def hist_begin():
-    """开始一次扫描（已拿到锁）。上一条没有 end 的是被杀或中途退出的：标 killed，时长按它最后一次落盘算（至少这么久）。"""
-    if DRY or MODE not in ("--scan", "--run"):
+    """开始一次扫描（已拿到锁）。上一条没有 end 的是被杀或中途退出的：标 killed，时长按它最后一次落盘算（至少这么久）。
+    dry-run 也建好 HIST，只在内存里记（hist_save 不落盘）：main 里 HIST["plan"]、HIST["truncated"] 照写，
+    以前 dry-run 时 HIST 是空的，被这两处写成没有 phases 的字典，下一个 hist_phase 就 KeyError（PER-134）。"""
+    if MODE not in ("--scan", "--run", "--dry-run"):
+        return
+    rec = dict(start=round(NOW, 1), pid=os.getpid(), mode=MODE, end=None, timeout_s=PRECHECK_TIMEOUT,
+               budget_s=BUDGET, call_timeout_s=CALL_TIMEOUT, plan=[], phases=[], truncated=False)
+    if DRY:
+        HIST.update(rec)
         return
     h = [x for x in load_json(HISTORY_FILE, []) if isinstance(x, dict)]
     if h and h[-1].get("end") is None:
@@ -2186,8 +2193,7 @@ def hist_begin():
         last = h[-1]
         st = {p["name"]: p["status"] for p in last.get("phases") or []}
         PREV_LEFT[:] = [n for n in last.get("plan") or [] if st.get(n) in (None, "partial", "skipped")]
-    HIST.update(start=round(NOW, 1), pid=os.getpid(), mode=MODE, end=None, timeout_s=PRECHECK_TIMEOUT,
-                budget_s=BUDGET, call_timeout_s=CALL_TIMEOUT, plan=[], phases=[], truncated=False)
+    HIST.update(rec)
     hist_save()
 
 
