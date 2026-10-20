@@ -1,9 +1,0 @@
-【运行环境：iMac（macOS），ops 主工作区 ~/orca/workspaces/ops；box 原版 349967f6（PER-79 迁来）。】开始前 export PATH=/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH。
-vllm-omni 上游 watch（只汇报，严格只读）。预检发现 vllm-project/vllm-omni PR #8713 #8714 #8715 #8716 #8718 #8746 或 issue #8686 有新动态。
-硬性禁止：不 git commit、不 git push、不开 PR、不建分支或 worktree、不在 GitHub 发评论/review/reaction、不改任何仓库文件、不写 Linear、除第 3 步的 notify-run 外不发消息。只允许用 gh 的读取命令（gh pr view / gh issue view / gh pr checks / gh api 的 GET）。
-步骤：
-1) 用 gh 读取上面 6 个 PR 和 issue #8686：新增评论、review、review 结论、CI 状态变化、head commit 变化、mergeable 状态。上次报告可参考 ~/.orca-state/vllm-upstream/ 下最新的 report-*.md，对比出新的部分。
-2) 写报告到 ~/.orca-state/vllm-upstream/report-<新加坡日期>.md（同一天多次就追加一节，标明时间）：每个 PR/issue 的新动态（附链接、作者、时间）、是否需要我们回应或修改（建议，不执行）、未能读取的部分。
-3) 有实质新动态（维护者评论或 review、CI 由绿变红或红变绿、合并或关闭）时，运行：mkdir -p ~/orca-alerts && printf '%s\n' "<新加坡时间> <一句话摘要> 详见 ~/.orca-state/vllm-upstream/report-<日期>.md" >> ~/orca-alerts/vllm-upstream.flag；接着叫醒 vllm bot：notify-run --bot vllm-omni --no-tty --task "vllm 上游 PR 新动态：<一句话摘要>，详见 ~/.orca-state/vllm-upstream/report-<日期>.md" -- true（不打印 webhook 地址或密钥；失败只在报告里记一笔，不重试超过 2 次）。只是机器人或无关紧要的变化则不写 flag、不叫醒。
-4) 最后一步（报告写成功后才做）：mv ~/.orca-state/vllm-upstream/pending.sha ~/.orca-state/vllm-upstream/seen.sha，然后运行 ~/orca/workspaces/ops/scripts/orca-ok.sh vllm-upstream claude。任何一步失败就不做第 4 步，这样下次会重试。
-5) 不管第 4 步做没做，最后都跑 `bash ~/orca/workspaces/ops/scripts/heavy-lock.sh release vllm-upstream`。

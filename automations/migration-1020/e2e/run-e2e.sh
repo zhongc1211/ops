@@ -44,7 +44,7 @@ if [ "$mode" = pre ]; then
   mkdir -p "$PR/mba" "$PR/imac"     # the live box prompts are what the MBA / iMac would get without this change
   for x in 75b324a4:night-review-xinyue 43c55a22:night-review-deepvision-site 9b5c20e7:night-review-deepvision-ads c392a743:night-review-vllm-omni; do
     for m in mba imac; do cp "$MIG/box-baseline/${x%%:*}.prompt.md" "$PR/$m/${x#*:}.prompt.md"; done; done
-  cp "$MIG/box-baseline/bc9ee42b.prompt.md" "$PR/imac/linear-sync.prompt.md"; cp "$MIG/box-baseline/349967f6.prompt.md" "$PR/imac/vllm-upstream.prompt.md"
+  cp "$MIG/box-baseline/bc9ee42b.prompt.md" "$PR/imac/linear-sync.prompt.md"
 fi
 S=$OPS/scripts; RMIG=$OPS/automations/migration-1020
 { echo "mode=$mode"; echo "commit=$(git -C "$REPO" rev-parse HEAD)"; echo "tree=$OPS"; echo "date=$(date '+%F %T %z')"
@@ -74,7 +74,7 @@ print(n)' "$1" "$2" "${@:3}"; }
 
 # ---- L: heavy-lock (MBA, /bin/bash 3.2) ----
 export HEAVY_LOCK_DIR=$T/l1/lock
-run $HL acquire night-review-vllm-omni; run $HL acquire vllm-upstream; rc=$?
+run $HL acquire night-review-vllm-omni; run $HL acquire night-review-deepvision-ads; rc=$?
 ck L1 "锁被占时第二个 acquire 退出 1，status 显示持有者" '[ $rc -eq 1 ] && $HL status | grep -q name=night-review-vllm-omni'
 export HEAVY_LOCK_DIR=$T/l2/lock; mkdir -p "$T/l2"
 pids=""; for i in 1 2 3 4 5 6 7 8; do ( $HL acquire job$i >/dev/null 2>&1; echo $? > "$T/l2/rc$i" ) & pids="$pids $!"; done; wait $pids
@@ -196,12 +196,12 @@ gi NR_D=$D NR_NOW=$((tM+10*60)) $GI backup vllm-omni >/dev/null; rc=$?
 ck W8d "MBA 时间 +30 分钟以前 iMac 备用不接替" '[ $rc -eq 1 ] && ! istat $D takeover >/dev/null'
 
 # W3 MBA lock busy -> lock_busy, watcher hands to the iMac
-D=2099-01-05; gm /bin/bash $S/heavy-lock.sh acquire vllm-upstream >/dev/null
+D=2099-01-05; gm /bin/bash $S/heavy-lock.sh acquire night-review-deepvision-ads >/dev/null
 gm NR_D=$D NR_NOW=$tM $G primary vllm-omni >/dev/null; rc=$?
-ck W3a "MBA 锁被占：主预检记 lock_busy" '[ $rc -eq 1 ] && mstat $D | tail -1 | grep -q "reason=lock_busy detail=vllm-upstream"'
+ck W3a "MBA 锁被占：主预检记 lock_busy" '[ $rc -eq 1 ] && mstat $D | tail -1 | grep -q "reason=lock_busy detail=night-review-deepvision-ads"'
 gi NR_D=$D NR_NOW=$tW $GI watch vllm-omni >/dev/null
 ck W3b "看守判 lock_busy 并交给 iMac" 'istat $D takeover | grep -q reason=lock_busy'
-gm /bin/bash $S/heavy-lock.sh release vllm-upstream >/dev/null
+gm /bin/bash $S/heavy-lock.sh release night-review-deepvision-ads >/dev/null
 
 # W4 iMac lock busy > 60 min after the takeover -> one stuck to ops-system (machine=box), only once
 D=2099-01-06; ssh imac "mkdir -p $RT/state/vllm-omni && echo 'reason=offline since=$((tB-3700))' > $RT/state/vllm-omni/$D.takeover"

@@ -1,7 +1,7 @@
 # box 重活迁移（PER-79，2026-10-20）
 
 box 每晚要跑 4 个 opus 夜审、2 个 sonnet 清理，另有 Linear 状态对齐和 vllm 上游监控，跑起来会互相挤。这里把
-4 个夜审挪到 MBA，iMac 负责看守和备用，box 只做最后的兜底；Linear 状态对齐和 vllm 上游监控挪到 iMac；
+4 个夜审挪到 MBA，iMac 负责看守和备用，box 只做最后的兜底；Linear 状态对齐挪到 iMac，vllm 上游监控留在 box；
 留在 box 的两个清理加上「有活才放行」的预检。所有重活的 missed-run grace 从 720 改成 120 分钟，
 每台机器同一时间只跑一个重活（`scripts/heavy-lock.sh`）。
 
@@ -12,14 +12,15 @@ box 每晚要跑 4 个 opus 夜审、2 个 sonnet 清理，另有 Linear 状态�
 
 | 文件 | 内容 |
 |---|---|
-| `defs.json` | 要新建的 23 个 automation（MBA 9、iMac 10、box 4）和要改的 9 个 box 旧任务 |
+| `defs.json` | 要新建的 22 个 automation（MBA 9、iMac 9、box 4）和要改的 8 个 box 旧任务 |
 | `register.sh mba\|imac\|box [--apply]` | 把 defs.json 变成 `orca automations create/edit` 命令。默认只打印（dry-run），不调用 orca；每条 create 都带 `--disabled` 和 `--missed-run-grace-minutes 120`。`--apply` 只能在对应机器上跑，需要 Zack 先批 |
 | `make-prompts.py [--check\|--diff]` | 从 `box-baseline/` 里 box 线上提示词原文生成 `prompts/`（逐条替换，每条替换的次数写死，原文变了就报错）；`--check` 只检查提交的文件和生成结果是否一致 |
-| `box-baseline/` | 2026-10-20 从 box 只读拉的线上提示词和设置（只有变量名，没有密钥） |
-| `prompts/mba/`、`prompts/imac/` | MBA 主跑版、iMac 接替版夜审提示词，iMac 的 Linear 对齐和 vllm 上游监控；`prompts/noop.prompt.md` 给只靠预检干活的看守任务 |
+| `box-baseline/` | 2026-10-20 从 box 只读拉的线上提示词和设置（只有变量名，没有密钥）；`349967f6.*` 只作 box 原文的记录，vllm · 17 留 box、不迁 |
+| `prompts/mba/`、`prompts/imac/` | MBA 主跑版、iMac 接替版夜审提示词，iMac 的 Linear 对齐；`prompts/noop.prompt.md` 给只靠预检干活的看守任务 |
 | `make-prompts.py --diff` | 打印生成的提示词和 box 原文的差异（逐句），审阅用；不提交 |
 | `e2e/FAILURE-MODES.md` | 先写的失败方式清单和场景编号 |
 | `e2e/run-e2e.sh post\|pre\|both`、`e2e/mock_webhook.py` | 演练脚本和假 webhook |
+| `e2e/per117-dryrun.sh [<tree>]` | PER-117：`register.sh` 三台 dry-run 和 base 对照（假 `orca` 在 PATH 最前，调用即 exit 99），断言只挪 Linear 对齐、vllm · 17 留 box |
 
 用到的脚本（仓库 `scripts/`）：`heavy-lock.sh`、`review-date.sh`、`sync-manifests-from-box.sh`、
 `night-review-gate.sh`、`cleanup-precheck.sh`，改了 `box-cleanup.sh`（加 `--count`）和
@@ -35,8 +36,9 @@ box 每晚要跑 4 个 opus 夜审、2 个 sonnet 清理，另有 Linear 状态�
 | vllm · 22 | c392a743 00:30 | 01:20 | 01:20–01:45 | 01:50 | 01:50–05:20 | 03:50 |
 
 另外：MBA 21:40「ops · 夜审防睡 MBA」（预检起 `caffeinate -i -t 15000` 到 01:50，然后退出 1，不起模型）；
-iMac 08:47「ops · 12 Linear 状态对齐 iMac」（原 bc9ee42b）；iMac `17 */3`「vllm · 17 上游 PR 监控 iMac」（原 349967f6）；
+iMac 08:47「ops · 12 Linear 状态对齐 iMac」（原 bc9ee42b；不放 MBA，因为 MBA 夜里跑 4 个夜审，iMac 这个时段空）；
 box 心月兜底 27383c07 从 00:30 改到 01:00；box 两个清理 1191c819 / 8c40fa83 加预检 `cleanup-precheck.sh ws|mem`。
+vllm · 17 上游 PR 监控（349967f6）留在 box，轻量、可打断，状态目录 /home/box/.orca-state/vllm-upstream/（vllm-omni 定，10-20）。
 夜审都是 `--model opus --effort high`，看守和防睡是 `--model sonnet --effort low`（它们的预检总是退出 1，模型不会起）。
 
 ## 一晚怎么走（`night-review-gate.sh`）
@@ -66,12 +68,11 @@ box 心月兜底 27383c07 从 00:30 改到 01:00；box 两个清理 1191c819 / 8
 
 0. 合并到 main 后：MBA、iMac 的 `~/orca/workspaces/ops` 和 box 的 `/workspace/repos/ops` 各自 `git pull`。
 1. **grace 和锁**：在 box 上 `bash automations/migration-1020/register.sh box` 看打印的 edit 命令，批了以后 `--apply`
-   （或逐条手动跑）。这一步把 8 个旧任务的 grace 改成 120，给两个清理加预检，兜底改 01:00，并新建 4 个 box 看守（停用状态）。
+   （或逐条手动跑）。这一步把 7 个旧任务的 grace 改成 120，给两个清理加预检，兜底改 01:00，并新建 4 个 box 看守（停用状态）。
 2. **box 清理预检**：先在 box 上跑一次 `bash scripts/box-cleanup.sh --count` 和 `bash scripts/cleanup-precheck.sh ws`
    看输出（ws 第一次会放行并拿锁、记 due，跑完要 `heavy-lock.sh release orca-ws-cleanup`）；之后两个清理照常定时。
-3. **iMac 两个任务**：先把 box 的 `~/.orca-state/vllm-upstream/`（seen.sha 和最新的 report-*.md）只读拷到 iMac
-   （iMac 上那份停在 10-14），然后在 iMac 上 `register.sh imac`，只启用「Linear 状态对齐 iMac」和「上游 PR 监控 iMac」；
-   第一次真实运行通过后停用 box 的 bc9ee42b、349967f6。
+3. **iMac Linear 状态对齐**：在 iMac 上 `register.sh imac`，只启用「Linear 状态对齐 iMac」；
+   第一次真实运行通过后停用 box 的 bc9ee42b。vllm · 17（349967f6）不动，留在 box。
 4. **MBA vllm** → 5. **广告** → 6. **官网** → 7. **心月**：每个项目一起启用 MBA 主跑、MBA 补跑、iMac 看守、iMac 备用、box 看守 5 个任务；
    第一次真实运行通过后停用 box 的旧夜审。MBA 防睡任务在第 4 步一起启用。
 8. **兜底时间**：27383c07 改 01:00（第 1 步已经打印了这条命令；如果第 1 步没一起跑，就在第 7 步之后跑）。
@@ -96,7 +97,7 @@ box 心月兜底 27383c07 从 00:30 改到 01:00；box 两个清理 1191c819 / 8
 |---|---|
 | 某个夜审（MBA 主跑 / 补跑 / iMac 看守 / iMac 备用 / box 看守） | 在 MBA、iMac、box 上把这个项目的 5 个新任务 `orca automations edit <id> --disabled`；box 上旧任务 `orca automations edit <旧 id> --enabled`（grace 120 保留，或 `--missed-run-grace-minutes 720` 改回原值）。旧提示词没改过，原样还在 box 上 |
 | MBA 防睡 | 停用这个任务；已经起的 caffeinate 到 01:50 自己退出 |
-| Linear 状态对齐 / vllm 上游监控 | 停用 iMac 上的新任务，启用 box 的 bc9ee42b / 349967f6；vllm 上游监控回滚前把 iMac 的 `~/.orca-state/vllm-upstream/seen.sha` 拷回 box，免得重复汇报 |
+| Linear 状态对齐 | 停用 iMac 上的新任务，启用 box 的 bc9ee42b |
 | 两个清理的预检 | 清掉 1191c819 / 8c40fa83 的预检，回到每晚都跑。`orca automations edit --help` 没写清空预检的写法（`--extra-agent-args=` 是空值清空，`--precheck` 没说），回滚前先在一个停用的测试任务上试 `--precheck ''`；不行就把预检改成 `true` |
 | grace 120 | `orca automations edit <id> --missed-run-grace-minutes 720` |
 | 兜底时间 | `orca automations edit 27383c07 --trigger '30 0 * * *'` |

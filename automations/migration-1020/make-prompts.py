@@ -121,23 +121,14 @@ def linear_sync(m):
     return s.rstrip("\n") + "\n- 最后一条消息之前：`bash ~/orca/workspaces/ops/scripts/heavy-lock.sh release linear-sync`。\n"
 
 
-def vllm_upstream(m):
-    s = open(os.path.join(HERE, "box-baseline", "349967f6.prompt.md"), encoding="utf-8").read()
-    s = ("【运行环境：iMac（macOS），ops 主工作区 ~/orca/workspaces/ops；box 原版 349967f6（PER-79 迁来）。】"
-         "开始前 export PATH=/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH。\n" + s)
-    s = sub(s, "/workspace/repos/ops/scripts/orca-ok.sh", "~/orca/workspaces/ops/scripts/orca-ok.sh")
-    return s.rstrip("\n") + "\n5) 不管第 4 步做没做，最后都跑 `bash ~/orca/workspaces/ops/scripts/heavy-lock.sh release vllm-upstream`。\n"
-
-
 def build():
     out = {}
     for m in MACHINES:
         for p in REVIEWS:
             out[f"prompts/{m}/night-review-{p}.prompt.md"] = review(p, m)
     out["prompts/imac/linear-sync.prompt.md"] = linear_sync("imac")
-    out["prompts/imac/vllm-upstream.prompt.md"] = vllm_upstream("imac")
     base = {"night-review-xinyue": "75b324a4", "night-review-deepvision-site": "43c55a22", "night-review-deepvision-ads": "9b5c20e7",
-            "night-review-vllm-omni": "c392a743", "linear-sync": "bc9ee42b", "vllm-upstream": "349967f6"}
+            "night-review-vllm-omni": "c392a743", "linear-sync": "bc9ee42b"}
     diff = []
     for path in sorted(out):
         b = base[os.path.basename(path).replace(".prompt.md", "")]

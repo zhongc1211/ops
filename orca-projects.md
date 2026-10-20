@@ -147,6 +147,7 @@ Box 与 iMac 是两套独立 Orca runtime；同名仓库在 box 上另有项目 
 
 MBA：Apple M2 / 8 核 / 8 GB，macOS 26.6.2，Orca 1.4.229，用户 jiawenwang，tailnet 100.64.0.7。iMac 上 `orca --environment mba …`（环境名小写 mba）。
 MBA 是第三套独立 Orca runtime，同名仓库在 MBA 上另有项目 ID。主 checkout 放 `~/orca/projects/<repo>`（ops 和 iMac 一样放 `~/orca/workspaces/ops`），工作区按 Orca 默认建在 `~/orca/workspaces/<repo>/…`。
+box 上的 Orca 环境 **MBA**：id 483b187c-a214-4f3c-81b1-c656ffb15677，`ws://100.64.0.7:6768`，Coding助手 2026-10-20 22:49 SGT 配对。从 box 往 MBA 派活、在 MBA 上做锁屏实测，一律走 `orca --environment MBA …`，不走 ssh，因为 ssh 进去碰不到 GUI 会话的钥匙串（会误报 claude 未登录）。
 
 | Repo | Orca 项目 | 项目 ID | 路径 | 分支 |
 |---|---|---|---|---|
