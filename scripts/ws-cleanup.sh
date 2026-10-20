@@ -194,7 +194,7 @@ def prs_for(w, ctx):
         hit = [(r, p) for r, l in lists.items() for p in l if p.get("number") == n]
         if not hit: raise QueryFail("linkedPR #%s" % n)
         r, p = hit[0]; found[(r, n)] = p["state"]
-    return sorted((num, st) for (_, num), st in found.items())
+    return sorted({(num, st) for (_, num), st in found.items()})   # 镜像仓库里同号同状态的 PR 只算一次
 
 # ---------- git 忽略的文件 ----------
 def is_backup(rel):
