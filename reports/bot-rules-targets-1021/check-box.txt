@@ -1,0 +1,4 @@
+# sync-bot-rules --check  ref=origin/zhongc1211/ops-bot-rules-targets-1021  commit=d4f0bb0c7be86599079ddf30a2386cf35d65c3b1  host=grok-bot-vm-418519647
+机器 | 目标路径 | 源 sha256 | 目标 sha256 | 状态
+box | /home/box/agent-data/workflows/dev-bot-rules/SKILL.md | b4610e94fb8ced5acbf732960d7787a677ab32a7be7cfe58503bc08c7c94918b | b4610e94fb8ced5acbf732960d7787a677ab32a7be7cfe58503bc08c7c94918b | same
+exit=0
