@@ -1,0 +1,16 @@
+== head 256306803120db40
+MAP_LINEAR: {'PER-901': 'dr eggbot', 'PER-902': 'ops 系统', 'PER-903': 'Coding助手', 'PER-904': '心月网站 运维'}
+PER-901 dr eggbot（orca-projects 行）   → 'dr-eggbot'        webhook 文件 dr-eggbot.env 存在
+PER-902 ops 系统（orca-projects 行）      → 'ops-system'       webhook 文件 ops-system.env 存在
+PER-903 Coding助手（orca-projects 行）    → 'coding-assistant' webhook 文件 coding-assistant.env 存在
+PER-904 心月网站 运维（已有映射，对照）             → 'xinyue'           webhook 文件 xinyue.env 存在
+描述 '负责 bot：dr-eggbot'     → 'dr-eggbot'
+描述 '负责 bot：dr eggbot'     → 'dr'
+== base f8a2030c496f3fb2
+MAP_LINEAR: {'PER-901': 'dr eggbot', 'PER-902': 'ops 系统', 'PER-903': 'Coding助手', 'PER-904': '心月网站 运维'}
+PER-901 dr eggbot（orca-projects 行）   → 'dr eggbot'        webhook 文件 dr eggbot.env 不存在（bot_cfg 会改发 coding-assistant）
+PER-902 ops 系统（orca-projects 行）      → 'ops 系统'           webhook 文件 ops 系统.env 不存在（bot_cfg 会改发 coding-assistant）
+PER-903 Coding助手（orca-projects 行）    → 'Coding助手'         webhook 文件 Coding助手.env 不存在（bot_cfg 会改发 coding-assistant）
+PER-904 心月网站 运维（已有映射，对照）             → 'xinyue'           webhook 文件 xinyue.env 存在
+描述 '负责 bot：dr-eggbot'     → 'dr-eggbot'
+描述 '负责 bot：dr eggbot'     → 'dr'
