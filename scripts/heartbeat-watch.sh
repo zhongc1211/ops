@@ -14,7 +14,7 @@
 #   environment 写空串 = 本机 Orca。
 # 自己的心跳也一样：main() 出错（rc 4）时 last_scan 不前进，盯它的另一个 heartbeat-watch 照样能报（PER-67 F8 同类）。
 # 状态：HB_STATE_DIR（默认 ~/.orca-state/heartbeat-watch）/state.json、watch.log、heartbeat.json。
-# webhook：~/.config/grokbot/webhooks/<bot>.env（URL、KEY）。演练用 STUCK_FORCE_BOT=ops-system（所有消息改发 ops-system；只换收件 bot，task 不加「[演练 叫醒通路]」，那是手动 notify-run 演练的前缀），
+# webhook：~/.config/grokbot/webhooks/<bot>.env（URL、KEY）。演练用 STUCK_FORCE_BOT=ops-system（所有消息改发 ops-system，task 开头自动加「[演练 叫醒通路] 」，和手动 notify-run 演练同一个前缀，PER-88 预过滤按它放行），
 #   STUCK_WEBHOOK_DIR 可改目录。URL 和 KEY 只经 stdin 交给 curl，不进日志和输出。
 # 退出码：0 正常；1 正常（--precheck：给 Orca 自动任务当 precheck 用，返回 1 不启动 agent）；2 用法错误；
 #   3 有报警没发出去（下次再发）；4 脚本自己出错。
@@ -30,6 +30,7 @@ PRECHECK = "--precheck" in ARGS
 STATE_DIR = os.environ.get("HB_STATE_DIR") or os.path.join(HOME, ".orca-state/heartbeat-watch")
 WEBHOOK_DIR = os.environ.get("STUCK_WEBHOOK_DIR") or os.path.join(HOME, ".config/grokbot/webhooks")
 FORCE_BOT = os.environ.get("STUCK_FORCE_BOT")
+DRILL = "[演练 叫醒通路]"  # FORCE_BOT 演练时 task 的前缀（PER-105）
 BOT = "coding-assistant"
 UNREACH_MIN = float(os.environ.get("HB_UNREACH_MIN", "45"))
 INTERVAL_MIN = float(os.environ.get("STUCK_INTERVAL_MIN", "15"))
@@ -160,7 +161,7 @@ def post(payload):
     if cfg is None:
         log("没有 %s 的 webhook 配置，没发：%s" % (to, payload["task"]))
         return False
-    payload = dict(payload, bot=to)
+    payload = dict(payload, bot=to, task=DRILL + " " + payload["task"] if FORCE_BOT else payload["task"])
     if DRY:
         log("dry-run，将 POST 给 %s：%s" % (to, json.dumps(payload, ensure_ascii=False)))
         return True

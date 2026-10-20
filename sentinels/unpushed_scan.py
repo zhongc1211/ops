@@ -16,7 +16,7 @@
 iMac 上是本机镜像，由 unpushed-scan.sh 再经 ssh 追加到 box 的同一个文件）。
 忽略名单 IGNORE：按 --machine 和路径跳过的工作区（如 MBA 的 ~/orca/projects/local 占位仓库）。
 演练：--only <路径前缀> 只扫这些工作区，--state 用单独的状态文件，--drill 让叫醒标题带「【演练】」，
-  环境变量 UNPUSHED_FORCE_BOT=<bot> 让所有叫醒改发给这个 bot（演练用 ops-system，不叫醒业务 bot；只换收件 bot，标题不加「[演练 叫醒通路]」，--drill 时带「【演练】」）。
+  环境变量 UNPUSHED_FORCE_BOT=<bot> 让所有叫醒改发给这个 bot（演练用 ops-system，不叫醒业务 bot；标题开头自动加「[演练 叫醒通路] 」，--drill 时「【演练】」跟在它后面）。
 退出码：0 = 扫完（不管有没有发现）；2 = 拿不到工作区列表。
 """
 import argparse
@@ -45,6 +45,7 @@ IGNORE = [  # (机器, 路径)：这些工作区不扫，也不算进「扫了 N
     ("imac", "~/claude/worker"),  # 停用的 Lark 秘书 worker，没有远程；2026-10-19 已归档到 ~/ops-archive/20261019/claude-worker.tar.zst，原目录保留
 ]
 FORCE_BOT = os.environ.get("UNPUSHED_FORCE_BOT")
+DRILL = "[演练 叫醒通路]"  # FORCE_BOT 演练时标题的前缀（PER-105），在「【演练】」前面
 NOTIFY_RUN = shutil.which("notify-run") or os.path.expanduser("~/.local/bin/notify-run")
 GIT_ENV = dict(os.environ, GIT_OPTIONAL_LOCKS="0", GIT_TERMINAL_PROMPT="0", LC_ALL="C")
 
@@ -247,7 +248,7 @@ def main():
         if args.dry_run:
             log("（dry-run）会叫 %s：%d 条" % (bot, len(lines)))
         elif FORCE_BOT:
-            wake(FORCE_BOT, title, "（演练：原本叫 %s）\n" % bot + body, log)
+            wake(FORCE_BOT, DRILL + " " + title, "（演练：原本叫 %s）\n" % bot + body, log)
         else:
             wake(bot, title, body, log)
     state["_paths"] = paths

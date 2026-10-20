@@ -120,6 +120,8 @@ POST_GAP = float(os.environ.get("STUCK_POST_GAP", "6"))
 # 要求之前至少失败过 / 交出过一次（PER-67 F6：以前从第一次失败 / 交出算，加上前面的 10～30 分钟，1 小时内到不了）
 ESCALATE_MIN = float(os.environ.get("STUCK_ESCALATE_MIN", "45"))
 FORCE_BOT = os.environ.get("STUCK_FORCE_BOT")
+# STUCK_FORCE_BOT 演练：改发给它的 task 开头加 DRILL、bot 写成它（PER-105），PER-88 预过滤按这两样放行；cfg=stuck 那条不改发，不加
+DRILL = "[演练 叫醒通路]"
 ONLY = re.compile(os.environ["STUCK_ONLY"]) if os.environ.get("STUCK_ONLY") else None
 MAPPING = os.path.join(HOME, "orca/workspaces/ops/orca-projects.md")
 ENV_FILE = os.environ.get("STUCK_ENV_FILE") or os.path.join(HOME, ".config/grokbot/stuck-webhook.env")
@@ -1517,6 +1519,15 @@ def bot_cfg(bot):
     return FALLBACK_BOT, read_env(ENV_FILE)
 
 
+def drill(payload, to):
+    """FORCE_BOT 生效（发给它）时 bot 写成它、task 开头加 DRILL（已有不重复加）；没设时原样返回。"""
+    if FORCE_BOT and to == FORCE_BOT:
+        payload["bot"] = to
+        if not payload["task"].startswith(DRILL):
+            payload["task"] = DRILL + " " + payload["task"]
+    return payload
+
+
 def agent_payload(s, to):
     return {"bot": to, "task": s["task"], "worktree": s["worktree"], "status": "stuck", "kind": s["kind"],
             "note": s["note"] + ("（按映射应归 %s，没有它的 webhook，转给 %s）" % (s["bot"], to) if to != s["bot"] and not FORCE_BOT else ""),
@@ -1563,8 +1574,8 @@ def send_all(pending, known, track, seen):
                 to, cfg, d["cfg"] = to2, cfg2, "fallback"
                 d["payload"].update(bot=to, note=note2)
         else:
-            to = "stuck-webhook" if d["cfg"] == "stuck" else FALLBACK_BOT
-            cfg = read_env(ENV_FILE) if d["cfg"] == "stuck" else bot_cfg(FALLBACK_BOT)[1]
+            to, cfg = ("stuck-webhook", read_env(ENV_FILE)) if d["cfg"] == "stuck" else bot_cfg(FALLBACK_BOT)
+        drill(d["payload"], to)
         if cfg is None:
             log("webhook 未配置，只记日志不发：%s" % d["payload"]["task"])
             continue
@@ -1606,7 +1617,7 @@ def send_all(pending, known, track, seen):
         if cfg is None:
             log("webhook 未配置，只记日志不发：%s" % s["worktree"])
             continue
-        payload = agent_payload(s, to)
+        payload = drill(agent_payload(s, to), to)
         iid = "suspect:%s:%s" % (s["kind"], s["key"])
         to2, cfg2, note2 = escalate(fails, iid, to, payload["note"], s.get("marker"))
         if cfg2:
