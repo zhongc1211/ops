@@ -28,8 +28,8 @@ bootstrap/claude-plugins/pin-claude-plugins.sh --home /tmp/sandbox   # 装进别
    - `extraKnownMarketplaces` 把这两个市场改成本地目录源，`autoUpdate: false`；
    - `enabledPlugins` 打开 `pstack@cursor-plugins` 和 `compound-engineering@compound-engineering-plugin`；
    - `permissions.deny` 加 10 条规则（见下）。
-3. `~/.claude/plugins/known_marketplaces.json` 同步成目录源、`autoUpdate: false`。
-4. `~/.claude/CLAUDE.md` 没有 PER-67 那条插件授权规矩就补上。
+3. `~/.claude/plugins/known_marketplaces.json` 同步成目录源、`autoUpdate: false`（内容有变时先备份成 `known_marketplaces.json.bak-<YYYYmmddHHMMSS>`）。
+4. `~/.claude/CLAUDE.md` 没有 PER-67 那条插件授权规矩就补上（追加前先备份成 `CLAUDE.md.bak-<YYYYmmddHHMMSS>`）。
 5. 跑 `../claude-deny/install.sh --apply`：加 5 条 `Skill(skill:...)` deny、`UserPromptExpansion` hook 和 `UserPromptSubmit` 补充脚本，换掉旧的 `block-disabled-skills.sh` 条目（见 [`../claude-deny/README.md`](../claude-deny/README.md)）。
 6. `claude plugin marketplace update` 两个市场，再 `claude plugin install/update` 两个插件。检出没切 commit、已装版本也对时跳过这一步（它每次都会改 `known_marketplaces.json` 的 `lastUpdated`）。
 
@@ -89,4 +89,4 @@ deny 规则挡不住人（或派活文字）直接输入 slash 命令。这部�
 - 把顶部常量改回上一版（pstack `0148b78c56c72a1b8412055913c79f767095b217`）重跑脚本，或者 `git revert` 改常量的提交后重跑。脚本会把检出切回旧 commit 并 `claude plugin update`。
 - 只想撤掉禁用命令的拦截：`bootstrap/claude-deny/install.sh --uninstall`。
 - 撤掉本 PR 的代码：`git revert -m 1 <合并提交>`。
-- 脚本改 `settings.json` 前自动备份成 `settings.json.bak-<YYYYmmddHHMMSS>`（内容没变就不写也不备份；备份失败就退出、不改）。回滚：`cp -p ~/.claude/settings.json.bak-<时间> ~/.claude/settings.json`。
+- 脚本改 `settings.json`、`plugins/known_marketplaces.json`、`CLAUDE.md` 前都自动备份成同目录的 `<文件>.bak-<YYYYmmddHHMMSS>`（内容没变就不写也不备份；同一秒已有备份不覆盖；备份失败就退出、不改）。回滚：`cp -p ~/.claude/settings.json.bak-<时间> ~/.claude/settings.json`，另两个文件同理。

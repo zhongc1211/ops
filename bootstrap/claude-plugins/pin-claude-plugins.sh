@@ -130,10 +130,17 @@ k=os.path.join(C,"plugins","known_marketplaces.json"); os.makedirs(os.path.dirna
 km=load(k); old=json.loads(json.dumps(km))
 for n in ["cursor-plugins","compound-engineering-plugin"]:
     e=km.get(n,{}); e.update({"source":{"source":"directory","path":os.path.join(P,n)},"installLocation":os.path.join(P,n),"autoUpdate":False}); e.setdefault("lastUpdated",datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")); km[n]=e
-save(k,km,old)
+save(k,km,old,backup=True)
 print("settings ok")
 PY
-grep -qF "$RULE_KEY" "$C/CLAUDE.md" 2>/dev/null || printf '\n%s\n' "$RULE" >> "$C/CLAUDE.md"
+if ! grep -qF "$RULE_KEY" "$C/CLAUDE.md" 2>/dev/null; then
+  # 追加前备份，规则同 settings.json：同一秒已有就不覆盖；备份失败就退出、不改
+  if [ -e "$C/CLAUDE.md" ]; then
+    b="$C/CLAUDE.md.bak-$(date +%Y%m%d%H%M%S)"
+    [ -e "$b" ] || cp -p "$C/CLAUDE.md" "$b" || { echo "备份 $C/CLAUDE.md 失败，没改" >&2; exit 1; }
+  fi
+  printf '\n%s\n' "$RULE" >> "$C/CLAUDE.md"
+fi
 bash "$DENY_INSTALL" --settings-file "$C/settings.json" --hooks-dir "$C/hooks" --apply
 if [ $changed = 0 ]; then echo "插件已是钉的版本，跳过 claude plugin update"; exit 0; fi
 cd /tmp

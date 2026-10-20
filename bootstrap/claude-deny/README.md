@@ -86,9 +86,15 @@ bootstrap/claude-deny/install.sh --uninstall   # 撤掉本目录加的项，见�
 
 改 settings 前先备份成 `settings.json.bak-<YYYYmmddHHMMSS>`；内容不变就不写也不备份；备份失败就退出非 0、不写。`--apply` 和 `--uninstall` 都这样。
 
+`--apply` 把 settings 里调 `block-disabled-skills.sh` 的旧条目换成新脚本后，旧脚本文件还留在 `~/.claude/hooks/`。确认 settings 已不再引用它，再挪走（不直接删，要恢复就挪回来）：
+
+```bash
+grep -q block-disabled-skills ~/.claude/settings.json || { [ ! -e ~/.claude/hooks/block-disabled-skills.sh ] || mv ~/.claude/hooks/block-disabled-skills.sh ~/.claude/hooks/block-disabled-skills.sh.bak-$(date +%Y%m%d%H%M%S); }
+```
+
 `--uninstall` 撤掉 5 条 deny、`UserPromptExpansion` 条目、`UserPromptSubmit` 里的新脚本项，删掉 `~/.claude/hooks/disabled-cmd-prompt-guard.sh`；不把旧 hook 加回来。
 
-回滚到装之前的原样：`cp -p ~/.claude/settings.json.bak-<YYYYmmddHHMMSS> ~/.claude/settings.json`（`--apply` 会打印备份文件名）。
+回滚到装之前的原样：`cp -p ~/.claude/settings.json.bak-<YYYYmmddHHMMSS> ~/.claude/settings.json`（`--apply` 会打印备份文件名）。挪走过旧脚本的，把 `block-disabled-skills.sh.bak-<时间>` 挪回 `~/.claude/hooks/block-disabled-skills.sh`，否则恢复后的 settings 指向一个不存在的脚本。
 
 改超时：只改 `hook-timeout`，再跑 `--apply`；`--check` 读同一个文件。`tests/install-sandbox.sh` 验证改成 7 后两个 hook 都变 7、`--check` 跟着变，并用一个写死 timeout 的安装器副本做回退用例（它不跟着变，检查会挂）。
 

@@ -157,11 +157,29 @@ PY
     log "pstack-mi: $k disable-model-invocation lines left: $(grep -c '^disable-model-invocation:' "$T/pstack-mi/skills/$k/SKILL.md")"
   done
   log "pstack-mi source: $src"
-  cp "$T"/{pr,upe-only,control,fault-a,fault-a2,fault-a2-nofail,fault-b,fault-c,pr-mi,nodeny-mi,fault-c-mi}.json "$out/" 2>/dev/null
-  # settings copies contain env values from the live file; keep only the hooks/permissions parts as evidence
-  for n in pr upe-only control fault-a fault-a2 fault-a2-nofail fault-b fault-c pr-mi nodeny-mi fault-c-mi; do
-    python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));json.dump({"permissions":{"deny":d.get("permissions",{}).get("deny")},"hooks":{k:d["hooks"].get(k) for k in ("UserPromptExpansion","UserPromptSubmit")}},open(sys.argv[1],"w"),indent=1)' "$out/$n.json"
-  done
+  # the full settings in $T carry env values from the live file and never go to $out; the evidence copy keeps
+  # only permissions.deny and the two hook lists
+  python3 - "$T" "$out" pr upe-only control fault-a fault-a2 fault-a2-nofail fault-b fault-c pr-mi nodeny-mi fault-c-mi <<'PY'
+import json, sys
+T, out, names = sys.argv[1], sys.argv[2], sys.argv[3:]
+for n in names:
+    d = json.load(open("%s/%s.json" % (T, n)))
+    json.dump({"permissions": {"deny": d.get("permissions", {}).get("deny")},
+               "hooks": {k: d["hooks"].get(k) for k in ("UserPromptExpansion", "UserPromptSubmit")}},
+              open("%s/%s.json" % (out, n), "w"), indent=1)
+PY
+  evidence_clean
+}
+
+# every .json in $out holds only permissions/hooks; anything else (env above all) means full settings leaked
+evidence_clean() {
+  python3 - "$out" <<'PY' && return 0
+import glob, json, sys
+bad = [f for f in sorted(glob.glob(sys.argv[1] + "/*.json")) if set(json.load(open(f))) - {"permissions", "hooks"}]
+for f in bad: print("evidence leak: %s has keys %s" % (f, sorted(json.load(open(f)))))
+sys.exit(1 if bad else 0)
+PY
+  log "evidence check failed: full settings reached $out; stop"; rm -rf "$T"; exit 70
 }
 
 # ---------- load ----------
