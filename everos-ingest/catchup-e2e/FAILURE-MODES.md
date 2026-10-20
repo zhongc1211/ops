@@ -31,3 +31,8 @@ box 还会再冻（`/workspace/ops/reports/orca-serve-1020/REPORT.md` 第 (3) �
 | F15 | 改动碰到真目录（`~/.orca-state/everos-ingest`、box `/var/lib/everos-ingest`） | 全程用 `EVEROS_LOCAL_BASE` / `EVEROS_REMOTE_BASE` 指到 scratch 和 box `/tmp`；结束前后对比真目录列表 |
 | F16 | 回退：旧脚本其实也会补推（那就不需要改） | 旧脚本（只替换路径和主机名）跑同样 3 次，D-1 一直不在 box 上 |
 | F17 | 6 份脚本改得不一样 | 用 diff 对比 MBA/iMac 副本，只差机器名 |
+
+## E2E 跑出来、事先没写到的
+| # | 失败方式 | 怎么发现 / 怎么查 |
+|---|---|---|
+| F18 | 当天没有转写时，`n_tx=$(ls "$LOCAL/<machine>/"*.jsonl … \| wc -l)` 在 `set -euo pipefail` 下让脚本在推完后直接 exit 1，补推一步没跑 | 第 2 轮 E2E（bc18b80）广告 run2：D1 推上了、`.pushed` 写了，日志停在 `box: swapped`，D0 没补推。旧脚本里同一行也是这样，只是它本来就在最后，退出码碰巧是 1。修后由 run2 的 F3/F9 检查覆盖（广告、官网 D1 都没有转写） |

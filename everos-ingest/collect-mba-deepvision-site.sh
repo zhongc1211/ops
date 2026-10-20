@@ -181,7 +181,8 @@ retry3 scp "${SSH_OPTS[@]}" -q "$LOCAL/sessions-mba.excluded.jsonl" "$BOX:$REMOT
 retry3 scp "${SSH_OPTS[@]}" -q "$LOCAL/sessions-mba.jsonl" "$BOX:$REMOTE/sessions-mba.jsonl"
 rm -rf "$PUSH"
 shasum -a 256 < "$LOCAL/sessions-mba.jsonl" | cut -d' ' -f1 > "$LOCAL/.pushed"
-n_tx=$(ls "$LOCAL/mba/"*.jsonl 2>/dev/null | wc -l | tr -d ' ')
+# no transcripts: ls fails, and with pipefail set -e used to end the script here (exit 1) before catch-up
+n_tx=$({ ls "$LOCAL/mba/"*.jsonl 2>/dev/null || true; } | wc -l | tr -d ' ')
 wc -l "$LOCAL/sessions-mba.jsonl" | awk -v t="$n_tx" -v s="$((SECONDS - START))" '{print "mba lines="$1" transcripts="t" pushed in "s"s"}'
 # the catch-up parent keeps the shared ssh connection open for its next day
 [ "$PUSH_ONLY" = 1 ] && exit 1
