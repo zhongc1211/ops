@@ -11,13 +11,13 @@
 每天 iMac 定时脚本跑便宜检查（1.4；纯 shell，约 7–25 秒，不调模型）
  ├─ rc=0 没出新版 → 只记本机日志，不叫醒任何人，结束
  ├─ rc=4 新版已判不兼容 → 只记本机日志，不叫醒任何人，结束
- ├─ rc=5 出新版、没有兼容报告 → notify-run 叫醒 ops 系统 → ops 系统先过 apiKeySource 闸（5.1）
+ ├─ rc=5 出新版、没有兼容报告 → notify-run 叫醒 ops 系统（同一事件 3 天内只叫醒一次）→ ops 系统先查重（2.0），再过 apiKeySource 闸（5.1）
  │     ├─ 闸不过（不是订阅 / 额度不够 / 读不到）→ 停，不跑，给 Zack 弹花钱卡；批了才往下
  │     └─ 闸过了 → 在 iMac 起一个兼容检查 agent（第 2 节）
  │     agent 写 iMac ~/orca/workspaces/ops/briefs/pstack-<版本>-compat-REPORT.md，末尾写「总判定：兼容 / 不兼容」
  │     ├─ 兼容 → 改 PSTACK_SHA 的 draft PR + 叫醒 ops 系统 → ops 系统给 Zack 弹升级卡（第 3 节）
  │     └─ 不兼容 → 记 Linear、留旧版、告 dr eggbot（第 3 节）
- ├─ rc=3 新版已判兼容、钉版还没改 → 叫醒 ops 系统：升级卡还没批或还没升级
+ ├─ rc=3 新版已判兼容、钉版还没改 → 叫醒 ops 系统：升级卡还没批或还没升级（同一事件 3 天内只叫醒一次）
  └─ 其他（2 = 网络 / gh 出错，1 或别的 = 脚本崩溃）→ 只记日志；连续 3 次出错才叫醒 ops 系统
 ```
 
@@ -46,12 +46,12 @@ P=${PIN_SHA:-$(gh api -H 'Accept: application/vnd.github.raw' "repos/zhongc1211/
 M=$(git ls-remote https://github.com/cursor/plugins.git refs/heads/main 2>/dev/null | cut -f1)
 [ -n "$P" ] && [ -n "$M" ] || { echo "ERR pinned=${P:-?} main=${M:-?}（取不到钉版或 ls-remote 失败）"; exit 2; }
 if [ "$M" = "$P" ]; then echo "SAME pinned=$P main=$M"; exit 0; fi
-# 打印版本号；失败时打印 curl 退出码和 HTTP 状态码并返回 1。curl=28 是超时（重试 1 次），http=404 是文件被挪走或 sha 不存在。
+# 打印版本号；失败时打印 curl 退出码和 HTTP 状态码并返回 1。curl=28 超时、56 接收出错、7 连不上、6 域名解析失败时重试 1 次；http=404 是文件被挪走或 sha 不存在。
 ver() {
   local o c h n
   for n in 1 2; do
     o=$(curl -sS --max-time 20 -w ' http=%{http_code}' "https://raw.githubusercontent.com/cursor/plugins/$1/$MANIFEST" 2>/dev/null); c=$?
-    [ "$c" = 28 ] || break
+    case "$c" in 28|56|7|6) ;; *) break ;; esac
   done
   h=${o##* http=}; o=${o% http=*}
   [ "$c" = 0 ] && [ "$h" = 200 ] || { echo "curl=${c},http=${h:-?}"; return 1; }
@@ -74,7 +74,7 @@ esac
 
 - 只在 iMac 上跑，只读 iMac 本机的报告目录，不 ssh、不依赖 box。兼容报告如果还要给 box 上的 bot 当交接文件，由 ops 系统另外同步一份过去；便宜检查的判断只看本机。
 - 先比 commit（一次 `git ls-remote`，不要 token）。相同就当场结束，不发别的请求。
-- commit 不同才取两边 `plugin.json` 的版本号（raw.githubusercontent.com，两次 curl，超时各重试 1 次）和 compare 摘要（一次 `gh api`，只当证据，不参与判断）。取不到版本号时 ERR 行里带 `curl=<退出码>,http=<状态码>`：`curl=28` 是偶发超时（已重试 1 次），`http=404` 是文件被挪走或 sha 不存在，`json=bad` 是取到了但不是合法的 `plugin.json`。不用 `curl -f`：iMac 的 curl 8.7.1 走 HTTP/2 时，`-f` 遇到 404 退出码是 56 不是 22（10-21 实测），直接看状态码更可靠。
+- commit 不同才取两边 `plugin.json` 的版本号（raw.githubusercontent.com，两次 curl，网络错误各重试 1 次）和 compare 摘要（一次 `gh api`，只当证据，不参与判断）。取不到版本号时 ERR 行里带 `curl=<退出码>,http=<状态码>`：`curl=28/56/7/6` 是网络问题（已重试 1 次），`http=404` 是文件被挪走或 sha 不存在，`json=bad` 是取到了但不是合法的 `plugin.json`。不用 `curl -f`：iMac 的 curl 8.7.1 走 HTTP/2 时，`-f` 遇到 404 退出码是 56 不是 22（10-21 实测），直接看状态码更可靠。
 - 「出新版」用退出码 5，不用 1：bash 的 `set -u` 报错、命令找不到等崩溃会以 1、127 之类退出，调用方（1.3、1.4）只认 0/3/4/5，其他一律按出错处理，崩溃不会被当成「出新版」。
 - 「已经评估过」不另存状态文件，以 iMac `~/orca/workspaces/ops/briefs/pstack-<版本>-compat-REPORT.md` 里有没有 `总判定：` 开头的行为准。同一版本只评估一次；上游当天又出新版，第二天的检查会看到新版本号、没有报告，再起一次。
 - 版本号文件取 `harness/pstack/claude-code/plugin.json`，和 #48 `pin-claude-plugins.sh` 的 `--check` 读同一个文件（脚本插件表第 28 行），两边版本号来源一致。88d4751 里同目录下的 `.claude-plugin/plugin.json` 也在，但不用它。上游删掉或挪走 `plugin.json` 时，raw 返回 404，第 1 步走 `ERR 取不到 plugin.json 版本 … http=404`（exit 2），每日脚本记日志，连续 3 次出错叫醒 ops 系统开 Linear（见 1.4 和第 6 节「出错」一条），不会被当成没出新版。
@@ -157,8 +157,11 @@ esac
 - 跑在 iMac，每天 1 次（建议 09:07 SGT，rrule `7 9 * * *`，`missedRunPolicy` 同 ops · 24 用 `run_once_within_grace`，iMac 睡眠错过时醒来补跑一次）。
 - rc=0 或 4：只往本机日志追加一行，不调模型，不叫醒任何人。
 - rc=5（出新版、没评估）或 3（已判兼容、没升级）：notify-run 叫醒 ops 系统，消息里是便宜检查那一行输出。
-- 其他退出码（2 网络 / gh 出错，1、127 等脚本崩溃）：只记日志；脚本自己读日志，最近 3 次都是出错才叫醒 ops 系统，由 ops 系统开 Linear。之后每天还是出错就每天叫醒一次，直到恢复。
-- 日志：iMac `~/.orca-state/pstack-upstream/check.log`，一行一次：时间（SGT）、退出码、输出前 400 字，制表符分隔。
+- 其他退出码（2 网络 / gh 出错，1、127 等脚本崩溃）：只记日志；脚本自己读日志，最近 3 次都是出错才叫醒 ops 系统，由 ops 系统开 Linear。
+- **同一件事不重复叫醒**：rc=5 在兼容检查还在跑（2–3.5 小时，加上负载等待会跨过第二天 09:07）、花钱卡等批、报告「没判定」时，第二天还是 5；rc=3 在升级卡等批时天天是 3。所以脚本把每次叫醒的「事件」记在 `last-wake`：rc=3/5 是「退出码 + main 的版本号」，出错是 `err`。事件和上次叫醒的相同、且不到 `REMIND_DAYS`（定为 3）天，就只记日志、不叫醒；满 3 天再提醒一次。版本号变了（上游又出新版）或退出码变了（5 → 3）当天就叫醒。rc=0/4 时删掉 `last-wake`，之后再出事从头算。
+- 只有 webhook 回了 2xx 才算叫醒过（看 notify-run 打到 stderr 的 `http=2xx` 那行；notify-run 自己的退出码是被包命令的退出码，不反映发没发出去）。没发出去就不写 `last-wake`，第二天再试。
+- 日志：iMac `~/.orca-state/pstack-upstream/check.log`，一行一次：时间（SGT）、退出码、输出前 400 字，制表符分隔。叫醒的决定另记 `wake.log`：时间、事件、`sent` / `skip` / `fail <notify-run 最后一行>`。
+- notify-run 发出的事件：被包的命令以便宜检查的退出码（3、5、2 等）退出，所以 webhook 里 `status=failed`、`exit_code=<rc>`，`task` 是「PER-94 pstack 上游检查 rc=<rc>」，`log_tail` 是便宜检查那一行。ops 系统按 `task` 和 `exit_code` 认这类消息，`status=failed` 在这里不表示检查出了错。
 - 注册这个任务要 Zack 批准（第 7 节第 1 条）。本 PR 只写设计，不注册任务，不放脚本。
 
 脚本（落地时放 `scripts/pstack-upstream-daily.sh`，和 1.1 的脚本同目录，同一个落地 PR）：
@@ -167,22 +170,38 @@ esac
 #!/bin/bash
 # Orca precheck for「ops · NN pstack 上游检查 iMac」（每天一次）。活全在这里干完，永远 exit 1，不启动模型。
 # 跑 pstack-upstream-check.sh，往本机日志追加一行；只有要人处理时才用 notify-run 叫醒 ops 系统：
-#   rc=0/4 只记日志；rc=3/5 叫醒；其他（2、崩溃）只记日志，最近 3 次都是出错才叫醒。
+#   rc=0/4 只记日志、清掉 last-wake；rc=3/5 叫醒；其他（2、崩溃）只记日志，最近 3 次都是出错才叫醒。
+#   同一事件（rc=3/5：退出码 + main 版本号；出错：err）叫醒过后 REMIND_DAYS 天内不再叫醒；webhook 回 2xx 才算叫醒过。
+REMIND_DAYS=${REMIND_DAYS:-3}
 B=$(cd "$(dirname "$0")" && pwd)
 S=$HOME/.orca-state/pstack-upstream; mkdir -p "$S"
 OUT=$("$B/pstack-upstream-check.sh" 2>&1); rc=$?
-printf '%s\t%s\t%s\n' "$(TZ=Asia/Singapore date '+%Y-%m-%d %H:%M')" "$rc" "$(printf %s "$OUT" | tr '\t\n' '  ' | cut -c1-400)" >> "$S/check.log"
+now=$(date +%s); ts=$(TZ=Asia/Singapore date '+%Y-%m-%d %H:%M')
+printf '%s\t%s\t%s\n' "$ts" "$rc" "$(printf %s "$OUT" | tr '\t\n' '  ' | cut -c1-400)" >> "$S/check.log"
 case "$rc" in
-  0|4) exit 1 ;;
-  3|5) msg=$OUT ;;
+  0|4) rm -f "$S/last-wake"; exit 1 ;;
+  3|5) key="rc=${rc} main=$(printf %s "$OUT" | sed -n 's/.* main=[0-9a-f]*(\([^)]*\)).*/\1/p' | head -n 1)"
+       msg=$OUT ;;
   *)   E=$(tail -n 3 "$S/check.log" | cut -f2 | grep -cv '^[0345]$')
        [ "$E" = 3 ] || exit 1
-       msg="连续 3 次出错，最后一次 rc=${rc}：${OUT}" ;;
+       key=err; msg="连续 3 次出错，最后一次 rc=${rc}：${OUT}" ;;
 esac
-"$HOME/.local/bin/notify-run" --bot ops-system --task "PER-94 pstack 上游检查 rc=${rc}" --no-tty -- \
-  sh -c 'printf "%s\n" "$1"; exit "$2"' _ "$msg" "$rc" > /dev/null 2>&1
+lts=$(cut -f1 "$S/last-wake" 2>/dev/null); lkey=$(cut -f2 "$S/last-wake" 2>/dev/null)
+if [ "$lkey" = "$key" ] && [ $(( now - ${lts:-0} )) -lt $(( REMIND_DAYS * 86400 - 3600 )) ]; then
+  printf '%s\t%s\tskip\n' "$ts" "$key" >> "$S/wake.log"; exit 1
+fi
+err=$("$HOME/.local/bin/notify-run" --bot ops-system --task "PER-94 pstack 上游检查 rc=${rc}" --no-tty -- \
+  sh -c 'printf "%s\n" "$1"; exit "$2"' _ "$msg" "$rc" 2>&1 > /dev/null)
+if printf %s "$err" | grep -q ' http=2[0-9][0-9] '; then
+  printf '%s\t%s\n' "$now" "$key" > "$S/last-wake"; r=sent
+else
+  r="fail $(printf %s "$err" | tail -n 1)"
+fi
+printf '%s\t%s\t%s\n' "$ts" "$key" "$r" >> "$S/wake.log"
 exit 1
 ```
+
+`REMIND_DAYS * 86400 - 3600`：留 1 小时余量，免得第 3 天的运行比第 0 天早几秒就被推到第 4 天。
 
 Orca 任务的 prompt 照 ops · 24 写「本任务的全部工作由预检脚本完成……预检脚本永远以非 0 退出，所以模型不应被启动。若你被启动了：什么都不要做，只回复一句「不应启动」」。注册命令以当时 `orca automations` 的实际参数为准，注册后用 `orca automations list --json` 核对 precheck 路径和 rrule。
 
@@ -190,10 +209,21 @@ Orca 任务的 prompt 照 ops · 24 写「本任务的全部工作由预检脚�
 
 ### 2.0 谁跑、在哪跑
 
-- ops 系统被 1.4 的每日脚本叫醒（rc=5）后，先开一张 Linear（PER 团队，标题「pstack <版本> 兼容检查」），再在 **iMac** 起一个兼容检查 agent。不在 box 跑：box 10-21 起不参与开发。MBA 只在 iMac 不可用时代替，命令相同。
+- **被叫醒后先查重，再动手**。1.4 已经对同一事件去重，但 3 天一次的提醒、或者 ops 系统自己手跑时，仍可能碰上一个还没收尾的检查。所以每次先查两样（iMac，只读）：
+
+  ```bash
+  V=<新版本号>
+  orca linear list-issues --team PER --query "pstack ${V} 兼容检查" --json        # 看有没有状态不是 Done / Canceled 的卡
+  orca terminal list --json | python3 -c 'import json,sys;d=json.load(sys.stdin);r=d.get("result",d);t=r.get("terminals",[]) if isinstance(r,dict) else r;[print(x["handle"],x.get("connected"),x["worktreePath"],x.get("title")) for x in t if x.get("worktreePath","").endswith("/ops-pstack-"+sys.argv[1]+"-compat")]' "${V}"
+  ```
+
+  - 有开着的卡、也有这个版本 `ops-pstack-<版本>-compat` 工作区里活着的终端 → 检查还在跑，不起新的，什么都不做。
+  - 有开着的卡、没有活着的终端 → 不新开卡，看卡上最后的评论：在等花钱卡批 → 不动；报告「没判定」或 agent 退出了没写报告 → 按「同一步最多 2 次」决定在原卡上重跑一次还是停下等人。
+  - 都没有 → 照下面开卡、起 agent。
+- 查完没有在跑的，再开一张 Linear（PER 团队，标题「pstack <版本> 兼容检查」），然后在 **iMac** 起一个兼容检查 agent。不在 box 跑：box 10-21 起不参与开发。MBA 只在 iMac 不可用时代替，命令相同。
 - agent 本身用线上 pstack；每一项检查里另起子 claude，带候选参数，只在那个子进程里换成新版。候选不装进 `~/.claude`。
 - 证据目录：iMac `~/orca/workspaces/ops/e2e-out/pstack-<版本>/`；报告写 iMac `~/orca/workspaces/ops/briefs/pstack-<版本>-compat-REPORT.md`（便宜检查读的就是这里）。MBA 代跑时，报告写完拷回 iMac 同一路径，便宜检查才认。
-- 同一步最多试 2 次，不行就停，报告里写「没判定」，不写 `总判定：`（这样第二天便宜检查还会报 FAIL，不会漏）。
+- 同一步最多试 2 次，不行就停，报告里写「没判定」，不写 `总判定：`（这样第二天便宜检查还是 rc=5，不会漏；同一版本按 1.4 的去重，3 天内不重复叫醒，满 3 天再提醒）。
 - **apiKeySource 闸（5.1），起 agent 之前**：ops 系统先跑闸 A（不调 claude）；过了再在 iMac 做 2.1 的准备和 init 探测（一次 Haiku、1 轮），把 `$OUT/0-init.jsonl` 交给闸 B。任何一步不过：不起 agent，按 5.1 弹花钱卡，Linear 卡上记一条评论。2.1 的 init 探测由 ops 系统在这里跑过，agent 不再重复。
 
 起 agent（iMac，ops 系统执行；PER-xx 是上面新开的 Linear 号；闸 A、闸 B 都过了才执行）：
@@ -421,7 +451,7 @@ git -C "$H/.claude/pinned-marketplaces/cursor-plugins" rev-parse HEAD >> "$OUT/4
 
 - `总判定：兼容` —— 2.1–2.5 全部「过」或「与版本无关」，并且（4）（5）没有新增需要另禁的命令；
 - `总判定：不兼容（<哪一项>）` —— 任何一项「不兼容」；
-- 有项「没跑」或「没判定」→ **不写**总判定行，便宜检查第二天继续报 FAIL。
+- 有项「没跑」或「没判定」→ **不写**总判定行，便宜检查第二天还是 rc=5（每日脚本按 1.4 去重，3 天提醒一次）。
 
 agent 写完报告后退出，notify-run 叫醒 ops 系统。
 
@@ -431,7 +461,7 @@ agent 写完报告后退出，notify-run 叫醒 ops 系统。
 
 1. 兼容检查 agent 在 ops 仓库开 **draft** PR：只改 `bootstrap/claude-plugins/pin-claude-plugins.sh` 顶部 `PSTACK_SHA` 和 README 的版本表；PR 描述写候选 sha、版本、四项检查的结果表和证据路径（按测试规矩五项）。不合并、不转 ready。
 2. ops 系统给 Zack 弹升级卡，卡上附：版本 `<旧>` → `<新>`、两个 sha、报告路径、PR 链接、四项结果一行一项、预计升级时间（iMac、MBA 两台约 10 分钟，估算）、回滚命令（第 4 节）。自动任务和兼容 agent 都不直接找 Zack。
-3. Zack 批了才合 PR、才升级两台（iMac、MBA）。没批之前，便宜检查每天报 `NEW-COMPATIBLE`（rc=3），每日脚本每天叫醒 ops 系统一次，提醒这张卡还挂着。
+3. Zack 批了才合 PR、才升级两台（iMac、MBA）。没批之前，便宜检查每天报 `NEW-COMPATIBLE`（rc=3），每日脚本第一天叫醒 ops 系统，之后每 3 天提醒一次这张卡还挂着（1.4 的去重）。
 
 ### 不兼容
 
@@ -602,7 +632,7 @@ python3 ~/orca/workspaces/ops/e2e-out/pstack-gate-probe.py "$OUT/0-init.jsonl"  
 - 按量计费时的估算花费：见 5.2「出新版那天」一行，按 API 价格约 US$7–20（估算）；
 - 两个选项：批准按量跑这一次；或等额度重置 / 等订阅恢复后再跑（不花钱，晚一到几天）。
 
-Zack 批了才跑；没批之前便宜检查每天照常返回 rc=5、叫醒 ops 系统，不会漏。
+Zack 批了才跑；没批之前便宜检查每天照常返回 rc=5，每日脚本每 3 天提醒 ops 系统一次（1.4 的去重），不会漏；ops 系统被提醒时按 2.0 先查重，花钱卡还在等批就不动。
 
 **额度不够时不换模型**：兼容检查测的就是 Claude Code 的 pstack 插件本身（skill 注册、slash 触发、deny 和 hook），换成 pi、GPT 或别的 agent 跑，测的就不是这个插件了，结果不能用。所以 Claude 额度不够（闸 B 不过，或中途 `pstack-gate-probe.py` 不过）时不找备用模型，按上面停下，等额度重置后再跑；只有 Zack 批了花钱卡才按量跑。
 
