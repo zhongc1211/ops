@@ -132,7 +132,7 @@ if mode == "check":
 
 new = merged(d) if mode == "apply" else unmerged(d)
 text = dump(new)
-if os.path.abspath(target) == os.path.abspath(settings) and text == raw:
+if os.path.abspath(target) == os.path.abspath(settings) and new == d:  # same content; key order alone is no change
     print("no change: " + settings)
     sys.exit(0)
 if backup == "1":

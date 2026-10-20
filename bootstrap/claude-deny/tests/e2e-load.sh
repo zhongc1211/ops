@@ -147,6 +147,7 @@ save("fault-c", cc)
 # so the deny rules themselves are tested; nodeny-mi drops every Skill(...) deny rule as the control.
 mi = fix(m); mi.setdefault("enabledPlugins", {})["pstack@cursor-plugins"] = False; save("pr-mi", mi)
 nd = json.loads(json.dumps(mi)); nd["permissions"]["deny"] = [r for r in nd["permissions"]["deny"] if not r.startswith("Skill(")]; save("nodeny-mi", nd)
+cm = json.loads(json.dumps(cc)); cm.setdefault("enabledPlugins", {})["pstack@cursor-plugins"] = False; save("fault-c-mi", cm)
 PY
   local src
   src=$(python3 -c 'import json,os;print(json.load(open(os.path.expanduser("~/.claude/plugins/installed_plugins.json")))["plugins"]["pstack@cursor-plugins"][0]["installPath"])')
@@ -156,9 +157,9 @@ PY
     log "pstack-mi: $k disable-model-invocation lines left: $(grep -c '^disable-model-invocation:' "$T/pstack-mi/skills/$k/SKILL.md")"
   done
   log "pstack-mi source: $src"
-  cp "$T"/{pr,upe-only,control,fault-a,fault-a2,fault-a2-nofail,fault-b,fault-c,pr-mi,nodeny-mi}.json "$out/" 2>/dev/null
+  cp "$T"/{pr,upe-only,control,fault-a,fault-a2,fault-a2-nofail,fault-b,fault-c,pr-mi,nodeny-mi,fault-c-mi}.json "$out/" 2>/dev/null
   # settings copies contain env values from the live file; keep only the hooks/permissions parts as evidence
-  for n in pr upe-only control fault-a fault-a2 fault-a2-nofail fault-b fault-c pr-mi nodeny-mi; do
+  for n in pr upe-only control fault-a fault-a2 fault-a2-nofail fault-b fault-c pr-mi nodeny-mi fault-c-mi; do
     python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));json.dump({"permissions":{"deny":d.get("permissions",{}).get("deny")},"hooks":{k:d["hooks"].get(k) for k in ("UserPromptExpansion","UserPromptSubmit")}},open(sys.argv[1],"w"),indent=1)' "$out/$n.json"
   done
 }
@@ -292,6 +293,8 @@ if [ "$only" != selftest ]; then
   run fault-a2-human-pstack-tdd fault-a2 human /pstack:tdd blocked
   run fault-a2-nofail-human-pstack-tdd fault-a2-nofail human /pstack:tdd passed
   run fault-b-human-pstack-tdd fault-b human /pstack:tdd blocked
+  run fault-c-model-pstack_tdd fault-c model pstack:tdd "refused (disable-model-invocation)"
+  run fault-c-mi-model-pstack_tdd fault-c-mi model pstack:tdd denied
   run fault-c-model-pstack_setup-pstack fault-c model pstack:setup-pstack denied
   run fault-c-human-pstack-tdd fault-c human /pstack:tdd passed
   for c in $humans; do run "control-human-$(slug "$c")" control human "$c" passed; done

@@ -53,6 +53,16 @@ inst --apply
 check "second apply leaves file unchanged" "$after" "$(sha "$S/settings.json")"
 check "second apply makes no new backup" 1 "$(ls "$S"/settings.json.bak-* | wc -l | tr -d ' ')"
 inst --check; check "check after apply exits 0" 0 $?
+# claude plugin install rewrites settings.json in its own key order; that alone must not count as a change
+python3 -c 'import json,sys;f=sys.argv[1];d=json.load(open(f))
+for e in d["hooks"]["UserPromptExpansion"]:
+    for h in e["hooks"]:
+        if "PER-89" in h["command"]: h.update(dict(reversed(list(h.items())))); [h.update({k:h.pop(k)}) for k in list(h)[:2]]
+json.dump(d,open(f,"w"),indent=2)' "$S/settings.json"
+reord=$(sha "$S/settings.json"); sleep 1
+inst --apply
+check "key-order-only difference: apply writes nothing" "$reord" "$(sha "$S/settings.json")"
+check "key-order-only difference: no new backup" 1 "$(ls "$S"/settings.json.bak-* | wc -l | tr -d ' ')"
 check "timeouts come from hook-timeout ($(cat "$here/hook-timeout"))" "[$(cat "$here/hook-timeout")] [$(cat "$here/hook-timeout")]" "$(timeouts "$S/settings.json")"
 
 # 2. uninstall removes every PER-89 item; full rollback = copy the .bak back
