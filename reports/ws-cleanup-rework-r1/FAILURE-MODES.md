@@ -82,3 +82,11 @@
 | B31 | 关之前没存档，或者存档不全（scrollback、cwd、终端元数据、找回说明） | t_x_close、t_x_agent_sib（`--execute --close-terminals`） | 存档目录 700、文件 600，有 scrollback.txt、meta.json（含 cwd）、README.txt；result 写存档路径 |
 | B32 | 存档失败还照样关 | t_x_arcfail（假 orca 的 `terminal read` 对它返回 1） | 没关，result「存档失败」，计入失败数 |
 | B33 | dry-run 报告里看不到要存档到哪 | terminals.tsv 的 archive 列 | CLOSE 行都有存档路径；summary 写怎么找回 |
+
+补充（Zack 10-21 03:33 定，第 4 节 d；代码开始写之后收到）：Linear Done 只是前提，不是充分条件。不管工作区状态写什么，都要逐项过安全核对（未推送提交、工作区改动、忽略文件备份、agent / 终端在跑、HEAD 是否在已合并的分支或 PR 上），任何一项不过就不删。前四项已经是 W8、W7、W13、W5/W6，新加的是 W17。
+
+| # | 失败方式 | 用例 | 期望 |
+|---|---|---|---|
+| B34 | HEAD 已推送到远端分支，但没进主分支、也没有已合并的 PR，状态 completed 就删 | c_head_unmerged | SKIP W17 |
+| B35 | Linear 已 Done、状态 completed，但 HEAD 不在已合并的分支 / PR 上，照样删 | c_linear_done_unmerged | SKIP W17 |
+| B36 | HEAD 就是已合并 PR 的 head（没进主分支的本地 ref）被误挡 | c_head_pr_merged | RM W14，merged_via 写「PR #… 的 head」 |
