@@ -2,6 +2,7 @@
 # box-cleanup.sh: Linux cleanup that only covers THIS machine (the box). No model needed.
 #   --pressure-check          exit 0 if 5-min load > LOAD_MAX (default 8) and >3h since last cleanup, else 1
 #   --trigger nightly|pressure|manual [--dry-run]
+#   --count                   print how many processes a run would end (no signal, no report, no state), exit 0
 # Never touches: claude/codex/pi/gemini agent sessions, anything under notify-run, anything with a live
 # agent/notify-run in its cwd, the Orca runtime, orbitd/pod-daemon/sand-*/supervise-*. Agents are report-only.
 # Kills only orphaned (ppid 1) dev-tool leftovers unused >12h: wrangler/workerd/vitest/esbuild/vite/next dev
@@ -19,7 +20,7 @@ PY
   exit $?
 fi
 TRIGGER=manual; DRY=0
-while [ $# -gt 0 ]; do case "$1" in --trigger) TRIGGER=$2; shift;; --dry-run) DRY=1;; esac; shift; done
+while [ $# -gt 0 ]; do case "$1" in --trigger) TRIGGER=$2; shift;; --dry-run) DRY=1;; --count) TRIGGER=count;; esac; shift; done
 [ -e "$S/DRYRUN" ] && DRY=1
 exec python3 - "$TRIGGER" "$DRY" "$S" "$LOAD_MAX" <<'PY'
 import os,sys,re,time,signal,datetime
@@ -68,6 +69,8 @@ for p in P.values():
     elif any(AGENT.search(P[a]['cmd']) for a in ancestors(p['pid'])): why='祖先里有 agent/notify-run'
     elif near_agent(p['cwd']): why='工作目录附近有 agent/notify-run 在跑'
     rows.append(dict(p,action='skip' if why else 'kill',why=why or '孤儿开发工具进程，闲置超过 12 小时'))
+if trigger=='count':   # cleanup-precheck.sh mem: is there anything to end tonight?
+    print(sum(r['action']=='kill' for r in rows)); sys.exit(0)
 def load(): return open('/proc/loadavg').read().split()[:3]
 before=load(); results=[]
 for r in rows:

@@ -2,7 +2,7 @@
 """心月夜审 75b324a4 step 2: sessions jsonl -> /memory/add -> /memory/flush.
 
 Usage: python3 -I nightly_addflush.py --date 2026-10-16 [--project P] [--dry-run | --readback-only] --log OUT.json
-                                      [--ledger L.jsonl] [--sessions-dir DIR]
+                                      [--ledger L.jsonl] [--sessions-dir DIR] [--skip-existing]
 Reads ~/.config/everos/xinyue.env; the key goes only into the Authorization header.
 --project deepvision-ads | vllm-omni (2026-10-18) does the same for that project's capture
 (/var/lib/everos-ingest/<project>/<date>/, env dv-ads.env / vllm-omni.env, ledger <date>-<project>-ledger.jsonl)
@@ -53,6 +53,9 @@ read back by session_id under the env's scope, polled up to everos_readback.READ
 it must have more episodes than its session_before count. A session that does not pass becomes
 result=FAIL with reason "readback_failed: <why>", the ledger gets kind=readback / readback_summary lines,
 and the script exits 3 (otherwise 0, as before).
+--skip-existing (PER-79, takeover runs on the iMac or box after the MBA missed or half-finished a night): before
+writing, every session is looked up by session_id; one that already has episodes becomes result=ALREADY and is
+neither written nor read back again, so one night lands in EverOS once whichever machine runs it.
 --readback-only sends no add/flush: every session that would be written (readable transcript with text
 messages) is read back, needing at least one episode. --sessions-dir reads sessions-<side>.jsonl from
 another directory (default /var/lib/everos-ingest/<project>/<date>).
@@ -435,6 +438,8 @@ def main():
     mode = ap.add_mutually_exclusive_group()
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--readback-only", action="store_true", help="no add/flush: read back the sessions only")
+    ap.add_argument("--skip-existing", action="store_true",
+                    help="a session that already has episodes is not written again (result=ALREADY); for takeover runs")
     ap.add_argument("--sessions-dir", help="default /var/lib/everos-ingest/<project>/<date>")
     ap.add_argument("--log", required=True)
     ap.add_argument("--ledger", help="write ledger jsonl (default ~/xinyue-deploy/nightly-review/<date>-<project>-ledger.jsonl)")
@@ -483,6 +488,13 @@ def main():
         rec.update(messages=len(msgs), dropped_secretlike=dropped)
         if not msgs:
             rec["result"] = "SKIP"; rec["reason"] = "no text messages"; log.append(rec); continue
+        if a.skip_existing:   # PER-79 takeover: the MBA (or box) may have written this night already
+            hits, _, rs, _ = session_counts(env, o["session_id"])
+            if hits is None:
+                rec["result"] = "FAIL"; rec["reason"] = f"skip-existing check failed (http {rs.http})"; log.append(rec); continue
+            if hits:
+                rec["result"] = "ALREADY"; rec["reason"] = f"session already has {hits} episode(s); not written again"
+                log.append(rec); continue
         if a.dry_run:
             rec["result"] = "DRY"; log.append(rec); continue
         if a.readback_only:
