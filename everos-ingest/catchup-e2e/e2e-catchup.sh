@@ -42,6 +42,10 @@ else
   echo "new = $(git -C "$ING" rev-parse HEAD) $SCRIPT (worktree clean: $(git -C "$ING" status --porcelain -- "$S" | wc -l | tr -d ' ') changes)" > "$W/script.txt"
 fi
 export EVEROS_INGEST_ROOT=$ING EVEROS_LOCAL_BASE=$LB EVEROS_REMOTE_BASE=$RB
+# the scenario checks are about what gets pushed, not link speed: with these real days (up to ~80 MB
+# over DERP) one push can use the whole 540/560 s budget, so new and old both get E2E_BUDGET seconds.
+# The budget stop itself (F12) is shown by runs 5-7 of 2026-10-20 (see the PR).
+export PUSH_BUDGET=${E2E_BUDGET:-1500} CATCHUP_BUDGET=${E2E_BUDGET:-1500}
 ssh -o BatchMode=yes box "rm -rf '$RB' && mkdir -p '$RB'"
 
 : > "$W/results.tsv"
@@ -104,9 +108,10 @@ if [ "$MODE" = old ]; then
 fi
 check "run3 log says D0 on box, sha ok" "$(has 3 "catch-up $D0: on box, sha ok")" ""
 
-# run 4: box loses the D0 list while the local marker stays -> pushed again (F5)
+# run 4: box loses the D0 list while the local marker stays -> pushed again (F5); CATCHUP_ONLY so
+# today's big push is not repeated
 ssh -o BatchMode=yes box "rm -f '$R/$D0/sessions-mba.jsonl'"
-run 4 D="$D1"
+run 4 D="$D1" CATCHUP_ONLY=1
 check "run4 exit 1" "$(eq "$RC" 1)" "exit=$RC"
 check "run4 D0 pushed again after box lost it (F5)" "$(has 4 "catch-up $D0: pushed")" ""
 check "run4 box D0 list = local (F5)" "$(eq "$(rsha "$D0")" "$(lsha "$D0")")" ""

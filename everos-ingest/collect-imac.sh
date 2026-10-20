@@ -45,9 +45,10 @@ done
 # catch-up: push again, from the local copy, recent days whose list box does not have (same sha256).
 # box's own sha256 decides; a day box already has only gets its .pushed marker (re)written.
 # xinyue pushes are not resumable, and in the E2E today's 49 MB alone took 6-7 min over DERP. So a day is
-# only started if, at today's measured push rate (PUSH_RATE bytes/s; 50 KB/s when nothing was pushed
-# yet), its transcripts should be on box by second CATCHUP_BUDGET (560 of the 600 s precheck timeout).
-PUSH_RATE=${PUSH_RATE:-51200}
+# only started if, at today's measured push rate (PUSH_RATE bytes/s; 100 KB/s, the E2E's measured
+# 100-123 KB/s, when nothing was pushed yet), its transcripts should be on box by second CATCHUP_BUDGET
+# (560 of the 600 s precheck timeout).
+PUSH_RATE=${PUSH_RATE:-102400}
 catch_up() {   # $1 = first day before D to check (0 = D itself)
   local i day days="" want have rc need
   for i in $(seq "$1" "${CATCHUP_DAYS:-3}"); do
