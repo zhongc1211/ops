@@ -72,3 +72,13 @@
 |---|---|---|---|
 | B28 | 可重建清单写死、改不了；或者 build/、.cache/、.venv/ 这类产物被整份备份 | c_build（build/、.cache/、.venv/）；`WS_REBUILD_DIRS=node_modules` 重跑 c_cache_only | c_build RM W14；换清单后 c_cache_only 的 dist 要备份 → BACKUP_RM |
 | B29 | 报告只列被忽略的顶层条目，看不出到底会备份哪些文件 | c_mixed_dir | `backup-files.tsv` 里逐个列出 scratch/ 下的每个文件 |
+
+补充（Zack 10-21 03:29 定，review F3 终端；也是代码开始写之后收到）：有 agent 在跑的工作区，配套的空 shell 空闲超过 12 小时可以关；agent 本身所在终端不关。关之前先存档 scrollback、cwd 和会话信息，存档路径写进报告并写清怎么找回；存档失败就不关。这条把上面 B18 的期望改了。
+
+| # | 失败方式 | 用例 | 期望 |
+|---|---|---|---|
+| B18′ | 有 agent 的工作区里，配套空 shell 空闲超过 12 小时还不关（或者 12 小时内就关） | t_agent_sib（55 小时）、t_agent_sib_fresh（6 小时） | CLOSE T4；SKIP T7 |
+| B30 | agent 本身所在的终端被关 | t_agent、t_x_agent | SKIP T1 |
+| B31 | 关之前没存档，或者存档不全（scrollback、cwd、终端元数据、找回说明） | t_x_close、t_x_agent_sib（`--execute --close-terminals`） | 存档目录 700、文件 600，有 scrollback.txt、meta.json（含 cwd）、README.txt；result 写存档路径 |
+| B32 | 存档失败还照样关 | t_x_arcfail（假 orca 的 `terminal read` 对它返回 1） | 没关，result「存档失败」，计入失败数 |
+| B33 | dry-run 报告里看不到要存档到哪 | terminals.tsv 的 archive 列 | CLOSE 行都有存档路径；summary 写怎么找回 |
