@@ -1,0 +1,106 @@
+#!/bin/bash
+# check-bot-webhooks [--require <bot>]...：只读核对本机叫醒用的 webhook 配置（PER-90）。
+#   逐个列 ~/.config/grokbot/webhooks/<bot>.env：存在、可读、权限 600、URL= 和 KEY= 各一行且非空；
+#   再和 ~/.config/orca-wake/enabled-bots 对：名单里有但没 env 的报错，有 env 但不在名单里的标「影子」（只提示）。
+#   --require <bot>：这个 bot 必须在名单里且 env 齐全（可写多次）。
+# 不输出变量值、不算文件指纹、不发网络请求。bash 3.2 兼容（iMac / MBA 系统自带 bash）。
+# 目录跟 HOME 走，可用 HOME=/tmp/xxx 演练；也可用 BOT_WEBHOOK_DIR / ORCA_WAKE_CONFIG_DIR 改。
+# 退出码：0 全部正常；1 有问题；2 用法错误。
+set -u
+
+WDIR=${BOT_WEBHOOK_DIR:-$HOME/.config/grokbot/webhooks}
+EB=${ORCA_WAKE_CONFIG_DIR:-$HOME/.config/orca-wake}/enabled-bots
+required=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --require) [ $# -ge 2 ] || { echo "用法: $0 [--require <bot>]..." >&2; exit 2; }; required="$required $2"; shift 2 ;;
+        *) echo "用法: $0 [--require <bot>]..." >&2; exit 2 ;;
+    esac
+done
+
+bad=0
+echo "机器: $(hostname)"
+echo "webhook 目录: $WDIR"
+echo "enabled-bots: $EB"
+
+enabled="" star=0
+if [ -f "$EB" ]; then
+    # 和 orca-wake 的读法一致：去首尾空白，跳过空行和 # 开头的行
+    enabled=$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' "$EB" | grep -v -e '^$' -e '^#' | sort -u)
+    printf '%s\n' "$enabled" | grep -qx '\*' && star=1
+else
+    echo "错误  enabled-bots 不存在：所有 bot 都只写影子日志"
+    bad=1
+fi
+
+in_enabled() { [ "$star" = 1 ] || printf '%s\n' "$enabled" | grep -qxF "$1"; }
+
+perm_of() { stat -c %a "$1" 2>/dev/null || stat -f %Lp "$1"; }
+
+# 一个变量：读取方认 `URL=`、`export URL=`，前面可有空白。只数行数、看等号后是否非空，不输出值。
+var_state() {
+    n=$(grep -cE "^[[:space:]]*(export[[:space:]]+)?$2=" "$1")
+    full=$(grep -cE "^[[:space:]]*(export[[:space:]]+)?$2=[[:space:]]*['\"]?[^[:space:]'\"]" "$1")
+    if [ "$n" -eq 0 ]; then echo "缺$2"
+    elif [ "$n" -gt 1 ]; then echo "$2重复${n}行"
+    elif [ "$full" -eq 0 ]; then echo "$2为空"
+    fi
+}
+
+# 返回 0 = env 齐全
+check_env() {
+    f="$WDIR/$1.env"
+    if [ ! -e "$f" ]; then echo "缺env"; return 1; fi
+    if [ ! -r "$f" ]; then echo "不可读"; return 1; fi
+    probs=""
+    p=$(perm_of "$f")
+    [ "$p" = 600 ] || probs="$probs 权限$p"
+    for v in URL KEY; do
+        s=$(var_state "$f" "$v")
+        [ -z "$s" ] || probs="$probs $s"
+    done
+    if [ -n "$probs" ]; then echo "${probs# }"; return 1; fi
+    echo "ok"
+}
+
+bots=""
+if [ -d "$WDIR" ]; then
+    for f in "$WDIR"/*.env; do
+        [ -e "$f" ] || continue
+        b=$(basename "$f" .env)
+        bots="$bots
+$b"
+    done
+else
+    echo "错误  webhook 目录不存在"
+    bad=1
+fi
+[ "$star" = 1 ] || bots="$bots
+$enabled"
+bots="$bots
+$(printf '%s\n' $required)"
+bots=$(printf '%s\n' "$bots" | grep -v -e '^$' -e '^\*$' | sort -u)
+
+printf '%-24s %-6s %-6s %s\n' bot env 名单 结果
+for b in $bots; do
+    st=$(check_env "$b"); ok=$?
+    if [ -e "$WDIR/$b.env" ]; then has=有; else has=无; fi
+    if in_enabled "$b"; then en=在; else en=不在; fi
+    req=0
+    case " $required " in *" $b "*) req=1 ;; esac
+    if [ "$ok" -ne 0 ] && { [ "$en" = 在 ] || [ "$req" = 1 ]; }; then
+        res="错误：${st}"; bad=1
+    elif [ "$ok" -ne 0 ]; then
+        res="提示：${st}（不在名单里，不发）"
+    elif [ "$en" = 不在 ] && [ "$req" = 1 ]; then
+        res="错误：不在 enabled-bots 里"; bad=1
+    elif [ "$en" = 不在 ]; then
+        res="影子：有 env 但不在 enabled-bots，orca-wake 不发"
+    else
+        res=ok
+    fi
+    printf '%-24s %-6s %-6s %s\n' "$b" "$has" "$en" "$res"
+done
+
+if [ "$bad" = 0 ]; then echo "结论: 正常"; else echo "结论: 有问题"; fi
+exit "$bad"
