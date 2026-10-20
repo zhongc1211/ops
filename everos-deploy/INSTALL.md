@@ -1,4 +1,4 @@
-# EverOS VPS 安装任务（eggbot / Orca）
+# EverOS VPS 安装任务（ops 系统 / Orca）
 
 ## 目标
 在旧 site VPS `157.230.194.108` 自托管 EverOS，域名 `https://everos.deepvision.sg`，供 iMac+box coding 会话经 MCP 使用。
@@ -24,7 +24,7 @@
 4. Caddy/nginx：`everos.deepvision.sg` → `127.0.0.1:8000`；证书与 Full (strict) 对齐。
 5. Health：`curl -fsS https://everos.deepvision.sg/api/v2/memory/search` 或上游文档中的 health 路径；本地 `http://127.0.0.1:8000` 先通再公网。
 6. 写入证据到 `everos-deploy/EVIDENCE.md`（命令、版本、内存前后、URL）。
-7. 回报 eggbot：base URL、root 路径、SSH 方式、是否需 embedding。
+7. 回报 ops 系统：base URL、root 路径、SSH 方式、是否需 embedding。
 
 ## 不做（本阶段）
 - 不改夜审 automation `75b324a4`（交给 Coding助手）
