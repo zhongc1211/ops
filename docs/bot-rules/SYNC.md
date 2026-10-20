@@ -67,37 +67,19 @@ scripts/sync-bot-rules [--check|--apply] [--repo DIR] [--ref REF] [--no-fetch] [
 - `--check`（默认，只读）：每个文件一行 `机器 | 目标路径 | 源 sha256 | 目标 sha256 | 状态`，状态是 `same`、`drift`（两边不同）、`missing`（git 里有、目标没有）、`extra`（目标有、git 里没有）。目标目录里的 `*.bak*` 不算 extra。全部 same 退出 0，否则 1，出错 2（ref 不存在、targets.tsv 不在、目标目录不存在等）。不打印文件内容。
 - `--apply`：只写 drift 和 missing 的文件。drift 的旧文件先复制到**同目录**的 `<文件>.bak-YYYYMMDD-HHMM`（重名时加秒），和 box 上已有的 `SKILL.md.bak-*` 一样放法；写完重算 sha256 打印。extra 只报不删。目标目录不存在就报错退出 2，不自己建。重复跑第二次是 0 改动。
 - 脚本不碰目标表以外的路径，不读 env 或密钥文件。
+- `--repo` 必须是仓库根目录。指向子目录时，`git ls-tree` 按子目录解析路径，会报 `no files under ...` 并退出 2（10-21 在 MBA 上用 `~/orca/workspaces/ops/everos-deploy` 跑时就是这样：那是 `~/orca/workspaces/ops` 这个克隆下的子目录）。
 
-上线后的用法（合并 main、Zack 批了同步以后，由 dr eggbot 在 targets.tsv 里有行的机器上做，即 box 和 MBA）：
+上线后的用法（合并 main、Zack 批了同步以后）：dr eggbot 负责，box 上自己跑，MBA 上派 coding agent 跑。L9 固定在全新克隆里跑（`git clone` 后在克隆根目录执行），不用现成的工作区。
 
 1. `scripts/sync-bot-rules --check`，看结果。
-2. 只有 drift 是「main 比 box 新」时才 `--apply`。drift 的来历先按下一节判断。
+2. 只有 drift 是「main 比落点新」时才 `--apply`。drift 的来历先按下一节判断。
 
 ## 怎么发现不一致
 
-不新建 routine 或 automation，挂在现有任务上：
+不新建 routine 或 automation：
 
-- **#28 合并以后**：在 `ops-verify` 里加一行调 `sync-bot-rules --check`（#28 还是 draft，本 PR 不改它的文件）。
-- **#28 合并以前**：挂在 box 的「ops · 24 未推送扫描 box」（21907e6b，每小时 27 分，预检 `/workspace/ops/sentinels/unpushed-scan.sh`）。选它的理由：
-  - 它本来就是查「改了没进 Git」的哨兵，dev-bot-rules 在 box 上被直接改、没进 Git，正是同一类事。
-  - 预检脚本永远 exit 1，不启动模型；有发现才用 notify-run 叫醒 bot。加一步 `--check` 不会多起 agent。
-  - 每小时一次，`--check` 只做一次 `git fetch` 和几次 sha256，成本很低。
-  - 避开了：ops · 11（1191c819，PER-79 在加预检）、ops · 12（要迁 iMac）、各夜审（PER-86 在改）。ops · 07 看门狗每 10 分钟一次，太频繁。
-- 建议加在 `unpushed-scan.sh` box 分支 `exit 1` 之前的几行（**本 PR 不改线上脚本**，由 ops 系统另走 Zack 卡上线）：
-
-  ```bash
-  R=/workspace/repos/ops; S=$HOME/.orca-state/sync-bot-rules; mkdir -p "$S"
-  git -C "$R" fetch -q origin && git -C "$R" show origin/main:scripts/sync-bot-rules |
-    bash -s -- --check --repo "$R" --no-fetch >"$S/last.txt" 2>&1; rc=$?
-  # 同样的漂移只叫一次：结果没变就不再叫醒
-  new=$(sha256sum <"$S/last.txt" | cut -d' ' -f1)
-  if [ $rc != 0 ] && [ "$new" != "$(cat "$S/last.sha" 2>/dev/null)" ]; then
-    ~/.local/bin/notify-run --bot ops-system --no-tty --task "dev-bot-rules 漂移（sync-bot-rules rc=$rc）" -- cat "$S/last.txt"
-  fi
-  echo "$new" >"$S/last.sha"
-  ```
-
-  说明：box 的 `/workspace/repos/ops` 是 ops 仓库的克隆，当前不在 main 分支也没关系，脚本本身和内容都从 `origin/main` 取。
+- MBA 落点：由 MBA 的「ops · 24 未推送扫描」顺带跑 `--check`。改这个线上任务另走 Zack 卡，本 PR 不改。
+- box 落点：L9 同步时由 dr eggbot 跑 `--check`。
 
 ## 反方向的漂移：有人直接改了 box 上的 SKILL.md
 
@@ -105,7 +87,7 @@ scripts/sync-bot-rules [--check|--apply] [--repo DIR] [--ref REF] [--no-fetch] [
 
 1. **先别 `--apply`**。drift 只说明两边不同，不说明哪边新。用 `ls -l` 看 box 文件修改时间，和 `git log -1 -- docs/bot-rules/dev-bot-rules/` 比。
 2. 如果 box 版是新改的、没进 Git：ops 系统把 box 版原样拷进一个分支（`docs/bot-rules/dev-bot-rules/`），开 PR 请 dr eggbot 审。合并后 main 和 box 一致，`--check` 回到 same。
-3. 只有 main 比 box 新（PR 合并了、还没同步），才跑 `--apply`。`--apply` 会先备份，但备份不等于进了 Git，不要用它代替第 2 步。
+3. 只有 main 比落点新（PR 合并了、还没同步），才跑 `--apply`。`--apply` 会先备份，但备份不等于进了 Git，不要用它代替第 2 步。
 4. extra 文件（box 上多出来的、git 里没有的）同样按第 2 步处理：要的进 PR，不要的由 dr eggbot 决定删不删，脚本不删。
 
 ## 相关文件
