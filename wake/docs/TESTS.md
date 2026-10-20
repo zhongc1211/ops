@@ -155,6 +155,8 @@ P2 Pi 后台子代理：
 | c1 / r3 | idle 送达后 `agent-stop --mark-only`，再 `kill -HUP` notify-run；不打标记直接 HUP | killed 挡（c）；killed 照发 |
 | r3b | idle 送达后 `kill -9` claude | failed（137）照发 |
 | d1 / r8 | task 以「[演练」开头；同样的 task 写进 `prefilter-drill-allow` | done 挡（d）；照发 |
+| d2 | bot `ops-system`，task 以「[演练 叫醒通路]」开头（PER-105 v5 的叫醒通路演练），`claude -p` | done 照发（规则 d 内置放行），prefilter.log 一行「放行：」 |
+| d3 | bot `xinyue` + 「[演练 叫醒通路]」；bot `ops-system` + 别的「[演练」 | 都挡（d） |
 | r2 | claude 用不存在的模型，退出非 0 | failed 照发 |
 | r5 | 交互 claude（`--permission-mode default`）要用 Bash 写文件，弹审批框 | needs_input 照发 |
 | r6 | `orca-wake send --agent pi --status error / blocked`（Pi 扩展调的命令；agent 是 notify-run 下的 sleep，不是真 Pi） | 都照发 |

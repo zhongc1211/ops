@@ -29,6 +29,8 @@ Rules (a-f). A wake is dropped only when one of them matches; unknown or unreada
      written after the agent started): the bot closed it itself. Not covered. A killed without a mark always goes out.
   d  task or workspace display name starts with "[演练" and matches no line (regex) of
      ${ORCA_WAKE_CONFIG_DIR}/prefilter-drill-allow. failed / needs_input / error / blocked still go out. Not covered.
+     Built-in pass (PER-105 v5: wake path drills go to ops-system): bot "ops-system" and a task starting with
+     "[演练 叫醒通路]" is sent as is, in on mode too, and no later rule looks at it; prefilter.log gets a "放行" line.
   e  stuck-check reminders about finished work (reported_not_accepted, stop_not_delivered; both only exist for
      completed / in-review workspaces): the local worktree is clean and its HEAD reached origin/main through a merge,
      or the Linear issue is Done, or it has a [Zack答-...merge...] comment. Linear comes from a cache (>= 15 min),
@@ -69,6 +71,7 @@ LINEAR_TTL_S = float(os.environ.get("WAKE_PREFILTER_LINEAR_TTL_S") or 900)
 REFRESH_TIMEOUT_S = 90
 MUTE_NAME = ".orca-wake-mute"
 DRILL = "[演练"
+DRILL_PASS = ("ops-system", "[演练 叫醒通路]")          # built-in pass of rule d: (bot, task prefix)
 NEVER = {"failed", "needs_input", "error", "blocked"}   # real stops: no rule drops them
 QUIET = {"idle", "done", "killed"}                      # what a, b may drop
 REMINDERS = {"reported_not_accepted", "stop_not_delivered"}
@@ -81,6 +84,13 @@ class Drop(Exception):
     def __init__(self, rule, reason, covered=False):
         Exception.__init__(self, reason)
         self.rule, self.reason, self.covered = rule, reason, covered
+
+
+class Pass(Exception):
+    """A built-in pass: send it, skip the remaining rules, log why."""
+    def __init__(self, rule, reason):
+        Exception.__init__(self, reason)
+        self.rule, self.reason = rule, reason
 
 
 # ---------------------------------------------------------------- small helpers
@@ -131,7 +141,8 @@ def clean(s):
 
 
 def log_drop(src, d, p, m):
-    line = "\t".join([iso(), src, d.rule, ("" if m == "on" else "shadow 会挡：") + clean(d.reason),
+    prefix = "放行：" if isinstance(d, Pass) else "" if m == "on" else "shadow 会挡："
+    line = "\t".join([iso(), src, d.rule, prefix + clean(d.reason),
                       clean(p.get("dedup_key")), clean(p.get("bot")), clean(p.get("task")),
                       clean(p.get("worktree"))])
     try:
@@ -268,6 +279,8 @@ def worktree(path):
 # ---------------------------------------------------------------- rules
 
 def rule_d(p, ws):
+    if p.get("bot") == DRILL_PASS[0] and str(p.get("task") or "").startswith(DRILL_PASS[1]):
+        raise Pass("d", "%s 的 %s 演练（内置放行）" % DRILL_PASS)
     names = [p.get("task") or ""]
     w = worktree(ws) if ws else None
     if w:
@@ -468,6 +481,9 @@ def cmd_check(a):
         return 0
     try:
         CHECKS[a["source"]](p, a)
+    except Pass as ok:
+        log_drop(a["source"], ok, p, m)
+        return 0
     except Drop as d:
         log_drop(a["source"], d, p, m)
         if m != "on":
