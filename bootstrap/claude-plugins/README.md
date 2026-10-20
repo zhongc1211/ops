@@ -30,7 +30,7 @@ bootstrap/claude-plugins/pin-claude-plugins.sh --home /tmp/sandbox   # 装进别
    - `permissions.deny` 加 10 条规则（见下）。
 3. `~/.claude/plugins/known_marketplaces.json` 同步成目录源、`autoUpdate: false`。
 4. `~/.claude/CLAUDE.md` 没有 PER-67 那条插件授权规矩就补上。
-5. 跑 `install-block-hook.sh`：把 `block-disabled-skills.sh` 装到 `~/.claude/hooks/`，在 `settings.json` 的 `UserPromptSubmit` 加一条（已有就不加）。
+5. 跑 `install-block-hook.sh`：把 `block-disabled-skills.sh` 装到 `~/.claude/hooks/`，在 `settings.json` 的 `UserPromptSubmit` 加一条 `timeout: 30`（已有就只把 timeout 改成 30）。
 6. `claude plugin marketplace update` 两个市场，再 `claude plugin install/update` 两个插件。检出没切 commit、已装版本也对时跳过这一步（它每次都会改 `known_marketplaces.json` 的 `lastUpdated`）。
 
 原有的其他设置不动；重复跑不改任何文件。
@@ -66,6 +66,8 @@ deny 规则挡不住人（或派活文字）直接输入 slash 命令。`block-d
 
 只看提示词开头，命令写在句子中间不挡；其他 pstack 命令（如 `/pstack:how`）照常。
 
+hook 超时会放行（Claude Code 照常处理这条提示，不挡），所以给 30 秒。`install-block-hook.sh` 对已有条目也会把 `timeout` 改成 30。
+
 已知绕过（都要人有意去做）：
 
 - `claude --settings '{"disableAllHooks":true}'` 关掉所有 hook；
@@ -79,7 +81,7 @@ deny 规则挡不住人（或派活文字）直接输入 slash 命令。`block-d
 逐项比对并打印「一致 / 不符」：
 
 - 两个检出的 `HEAD` 是否等于 `PSTACK_SHA` / `CE_SHA`；
-- `settings.json` 的 10 条 deny、两个 `extraKnownMarketplaces`、两个 `enabledPlugins`、hook 条目；
+- `settings.json` 的 10 条 deny、两个 `extraKnownMarketplaces`、两个 `enabledPlugins`、hook 条目（只有一条且 `timeout` 是 30）；
 - `known_marketplaces.json` 两个市场的目录源和 `autoUpdate`；
 - `installed_plugins.json` 里两个插件的版本，是否等于钉的 commit 里插件清单的版本；
 - `~/.claude/hooks/block-disabled-skills.sh` 是否和本目录的一样；

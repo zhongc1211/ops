@@ -77,7 +77,8 @@ hook = os.path.join(C, "hooks", "block-disabled-skills.sh")
 say(os.path.isfile(hook) and filecmp.cmp(hook, hook_src, shallow=False), f"{hook} 和仓库里的一样")
 cmd = 'bash "$HOME/.claude/hooks/block-disabled-skills.sh"'
 ups = s.get("hooks", {}).get("UserPromptSubmit", [])
-say(any(h.get("command") == cmd for e in ups for h in e.get("hooks", [])), "settings.json UserPromptSubmit 有 block-disabled-skills hook")
+tos = [h.get("timeout") for e in ups for h in e.get("hooks", []) if h.get("command") == cmd]
+say(tos == [30], f"settings.json UserPromptSubmit 有 block-disabled-skills hook，timeout {tos}（期望 [30]）")
 try: rule_ok = rule_key in open(os.path.join(C, "CLAUDE.md")).read()
 except OSError: rule_ok = False
 say(rule_ok, "CLAUDE.md 有 PER-67 插件授权规矩")
