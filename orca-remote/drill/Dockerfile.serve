@@ -1,9 +1,10 @@
 # Linux amd64 userland for e2e-serve-display.sh --real: the real orca-ide 1.4.224 serve plus xvfb, laid out like box
 # (/workspace/ops/orca-app/Orca, user box, chrome-sandbox root 4755 as watchdog's repair_app sets it).
+# libgbm1 and libasound2 are not in the deb's Depends but Electron needs them (box has libgbm1 and libasound2t64).
 # Build context = the directory holding orca-ide_1.4.224_amd64.deb (copied from box /workspace/ops/orca-app/); see run-serve-e2e.sh.
 FROM --platform=linux/amd64 debian:bookworm-slim
 COPY orca-ide_1.4.224_amd64.deb /tmp/
-RUN apt-get update && apt-get install -y --no-install-recommends bash curl python3 procps psmisc util-linux ca-certificates xvfb tmux \
+RUN apt-get update && apt-get install -y --no-install-recommends bash curl python3 procps psmisc util-linux ca-certificates xvfb tmux libgbm1 libasound2 \
       /tmp/orca-ide_1.4.224_amd64.deb \
  && rm -rf /var/lib/apt/lists/* /tmp/orca-ide_1.4.224_amd64.deb \
  && mkdir -p /workspace/ops/orca-app && cp -a /opt/Orca /workspace/ops/orca-app/Orca \
