@@ -1,10 +1,12 @@
 #!/bin/bash
 # Runs e2e-catchup.sh for the four MBA targets, new and old, and checks the real dirs are untouched (F15).
-# Usage: run-all.sh OUT [OLD_REV]    (OUT must not exist yet; run on the MBA)
-# The four targets run in parallel; new and old of one target run one after the other, because they
-# share that script's ssh control socket. Writes OUT/{run-info.txt,results.tsv,real-dirs-*.txt}.
+# Usage: run-all.sh OUT [OLD_REV] [seq|par]    (OUT must not exist yet; run on the MBA)
+# seq (default): one target after another, like the real schedule (21:50 / 00:01 / 00:02 / 00:16).
+# par: the four targets at once (four pushes share the link; today's push can use the whole budget).
+# new and old of one target always run one after the other: they share the ssh control socket.
+# Writes OUT/{run-info.txt,results.tsv,real-dirs-*.txt}.
 set -uo pipefail
-OUT=$1 OLD_REV=${2:-origin/main}
+OUT=$1 OLD_REV=${2:-origin/main} ORDER=${3:-seq}
 HERE=$(cd "$(dirname "$0")" && pwd)
 mkdir "$OUT" || exit 2
 snap() {
@@ -18,11 +20,13 @@ snap() {
   echo "bash: $BASH_VERSION; $(ssh -V 2>&1)"
   echo "commit (new): $(git -C "$HERE" rev-parse HEAD)"
   echo "old: $(git -C "$HERE" rev-parse "$OLD_REV") ($OLD_REV)"
+  echo "order: $ORDER"
   echo "start: $(date '+%F %T %Z')"; } > "$OUT/run-info.txt"
 snap before
 for t in xinyue deepvision-site deepvision-ads vllm-omni; do
   ( "$HERE/e2e-catchup.sh" "$OUT" "$t" new
     "$HERE/e2e-catchup.sh" "$OUT" "$t" old "$OLD_REV" ) > "$OUT/$t.out" 2>&1 &
+  [ "$ORDER" = par ] || wait
 done
 wait
 snap after

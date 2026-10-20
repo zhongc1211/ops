@@ -32,6 +32,9 @@ if [ "$MODE" = old ]; then
       -e 's#"${SSH_OPTS\[@\]}" box "#"${SSH_OPTS[@]}" "${EVEROS_BOX:-box}" "#' -e 's#"box:\$#"${EVEROS_BOX:-box}:$#' \
       "$W/orig.sh" > "$W/script.sh"
   diff "$W/orig.sh" "$W/script.sh" > "$W/old-patch.diff"
+  # the old site script looks for an executable collector and else uses its own dir; git checkouts
+  # do not keep that +x bit, so put the collectors next to the copy
+  ln -s "$ING"/*.py "$W/"
   echo "old = $(git -C "$ING" rev-parse "$OLD_REV"):everos-ingest/$S" > "$W/script.txt"
   SCRIPT=$W/script.sh
 else
