@@ -1,0 +1,21 @@
+# PER-106 数据文件 sha256（仓库现版）。原始暂存清单在 box /workspace/ops/tmp/git-sot-1020/stage-sha256.txt（16 个，box 上那份未改）。
+# 与暂存清单的差别（10-20 21:30 起）：
+#  - docs/per67/ops-handover-CHECKLIST.md：换成 box /workspace/ops/briefs/ops-handover-CHECKLIST.md 20:15 版，和 box 逐字节一致。
+#  - docs/bot-personas/personas.json、README.md、reports/firstmate-study-20261020.md：已按 dr eggbot 10-20 意见删去非开发 bot 内容，不再与 box 源逐字节一致。
+#  - reports/token-audit-20261020/ 的一个单页：同一原因整个删除（现 10 个文件）。
+#  - 其余 11 个文件仍与暂存清单逐字节一致。
+52ca2886ff11e0bd30078e0f328aa046bfc0ed0a395a5002a9e23e77297d38f9  ./docs/bot-personas/README.md
+5195eba876aa68f601926a4a74f11d785d1b816e25fb758f4746561944b733a7  ./docs/bot-personas/personas.json
+f12040ef8f94fa99e921480257a07ca245fbc261a0b91758e2ec9a06d271e9ae  ./docs/bot-rules/dev-bot-rules/SKILL.md
+8d68fe750118bd79da8455f162592efb911b277e6f3e61e02f44700bf06698a0  ./docs/per67/ops-handover-CHECKLIST.md
+c5111728ea824ddedf1378d5b4f64d88dd2a803ba6b80465653b8e72b0612322  ./reports/firstmate-compat-20261020.md
+cf80441e77d6e1009a07faa8c3940ad1f53a555fbd72ac9dbdd1d0d01df06b78  ./reports/firstmate-study-20261020.md
+6dbf23b96aac61ee114304e8d70963151616d457bf41dc5431f368e77d104787  ./reports/token-audit-20261020/MERGED.md
+a644154ee359a457565ddeee25d04ae86f7d1146c3de04049a7158969443672b  ./reports/token-audit-20261020/ads.md
+1860ffe89252b42c235cda24e97592b8bdf0db8d7b45089c6cece884f359e210  ./reports/token-audit-20261020/coding.md
+d678fa3f1e9894fe9f4b8c37edef3840c3907dcb0188516aab9dc2c2c589ed46  ./reports/token-audit-20261020/dvops.md
+8c91958fff678970028889f04753f90533f145a31af43e4f8503c84c742b9c2f  ./reports/token-audit-20261020/marketing.md
+d8e3c8c59c1f6239d85d16a631a9bb3f0f596c5876e033088d746bd388080339  ./reports/token-audit-20261020/ops.md
+eca4c68209a41fb7c1ca65ff0d9e11708a47d97d98875f02d1d2e415a85d777e  ./reports/token-audit-20261020/vllm.md
+efe263d6c001e98087bf50bd609ebbd04960eea1e387186578d3b423726911d9  ./reports/token-audit-20261020/xinyue.md
+7cd2f9341b321151029b6b7a41eda349386316165d877cc6d963071e3dd90c98  ./reports/token-audit-20261020/zawu.md
