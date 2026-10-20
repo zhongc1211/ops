@@ -21,7 +21,8 @@
 # 退出码：原样返回命令的退出码；被信号杀时返回 128+信号（HUP=129，INT=130，TERM=143）；用法错误返回 2。
 # webhook 发送结果打印到 stderr 一行，发送失败不改变退出码。
 # 每次发送（含重试、找不到配置）另外追加一行到 NOTIFY_RUN_LOG（默认 ~/.orca-state/notify-run/notify-run.log），
-#   制表符分隔：时间 bot issue status exit_code http 第几次 工作区（命令启动时的目录）。不写 URL、KEY、payload 和输出。
+#   制表符分隔：时间 bot issue status exit_code http 第几次 工作区（命令启动时的目录） pane（ORCA_PANE_KEY） agent（1 = 这一层是
+#   --tty 包住整个 agent 的那层，0 = 嵌套的长命令等）。不写 URL、KEY、payload 和输出。卡住检查按 pane 认主目录里退出的 agent 有没有送达（PER-67 F2）。
 set -u
 
 usage() {
@@ -83,9 +84,10 @@ print(json.dumps({"bot": a[0], "task": a[1], "issue": a[2], "machine": a[3], "ex
 NR_LOG=${NOTIFY_RUN_LOG:-$HOME/.orca-state/notify-run/notify-run.log}
 log_send() {  # $1=http（或说明） $2=第几次
     { mkdir -p "$(dirname "$NR_LOG")" &&
-      printf '%s\tbot=%s\tissue=%s\tstatus=%s\texit=%s\thttp=%s\ttry=%s\tws=%s\n' \
+      printf '%s\tbot=%s\tissue=%s\tstatus=%s\texit=%s\thttp=%s\ttry=%s\tws=%s\tpane=%s\tagent=%s\n' \
         "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$bot" "${issue:--}" "$status" "$code" "$1" "$2" \
-        "$(printf '%s' "$start_dir" | tr '\t\n' '  ')" >>"$NR_LOG"; } 2>/dev/null || true
+        "$(printf '%s' "$start_dir" | tr '\t\n' '  ')" "${ORCA_PANE_KEY:--}" \
+        "$([ "$tty_mode" = 1 ] && [ "${ORCA_DISPATCH_PID:-}" = "$$" ] && echo 1 || echo 0)" >>"$NR_LOG"; } 2>/dev/null || true
 }
 
 # 打到 stderr 的提示一律经外部 echo：终端关掉后（HUP）写终端会失败，bash 内建 echo 失败时内容留在 stdio 缓冲里，
