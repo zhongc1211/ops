@@ -3,14 +3,16 @@
 # 盯另一台机器上的检查任务有没有在跑（PER-65 第 3 项）。卡住检查 stuck-check.sh 每次跑完在 stdout 打一行
 # 「@@HB {"ts","mode","rc","last_scan"}」，Orca 自动任务的运行记录会存 precheck 的 stdout；这里用
 # `orca automations runs --id <id> --environment <env>` 读最新的心跳：
-#   - 超过 N 分钟（默认 20）没有新心跳（Orca 调度器停了、脚本没在跑），或者心跳里的 last_scan 超过 N + STUCK_INTERVAL_MIN（默认 15）
-#     分钟没变（扫描卡住），报警给 coding-assistant（kind heartbeat_stale）。同一次中断只报一次。
+#   - 超过 N 分钟（默认 20）没有新心跳（Orca 调度器停了、脚本没在跑），或者心跳里的 last_scan（上次跑完的扫描）超过
+#     N + STUCK_INTERVAL_MIN（默认 15）分钟没变（扫描每次超时被杀或每次出错），报警给 coding-assistant（kind heartbeat_stale）。
+#     同一次中断只报一次。
 #   - 恢复后报一次「已恢复」（kind heartbeat_recovered）。
 #   - 运行记录查不到（连不上那台 Orca）连续 HB_UNREACH_MIN（默认 45）分钟，也按中断报一次（隧道常断几分钟，所以阈值放宽）。
 #   - 目标自动任务建好不到 N 分钟、还没见过它的心跳时不判断（10-19 02:50 上线时两边同时建，iMac 先跑、误报过一次）；
 #     建好时间取 `orca automations list` 的 createdAt。过了 N 分钟还没有心跳（一次都没跑、或跑了没打 @@HB）照报。
 # 部署：box 上的自动任务盯 iMac 的「ops · 01 卡住工作检查」；iMac 上的自动任务盯 box 上这个脚本自己（它每次也打 @@HB）。
 #   environment 写空串 = 本机 Orca。
+# 自己的心跳也一样：main() 出错（rc 4）时 last_scan 不前进，盯它的另一个 heartbeat-watch 照样能报（PER-67 F8 同类）。
 # 状态：HB_STATE_DIR（默认 ~/.orca-state/heartbeat-watch）/state.json、watch.log、heartbeat.json。
 # webhook：~/.config/grokbot/webhooks/<bot>.env（URL、KEY）。演练用 STUCK_FORCE_BOT=test（所有消息改发 test），
 #   STUCK_WEBHOOK_DIR 可改目录。URL 和 KEY 只经 stdin 交给 curl，不进日志和输出。
@@ -222,7 +224,7 @@ def main():
                     down, why = True, "最新心跳在 %s，已 %.0f 分钟没有新的（阈值 %g 分钟）：Orca 调度器停了或脚本没在跑" % (
                         fmt(hb["ts"]), age, t["max"])
                 elif scan_age is not None and scan_age > t["max"] + INTERVAL_MIN:
-                    down, why = True, "心跳还在（%s），但上次扫描在 %s，已 %.0f 分钟没扫描：扫描卡住了" % (
+                    down, why = True, "心跳还在（%s），但上次跑完的扫描在 %s，已 %.0f 分钟没跑完：扫描每次超时被杀或每次出错" % (
                         fmt(hb["ts"]), fmt(hb["last_scan"]), scan_age)
                 else:
                     log("%s：正常（最新心跳 %s，%.1f 分钟前，rc %s%s）" % (
@@ -262,6 +264,8 @@ except Exception:
     log("脚本出错：%s" % traceback.format_exc()[-1500:])
     rc = 4
 hb = {"ts": int(time.time()), "mode": "heartbeat-watch", "rc": rc, "last_scan": int(time.time())}
+if rc == 4:  # 没跑完：last_scan 沿用上次的（第一次出错时记下的这次时间会一直留着）
+    hb["last_scan"] = int(load_json(os.path.join(STATE_DIR, "heartbeat.json"), {}).get("last_scan") or hb["last_scan"])
 if not DRY:
     save_json(os.path.join(STATE_DIR, "heartbeat.json"), hb)
     print("@@HB " + json.dumps(hb), flush=True)

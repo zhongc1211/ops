@@ -73,7 +73,7 @@
 #   见 NAME_BOT）→ 仓库映射；第一类里 agent 外面包的 notify-run --bot（agent-probe 的 dispatch_bot）优先于以上全部；
 #   都没有的发给 coding-assistant。
 # 心跳：每次跑完（含闸门关着直接退出）写 STATE_DIR/heartbeat.json，并在 stdout 打一行「@@HB {"ts","mode","rc","last_scan"}」。
-#   Orca 自动任务的运行记录会存 precheck 的 stdout，另一台机器上的 scripts/heartbeat-watch.sh 读它，太久没有新的就报警。
+#   last_scan = 上次跑完的扫描。运行记录存 precheck 的 stdout，另一台机器上的 scripts/heartbeat-watch.sh 读它，太久没有新的就报警。
 # 同一时间只跑一个：~/.orca-state/stuck-check/run.lock（flock），上一次还没跑完时这次直接退出（--scan 返回 1，不启动 agent）。
 # webhook 返回非 2xx 时，日志里带响应体的前 160 个字符（去掉 URL/KEY 和长串，压成一行）。
 #
@@ -1443,7 +1443,7 @@ def show_pending(pending):
 
 
 def main():
-    global GH_USER
+    global GH_USER, SCAN_DONE
     pending = load_json(PENDING_FILE, {})
     if MODE == "--list":
         show_pending(pending)
@@ -1555,6 +1555,7 @@ def main():
             direct.append(m)
 
     pending = {"created": NOW, "suspects": suspects, "direct": direct}
+    SCAN_DONE = True  # 扫完了（发送失败不算没扫完）：心跳的 last_scan 前进
     if MODE == "--scan":
         pending["suspects"] = []
         failed = send_all(pending, known, track, seen)
@@ -1666,16 +1667,13 @@ def touch_due():
 
 def heartbeat(rc):
     """每次跑完写心跳：heartbeat.json，并在 stdout 打一行 @@HB {...}。自动任务的运行记录会存 precheck 的 stdout，
-    另一台机器的 heartbeat-watch 经 `orca automations runs --environment ...` 读到它，超过 N 分钟没有新的就报警。"""
+    另一台机器的 heartbeat-watch 经 `orca automations runs --environment ...` 读到它，超过 N 分钟没有新的就报警。
+    last_scan 是上次跑完的扫描（gate.json 的 done，main() 扫完才写）：扫描每次超时被杀或每次出错时它不再前进，
+    heartbeat-watch 按「太久没扫描」报（PER-67 F7、F8；以前取扫描开始时写的 gate.last，被杀、出错也照样前进）。"""
     if MODE in ("--list", "--dry-run"):
         return
     g = load_json(GATE_FILE, {})
-    hb = {"ts": int(time.time()), "mode": MODE, "rc": rc, "last_scan": int(g.get("last") or 0)}
-    if MODE != "--scan":
-        hb["last_scan"] = int(NOW)
-    old = load_json(HB_FILE, {})
-    if MODE != "--scan" and old.get("last_scan"):
-        hb["last_scan"] = max(hb["last_scan"], int(old["last_scan"]))
+    hb = {"ts": int(time.time()), "mode": MODE, "rc": rc, "last_scan": int(g.get("done") or g.get("last") or 0)}
     try:
         save_json(HB_FILE, hb)
     except OSError:
@@ -1697,6 +1695,7 @@ def take_lock():
 
 _lock = None
 _gate = None
+SCAN_DONE = False
 if MODE == "--scan" and os.environ.get("STUCK_NO_GATE") != "1":
     _gate = gate()
     if not _gate[0]:
@@ -1717,7 +1716,9 @@ if MODE not in ("--list", "--dry-run"):
         heartbeat(1 if MODE == "--scan" else 0)  # last_scan 不变：扫描卡住时 heartbeat-watch 靠它报
         sys.exit(1 if MODE == "--scan" else 0)
 if _gate:
-    save_json(GATE_FILE, dict(_gate[1], last=NOW, why=_gate[0]))
+    _g = load_json(GATE_FILE, {})
+    # done = 上次跑完的扫描；还没有时（刚装、或从旧版升级）先记成上次开始扫描的时间，这次扫描卡住也照样会变旧
+    save_json(GATE_FILE, dict(_gate[1], last=NOW, why=_gate[0], done=_g.get("done") or _g.get("last") or NOW))
     if _gate[0] != "到点":
         FULL = True  # Orca 刚启动：连「报了没人验收」一起查一遍
         log("Orca 启动后补查一遍：%s" % _gate[0])
@@ -1726,12 +1727,14 @@ try:
 except Exception as e:  # 脚本自己出错不能当成「没事」：scan 时照样启动 agent，由它报出来
     import traceback
     log("脚本出错：%s" % traceback.format_exc()[-1500:])
-    rc = 4
+    rc, SCAN_DONE = 4, False  # 发送时出错也算没跑完
     if MODE == "--scan":
         save_json(PENDING_FILE, {"created": NOW, "error": "脚本出错：%s: %s" % (type(e).__name__, e), "suspects": [],
                                  "direct": []})
         touch_due()
         rc = 0
+if SCAN_DONE and not DRY:
+    save_json(GATE_FILE, dict(load_json(GATE_FILE, {}), done=int(time.time())))
 heartbeat(rc)
 sys.exit(rc)
 PYEOF
