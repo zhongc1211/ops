@@ -47,7 +47,7 @@
 | 等待 | 定义（段落原文） | 数据源 | 干跑结果（官网 10-19） |
 |---|---|---|---|
 | 等叫醒 | agent 停下发出叫醒 → 同一会话下一轮开始 | 各机器 `~/.local/state/orca-wake/wake.log`：`event=send, ok=true` 行 → 同 `session_id` 下一条 `event=state` 且 note 含 `turn N started` 的行。会话范围用当晚会话清单的 session_id | 能算 |
-| 等验收 | PR 可审 → 第一个评审或合并 | GitHub PR 时间线（ReadyForReviewEvent、PullRequestReview、mergedAt） | 算出来没有意义：19 个 PR 都是合并前几分钟才转 ready，GitHub review 0 条；验收写在 Linear 评论里，没有统一标记。按段落写「无数据」并说明原因 |
+| 等验收 | 交出待验收结果 → 验收方给出结论或合并；合并前才转 ready 的不算 | 验收写在 Linear 评论里（如「运维验收（2026-10-19 12:2x SGT）」）；GitHub PR 时间线（ReadyForReviewEvent、PullRequestReview、mergedAt）只作参考 | 无数据：Linear 里「交验收」和「验收结论」没有统一标记，配不成对；GitHub 上 19 个 PR 都是合并前几分钟才转 ready（中位 0.2 分钟），review 0 条，不代表等待 |
 | 等 Zack 拍板 | Linear「[待Zack-…]」→ 对应「[Zack答-…]」 | 夜审第 1 步已经在读的 Linear 评论，按标签配对 | 能算，但标签写法不统一（`logo/email/banner` 合并答复、`home1..3` 范围写法）会让配对漏掉 |
 
 其他候选数据源：iMac `~/.orca-state/stuck-check/`（卡住检查扫描日志，只有「新嫌疑 N 个」这类汇总）、`heartbeat-watch/`（心跳）、`notify-run/notify-run.log`（每个 agent 结束一行，有 status 和时间，没有「下一轮开始」）、`agent-stops/`（主动停掉的 agent，10-19 只有 3 个 PER-66 演练文件）。这些都不比 wake.log 更直接，段落里不点名，夜审可以自己用。Orca worktree 状态变化：`orca worktree ps --json` 只给当前状态，没有历史，算不了等待。
@@ -69,9 +69,9 @@
 
 | 项 | 估算 | 依据 |
 |---|---|---|
-| 提示词变长 | 输入 +约 350 token / 轮（首轮后走缓存） | 段落 1047 字节，417 字；两处替换各加几个字 |
+| 提示词变长 | 输入 +约 400 token / 轮（首轮后走缓存） | 段落 1106 字节、440 字（估约 355 token）；两处替换各加十几个字 |
 | 新读的数据（过滤后进上下文的部分） | 输入 +4k–6k token | 干跑过滤后的输出：叫醒等待约 2 KB、PR 时间线摘要约 2.5 KB、Zack 标签配对 0.8 KB、CI 和改动最多的文件 1.2 KB、合并冲突核对约 5 KB、前一天摘要 1 行 |
-| 多出的工具调用 | 约 8–12 次，每次带上已有上下文（约 6–10 万 token，大部分是缓存读） | 干跑实际用了 9 次只读命令 |
+| 多出的工具调用 | 约 8–12 次，每次带上已有上下文（约 6–10 万 token，大部分是缓存读） | 干跑在 box 上是 1 次采集（9 段只读读取）+ 1 次合并冲突和失败 job 核对，本地分析另 6 次；夜审 agent 自己做时按每段一次算 |
 | 缓存读 | +0.5M–1.2M token | 上一行相乘 |
 | 输出 | +4k–6k token | 只读命令和过滤脚本约 2–3k，摘要新增一节约 1–1.5k，推理 1–2k |
 
@@ -85,7 +85,7 @@
 
 - 昨日改进：10-18 摘要没有「改进：」行，写「昨日改进：无」（第一天，正常）。
 - 等叫醒：18 次，中位 3.0 分钟，最长 126.4 分钟（iMac 会话 cba55101「FDV-70 整版合 staging」08:07 发出 idle → 10:14 下一轮）。
-- 等验收：无数据（GitHub 上 0 条 review，ready → 合并中位 0.2 分钟；验收写在 Linear 评论里，没有统一标记）。
+- 等验收：无数据（Linear 里交验收和验收结论没有统一标记；GitHub 上 0 条 review，ready → 合并中位 0.2 分钟，不代表等待）。
 - 等 Zack 拍板：成对 2 次（logo4 843 分钟、deslop3 34 分钟）；9 个 10-19 提出的标签截至 10-20 读取时没有同名答复。
 - 瓶颈 1（多个 agent 改同一文件）：窗口内 107 个 commit 里有 47 个改 `app/ryze.css`；03:53–04:48 连续合并 14 个 PR 期间，有 3 个 merge commit（020d99f 03:57、cfdc55b 04:16、75e145d 04:25）在 ryze.css / messages 上手工解冲突。
 - 瓶颈 2（E2E 慢）：Test 工作流 63 次，成功一次中位 9.7 分钟；17 次被后一次 push 取消；#102 分支 15:47–17:44 连续 6 次失败（`npm test`）。
