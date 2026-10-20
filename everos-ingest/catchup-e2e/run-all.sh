@@ -21,6 +21,7 @@ snap() {
   echo "commit (new): $(git -C "$HERE" rev-parse HEAD)"
   echo "old: $(git -C "$HERE" rev-parse "$OLD_REV") ($OLD_REV)"
   echo "order: $ORDER"
+  echo "budget: ${E2E_BUDGET:-script defaults}"
   echo "start: $(date '+%F %T %Z')"; } > "$OUT/run-info.txt"
 snap before
 for t in xinyue deepvision-site deepvision-ads vllm-omni; do
@@ -36,7 +37,9 @@ if diff "$OUT/real-dirs-before.txt" "$OUT/real-dirs-after.txt" > "$OUT/real-dirs
 else
   printf 'all\t-\tFAIL\treal dirs unchanged (F15)\tsee real-dirs.diff\n' >> "$OUT/results.tsv"
 fi
-# box side: list what the E2E left under /tmp, then remove it (it holds real, redacted transcripts)
-ssh -o BatchMode=yes box "cd /tmp/everos-catchup-e2e/$(basename "$OUT") && find . -type f -printf '%T@ %s %p\n' | sort -k3; cd / && rm -rf /tmp/everos-catchup-e2e/$(basename "$OUT")" > "$OUT/box-tmp-final.txt" 2>&1
+# box side: list what the E2E left under /tmp, then move it into the 700 quarantine dir (it holds real,
+# redacted transcripts; nothing on box is deleted by the E2E)
+Q=/tmp/everos-catchup-e2e/.quarantine/$(basename "$OUT")
+ssh -o BatchMode=yes box "cd /tmp/everos-catchup-e2e/$(basename "$OUT") && find . -type f -printf '%T@ %s %p\n' | sort -k3; cd / && mkdir -p '$Q' && mv /tmp/everos-catchup-e2e/$(basename "$OUT") '$Q/scenario-dirs' && echo moved to '$Q/scenario-dirs'" > "$OUT/box-tmp-final.txt" 2>&1
 echo "end: $(date '+%F %T %Z')" >> "$OUT/run-info.txt"
 awk -F'\t' '{n[$2" "$3]++} END {for (k in n) print k, n[k]}' "$OUT/results.tsv" | sort

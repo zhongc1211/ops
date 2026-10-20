@@ -139,6 +139,8 @@ EVEROS_INGEST_ROOT=$HOME/.orca-state/bin/everos-ingest \
   - 推成功后在本机 `<项目>/<D>/.pushed` 写清单 `sessions-<machine>.jsonl` 的 sha256。
   - 然后看 D 之前 `CATCHUP_DAYS`（默认 3）天：本机有清单、box 上没有或 sha256 不同的日期，用 `PUSH_ONLY=1 D=<那天>`
     重跑本脚本，推本机已有的那份（不重新采集）。box 上已有同一份的日期只补写 `.pushed`，不重推。以 box 的 sha256 为准。
+  - box 上这天的清单 sha256 和本机不同时，推之前先在 box 上把清单、excluded 清单和 `mba/`（iMac 是 `imac/`）复制成
+    `<名字>.replaced-<box 时间>` 留底，再覆盖。用复制不用改名：推到一半失败时 box 上仍是原来那份。
   - 时限：官网/广告/vllm 把剩余的 `PUSH_BUDGET` 传给补推，剩不到 60 秒就留给下次；心月推送不能续传，按今天实测的推送速度
     （今天没推过东西时按 100 KB/s，E2E 实测 100–123 KB/s）估这一天要多久，估计到第 `CATCHUP_BUDGET`（560，precheck 时限 600）秒前推不完就留给下次。
     当天转写大时，大的旧日期常常排不进同一次运行，要靠下一次运行或下面的低频 automation。
@@ -147,5 +149,6 @@ EVEROS_INGEST_ROOT=$HOME/.orca-state/bin/everos-ingest \
   - `EVEROS_LOCAL_BASE` / `EVEROS_REMOTE_BASE` / `EVEROS_BOX` 只给 E2E 用，平时不设。
 - 夜审读取侧没改。补推到的日期如果夜审已经跑过，夜审不会自己重写，见 PR 说明里的处理办法。
 - E2E：`catchup-e2e/run-all.sh OUT`（MBA 上跑，本机用 scratch 目录，box 用 `/tmp/everos-catchup-e2e/`，不碰真目录），
-  失败方式和查法见 `catchup-e2e/FAILURE-MODES.md`。
+  失败方式和查法见 `catchup-e2e/FAILURE-MODES.md`。F10/F11 用 `catchup-e2e/shim/` 里的 ssh/scp 替身只让目标那一次调用失败，
+  其余调用交给真的 `/usr/bin/ssh`、`/usr/bin/scp`。box 上的文件 E2E 不删，只挪到 `/tmp/everos-catchup-e2e/.quarantine/`。
 - 可选的每 2 小时只补推 automation：配置文本在 `catchup.automation.md`，**没建**。

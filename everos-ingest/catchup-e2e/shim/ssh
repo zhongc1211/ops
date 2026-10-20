@@ -1,0 +1,10 @@
+#!/bin/bash
+# E2E fault shim (F10/F11): put this dir first in PATH for the script under test only.
+# A call whose command line matches the regex in E2E_FAIL_SSH fails with 255 and is logged to
+# E2E_SHIM_LOG; every other call is the real /usr/bin/ssh, unchanged.
+if [ -n "${E2E_FAIL_SSH:-}" ] && [[ "$*" =~ $E2E_FAIL_SSH ]]; then
+  echo "$(date '+%F %T') ssh failed on purpose: $*" >> "${E2E_SHIM_LOG:-/dev/null}"
+  echo "ssh (E2E shim): failed on purpose" >&2
+  exit 255
+fi
+exec /usr/bin/ssh "$@"

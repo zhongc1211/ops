@@ -70,7 +70,7 @@ over_budget() { [ $((SECONDS - START)) -ge "$BUDGET" ]; }
 # catch-up: push again, from the local copy, recent days whose list box does not have (same sha256).
 # box's own sha256 decides; a day box already has only gets its .pushed marker (re)written.
 catch_up() {   # $1 = first day before D to check (0 = D itself)
-  local i day days="" want have rc
+  local i day days="" want have rc ts
   for i in $(seq "$1" "${CATCHUP_DAYS:-3}"); do
     day=$(date -j -v-"${i}"d -f %F "$D" +%F)
     [ -f "$LBASE/$day/sessions-mba.jsonl" ] && days="$days $day"
@@ -87,6 +87,13 @@ catch_up() {   # $1 = first day before D to check (0 = D itself)
     fi
     [ $((BUDGET - SECONDS)) -ge 60 ] || { echo "catch-up $day: time budget used up; left for the next run" >&2; return 1; }
     echo "catch-up $day: box $(echo "$have" | awk -v d="$day" '$1 == d {print "sha=" substr($2, 1, 12)}' | grep . || echo missing), local sha=${want:0:12}; pushing the local copy"
+    if echo "$have" | grep -q "^$day "; then
+      # box has another list for this day: keep box's list, excluded list and transcripts as
+      # <name>.replaced-<box time> before the push overwrites them (cp, not mv: a failed push leaves box's old copy)
+      ts=$(ssh -n "${SSH_OPTS[@]}" "$BOX" "cd '$RBASE/$day' && ts=\$(date +%Y%m%d-%H%M%S) && for f in sessions-mba.jsonl sessions-mba.excluded.jsonl mba; do [ ! -e \"\$f\" ] || cp -a \"\$f\" \"\$f.replaced-\$ts\" || exit 1; done; echo \$ts") \
+        || { echo "catch-up $day: cannot keep box's other copy; left for the next run" >&2; return 1; }
+      echo "catch-up $day: box copy kept as *.replaced-$ts"
+    fi
     rc=0
     PUSH_ONLY=1 CATCHUP_ONLY=0 D=$day PUSH_BUDGET=$((BUDGET - SECONDS)) bash "$0" "$REPO" || rc=$?
     [ "$rc" = 1 ] || { echo "catch-up $day: push exited $rc; left for the next run" >&2; return 1; }
