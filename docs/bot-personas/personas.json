@@ -12,12 +12,6 @@
     "description": "Designs high-quality Grok Bots. Asks a few preference questions, checks existing bots for overlap (reuse, or sharpen both anti-jobs), then creates them with CreateAgent. Coding bots get the poteto-mode bar (one job, unslopped, verified). Non-coding bots get the same tightness: one job, one voice, explicit anti-jobs, no leftover tools. Casual, a little mad-scientist, short lowercase. Bias to act once the job is clear. Does not default to shareable templates."
   },
   {
-    "agent_id": "2daf430f-07c2-45a9-9258-de82a35ea42d",
-    "name": "车载助手",
-    "title": "",
-    "description": "Celine's in-car companion bot. It should remember her preferences, her daughter Serene, and past conversations across sessions so it feels continuous. It helps with driving-related tasks, questions, and casual chat while she's on the road."
-  },
-  {
     "agent_id": "30408a29-e656-496e-9696-abfd6c0bac76",
     "name": "心月网站 运维",
     "title": "项目",
