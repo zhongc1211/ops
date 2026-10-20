@@ -1,0 +1,179 @@
+2026-10-21 01:27:25 SGT 开始（dry-run）（orca=orca，等输入/无输出阈值 30 分钟）
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-134-dryrun-fix
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-94-pstack-monitor
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-gap7-rerun
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-box-decommission-inventory-1021
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-box-disk-1020
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/auto-run-1-20261013T1530
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/auto-run-2-20261013T1725
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/per-115-free-games
+2026-10-21 01:27:25 SGT agent_idle | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c | orca-wake 补叫醒（pid 65882 send；派活 bot：e2e-down，dry-run，不发）
+2026-10-21 01:27:25 SGT iMac：in-progress 任务工作区和主目录 agent 9 个，新嫌疑 0 个，断了的 0 个
+2026-10-21 01:27:25 SGT iMac：没包 notify-run 的 agent 新报 0 条
+2026-10-21 01:27:25 SGT box（--environment __no_box__）第一轮 3 次都没连上（{"code": "invalid_argument", "message": "Unknown Orca server in --environment __no_box__: no paired Orca server is named），等 30 秒再查一轮
+2026-10-21 01:27:25 SGT box（--environment __no_box__）重试 3 次仍查询失败，这次跳过（连续第 1 次）：{"code": "invalid_argument", "message": "Unknown Orca server in --environment __no_box__: no paired Orca server is named or has id __no_box__.", "data": {"known
+2026-10-21 01:27:25 SGT 查 | MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/fdv-70-calendar-claim
+2026-10-21 01:27:25 SGT MBA：in-progress 任务工作区和主目录 agent 1 个，新嫌疑 0 个，断了的 0 个
+2026-10-21 01:27:25 SGT MBA：没包 notify-run 的 agent 新报 0 条
+2026-10-21 01:27:25 SGT box 这次没查到，不对 due date
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-78-pr45-r3-imac | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dv广告-FDV-72-开AI-key | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dvads-fdv-66-email | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dvads-privacy-facts | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dvads-prod-admin-secret | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dv广告-FDV-76-隐私页GEO | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/everos-vps-deploy | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-everos-ingest-commit | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-handover-docs-1020 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-105-forcebot-prefix | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-105-v5-drill-migration | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-106-git-sot | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-117-linear-sync-move | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-119-skip-drill | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-66-叫醒漏叫修复第二批 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-67-43-bash32-fix | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-67-e2e-imac | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-67-merge-46 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-67-merge-install | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-79-lockscreen-imac | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-80-gaps | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-82-scan-guard | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-83-pstack-pin | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-84-merge-47 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-86-night-velocity | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-88-wake-prefilter | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-89-deny | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-92-systemmap | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-97-merge56 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap9 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER82-merge-deploy | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-serve-display-1020 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-stuck-routing-1020 | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-tunnel-flaps-1019-imac | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-unpushed-nested-1020 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-watchdog-d-drills-1019 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/xinyue-everos-recheck | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/xinyue-everos-tailnet | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/repository/PER-56-h3-merge-three | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/repository/PER-7-review-导入挪顶部 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/repository/PER-8-hunyuan-imac-omni | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/repository/per-8714-schedule-400 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/repository/per56-n10-rootcause-opus | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-AGENTS-测试规矩 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-60-套餐对比 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-63-AGENTS对齐 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-65-iMac整轮e2e | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-产品页 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-关于我们 | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-iMac-博客 | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-全站素材配色GEO | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-70-整版合-staging-上线准备 | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/dv运维-FDV-78-EverOS-走-tailnet | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/fdv-70-deslop-r2 | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/fdv-92-rerun-imac | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/fdv-94-drop-ports-unit-test | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/ops-per83-verify-dv-site | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/ops-everos-imac-mcp | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/per-48-prod | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/per-49-check-only | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/per-50-flood-timeout | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/per-61-bubble-ai | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/per-75-oss-games | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/pr83-merge | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/心月-EverOS-MCP-v2-接线 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/心月-EverOS-启动器-v2.1 | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/心月-PER-27-模型不可用提示 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/心月-PER-28-失败按钮 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/心月-PER-54-文档合并与-feed-monster-排查 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/dv运维-CI-自动部署 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/r2-F | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dvads-fdv-64-oauth | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dv广告-FDV-62-AGENTS-测试规矩 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/everos-research | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-orca-projects-1020 | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-84-everos-docs | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER82-stuck-budget | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER86-merge | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/ops/xinyue-night-review-guard | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/repository/PER-56-n7-rootcause | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/repository/PER-8-8714-rebase放出 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/repository/per-rebase-main-1017 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-65-base-205187c | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-65-base-683f287 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-65-testing-Builds修复 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/fdv-60-e2e-followup | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/site/fdv-70-uc-h1-focus | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/per-51-quality-recover | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/unpushed-cleanup-20261018 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/心月-AGENTS-对齐 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/心月-CI-CD-第二阶段 | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/心月-PER-46-泡泡砰砰核心玩法 | in-review
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/pi/remote/xinyue-ci | completed
+2026-10-21 01:27:25 SGT 查（二）| iMac:/Users/jiawenwang/pi/remote/xinyue-site-cicd | in-review
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计 | completed，工作区干净，没有本地提交，没有 PR；没有 orca-wake / notify-run 记录
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dvads-prod-admin-secret | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-18 01:10）送达过叫醒
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dv广告-FDV-76-隐私页GEO | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 12 回合，10-17 23:49）送达过叫醒
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-67-e2e-imac | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-20 18:39）送达过叫醒；notify-run 退出时发送 http=200（10-20 18:40）
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-80-gaps | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 10 回合，10-20 21:52）送达过叫醒
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-84-merge-47 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-20 19:23）送达过叫醒；notify-run 退出时发送 http=200（10-20 19:24）
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-97-merge56 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-20 23:36）送达过叫醒；notify-run 退出时发送 http=200（10-20 23:48）
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap9 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-20 19:23）没有送达的叫醒；notify-run 退出时发送 http=200（10-20 20:17）
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER82-merge-deploy | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 2 回合，10-21 00:48）送达过叫醒
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/site/ops-per83-verify-dv-site | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 7 回合，10-20 20:17）送达过叫醒
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/ops-everos-imac-mcp | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 5 回合，10-16 20:20）送达过叫醒
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dvads-fdv-64-oauth | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 3 回合，10-18 00:29）送达过叫醒
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/everos-research | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 3 回合，10-15 23:08）送达过叫醒
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER82-stuck-budget | completed，工作区干净，没有本地提交，没有 PR；没有 orca-wake / notify-run 记录
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-65-testing-Builds修复 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-16 11:13）送达过叫醒
+2026-10-21 01:27:25 SGT 放行 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/unpushed-cleanup-20261018 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-18 10:35）送达过叫醒
+2026-10-21 01:27:25 SGT iMac：completed / in-review 任务工作区这次查了 95 个，15 个没人验收
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/xinyue-site/per-115-mba-handoff | in-review
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/ops/ops-everos-catchup-1020 | in-review
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/fdv-70-g6-g7-g9 | in-review
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/xinyue-site/per-62-mba-runner | in-review
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/deepvision-ads/fdv-89-ab | in-review
+2026-10-21 01:27:25 SGT 等 Zack | MBA:/Users/jiawenwang/orca/workspaces/deepvision-ads/fdv-89-ab | FDV-89 挂着「等 Zack」，已验收在等拍板，不报
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/deepvision-ads/fdv-89-c | in-review
+2026-10-21 01:27:25 SGT 等 Zack | MBA:/Users/jiawenwang/orca/workspaces/deepvision-ads/fdv-89-c | FDV-89 挂着「等 Zack」，已验收在等拍板，不报
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/dv官网-FDV-70-G-Ryze几何对照 | in-review
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/dv官网-FDV-70-PR6-其余页面 | in-review
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/dv官网-FDV-70-Ryze复刻重做-MBA | in-review
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/dv官网-FDV-70-Ryze对照图 | completed
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/dv官网-FDV-70-示例行业整改 | in-review
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/dv运维-FDV-88-夜审读MBA会话修 | in-review
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/fdv-92-rework1-mba | completed
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/fdv-93-verify-macos | in-review
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/ops/ops-box-heavy-migration-1020 | completed
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/ops/ops-everos-backfill-1019 | completed
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/ops/ops-PER-105-merge62 | completed
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/ops/ops-PER-90-webhook | completed
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/ops/per123-devbotrules-1020b | completed
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/vllm-omni/vllm-PER-56-4090-A100-MBA | completed
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/xinyue-site/per-70-colorfigures-integrate-mba | in-review
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/xinyue-site/per-71-colorfigures-a | in-review
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/xinyue-site/per-72-colorfigures-b | in-review
+2026-10-21 01:27:25 SGT 查（二）| MBA:/Users/jiawenwang/orca/workspaces/xinyue-site/per-93-verify-skill | in-review
+2026-10-21 01:27:25 SGT 放行 | MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/fdv-92-rework1-mba | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-19 14:26）没有送达的叫醒；notify-run 退出时发送 http=200（10-19 14:28）
+2026-10-21 01:27:25 SGT 放行 | MBA:/Users/jiawenwang/orca/workspaces/ops/ops-PER-105-merge62 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-20 23:33）送达过叫醒
+2026-10-21 01:27:25 SGT MBA：completed / in-review 任务工作区这次查了 24 个，3 个没人验收
+2026-10-21 01:27:25 SGT 问题 | deepvision-ads | reported_not_accepted | dv广告 · FDV-72 开AI key | iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dv广告-FDV-72-开AI-key | 工作区标为 in-review，已 73.3 小时没人验收（没有 PR，分支 zhongc1211/dv广告-FDV-72-开AI-key）
+2026-10-21 01:27:25 SGT 问题 | ops-system | reported_not_accepted | ops · PER-117 Linear 对齐迁出 box | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-117-linear-sync-move | agent 已开 PR 1.8 小时，没有 review，也没有人评论：https://github.com/zhongc1211/ops/pull/65
+2026-10-21 01:27:25 SGT 问题 | ops-system | reported_not_accepted | ops · serve 自带显示（不借 :4） | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-serve-display-1020 | agent 已开 PR 3.6 小时，没有 review，也没有人评论：https://github.com/zhongc1211/ops/pull/60
+2026-10-21 01:27:25 SGT 问题 | ops-system | reported_not_accepted | 心月 · EverOS 夜审补查+iMac 脚本同步 | iMac:/Users/jiawenwang/orca/workspaces/ops/xinyue-everos-recheck | 工作区标为 in-review，已 85.2 小时没人验收（没有 PR，分支 zhongc1211/xinyue-everos-recheck）
+2026-10-21 01:27:25 SGT 问题 | xinyue | reported_not_accepted | 心月 · PER-75 开源游戏候选调研 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/per-75-oss-games | 工作区标为 in-review；Linear PER-75 已完成，已 38.7 小时没人验收（没有 PR，分支 zhongc1211/per-75-oss-games）
+2026-10-21 01:27:25 SGT 问题 | xinyue | reported_not_accepted | 心月 · EverOS 启动器 v2.1 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/心月-EverOS-启动器-v2.1 | 工作区标为 in-review，已 80.1 小时没人验收（没有 PR，分支 zhongc1211/心月-EverOS-启动器-v2.1）
+2026-10-21 01:27:25 SGT 问题 | ops-system | reported_not_accepted | ops · PER-67 orca-projects.md 重写 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-orca-projects-1020 | agent 已开 PR 5.4 小时，没有 review，也没有人评论：https://github.com/zhongc1211/ops/pull/50
+2026-10-21 01:27:25 SGT 问题 | ops-system | reported_not_accepted | ops · PER-89 禁用命令deny加固 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-89-deny | 工作区标为 completed，已 4.4 小时没人验收（没有 PR，分支 zhongc1211/ops-PER-89-deny）（16 个提交不在远端默认分支）
+2026-10-21 01:27:25 SGT 问题 | vllm-omni | reported_not_accepted | vllm · PER-56 H3 PR 合并成三个 | iMac:/Users/jiawenwang/orca/workspaces/repository/PER-56-h3-merge-three | 工作区标为 completed，已 150.1 小时没人验收（没有 PR，分支 zhongc1211/PER-56-h3-merge-three）（3 个提交不在远端默认分支）
+2026-10-21 01:27:25 SGT 问题 | vllm-omni | reported_not_accepted | PER-56 vllm · PER-8 Hunyuan 重测 iMac | iMac:/Users/jiawenwang/orca/workspaces/repository/PER-8-hunyuan-imac-omni | 工作区标为 completed，已 109.7 小时没人验收（没有 PR，分支 zhongc1211/PER-8-hunyuan-imac-omni）（3 个提交不在远端默认分支）
+2026-10-21 01:27:25 SGT 问题 | vllm-omni | reported_not_accepted | vllm · PER-56 #8714 schedule 格式错误返回400 | iMac:/Users/jiawenwang/orca/workspaces/repository/per-8714-schedule-400 | 工作区标为 completed，已 81.4 小时没人验收（没有 PR，分支 zhongc1211/per-8714-schedule-400）（2 个提交不在远端默认分支）
+2026-10-21 01:27:25 SGT 问题 | vllm-omni | reported_not_accepted | vllm · PER-56 N10-step-a 根因（Opus 无GPU） | iMac:/Users/jiawenwang/orca/workspaces/repository/per56-n10-rootcause-opus | 工作区标为 completed，已 107.8 小时没人验收（没有 PR，分支 zhongc1211/per56-n10-rootcause-opus）（10 个提交不在远端默认分支）
+2026-10-21 01:27:25 SGT 问题 | deepvision-ads | reported_not_accepted | FDV-66 zhongc1211/release-1-r2-fdv66-imac | iMac:/Users/jiawenwang/orca/r2-F | 工作区标为 completed；Linear FDV-66 已完成，已 66.7 小时没人验收（没有 PR，分支 zhongc1211/release-1-r2-fdv66-imac）（1 个提交不在远端默认分支）
+2026-10-21 01:27:25 SGT 问题 | ops-system | reported_not_accepted | ops · PER-86 合 #53 夜审文档 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER86-merge | 工作区标为 completed；Linear PER-86 已完成，已 2.0 小时没人验收（没有 PR，分支 zhongc1211/ops-PER86-merge）（工作区干净，但claude 会话最后一次停下（第 1 回合，10-20 23:07）没有送达的叫醒：派活 bot 可能不知道它停了）
+2026-10-21 01:27:25 SGT 问题 | vllm-omni | reported_not_accepted | vllm · PER-56 N7 根因（旧，已结束） | iMac:/Users/jiawenwang/orca/workspaces/repository/PER-56-n7-rootcause | 工作区标为 completed，已 130.1 小时没人验收（没有 PR，分支 zhongc1211/PER-56-n7-rootcause）（10 个提交不在远端默认分支）
+2026-10-21 01:27:25 SGT 问题 | xinyue | reported_not_accepted | 心月 · PER-70 Colorfigures 整合（MBA 续做） | MBA:/Users/jiawenwang/orca/workspaces/xinyue-site/per-70-colorfigures-integrate-mba | 工作区标为 in-review，已 34.9 小时没人验收（没有 PR，分支 zhongc1211/per-70-colorfigures-integrate-mba）
+2026-10-21 01:27:25 SGT 问题 | deepvision-ops | reported_not_accepted | dv官网 · FDV-70 Ryze对照图 | MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/dv官网-FDV-70-Ryze对照图 | 工作区标为 completed，已 51.9 小时没人验收（没有 PR，分支 zhongc1211/dv官网-FDV-70-Ryze对照图）（63 个提交不在远端默认分支）
+2026-10-21 01:27:25 SGT 问题 | vllm-omni | reported_not_accepted | vllm · PER-56 4090+A100 补跑（MBA） | MBA:/Users/jiawenwang/orca/workspaces/vllm-omni/vllm-PER-56-4090-A100-MBA | 工作区标为 completed，已 52.1 小时没人验收（没有 PR，分支 rebase-1019/pr2）（548 个提交不在远端默认分支）
+2026-10-21 01:27:25 SGT 结束：0 条嫌疑，0 条直发，0 条发送失败
