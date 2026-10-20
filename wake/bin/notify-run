@@ -167,10 +167,10 @@ start_watch() (  # 后台子 shell：到时间 agent 还在、还没走到第 1 
     kill -0 "$child" 2>/dev/null || exit 0
     agent_started && exit 0
     status=stuck code=0 kind=agent_not_started duration=$(( $(date +%s) - start ))
-    note="notify-run 起了 $agent_name（pid $child）已 ${NOTIFY_RUN_START_MIN:-5} 分钟，orca-wake 里还没有它的第 1 个回合（UserPromptSubmit）：可能卡在启动对话框、登录或信任目录，或者没装 hook。去终端看一眼"
+    note="notify-run 起了 ${agent_name}（pid ${child}）已 ${NOTIFY_RUN_START_MIN:-5} 分钟，orca-wake 里还没有它的第 1 个回合（UserPromptSubmit）：可能卡在启动对话框、登录或信任目录，或者没装 hook。去终端看一眼"
     send_webhook && exit 0
     [ "$bot" = coding-assistant ] && exit 0
-    note="$note（原本发给 $bot，没发出去）" bot=coding-assistant
+    note="${note}（原本发给 ${bot}，没发出去）" bot=coding-assistant
     send_webhook
 )
 

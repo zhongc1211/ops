@@ -25,6 +25,7 @@
 | `hooks/claude-settings.example.json` | — | hook 条目示例（`orca-wake-hooks install` 写入的就是这些） |
 | `.env.example` | `~/.config/grokbot/webhooks/<bot>.env` | webhook 配置格式（与 notify-run 共用） |
 | `tests/unit.sh`、`tests/mock_webhook.py` | — | 离线测试和本地模拟 webhook |
+| `tests/lint-bash32-utf8.sh` | — | 在仓库根目录跑：查 wake/、scripts/ 的 shell 里 `$name` 紧跟全角字符（/bin/bash 3.2 会报 unbound variable，要写 `${name}`），有命中打印「文件:行」并 exit 1 |
 
 ## 安装
 

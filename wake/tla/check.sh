@@ -57,10 +57,10 @@ RUNS=(
   "l03_p6_no_fallback_mutant Launch violated P6 改坏：只发派活 bot，发不出去不改发 Coding助手"
 )
 
-[ -x "$JAVA" ] || { echo "check.sh: 找不到 Java：$JAVA（见 README「安装」）" >&2; exit 2; }
-[ -r "$JAR" ] || { echo "check.sh: 找不到 tla2tools.jar：$JAR（见 README「安装」）" >&2; exit 2; }
+[ -x "$JAVA" ] || { echo "check.sh: 找不到 Java：${JAVA}（见 README「安装」）" >&2; exit 2; }
+[ -r "$JAR" ] || { echo "check.sh: 找不到 tla2tools.jar：${JAR}（见 README「安装」）" >&2; exit 2; }
 jar_sha=$(sha256sum "$JAR" | cut -c1-64)
-[ "$jar_sha" = "$JAR_SHA" ] || echo "check.sh: 注意：tla2tools.jar 的 sha256 不是 v1.7.4（$jar_sha），结果可能和记录的不同" >&2
+[ "$jar_sha" = "$JAR_SHA" ] || echo "check.sh: 注意：tla2tools.jar 的 sha256 不是 v1.7.4（${jar_sha}），结果可能和记录的不同" >&2
 
 # 被建模的代码变了没有：变了就要先对一遍模型（README「代码变了怎么办」），结果照常跑出来。
 drift=$(cd "$repo" && sha256sum -c --quiet "$here/SOURCES.sha256" 2>&1)
@@ -77,8 +77,8 @@ wait_resources() {
         load=$(cut -d' ' -f1 /proc/loadavg)
         if [ "${avail:-0}" -ge 2048 ] && awk "BEGIN{exit !($load <= 8)}"; then return 0; fi
         n=$((n + 1))
-        [ $n -le 3 ] || { echo "check.sh: 资源一直不够（可用 ${avail}MB，load $load），不跑了" >&2; return 1; }
-        echo "check.sh: 可用 ${avail}MB、load $load，等 5 分钟（第 $n 次）" >&2
+        [ $n -le 3 ] || { echo "check.sh: 资源一直不够（可用 ${avail}MB，load ${load}），不跑了" >&2; return 1; }
+        echo "check.sh: 可用 ${avail}MB、load ${load}，等 5 分钟（第 $n 次）" >&2
         sleep 300
     done
 }

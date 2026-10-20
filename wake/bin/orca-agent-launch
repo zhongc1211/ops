@@ -54,7 +54,7 @@ wake_reject() {  # $1=拒绝原因
     note="orca-agent-launch 拒绝：$1。agent 没起来（没有 notify-run，也不会有完工叫醒）；改好命令重新起"
     case "${bot:-}" in ""|*[!A-Za-z0-9._-]*|.*) ;; *) [ -n "$(webhook_env "$bot")" ] && to=$bot ;; esac
     send_reject "$to" "$note" && return 0
-    [ "$to" = coding-assistant ] || send_reject coding-assistant "$note（原本发给 $to，没发出去）" || true
+    [ "$to" = coding-assistant ] || send_reject coding-assistant "${note}（原本发给 ${to}，没发出去）" || true
 }
 die() { echo "orca-agent-launch: 拒绝：$*" >&2; wake_reject "$*"; exit 2; }
 usage_text() { echo "用法: orca-agent-launch --bot <bot> --task \"<描述>\" [--issue X --eta <YYYY-MM-DD[ HH:MM]>] [--no-linear] -- <claude|pi|codex> [参数...]" >&2; }

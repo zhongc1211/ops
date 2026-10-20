@@ -41,8 +41,8 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 
 | 文件 | sha256（前 16 位） | box `~/.local/bin` | iMac | MBA |
 |---|---|---|---|---|
-| wake/bin/notify-run | cc7d25e99ed2d8ce（F2 加了 pane、agent 字段，第 6 组加了起没起来的检查；建模时 72e01f954dc624ee） | 一致 | 一致 | 一致 |
-| wake/bin/orca-agent-launch | 20a441762a069921（第 6 组加了拒绝时叫醒；建模时 4355bc557b4876d0） | 一致 | 一致 | 一致 |
+| wake/bin/notify-run | 4ce9845ef12349d4（F2 加了 pane、agent 字段，第 6 组加了起没起来的检查，bash 3.2 下改写 `${var}`、行号不变；建模时 72e01f954dc624ee） | 没核对 | 没核对 | 没核对 |
+| wake/bin/orca-agent-launch | 907611083b053b4b（第 6 组加了拒绝时叫醒，bash 3.2 下改写 `${var}`、行号不变；建模时 4355bc557b4876d0） | 没核对 | 没核对 | 没核对 |
 | wake/bin/orca-wake | ab75137c97142a40 | 一致 | 一致 | 一致 |
 | wake/bin/orca-wake-hooks | 1a5e66d777618c76 | 一致 | 一致 | 一致 |
 | wake/bin/agent-stop | 7cc0ebefd5b5c53a | 一致 | 一致 | 一致 |
