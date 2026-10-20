@@ -47,7 +47,7 @@ o=$(runA rbfile); first=$(ls "$o"/home/env.* 2>/dev/null | head -1); first=${fir
 grep -q '^DISPLAY=:77$' "$first" && ok "A rollback file: serve-display :77 passes DISPLAY=:77" || ko "A rollback file: $(grep ^DISPLAY= "$first")"
 if [ "$REAL" = --real ]; then
   BIN=${ORCA_IDE_BIN:-/workspace/ops/orca-app/Orca/resources/bin/orca-ide}; H="$W/realhome"; mkdir -p "$H"
-  red(){ sed -E 's#(orca://pair\?code=)[^"[:space:]]+#\1<redacted>#g; s#("code"|"token"|"secret")[^,}]*#\1:"<redacted>"#g'; }
+  red(){ sed -u -E 's#(orca://pair\?code=)[^"[:space:]]+#\1<redacted>#g; s#("code"|"token"|"secret")[^,}]*#\1:"<redacted>"#g'; }
   env -i HOME="$H" PATH=/usr/local/bin:/usr/bin:/bin DISPLAY=:77 ORCA_SERVE_RUNTIME=electron timeout 60 "$BIN" serve --port 6799 --json 2>&1 | red >"$W/b0.log"
   rc=${PIPESTATUS[0]}
   grep -q 'DISPLAY=:77 is not verifiably live' "$W/b0.log" && [ "$rc" != 0 ] && ok "B0 control: dead DISPLAY -> exit $rc 'not verifiably live' (10-20 failure reproduced)" || ko "B0 control: rc=$rc"
