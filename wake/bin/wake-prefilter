@@ -21,9 +21,10 @@ else shadow (log "would drop", send anyway). off: callers do not run this progra
 Rules (a-f). A wake is dropped only when one of them matches; unknown or unreadable state lets it through.
   a  done (notify-run, agent layer) and idle (orca-wake Stop / recheck) of the same work unit: the later one is dropped
      when the session had no new turn in between and the earlier one got a 2xx. Covered.
-  b  after the unit's done got a 2xx, later idle / done / killed of the same unit (covered); or the workspace is Sleep
-     (Orca worktree cache) or has .orca-wake-mute: idle / done / killed dropped (not covered). failed, needs_input, error,
-     blocked, stuck are never dropped by a-c, f.
+  b  after the unit's done got a 2xx, later idle of the same session (an older turn, idle:N) or a done / killed of
+     another notify-run of the same work (same workspace, bot and task) that was running meanwhile (covered); or the
+     workspace is Sleep (Orca worktree cache) or has .orca-wake-mute: idle / done / killed dropped (not covered).
+     failed, needs_input, error, blocked, stuck are never dropped by a-c, f.
   c  killed (notify-run) whose agent has an agent-stop mark (~/.orca-state/agent-stops/, same pid, start time within 10 s,
      written after the agent started): the bot closed it itself. Not covered. A killed without a mark always goes out.
   d  task or workspace display name starts with "[演练" and matches no line (regex) of
@@ -315,7 +316,10 @@ def check_notify_run(p, a):
         if status == "done":
             rule_f(p, outer)
         return
-    if outer != me or status != "done":
+    if outer != me:
+        return
+    rule_b_unit(p, a)
+    if status != "done":
         return
     # a: idle of this unit already delivered, no new turn since
     s = session_of(me)
@@ -325,6 +329,22 @@ def check_notify_run(p, a):
     w = (s.get("woken") or {}).get(turn.split(".")[0] if s.get("agent") == "claude" else turn) or {}
     if w and w.get("source") != "prefilter" and not s.get("asked"):
         raise Drop("a", "同一会话第 %s 回合的 %s 已送达（%s），之后没有新回合" % (turn, w.get("status"), w.get("ts")), True)
+
+
+def rule_b_unit(p, a):
+    """b: another notify-run of the same work (workspace + bot + task) delivered done while this one was running."""
+    start, ws = int(a.get("start") or 0), os.path.abspath(a.get("ws") or "/").rstrip("/")
+    d = os.path.join(PF_DIR, "units")
+    try:
+        names = [n for n in os.listdir(d) if n.endswith(".json") and n != os.path.basename(unit_file(a["pid"]))]
+    except OSError:
+        return
+    for n in names:
+        u = load(os.path.join(d, n))
+        if (isinstance(u, dict) and u.get("status") == "done" and start and (u.get("ts") or 0) >= start
+                and os.path.abspath(u.get("ws") or "/").rstrip("/") == ws
+                and u.get("bot") == p.get("bot") and u.get("task") == p.get("task")):
+            raise Drop("b", "同一件活（同工作区、bot、task）的 done 已送达（%s）" % u.get("ts_iso"), True)
 
 
 def rule_c(a):
@@ -416,10 +436,10 @@ def check_stuck(p, a):
     if info is None:
         refresh_later("linear", ident)
         return
-    if info.get("state") == "completed":
-        raise Drop("e", "Linear %s 已 Done" % ident)
     if info.get("zack_merge"):
         raise Drop("e", "Linear %s 有 %s" % (ident, info["zack_merge"][0][:60]))
+    if info.get("state") == "completed":
+        raise Drop("e", "Linear %s 已 Done" % ident)
 
 
 CHECKS = {"notify-run": check_notify_run, "orca-wake": check_orca_wake, "stuck-check": check_stuck}

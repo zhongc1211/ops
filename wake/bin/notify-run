@@ -109,8 +109,12 @@ pf_mode() {
 }
 pf_run() {  # $1 = check | record；payload 是 $tmpd/payload.json；最多 3 秒（perl alarm，到时间被杀 = 照发）
     [ -x "$PF_BIN" ] || return 0
+    # 输出写文件不走管道：它留下的子进程占着管道时 $(...) 会一直等到子进程退出
     perl -e 'alarm 3; exec @ARGV or exit 0' "$PF_BIN" "$1" --source notify-run --pid $$ --child "${child:-}" \
-        --start "$start" --ws "$start_dir" <"$tmpd/payload.json" 2>/dev/null
+        --start "$start" --ws "$start_dir" <"$tmpd/payload.json" >"$tmpd/pf.out" 2>/dev/null
+    local rc=$?
+    cat "$tmpd/pf.out" 2>/dev/null
+    return $rc
 }
 
 # 打到 stderr 的提示一律经外部 echo：终端关掉后（HUP）写终端会失败，bash 内建 echo 失败时内容留在 stdio 缓冲里，

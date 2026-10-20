@@ -325,14 +325,17 @@ def prefilter(payload):
             pass
     if DRY or m == "off" or not os.access(PREFILTER, os.X_OK):
         return None
-    try:
-        p = subprocess.run([PREFILTER, "check", "--source", "stuck-check"], capture_output=True, text=True, timeout=3,
-                           input=json.dumps(payload, ensure_ascii=False))
+    try:  # 输出写文件不走管道：它留下的子进程占着管道时会一直等
+        with tempfile.TemporaryFile("w+", encoding="utf-8") as out:
+            p = subprocess.run([PREFILTER, "check", "--source", "stuck-check"], stdout=out, stderr=subprocess.DEVNULL,
+                               text=True, timeout=3, input=json.dumps(payload, ensure_ascii=False))
+            out.seek(0)
+            text = out.read()
     except (OSError, subprocess.TimeoutExpired):
         return None
     if p.returncode != 3:
         return None
-    why = p.stdout.strip().split("\t")
+    why = text.strip().split("\t")
     log("预过滤挡掉 | %s | %s | %s" % (payload.get("task"), why[0], why[-1]))
     return "%s：%s" % (why[0], why[-1])
 

@@ -71,6 +71,7 @@ import socket
 import ssl
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -481,14 +482,17 @@ def prefilter(job):
             pass
     if m == "off" or not os.access(PREFILTER, os.X_OK):
         return None
-    try:
-        r = subprocess.run([PREFILTER, "check", "--source", "orca-wake"], capture_output=True, text=True, timeout=3,
-                           input=json.dumps(build_payload(job), ensure_ascii=False))
+    try:  # stdout to a file, not a pipe: a child it leaves behind would keep the pipe (and us) waiting
+        with tempfile.TemporaryFile("w+", encoding="utf-8") as out:
+            r = subprocess.run([PREFILTER, "check", "--source", "orca-wake"], stdout=out, stderr=subprocess.DEVNULL,
+                               text=True, timeout=3, input=json.dumps(build_payload(job), ensure_ascii=False))
+            out.seek(0)
+            text = out.read()
     except Exception:
         return None
     if r.returncode != 3:
         return None
-    rule, covered, reason = (r.stdout.rstrip("\n").split("\t", 2) + ["", "", ""])[:3]
+    rule, covered, reason = (text.rstrip("\n").split("\t", 2) + ["", "", ""])[:3]
     return rule, covered == "1", reason
 
 
