@@ -14,7 +14,8 @@
 #   打包失败就不关。先发 SIGTERM，30 秒后还在就发 SIGKILL。只按确认过的 PID 操作。
 # Chrome：只报告运行超过 24 小时、CPU 超过 50% 的 helper 进程，不杀。
 # 报告：每次运行在 ~/orca/workspaces/ops/reports/cleanup-<日期>.md 追加一节。
-# webhook：只有关不掉的进程或 Chrome 异常才 POST 到 ~/.config/grokbot/stuck-webhook.env，多条合并成一条
+# webhook：只有关不掉的进程或 Chrome 异常才 POST 给 ops-system（~/.config/grokbot/webhooks/ops-system.env；没有这个文件时
+#   用 ~/.config/grokbot/stuck-webhook.env，即 coding-assistant，报告里写明），多条合并成一条
 #   {bot,task,worktree,status,note}；同一个 Chrome 进程只报一次。URL 和 KEY 不会出现在输出和报告里。
 # --pressure-check：给「负载触发」自动化做前置检查。5 分钟 load 超过 2×核数，或内存剩余低于 25%，
 #   并且距上次运行超过 CLEANUP_PRESSURE_COOLDOWN_HOURS（默认 3）小时时 exit 0，否则 exit 1。
@@ -40,7 +41,10 @@ CHROME_CPU = env_f("CLEANUP_CHROME_CPU", "50")
 LOAD_FACTOR = env_f("CLEANUP_LOAD_FACTOR", "2")
 MEM_FREE_MIN = env_f("CLEANUP_MEM_FREE_MIN", "25")
 COOLDOWN_H = env_f("CLEANUP_PRESSURE_COOLDOWN_HOURS", "3")
-ENV_FILE = os.environ.get("CLEANUP_ENV_FILE") or os.path.join(HOME, ".config/grokbot/stuck-webhook.env")
+# 10-20 前发 bot "ops" 到 stuck-webhook.env（URL 就是 coding-assistant 的），ops 系统收不到
+OPS_ENV = os.path.join(HOME, ".config/grokbot/webhooks/ops-system.env")
+ENV_FILE = os.environ.get("CLEANUP_ENV_FILE") or (
+    OPS_ENV if os.path.isfile(OPS_ENV) else os.path.join(HOME, ".config/grokbot/stuck-webhook.env"))
 STATE_DIR = os.environ.get("CLEANUP_STATE_DIR") or os.path.join(HOME, ".orca-state/mem-cpu-cleanup")  # 这几个覆盖项只给测试用
 REPORT_DIR = os.environ.get("CLEANUP_REPORT_DIR") or os.path.join(HOME, "orca/workspaces/ops/reports")
 ARCHIVE_ROOT = os.environ.get("CLEANUP_ARCHIVE_ROOT") or os.path.join(HOME, "archive")
@@ -481,7 +485,7 @@ def main():
     hook, rc = "没有关不掉的进程，也没有新的 Chrome 异常，不发 webhook", 0
     if items:
         kinds = (["kill_failed"] if failed else []) + (["chrome_abnormal"] if chrome_new else [])
-        payload = {"bot": "ops", "task": "cleanup", "worktree": "iMac",
+        payload = {"bot": "ops-system", "task": "cleanup", "worktree": "iMac",
                    "status": kinds[0] if len(kinds) == 1 else "mixed",
                    "note": items[0] if len(items) == 1 else "共 %d 条：\n" % len(items) + "\n".join(
                        "%d. %s" % (i, t) for i, t in enumerate(items, 1))}
@@ -498,7 +502,8 @@ def main():
         else:
             code = post(cfg, payload)
             if isinstance(code, int) and 200 <= code < 300:
-                hook = "已 POST 1 条（HTTP %d），含 %d 项" % (code, len(items))
+                hook = "已 POST 1 条（HTTP %d），含 %d 项%s" % (code, len(items), "" if ENV_FILE == OPS_ENV or os.environ.get(
+                    "CLEANUP_ENV_FILE") else "（ops-system 没有 webhook 配置，改报 coding-assistant）")
                 for c in chrome_new:
                     seen[ckey(c)] = NOW
             else:

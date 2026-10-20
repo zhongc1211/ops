@@ -36,7 +36,9 @@
 #     agent_silent agent 进程还在、不在等输入，但终端超过 STUCK_IDLE_MIN 分钟没有新输出。
 #   进程情况由 ~/.local/bin/agent-probe 提供（box 上通过一个临时 Orca 终端跑，跑完关掉；只在有新的可疑工作区时才跑）。
 #   嫌疑先写进 pending.json，由自动化里的 Claude 复核（读终端屏幕）后再发；--dismiss 的不发。
-#   发给派活的 bot：按 orca-projects.md 映射到 ~/.config/grokbot/webhooks/<bot>.env，没有对应文件的发给 coding-assistant。
+#   发给派活的 bot：按 orca-projects.md 映射到 ~/.config/grokbot/webhooks/<bot>.env，没有对应文件的发给 coding-assistant
+#   （日志写「<bot> 没有 webhook 配置，改报 coding-assistant」）。ops 项目的工作区归 ops-system（10-20 前「定时任务」映射成
+#   不存在的 ops.env，全落到 coding-assistant）。
 #   payload：{bot, task, worktree, status:"stuck", kind, note, machine, source:"stuck-check"}。
 #   同一工作区报过（或复核后排除）就不再报，直到 agent 有新动作（agent_silent 还包括终端有新输出）。
 #   agent 的动作时间取 Orca 的 agent 状态记录；没有记录时（以及 box 上的输出时间）用终端屏幕指纹，由每次检查比对得出。
@@ -45,6 +47,10 @@
 #   父链里没有 notify-run（做完不会叫醒任何人），而且不是 Orca 自动任务起的（运行记录里的 paneKey，或命令行 / Orca 记的 prompt
 #   和某个自动任务的 prompt 对得上）→ 报给工作区对应的 bot，认不出的报 coding-assistant（kind agent_unwrapped）。
 #   每个进程报一次（进程不退出就一直记着，在 Orca 工作区外面的也一样，10-19 MBA pid 36142），同一个 bot 的合成一条。
+#   脱离了父进程的子 agent 不报：父链里没有 agent 也没有 notify-run，但同一个 Orca 终端（ORCA_PANE_KEY）里有一个被
+#   notify-run 包着的顶层 agent（agent-probe 的 adopted_by），算那个 agent 的子 agent（10-19 17:42 ce-code-review 的
+#   peer-job-runner 起的 codex 被 launchd 收养，误报过）。读不到 paneKey 的，同一个任务工作区（主目录除外）里有包着的顶层
+#   agent 也算。
 #   起 agent 用 wake/bin/orca-agent-launch（不带 --bot 就拒绝）。
 #
 # 一 b、due date 对账（每次都查，脚本直接发）。有 due 的 Linear issue：In Progress 超过 STUCK_DUE_GRACE_MIN（默认 30）
@@ -92,6 +98,7 @@
 # 退出码：0 正常（--scan 见上）；2 iMac Orca 查询失败；3 有 webhook 重试后仍然失败；4 脚本自己出错
 #   （--scan 时出错或 iMac Orca 查询失败也返回 0，让自动化启动 agent 把错误报出来）。
 # 测试用环境变量：STUCK_STATE_DIR、STUCK_ENV_FILE、STUCK_WEBHOOK_DIR、STUCK_RUNS_DIR、STUCK_FORCE_BOT（所有 bot 改发到它）、
+#   STUCK_MAPPING（orca-projects.md 路径）、STUCK_PROBE / STUCK_BOX_PROBE（本机 / box、MBA 上的 agent-probe 路径）、
 #   STUCK_ONLY（正则，只查路径匹配的工作区；没包 notify-run 的 agent 按 cwd 匹配）、STUCK_BOX_ENV、STUCK_MBA_ENV、STUCK_ORCA_WAKE（本机 orca-wake 路径）、
 #   STUCK_BOX_WAKE_CONFIG_DIR（box 上 orca-wake 的 ORCA_WAKE_CONFIG_DIR；本机的直接继承环境变量）。
 set -u
@@ -118,12 +125,13 @@ BACKOFF = [float(x) for x in os.environ.get("STUCK_BACKOFF", "5,15,45").split(",
 POST_GAP = float(os.environ.get("STUCK_POST_GAP", "6"))
 FORCE_BOT = os.environ.get("STUCK_FORCE_BOT")
 ONLY = re.compile(os.environ["STUCK_ONLY"]) if os.environ.get("STUCK_ONLY") else None
-MAPPING = os.path.join(HOME, "orca/workspaces/ops/orca-projects.md")
+MAPPING = os.environ.get("STUCK_MAPPING") or os.path.join(HOME, "orca/workspaces/ops/orca-projects.md")
 ENV_FILE = os.environ.get("STUCK_ENV_FILE") or os.path.join(HOME, ".config/grokbot/stuck-webhook.env")
 WEBHOOK_DIR = os.environ.get("STUCK_WEBHOOK_DIR") or os.path.join(HOME, ".config/grokbot/webhooks")
 STATE_DIR = os.environ.get("STUCK_STATE_DIR") or os.path.join(HOME, ".orca-state/stuck-check")
 RUNS_DIR = os.environ.get("STUCK_RUNS_DIR") or os.path.join(HOME, ".orca-state/runs")
 PROBE = os.environ.get("STUCK_PROBE") or os.path.join(HOME, ".local/bin/agent-probe")
+BOX_PROBE = os.environ.get("STUCK_BOX_PROBE") or "~/.local/bin/agent-probe"  # box / MBA 上 agent-probe 的路径
 BOX_PROBE_WT = os.environ.get("STUCK_BOX_PROBE_WT", "path:/workspace/repos/deepvision-site")
 MBA_PROBE_WT = os.environ.get("STUCK_MBA_PROBE_WT", "path:/Users/jiawenwang/orca/workspaces/ops")
 PROBE_WT = {}  # environment 名 → 临时终端开在哪个工作区，查到环境名时填
@@ -152,8 +160,8 @@ MAIN_MAX_AGE_H = float(os.environ.get("STUCK_MAIN_MAX_AGE_H", "24"))  # 主目�
 HB_FILE = os.path.join(STATE_DIR, "heartbeat.json")  # 每次跑完写一次；另一台机器的 heartbeat-watch 盯它（经自动任务运行记录）
 # orca-projects.md 里的 bot 名 → ~/.config/grokbot/webhooks/ 下的文件名
 BOT_SLUG = {"心月网站 运维": "xinyue", "deepvision 运维": "deepvision-ops", "deepvision 广告产品": "deepvision-ads",
-            "vllm-omni 开发": "vllm-omni", "定时任务": "ops", "deepvision 营销": "deepvision-marketing",
-            "营销": "deepvision-marketing"}
+            "vllm-omni 开发": "vllm-omni", "定时任务": "ops-system", "ops 系统": "ops-system",
+            "deepvision 营销": "deepvision-marketing", "营销": "deepvision-marketing"}
 # 工作区显示名前缀 → bot（营销没有自己的仓库和 Linear 团队，FDV 编号和广告、运维混用，只能靠显示名或 notify-run --bot 认）
 NAME_BOT = [(re.compile(r"^\s*(?:dv\s*)?营销\s*·|^\s*deepvision[\s-]*marketing\b|^\s*marketing\s*·", re.I),
              "deepvision-marketing")]
@@ -513,11 +521,11 @@ def run_probe(host):
         if doc is None:
             log("%s：agent-probe 失败（%s），这次不判断进程是否还在" % (host["label"], (err or "无输出")[:120]))
         return doc
-    text, err = box_run(host["env"], "~/.local/bin/agent-probe; echo @@PROBE-RC$?", "stuck-check probe", r"^@@PROBE-RC\d")
+    text, err = box_run(host["env"], BOX_PROBE + "; echo @@PROBE-RC$?", "stuck-check probe", r"^@@PROBE-RC\d")
     if text is None:
         log("%s：agent-probe 第一次失败（%s），15 秒后再试一次" % (host["label"], err))
         time.sleep(15)
-        text, err = box_run(host["env"], "~/.local/bin/agent-probe; echo @@PROBE-RC$?", "stuck-check probe", r"^@@PROBE-RC\d")
+        text, err = box_run(host["env"], BOX_PROBE + "; echo @@PROBE-RC$?", "stuck-check probe", r"^@@PROBE-RC\d")
     if text is None:
         log("%s：%s，这次不判断进程是否还在" % (host["label"], err))
         return None
@@ -725,10 +733,16 @@ def check_unwrapped(host, track, pend=()):
     per_bot = {}
     # 报过的记录只在进程真的没了才删（ONLY 过滤掉的、这次不算的照样留着），同一个进程只报一次（10-19 MBA pid 36142）
     alive = {"%s:%d" % (label, p["pid"]) for p in probe.get("procs", [])}
+    mains = {w["path"] for w in host["worktrees"] if w.get("isMainWorktree")}
+    # 读不到 paneKey 的脱离子 agent 按工作区认父 agent：这些任务工作区里有被 notify-run 包着的顶层 agent（主目录里 agent 太多，不算）
+    wrapped_ws = {ws_of(p.get("cwd") or "", ws_paths) for p in probe.get("procs", []) if p["kind"] == "agent" and
+                  p.get("notify_anc") and not p.get("agent_anc_cwds")} - mains - {None}
     for p in probe.get("procs", []):
         if p["kind"] != "agent" or p.get("name") not in WATCH_AGENTS or p.get("agent_anc_cwds") or \
                 p.get("notify_anc") or not p.get("in_orca") or (ONLY and not ONLY.search(p.get("cwd") or "")):
             continue
+        if p.get("adopted_by") or (not p.get("pane") and ws_of(p.get("cwd") or "", ws_paths) in wrapped_ws):
+            continue  # 脱离了父进程的子 agent，派它的顶层 agent 包着 notify-run
         k = "%s:%d" % (label, p["pid"])
         start = int(probe.get("ts", NOW) - p.get("etime_s", 0))
         if k in pend or (k in seen and abs(seen[k].get("start", 0) - start) < 120):
@@ -1350,6 +1364,8 @@ def bot_cfg(bot):
         cfg = read_env(os.path.join(WEBHOOK_DIR, "%s.env" % name)) if re.fullmatch(r"[A-Za-z0-9._-]+", name or "") else None
         if cfg:
             return name, cfg
+        if name == bot and name != FALLBACK_BOT:
+            log("%s 没有 webhook 配置，改报 %s" % (bot, FALLBACK_BOT))
     return FALLBACK_BOT, read_env(ENV_FILE)
 
 
