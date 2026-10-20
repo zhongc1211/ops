@@ -11,9 +11,9 @@ ok   10 A7 c_untracked -> SKIP/W7 (got SKIP/W7)
 ok   11 A8 c_unpushed -> SKIP/W8 (got SKIP/W8)
 FAIL 12 A9 c_open_pr -> SKIP/W9 (got RM/W14)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -48,9 +48,9 @@ ok   26 A19 c_not_git -> SKIP/W7 (got SKIP/W7)
 ok   27 A21 git_only -> LIST/W16 (got LIST/W16)
 FAIL 28 B1 c_gone_local -> SKIP/W4 (got RM/W4)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -70,9 +70,9 @@ FAIL 28 B1 c_gone_local -> SKIP/W4 (got RM/W4)
      | | W5 | 3 |
 FAIL 29 B2 c_missing -> SKIP/W4 (got RM/W4)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -93,9 +93,9 @@ FAIL 29 B2 c_missing -> SKIP/W4 (got RM/W4)
 ok   30 B3 c_gone_pushed -> RM/W4 (got RM/W4)
 FAIL 31 B4 c_gone_ownbranch -> SKIP/W4 (got RM/W4)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -115,9 +115,9 @@ FAIL 31 B4 c_gone_ownbranch -> SKIP/W4 (got RM/W4)
      | | W5 | 3 |
 FAIL 32 B5 c_testresults -> BACKUP_RM/W13 (got RM/W14)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -137,9 +137,9 @@ FAIL 32 B5 c_testresults -> BACKUP_RM/W13 (got RM/W14)
      | | W5 | 3 |
 FAIL 33 B6 c_report -> BACKUP_RM/W13 (got RM/W14)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -159,9 +159,9 @@ FAIL 33 B6 c_report -> BACKUP_RM/W13 (got RM/W14)
      | | W5 | 3 |
 FAIL 34 B6 c_tgz -> BACKUP_RM/W13 (got RM/W14)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -182,9 +182,9 @@ FAIL 34 B6 c_tgz -> BACKUP_RM/W13 (got RM/W14)
 ok   35 B7 c_mixed_dir -> BACKUP_RM/W13 (got BACKUP_RM/W13)
 FAIL 36 B9 c_nested_git -> SKIP/W13 (got RM/W14)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -204,9 +204,9 @@ FAIL 36 B9 c_nested_git -> SKIP/W13 (got RM/W14)
      | | W5 | 3 |
 FAIL 37 B10 c_fifo -> SKIP/W13 (got RM/W14)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -226,9 +226,9 @@ FAIL 37 B10 c_fifo -> SKIP/W13 (got RM/W14)
      | | W5 | 3 |
 FAIL 38 B11 c_moved_open -> SKIP/W9 (got RM/W14)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -248,9 +248,9 @@ FAIL 38 B11 c_moved_open -> SKIP/W9 (got RM/W14)
      | | W5 | 3 |
 FAIL 39 B12 c_old_open_pr -> SKIP/W9 (got RM/W14)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -272,9 +272,9 @@ ok   40 B13 c_linked_dup -> SKIP/W9 (got SKIP/W9)
 ok   41 B15 c_merged_inreview -> SKIP/W11 (got SKIP/W11)
 FAIL 42 B15 c_sleep_cap -> SKIP/W11 (got RM/W14)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -294,9 +294,9 @@ FAIL 42 B15 c_sleep_cap -> SKIP/W11 (got RM/W14)
      | | W5 | 3 |
 FAIL 43 B16 c_ps_agent -> SKIP/W5 (got RM/W14)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -316,9 +316,9 @@ FAIL 43 B16 c_ps_agent -> SKIP/W5 (got RM/W14)
      | | W5 | 3 |
 FAIL 44 B17 c_termhost -> SKIP/W6 (got RM/W14)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -339,9 +339,9 @@ FAIL 44 B17 c_termhost -> SKIP/W6 (got RM/W14)
 ok   45 B28 c_build -> RM/W14 (got RM/W14)
 FAIL 46 B34 c_head_unmerged -> SKIP/W17 (got RM/W14)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -361,9 +361,9 @@ FAIL 46 B34 c_head_unmerged -> SKIP/W17 (got RM/W14)
      | | W5 | 3 |
 FAIL 47 B35 c_linear_done_unmerged -> SKIP/W17 (got RM/W14)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -384,9 +384,9 @@ FAIL 47 B35 c_linear_done_unmerged -> SKIP/W17 (got RM/W14)
 ok   48 B36 c_head_pr_merged -> RM/W14 (got RM/W14)
 FAIL 49 B36 c_head_pr_merged merged_via names PR #61
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -404,11 +404,11 @@ FAIL 49 B36 c_head_pr_merged merged_via names PR #61
      | | W3 | 1 |
      | | W4 | 4 |
      | | W5 | 3 |
-FAIL 50 B1 c_gone_local reason names the commit ce8b66d
+FAIL 50 B1 c_gone_local reason names the commit 53c56f3
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -428,9 +428,9 @@ FAIL 50 B1 c_gone_local reason names the commit ce8b66d
      | | W5 | 3 |
 FAIL 51 B3 c_gone_pushed reason says the git worktree record goes too
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -450,9 +450,9 @@ FAIL 51 B3 c_gone_pushed reason says the git worktree record goes too
      | | W5 | 3 |
 FAIL 52 B5 c_testresults backup lists test-results
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -472,9 +472,9 @@ FAIL 52 B5 c_testresults backup lists test-results
      | | W5 | 3 |
 FAIL 53 B7 c_mixed_dir backup is the whole scratch dir
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -492,12 +492,12 @@ FAIL 53 B7 c_mixed_dir backup is the whole scratch dir
      | | W3 | 1 |
      | | W4 | 4 |
      | | W5 | 3 |
-grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/out1/backup-files.tsv: No such file or directory
+grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/out1/backup-files.tsv: No such file or directory
 FAIL 54 B29 backup-files.tsv lists scratch/notes.txt and scratch/TASK.md of c_mixed_dir
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -517,9 +517,9 @@ FAIL 54 B29 backup-files.tsv lists scratch/notes.txt and scratch/TASK.md of c_mi
      | | W5 | 3 |
 FAIL 55 B8 c_cache_only rebuild column shows both cache entries
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -539,9 +539,9 @@ FAIL 55 B8 c_cache_only rebuild column shows both cache entries
      | | W5 | 3 |
 FAIL 56 B15 c_merged_inreview reason says 状态冲突
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -561,9 +561,9 @@ FAIL 56 B15 c_merged_inreview reason says 状态冲突
      | | W5 | 3 |
 FAIL 57 B24 reason has no time-derived number (c_recent)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -582,13 +582,13 @@ FAIL 57 B24 reason has no time-derived number (c_recent)
      | | W4 | 4 |
      | | W5 | 3 |
 ok   58 A15 c_backup lists .dev.vars and .orca-task
-awk: can't open file /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/out1/backup-files.tsv
+awk: can't open file /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/out1/backup-files.tsv
  source line number 1
 FAIL 59 A18 every TSV row has the header's column count
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -609,9 +609,9 @@ FAIL 59 A18 every TSV row has the header's column count
 ok   60 A20 planned rm has no --force
 FAIL 61 M7 comment column masks URLs
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -643,9 +643,9 @@ ok   72 A24 t_sib_empty -> CLOSE/T4 (got CLOSE/T4)
 ok   73 B18' t_agent_sib -> CLOSE/T4 (got CLOSE/T4)
 FAIL 74 B18' t_agent_sib_fresh -> SKIP/T7 (got CLOSE/T4)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -665,9 +665,9 @@ FAIL 74 B18' t_agent_sib_fresh -> SKIP/T7 (got CLOSE/T4)
      | | W5 | 3 |
 FAIL 75 B19 t_self_sib -> SKIP/T3 (got CLOSE/T4)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -687,9 +687,9 @@ FAIL 75 B19 t_self_sib -> SKIP/T3 (got CLOSE/T4)
      | | W5 | 3 |
 FAIL 76 B20 t_folder -> SKIP/T8 (got CLOSE/T4)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -709,9 +709,9 @@ FAIL 76 B20 t_folder -> SKIP/T8 (got CLOSE/T4)
      | | W5 | 3 |
 FAIL 77 B20 t_main -> SKIP/T8 (got CLOSE/T4)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -731,9 +731,9 @@ FAIL 77 B20 t_main -> SKIP/T8 (got CLOSE/T4)
      | | W5 | 3 |
 FAIL 78 B21 t_fresh -> SKIP/T7 (got CLOSE/T4)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -753,9 +753,9 @@ FAIL 78 B21 t_fresh -> SKIP/T7 (got CLOSE/T4)
      | | W5 | 3 |
 FAIL 79 B21 t_nolast -> SKIP/T7 (got CLOSE/T4)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -775,9 +775,9 @@ FAIL 79 B21 t_nolast -> SKIP/T7 (got CLOSE/T4)
      | | W5 | 3 |
 FAIL 80 B22 t_midoutput -> SKIP/T2 (got CLOSE/T4)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -796,13 +796,13 @@ FAIL 80 B22 t_midoutput -> SKIP/T2 (got CLOSE/T4)
      | | W4 | 4 |
      | | W5 | 3 |
 awk: illegal field $(), name "a"
- input record number 2, file /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/out1/terminals.tsv
+ input record number 2, file /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/out1/terminals.tsv
  source line number 1
 FAIL 81 B33 every CLOSE row has an archive path
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -822,9 +822,9 @@ FAIL 81 B33 every CLOSE row has an archive path
      | | W5 | 3 |
 FAIL 82 B23 no planned close uses --tab
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -852,9 +852,9 @@ ok   89 A29 worktree list fails -> exit 4, no result files
 ok   90 A29 terminal list fails -> exit 4, no result files
 FAIL 91 A6 diagnostics fails -> worktrees with terminals are SKIP W6, nothing to CLOSE, exit 5
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -874,9 +874,9 @@ FAIL 91 A6 diagnostics fails -> worktrees with terminals are SKIP W6, nothing to
      | | W5 | 2 |
 FAIL 92 B16 worktree ps fails -> no RM at all, exit 5
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -902,9 +902,9 @@ FAIL 94 B27 --precheck writes output and exits 1
      | 用法：ws-cleanup.sh [--execute] [--list-only] [--out DIR]
 FAIL 95 B28 WS_REBUILD_DIRS=node_modules -> c_cache_only must back up dist (BACKUP_RM)
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -924,9 +924,9 @@ FAIL 95 B28 WS_REBUILD_DIRS=node_modules -> c_cache_only must back up dist (BACK
      | | W5 | 3 |
 FAIL 96 B26 default output goes under the archive root, not the ops workspace
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive2`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive2`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -957,7 +957,7 @@ Traceback (most recent call last):
   File "<string>", line 1, in <module>
     import sys; L=open(sys.argv[1]).read().splitlines(); open(sys.argv[1],"w").write("\n".join(l for l in L if "/x_notlisted\t" not in l)+"\n")
                   ~~~~^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/xd/worktrees.tsv'
+FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/xd/worktrees.tsv'
 FAIL 100 E4 execute stops at the pause point
      stdout/stderr:
      | 用法：ws-cleanup.sh [--execute] [--list-only] [--out DIR]
@@ -1029,45 +1029,59 @@ FAIL 123 B32 t_x_arcfail: archive failed -> not closed, counted as a failure
      stdout/stderr:
      | 用法：ws-cleanup.sh [--execute] [--list-only] [--out DIR]
 ok   124 B30 t_x_agent never closed
-grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/fix/lsof-calls.log: No such file or directory
+grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/fix/lsof-calls.log: No such file or directory
 FAIL 125 B31 dry-run never ran lsof
      stdout/stderr:
      | 用法：ws-cleanup.sh [--execute] [--list-only] [--out DIR]
-grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/xe/journal.tsv: No such file or directory
+grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/xe/journal.tsv: No such file or directory
 FAIL 126 E16 journal has rm-start / rm-end for x_ok
      stdout/stderr:
      | 用法：ws-cleanup.sh [--execute] [--list-only] [--out DIR]
-grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/xe: No such file or directory
+grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/xe: No such file or directory
 ok   127 E3 fake secrets not in execute output or stdout
-FAIL 128 E12 same-day rerun: x_rmfail BACKUP_FAIL 备份目录已存在, no rm for it
+FAIL 128 D3 x_sha / x_e8a_noperm: half-copied backup set aside as .failed-*, nothing left under the real name
      stdout/stderr:
      | 用法：ws-cleanup.sh [--execute] [--list-only] [--out DIR]
-FAIL 129 E19 without --close-terminals no terminal is closed
+cat: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/xd/worktrees.tsv: No such file or directory
+awk: can't open file /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/xd/worktrees.tsv
+ source line number 1
+FAIL 129 E12 same-day rerun: x_rmfail BACKUP_FAIL 备份目录已存在, no rm for it
      stdout/stderr:
      | 用法：ws-cleanup.sh [--execute] [--list-only] [--out DIR]
-FAIL 130 E10 no gh -> exit 5, nothing removed, summary says why
+ok   130 D3 same-day rerun: x_sha not blocked by the failed first attempt
+FAIL 131 D1 listed RM that is SKIP when --execute starts: result says so
      stdout/stderr:
      | 用法：ws-cleanup.sh [--execute] [--list-only] [--out DIR]
-FAIL 131 E11 lock held by a live pid -> exit 6, nothing removed
+grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/xe2/journal.tsv: No such file or directory
+FAIL 132 D1 listed id no longer in Orca: journal not-found line
      stdout/stderr:
      | 用法：ws-cleanup.sh [--execute] [--list-only] [--out DIR]
-FAIL 132 E11 stale lock (dead pid) is taken over and the run goes on
+FAIL 133 E19 without --close-terminals no terminal is closed
+     stdout/stderr:
+     | 用法：ws-cleanup.sh [--execute] [--list-only] [--out DIR]
+FAIL 134 E10 no gh -> exit 5, nothing removed, summary says why
+     stdout/stderr:
+     | 用法：ws-cleanup.sh [--execute] [--list-only] [--out DIR]
+FAIL 135 E11 lock held by a live pid -> exit 6, nothing removed
+     stdout/stderr:
+     | 用法：ws-cleanup.sh [--execute] [--list-only] [--out DIR]
+FAIL 136 E11 stale lock (dead pid) is taken over and the run goes on
      stdout/stderr:
      | 用法：ws-cleanup.sh [--execute] [--list-only] [--out DIR]
 Traceback (most recent call last):
   File "<string>", line 1, in <module>
     import sys; L=open(sys.argv[1]).read().splitlines(); rm=[l for l in L if "\tRM\t" in l][0]; open(sys.argv[2],"w").write("\n".join(L+[rm.replace("r-x::","r-proj::",1)])+"\n")
                   ~~~~^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/xd/worktrees.tsv'
-cp: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/xd/terminals.tsv: No such file or directory
-ok   133 W40 --repo whitelist: one listed candidate outside r-x -> exit 2, nothing removed
-ok   134 E14 --execute without --only-from -> exit 2
-ok   135 E17 --execute refused on MBA and on a host not named exactly iMac (exit 2)
-FAIL 136 E18 WS_ORCA set but missing -> exit 2, no fallback
+FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/xd/worktrees.tsv'
+cp: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/xd/terminals.tsv: No such file or directory
+ok   137 W40 --repo whitelist: one listed candidate outside r-x -> exit 2, nothing removed
+ok   138 E14 --execute without --only-from -> exit 2
+ok   139 E17 --execute refused on MBA and on a host not named exactly iMac (exit 2)
+FAIL 140 E18 WS_ORCA set but missing -> exit 2, no fallback
      stdout/stderr:
-     | # ws-cleanup dry-run（iMac，2026-10-21 04:03:11 SGT）
+     | # ws-cleanup dry-run（iMac，2026-10-21 04:39:17 SGT）
      | 
-     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.rHkzfF/archive`。
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/bin/orca`；空闲门槛 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.nBmNdS/archive`。
      | 
      | | 动作 | 工作区 |
      | |---|---|
@@ -1086,5 +1100,4 @@ FAIL 136 E18 WS_ORCA set but missing -> exit 2, no fallback
      | | W4 | 4 |
      | | W5 | 3 |
 not run: E13 (needs the real Orca; see scripts/tests/ws-cleanup-drill.sh)
-60/136 passed
-exit=1
+61/140 passed

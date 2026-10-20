@@ -47,7 +47,7 @@ ok   46 B34 c_head_unmerged -> SKIP/W17 (got SKIP/W17)
 ok   47 B35 c_linear_done_unmerged -> SKIP/W17 (got SKIP/W17)
 ok   48 B36 c_head_pr_merged -> RM/W14 (got RM/W14)
 ok   49 B36 c_head_pr_merged merged_via names PR #61
-ok   50 B1 c_gone_local reason names the commit ae29d82
+ok   50 B1 c_gone_local reason names the commit bf78aeb
 ok   51 B3 c_gone_pushed reason says the git worktree record goes too
 ok   52 B5 c_testresults backup lists test-results
 ok   53 B7 c_mixed_dir backup is the whole scratch dir
@@ -125,15 +125,18 @@ ok   124 B30 t_x_agent never closed
 ok   125 B31 dry-run never ran lsof
 ok   126 E16 journal has rm-start / rm-end for x_ok
 ok   127 E3 fake secrets not in execute output or stdout
-ok   128 E12 same-day rerun: x_rmfail BACKUP_FAIL 备份目录已存在, no rm for it
-ok   129 E19 without --close-terminals no terminal is closed
-ok   130 E10 no gh -> exit 5, nothing removed, summary says why
-ok   131 E11 lock held by a live pid -> exit 6, nothing removed
-ok   132 E11 stale lock (dead pid) is taken over and the run goes on
-ok   133 W40 --repo whitelist: one listed candidate outside r-x -> exit 2, nothing removed
-ok   134 E14 --execute without --only-from -> exit 2
-ok   135 E17 --execute refused on MBA and on a host not named exactly iMac (exit 2)
-ok   136 E18 WS_ORCA set but missing -> exit 2, no fallback
+ok   128 D3 x_sha / x_e8a_noperm: half-copied backup set aside as .failed-*, nothing left under the real name
+ok   129 E12 same-day rerun: x_rmfail BACKUP_FAIL 备份目录已存在, no rm for it
+ok   130 D3 same-day rerun: x_sha not blocked by the failed first attempt
+ok   131 D1 listed RM that is SKIP when --execute starts: result says so
+ok   132 D1 listed id no longer in Orca: journal not-found line
+ok   133 E19 without --close-terminals no terminal is closed
+ok   134 E10 no gh -> exit 5, nothing removed, summary says why
+ok   135 E11 lock held by a live pid -> exit 6, nothing removed
+ok   136 E11 stale lock (dead pid) is taken over and the run goes on
+ok   137 W40 --repo whitelist: one listed candidate outside r-x -> exit 2, nothing removed
+ok   138 E14 --execute without --only-from -> exit 2
+ok   139 E17 --execute refused on MBA and on a host not named exactly iMac (exit 2)
+ok   140 E18 WS_ORCA set but missing -> exit 2, no fallback
 not run: E13 (needs the real Orca; see scripts/tests/ws-cleanup-drill.sh)
-136/136 passed
-exit=0
+140/140 passed

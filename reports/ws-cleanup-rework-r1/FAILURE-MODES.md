@@ -101,3 +101,11 @@
 | L37a | 删除前 Linear 查询失败，沿用 dry-run 的「已关」照样删 | x_lin_fail（等待点期间让 YYY 这个 team 查不到） | 跳过，W10「Linear 查不到」 |
 | L37b | 删除前 issue 找不到了，照样删 | x_lin_gone（等待点期间 XXX-2 从列表里消失） | 跳过，W10 |
 | W40 | `--repo` 白名单外的候选混进名单，照样处理其余的 | 名单里多一行 r-proj 的 id | 退出码 2，一个都不删 |
+
+补充（04:26 真 Orca 演练第 1 轮，在 5a280d7 上跑，`drill-r1-5a280d7/`）：演练里看到的三处，先写失败方式，再改代码。
+
+| # | 失败方式 | 演练里看到的 | 用例 | 期望 |
+|---|---|---|---|---|
+| D1 | 名单里是 RM / BACKUP_RM，`--execute` 开始时已经变成 SKIP，result 列空着，看不出它为什么没删；名单里有、Orca 里已经没有的，哪里都不记 | d09、d10 在 dry-run 之后改了，execute-1 的 result 是空的；execute-2 里 d02 等已删的没有任何记录 | 同一天第二次跑（xe2）：x_late 现在是 W7，x_ok 已经删了 | x_late 的 result 写「跳过：名单里是 RM，这次判定 SKIP W7」；journal 有 x_ok 的 not-found 行 |
+| D2 | `orca worktree rm --json` 失败时 result 只记了输出的最后一行（`}`） | d11-locked 的 result 是「rm 失败…：}」 | 只在真演练里测（假 orca 失败时输出的不是 JSON） | result 写 Orca 的 error.message（例如「Worktree is locked by Git」） |
+| D3 | 备份失败（sha 对不上、读不了）以后，拷了一半的目录留在原处，里面还有 MANIFEST，看起来像一份备份，而且第二天再跑会被「备份目录已存在」挡住，永远备份不成 | d12-sha 留下了 MANIFEST 校验不过的目录；d13-noperm 留下了半个目录；execute-2 对两个都报「备份目录已存在」 | x_sha、x_e8a_noperm，再加同一天第二次跑 | 拷了一半的目录改名成 `<目录>.failed-<时分秒>`，原名下没有东西；第二次跑不会报「备份目录已存在」 |

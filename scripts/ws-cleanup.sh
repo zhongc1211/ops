@@ -556,6 +556,12 @@ def backup_files(path, items):
                     if not rebuildable(sub): add(sub)
         else: add(it)
     return out
+def set_aside(dest):
+    """备份没做成：拷了一半的目录改名留着（不删、不当成备份），下次跑不会被它挡住。"""
+    new = dest + ".failed-" + datetime.datetime.now(SGT).strftime("%H%M%S")
+    os.rename(dest, new)
+    return new
+
 def do_backup(r, rp):
     w = r["_w"]; path = w["path"]
     dest = backup_dest(rp, w)
@@ -564,18 +570,21 @@ def do_backup(r, rp):
     os.makedirs(dest, mode=0o700)
     os.chmod(dest, 0o700)
     sums, bad = {}, []
-    for f, kind in files:
-        src, dst = os.path.join(path, f), os.path.join(dest, f)
-        os.makedirs(os.path.dirname(dst), mode=0o700, exist_ok=True)
-        if kind == "link": os.symlink(os.readlink(src), dst); sums[f] = "symlink -> " + os.readlink(src); continue
-        before = sha256(src)
-        shutil.copy2(src, dst)
-        os.chmod(dst, 0o600)
-        sums[f] = before
-        if sha256(dst) != before or sha256(src) != before: bad.append(f)
-    with open(os.path.join(dest, "MANIFEST.sha256"), "w") as m:
-        for f in sorted(sums): m.write("%s  %s\n" % (sums[f], f))
-    if bad: return False, "sha 对不上（文件在变）：%s" % ";".join(bad[:5])
+    try:
+        for f, kind in files:
+            src, dst = os.path.join(path, f), os.path.join(dest, f)
+            os.makedirs(os.path.dirname(dst), mode=0o700, exist_ok=True)
+            if kind == "link": os.symlink(os.readlink(src), dst); sums[f] = "symlink -> " + os.readlink(src); continue
+            before = sha256(src)
+            shutil.copy2(src, dst)
+            os.chmod(dst, 0o600)
+            sums[f] = before
+            if sha256(dst) != before or sha256(src) != before: bad.append(f)
+        with open(os.path.join(dest, "MANIFEST.sha256"), "w") as m:
+            for f in sorted(sums): m.write("%s  %s\n" % (sums[f], f))
+    except Exception:
+        set_aside(dest); raise
+    if bad: return False, "sha 对不上（文件在变）：%s；拷了一半的移到 %s" % (";".join(bad[:5]), set_aside(dest))
     return True, dest                         # 原位置一个都不删：rm 成功时整个目录会一起删掉，rm 失败时工作区原样留着
 
 def term_archive_dir(t):
@@ -643,9 +652,12 @@ def execute(rows, trows, journal):
         if bad: die("--repo %s 白名单外有 %d 个候选（例如 %s），整轮中止，什么都没做" % (REPO, len(bad), bad[0]), 2)
     tlisted = load_list(os.path.join(os.path.dirname(ONLY_FROM) or ".", "terminals.tsv"), "handle", ("CLOSE",)) if CLOSE_TERMS else {}
     pause_point()
+    for k in sorted(set(listed) - {r["id"] for r in rows}): journal("not-found", k, "", "名单里有，Orca 里已经没有，不动")
     for r in rows:
-        if r["verdict"] not in ("RM", "BACKUP_RM") or not r["_w"]: continue
         old = listed.get(r["id"])
+        if r["verdict"] not in ("RM", "BACKUP_RM") or not r["_w"]:
+            if old: r["result"] = "跳过：名单里是 %s，这次判定 %s %s（%s）" % (old["verdict"], r["verdict"], r["rule"], r["reason"])
+            continue
         if not old: r["result"] = "没动：不在 --only-from 名单里"; continue
         try:
             fresh = collect()                 # 每个工作区动手前都重新取实时数据：orca、终端、ps、git、gh、Linear 都不用缓存
@@ -666,8 +678,7 @@ def execute(rows, trows, journal):
             journal("rm-start", r["id"], "", "")
             p = run([ORCA, "worktree", "rm", "--worktree", "id:" + w["id"], "--json"], timeout=300)
             journal("rm-end", r["id"], str(p.returncode), (p.stdout or p.stderr).strip()[:300])
-            msg = (p.stderr or p.stdout).strip().splitlines()
-            done = "已 rm" if p.returncode == 0 else "rm 失败（不重试、不加 --force）：" + (msg[-1][:200] if msg else "")
+            done = "已 rm" if p.returncode == 0 else "rm 失败（不重试、不加 --force）：" + orca_err(p)[:200]
             r["result"] = r["result"] + "；" + done if r.get("result") else done
             fails += p.returncode != 0
         except Exception as e:
@@ -695,6 +706,14 @@ def execute(rows, trows, journal):
         except Exception as e:
             r["result"] = "ERROR：%s" % type(e).__name__; journal("error", r["handle"], "", r["result"]); fails += 1
     return fails
+
+def orca_err(p):
+    """orca --json 失败时的 error.message；不是 JSON 就用最后一行输出。"""
+    try: e = json.loads(p.stdout).get("error") or {}
+    except (ValueError, AttributeError): e = {}
+    if e.get("message"): return e["message"]
+    msg = (p.stderr or p.stdout or "").strip().splitlines()
+    return msg[-1] if msg else ""
 
 def take_lock():
     os.makedirs(os.path.dirname(LOCK), exist_ok=True)

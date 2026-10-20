@@ -458,9 +458,14 @@ check "B30 t_x_agent never closed" '! grep -q "terminal close --terminal t_x_age
 check "B31 dry-run never ran lsof" '[ "$(grep -c . "$F/lsof-calls.log")" = 3 ]'
 check "E16 journal has rm-start / rm-end for x_ok" 'grep -q "rm-start	r-x::.*/x_ok" "$XE/journal.tsv" && grep -q "rm-end	r-x::.*/x_ok	0" "$XE/journal.tsv"'
 check "E3 fake secrets not in execute output or stdout" '! grep -rq -e "$SECRET" "$XE" "$T/xlog"'
+check "D3 x_sha / x_e8a_noperm: half-copied backup set aside as .failed-*, nothing left under the real name" '[ -z "$(ls -d "$T/archive"/*/*/x_sha "$T/archive"/*/*/x_e8a_noperm 2>/dev/null)" ] && ls -d "$T/archive"/*/*/x_sha.failed-* >/dev/null 2>&1 && ls -d "$T/archive"/*/*/x_e8a_noperm.failed-* >/dev/null 2>&1 && res x_sha | grep -q "拷了一半的移到 .*x_sha.failed-"'
 : >"$F/orca-calls.log"
-rc=$(run "$T/xe2" --execute --only-from "$XD/worktrees.tsv" --repo r-x)
+{ cat "$XD/worktrees.tsv"; awk -F'\t' -v OFS='\t' 'NR > 1 && $7 == "RM" { $2 = "r-x::/gone/x_ghost"; print; exit }' "$XD/worktrees.tsv"; } >"$T/xe2-list.tsv"
+rc=$(run "$T/xe2" --execute --only-from "$T/xe2-list.tsv" --repo r-x)
 check "E12 same-day rerun: x_rmfail BACKUP_FAIL 备份目录已存在, no rm for it" 'col "$T/xe2/worktrees.tsv" x_rmfail result | grep -q "备份目录已存在" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_rmfail'
+check "D3 same-day rerun: x_sha not blocked by the failed first attempt" '! col "$T/xe2/worktrees.tsv" x_sha result | grep -q "备份目录已存在"'
+check "D1 listed RM that is SKIP when --execute starts: result says so" 'col "$T/xe2/worktrees.tsv" x_late result | grep -q "^跳过：名单里是 RM，这次判定 SKIP W7"'
+check "D1 listed id no longer in Orca: journal not-found line" 'grep -q "not-found	r-x::/gone/x_ghost" "$T/xe2/journal.tsv"'
 check "E19 without --close-terminals no terminal is closed" '! grep -q "^terminal close" "$F/orca-calls.log" && col "$T/xe2/terminals.tsv" t_x_close result | grep -q "没带 --close-terminals"'
 : >"$F/orca-calls.log"
 rc=$(WS_GH=$T/bin/nogh run "$T/xe3" --execute --only-from "$XD/worktrees.tsv" --repo r-x)
