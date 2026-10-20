@@ -28,8 +28,8 @@ if [ "$MODE" = old ]; then
   git -C "$ING" show "$OLD_REV:everos-ingest/$S" > "$W/orig.sh"
   sed -e 's#^LOCAL=$HOME/.orca-state/everos-ingest/#LOCAL=$EVEROS_LOCAL_BASE/#' \
       -e 's#^REMOTE=/var/lib/everos-ingest/#REMOTE=$EVEROS_REMOTE_BASE/#' \
-      -e 's# box true;# "$EVEROS_BOX" true;#' -e 's#-O exit box#-O exit "$EVEROS_BOX"#' \
-      -e 's#"${SSH_OPTS\[@\]}" box "#"${SSH_OPTS[@]}" "$EVEROS_BOX" "#' -e 's#"box:\$#"$EVEROS_BOX:$#' \
+      -e 's# box true;# "${EVEROS_BOX:-box}" true;#' -e 's#-O exit box#-O exit "${EVEROS_BOX:-box}"#' \
+      -e 's#"${SSH_OPTS\[@\]}" box "#"${SSH_OPTS[@]}" "${EVEROS_BOX:-box}" "#' -e 's#"box:\$#"${EVEROS_BOX:-box}:$#' \
       "$W/orig.sh" > "$W/script.sh"
   diff "$W/orig.sh" "$W/script.sh" > "$W/old-patch.diff"
   echo "old = $(git -C "$ING" rev-parse "$OLD_REV"):everos-ingest/$S" > "$W/script.txt"
