@@ -107,6 +107,9 @@ PER-110 的钥匙串看守（`scripts/keychain-watch.sh`，在叠加在本 PR �
 - Orca automation 的预检是不是在 Aqua 会话里跑：没测（要注册一个 automation，得另外批）。
 - iMac 夜里锁屏时的同一问题：没测。
 
-### 前置条件
-不依赖钥匙串解锁的登录方案另开 Linear 子 issue（ops 系统开），是夜审上 MBA 的前置条件，要 Zack 本人卡片。
-在这之前，`README.md`「上线顺序」第 4–7 步（MBA 夜审）不该启用。
+### 上线前置条件（2026-10-20 23:10 SGT 按 ops 系统更正改写）
+原来写的「不依赖钥匙串解锁的登录方案是前置条件」作废：锁屏实测显示锁屏不会让 GUI 会话里的 claude 掉登录，
+所以**不做**不依赖钥匙串的登录方案，不改 claude 的登录方式，不加 token 环境变量。
+`README.md`「上线顺序」第 4–7 步（MBA 夜审）启用前要的是：
+1. 在本 PR head 上跑一次真 E2E，留可复跑的产物（不是 dry-run 演练）；
+2. PER-110 钥匙串看守（叠加在本 PR 上的 draft PR）一起上线，login 钥匙串被锁上或 claude 掉登录时叫醒 ops-system。
