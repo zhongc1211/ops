@@ -158,9 +158,11 @@ esac
 - rc=0 或 4：只往本机日志追加一行，不调模型，不叫醒任何人。
 - rc=5（出新版、没评估）或 3（已判兼容、没升级）：notify-run 叫醒 ops 系统，消息里是便宜检查那一行输出。
 - 其他退出码（2 网络 / gh 出错，1、127 等脚本崩溃）：只记日志；脚本自己读日志，最近 3 次都是出错才叫醒 ops 系统，由 ops 系统开 Linear。
-- **同一件事不重复叫醒**：rc=5 在兼容检查还在跑（2–3.5 小时，加上负载等待会跨过第二天 09:07）、花钱卡等批、报告「没判定」时，第二天还是 5；rc=3 在升级卡等批时天天是 3。所以脚本把每次叫醒的「事件」记在 `last-wake`：rc=3/5 是「退出码 + main 的版本号」，出错是 `err`。事件和上次叫醒的相同、且不到 `REMIND_DAYS`（定为 3）天，就只记日志、不叫醒；满 3 天再提醒一次。版本号变了（上游又出新版）或退出码变了（5 → 3）当天就叫醒。rc=0/4 时删掉 `last-wake`，之后再出事从头算。
+- **同一件事不重复叫醒**：rc=5 在兼容检查还在跑（2–3.5 小时，加上负载等待会跨过第二天 09:07）、花钱卡等批、报告「没判定」时，第二天还是 5；rc=3 在升级卡等批时天天是 3。所以脚本把每次叫醒的「事件」记在 `last-wake`：rc=3/5 是「退出码 + main 的版本号」，出错是 `err`。事件和上次叫醒的相同、且不到 `REMIND_DAYS`（定为 3）天，就只记日志、不叫醒；满 3 天再提醒一次。版本号变了（上游又出新版）或退出码变了（5 → 3）当天就叫醒。rc=0/4 时把 `last-wake` 挪成 `last-wake.prev`（挪走不删，留下上一次叫醒记录），之后再出事从头算。`last-wake` 损坏（时间戳不是数字）时按 0 算，当天照常叫醒，发成功后用正常内容覆盖，等于自愈。
+- **事件里的版本号取不到时**：输出格式变了、取不到 main 的版本号，就退回用 main 的 sha 做事件（`main=sha:<sha>`）；sha 也取不到就用整行输出的 cksum（`main=out:<数>`）。这样不会出现空版本号的事件 `rc=5 main=`，把上游的下一个新版当成同一事件压 3 天。
+- **同时只跑一份**：Orca 补跑和人手跑可能撞在一起。脚本一开始用 perl 对 `$S/lock` 加 `flock`（不等待），拿不到锁就在 `wake.log` 记 `locked` 后退出。锁跟着文件描述符走，脚本退出或崩溃时自动放开，不会留下要人清理的死锁；`lock` 文件本身一直留着，不删。没用 `mkdir` 当锁，是因为脚本崩溃后目录留着，第二天会一直拿不到锁。
 - 只有 webhook 回了 2xx 才算叫醒过（看 notify-run 打到 stderr 的 `http=2xx` 那行；notify-run 自己的退出码是被包命令的退出码，不反映发没发出去）。没发出去就不写 `last-wake`，第二天再试。
-- 日志：iMac `~/.orca-state/pstack-upstream/check.log`，一行一次：时间（SGT）、退出码、输出前 400 字，制表符分隔。叫醒的决定另记 `wake.log`：时间、事件、`sent` / `skip` / `fail <notify-run 最后一行>`。
+- 日志：iMac `~/.orca-state/pstack-upstream/check.log`，一行一次：时间（SGT）、退出码、输出前 400 个字符（按 UTF-8 截，不切断汉字），制表符分隔。叫醒的决定另记 `wake.log`：时间、事件、`sent` / `skip` / `locked` / `fail <notify-run 最后一行>`。两个日志每月第一次运行时把上个月的挪成 `check.log.<年-月>.old`、`wake.log.<年-月>.old`（挪，不删）；数「最近 3 次出错」时把最近一个 `.old` 的末尾也算上，月初不会把计数清零。
 - notify-run 发出的事件：被包的命令以便宜检查的退出码（3、5、2 等）退出，所以 webhook 里 `status=failed`、`exit_code=<rc>`，`task` 是「PER-94 pstack 上游检查 rc=<rc>」，`log_tail` 是便宜检查那一行。ops 系统按 `task` 和 `exit_code` 认这类消息，`status=failed` 在这里不表示检查出了错。
 - 注册这个任务要 Zack 批准（第 7 节第 1 条）。本 PR 只写设计，不注册任务，不放脚本。
 
@@ -170,24 +172,36 @@ esac
 #!/bin/bash
 # Orca precheck for「ops · NN pstack 上游检查 iMac」（每天一次）。活全在这里干完，永远 exit 1，不启动模型。
 # 跑 pstack-upstream-check.sh，往本机日志追加一行；只有要人处理时才用 notify-run 叫醒 ops 系统：
-#   rc=0/4 只记日志、清掉 last-wake；rc=3/5 叫醒；其他（2、崩溃）只记日志，最近 3 次都是出错才叫醒。
+#   rc=0/4 只记日志，把 last-wake 挪成 last-wake.prev；rc=3/5 叫醒；其他（2、崩溃）只记日志，最近 3 次都是出错才叫醒。
 #   同一事件（rc=3/5：退出码 + main 版本号；出错：err）叫醒过后 REMIND_DAYS 天内不再叫醒；webhook 回 2xx 才算叫醒过。
+#   同时只跑一份（lock 上的 flock，进程退出自动放开）；日志按月挪成 .old，不删。
 REMIND_DAYS=${REMIND_DAYS:-3}
 B=$(cd "$(dirname "$0")" && pwd)
 S=$HOME/.orca-state/pstack-upstream; mkdir -p "$S"
+now=$(date +%s); ts=$(TZ=Asia/Singapore date '+%Y-%m-%d %H:%M'); M=${ts%-*}
+exec 9>>"$S/lock"
+perl -e 'use Fcntl qw(:flock); open(F, ">&=9") or exit 2; flock(F, LOCK_EX|LOCK_NB) or exit 1' || {
+  printf '%s\t-\tlocked\n' "$ts" >> "$S/wake.log"; exit 1; }
+for f in check wake; do
+  m=$(head -c 7 "$S/$f.log" 2>/dev/null)
+  [ -z "$m" ] || [ "$m" = "$M" ] || mv -f "$S/$f.log" "$S/$f.log.${m}.old"
+done
 OUT=$("$B/pstack-upstream-check.sh" 2>&1); rc=$?
-now=$(date +%s); ts=$(TZ=Asia/Singapore date '+%Y-%m-%d %H:%M')
-printf '%s\t%s\t%s\n' "$ts" "$rc" "$(printf %s "$OUT" | tr '\t\n' '  ' | cut -c1-400)" >> "$S/check.log"
+printf '%s\t%s\t%s\n' "$ts" "$rc" "$(printf %s "$OUT" | tr '\t\n' '  ' | LC_ALL=en_US.UTF-8 cut -c1-400)" >> "$S/check.log"
 case "$rc" in
-  0|4) rm -f "$S/last-wake"; exit 1 ;;
-  3|5) key="rc=${rc} main=$(printf %s "$OUT" | sed -n 's/.* main=[0-9a-f]*(\([^)]*\)).*/\1/p' | head -n 1)"
-       msg=$OUT ;;
-  *)   E=$(tail -n 3 "$S/check.log" | cut -f2 | grep -cv '^[0345]$')
+  0|4) [ ! -f "$S/last-wake" ] || mv -f "$S/last-wake" "$S/last-wake.prev"; exit 1 ;;
+  3|5) v=$(printf %s "$OUT" | sed -n 's/.* main=[0-9a-f]*(\([^)]*\)).*/\1/p' | head -n 1)
+       [ -n "$v" ] || v=$(printf %s "$OUT" | sed -n 's/.* main=\([0-9a-f][0-9a-f]*\).*/sha:\1/p' | head -n 1)
+       [ -n "$v" ] || v=out:$(printf %s "$OUT" | cksum | cut -d' ' -f1)
+       key="rc=${rc} main=${v}"; msg=$OUT ;;
+  *)   L=$(ls "$S"/check.log.*.old 2>/dev/null | tail -n 1)
+       E=$({ [ -z "$L" ] || tail -n 3 "$L"; tail -n 3 "$S/check.log"; } | tail -n 3 | cut -f2 | grep -cv '^[0345]$')
        [ "$E" = 3 ] || exit 1
        key=err; msg="连续 3 次出错，最后一次 rc=${rc}：${OUT}" ;;
 esac
 lts=$(cut -f1 "$S/last-wake" 2>/dev/null); lkey=$(cut -f2 "$S/last-wake" 2>/dev/null)
-if [ "$lkey" = "$key" ] && [ $(( now - ${lts:-0} )) -lt $(( REMIND_DAYS * 86400 - 3600 )) ]; then
+case "$lts" in ''|*[!0-9]*) lts=0 ;; esac
+if [ "$lkey" = "$key" ] && [ $(( now - lts )) -lt $(( REMIND_DAYS * 86400 - 3600 )) ]; then
   printf '%s\t%s\tskip\n' "$ts" "$key" >> "$S/wake.log"; exit 1
 fi
 err=$("$HOME/.local/bin/notify-run" --bot ops-system --task "PER-94 pstack 上游检查 rc=${rc}" --no-tty -- \
@@ -219,6 +233,7 @@ Orca 任务的 prompt 照 ops · 24 写「本任务的全部工作由预检脚�
 
   - 有开着的卡、也有这个版本 `ops-pstack-<版本>-compat` 工作区里活着的终端 → 检查还在跑，不起新的，什么都不做。
   - 有开着的卡、没有活着的终端 → 不新开卡，看卡上最后的评论：在等花钱卡批 → 不动；报告「没判定」或 agent 退出了没写报告 → 按「同一步最多 2 次」决定在原卡上重跑一次还是停下等人。
+  - 没有开着的卡、但有活着的终端（卡被手动关了，或开卡失败）→ 不开卡、不起 agent。ops 系统把终端的 handle 和工作区路径报给 Zack，等人决定是接着用这个终端还是关掉重来。
   - 都没有 → 照下面开卡、起 agent。
 - 查完没有在跑的，再开一张 Linear（PER 团队，标题「pstack <版本> 兼容检查」），然后在 **iMac** 起一个兼容检查 agent。不在 box 跑：box 10-21 起不参与开发。MBA 只在 iMac 不可用时代替，命令相同。
 - agent 本身用线上 pstack；每一项检查里另起子 claude，带候选参数，只在那个子进程里换成新版。候选不装进 `~/.claude`。
@@ -653,7 +668,7 @@ Zack 批了才跑；没批之前便宜检查每天照常返回 rc=5，每日脚�
 ## 6. 防误报、防漏报
 
 - 网络或 gh 出错（rc=2）、脚本崩溃（0/3/4/5 以外的退出码）：每日脚本只记日志，不起 agent；它自己数日志，最近 3 次都是出错就叫醒 ops 系统，ops 系统开 Linear。ops-verify 手跑时记 SKIP。
-- 一个版本只评估一次：靠报告里的 `总判定：` 行。没写总判定（没跑完、负载太高、没判定）就会每天继续报，不会静默漏掉。
+- 一个版本只评估一次：靠报告里的 `总判定：` 行。没写总判定（没跑完、负载太高、没判定）就每天记日志、每 3 天提醒一次（1.4 的去重），不会静默漏掉。
 - 上游改写历史（compare `status=diverged`）：只当证据打印，判断只看版本号，照常评估新版。
 - 候选目录 `~/pstack-compat/cursor-plugins-<短 sha>` 每个版本一个，留着做复现；超过 5 个时把最旧的挪到归档目录 `~/pstack-compat/_old/`（ops 系统手动，挪走，不删）。
 - 兼容 agent 卡住：它由 `orca-agent-launch` 起、包在 notify-run 里，卡住检查 ops · 01 会报，不需要另加监控。
@@ -663,8 +678,18 @@ Zack 批了才跑；没批之前便宜检查每天照常返回 rc=5，每日脚�
 | # | 内容 | 需要谁 | 为什么不在本 PR 做 |
 |---|---|---|---|
 | 1 | 在 iMac 注册每日纯脚本定时任务（1.4，推荐）：Orca 自动任务照 ops · 24 的做法，precheck 跑 `scripts/pstack-upstream-daily.sh`、永远 exit 1；Orca 不可用时用 launchd。rc=0/4 不调模型、不叫醒任何人 | Zack 批（注册任务） | 本 PR 只写设计，不注册任务 |
-| 2 | 新增 `scripts/pstack-upstream-check.sh`（1.1 原文）、`scripts/pstack-upstream-daily.sh`（1.4 原文），`SYSTEM_MAP.md` 加 1 行、`scripts/ops-verify` 加 13 行（1.3） | ops 系统派活，#28（PER-92）合并后另开 PR | 这两个文件归 PER-92；本 PR 只拥有本文 |
+| 2 | 新增 `scripts/pstack-upstream-check.sh`（1.1 原文）、`scripts/pstack-upstream-daily.sh`（1.4 原文），`SYSTEM_MAP.md` 加 1 行、`scripts/ops-verify` 加 13 行（1.3）。落地 PR 必须在 iMac 上真跑下面「落地 PR 的 E2E 清单」(a)–(g)，结果贴进 PR | ops 系统派活，#28（PER-92）合并后另开 PR | 这两个文件归 PER-92；本 PR 只拥有本文；(a)–(c) 要等脚本落地、注册任务、有真卡后才能跑 |
 | 3 | iMac 装 Java 17 + tla2tools.jar v1.7.4 到 `~/.local/opt/`（按 `wake/tla/README.md`「安装」，不用 sudo） | Zack 卡（装东西） | 不装就跑不了 2.4；本 PR 不装 |
 | 4 | #48 合并：便宜检查默认读 main 上的 `PSTACK_SHA`，合并前 `PIN_BRANCH=main` 会返回 rc=2 | Zack | #48 是另一个 agent 的 PR |
 | 5 | 兼容检查 agent 的 brief 模板（本文 2.0–2.6 填版本号即可） | ops 系统第一次用时生成 | 没有新版之前用不到 |
 | 6 | wake-tla-verify 缩减版：只跑 `check.sh --out <目录> w0 h0`，即 P2（notify-run / orca-wake / stuck-check 非 2xx 不记成功）、P3（卡住检查停了一定告警）、P4 共 17 项（含改坏变体）。省下：TLC 时间 1471 秒 → 161 秒（box 实测数据），每次少约 20 分钟机器时间，那个 Sonnet 会话的额度也少一截（没实测，估算少一半以上）。漏检：P1（派活 bot 一直坏也最终有人收到）、P1h（webhook 恢复后每个停下都有人收到）、P5（一个 bot 坏了只挡它自己）、P6（agent 没起来也叫醒）共 19 项不跑。这 19 项只依赖 `wake/**` 和 `stuck-check.sh` 的代码，pstack 本身改不了它们；真正的风险是新版 pstack 改变了 agent 执行 skill 的方式（例如去改 cfg 或期望表），而这只会在被跳过的那几项里表现出来 | Zack 定：默认全量（现在的写法），还是改成缩减版 | 缩减会降低覆盖面，要 Zack 决定 |
+
+**落地 PR 的 E2E 清单（第 2 条）**：都在 iMac、`/bin/bash`（3.2）上真跑，不用假 notify-run、不用假的便宜检查；每项留下命令、原始输出、`check.log` / `wake.log` / `last-wake*` 的内容，放进 `~/orca/workspaces/ops/e2e-out/PER-94-landing/`，原文贴进 PR 评论，不打印 webhook URL 和 key。
+
+- (a) 发给 ops 系统的真实 webhook：一次回 2xx，看到 `wake.log` 记 `sent`、`last-wake` 写入、ops 系统收到；再故意让一次失败（例如运行时临时断开 iMac 的网络），看到记 `fail`、`last-wake` 不变，第二天的运行重发并记 `sent`。
+- (b) curl 56/7/6 重试分支：分别用不通的地址（7）、被拦住的 DNS（6）、中途断开的连接（56）造出错误，看到每次都重试 1 次后才报 `ERR … curl=<码>`。
+- (c) 2.0 查重：先建一张假的「pstack <版本> 兼容检查」卡，再在 `ops-pstack-<版本>-compat` 工作区开一个活终端，确认 ops 系统不新开卡、不起 agent；再关掉卡只留终端，确认也不起 agent（2.0 第三种情况）。测完把假卡关掉、终端关掉。
+- (d) `last-wake` 损坏时自愈：把时间戳改成乱码、事件保持相同，确认当天照常叫醒、`last-wake` 被正常内容覆盖、bash 3.2 不报错。
+- (e) rc=0/4 时 `last-wake` 挪成 `last-wake.prev`，原内容还在。
+- (f) 两份同时跑：第二份在 `wake.log` 记 `locked`，只叫醒一次；第一份崩溃（kill -9）后，下一次运行能拿到锁。
+- (g) 跨月：用上个月的 `check.log` 起步，确认挪成 `.old`、没有删除，最近 3 次出错的计数跨月仍然连着算。
