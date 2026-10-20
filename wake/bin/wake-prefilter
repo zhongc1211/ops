@@ -1,0 +1,499 @@
+#!/usr/bin/env python3
+"""wake-prefilter: drop wakes that would only start an empty bot turn, before the webhook is sent (PER-88).
+
+Usage:
+  wake-prefilter check --source notify-run|orca-wake|stuck-check [--pid P] [--child P] [--start S] [--ws DIR] < payload
+      Exit 0 = send it, 3 = drop it (stdout: "<rule>\\t<covered 0|1>\\t<reason>"). Any error, a timeout (3 s) or
+      state that cannot be read gives 0. In shadow mode it logs what it would drop and still exits 0.
+  wake-prefilter record --source notify-run [--pid P] [--ws DIR] < payload
+      notify-run calls this after a 2xx: one ledger entry per work unit (see "Ledger"). Always exits 0.
+  wake-prefilter _refresh worktrees|linear <ID>
+      Internal: detached one-shot cache refresh (Orca queries take 5-30 s, longer than a check may wait).
+
+Callers (each only before it really sends a webhook, and only when the mode is not off):
+  notify-run   send_webhook, before the curl loop (--pid $$ --child <agent pid> --start <start> --ws <start dir>)
+  orca-wake    _send_now, after the settle wait, before building the request
+  stuck-check  send_all before post, and the "reported, nobody accepted" items before they are merged into one
+
+Mode: env WAKE_PREFILTER=off|shadow|on wins, else the first line of ${ORCA_WAKE_CONFIG_DIR:-~/.config/orca-wake}/prefilter,
+else shadow (log "would drop", send anyway). off: callers do not run this program at all.
+
+Rules (a-f). A wake is dropped only when one of them matches; unknown or unreadable state lets it through.
+  a  done (notify-run, agent layer) and idle (orca-wake Stop / recheck) of the same work unit: the later one is dropped
+     when the session had no new turn in between and the earlier one got a 2xx. Covered.
+  b  after the unit's done got a 2xx, later idle / done / killed of the same unit (covered); or the workspace is Sleep
+     (Orca worktree cache) or has .orca-wake-mute: idle / done / killed dropped (not covered). failed, needs_input, error,
+     blocked, stuck are never dropped by a-c, f.
+  c  killed (notify-run) whose agent has an agent-stop mark (~/.orca-state/agent-stops/, same pid, start time within 10 s,
+     written after the agent started): the bot closed it itself. Not covered. A killed without a mark always goes out.
+  d  task or workspace display name starts with "[演练" and matches no line (regex) of
+     ${ORCA_WAKE_CONFIG_DIR}/prefilter-drill-allow. failed / needs_input / error / blocked still go out. Not covered.
+  e  stuck-check reminders about finished work (reported_not_accepted, stop_not_delivered; both only exist for
+     completed / in-review workspaces): the local worktree is clean and its HEAD reached origin/main through a merge,
+     or the Linear issue is Done, or it has a [Zack答-...merge...] comment. Linear comes from a cache (>= 15 min),
+     refreshed in the background; a cold cache lets the wake through.
+  f  a nested notify-run (ORCA_DISPATCH_PID is another, live notify-run --tty) reports done to the same bot while that
+     agent is mid-turn (or stopped with background work it will continue after): the agent reports itself.
+"Covered" means another wake for the same pause already got a 2xx: only then may orca-wake record the dropped key as
+woken (so recheck and the stuck check count it as delivered). Uncovered drops are not recorded as delivered.
+
+Ledger: ${ORCA_WAKE_STATE_DIR}/prefilter/units/<host>-<dispatch pid>.json, the last notify-run delivery of a work unit
+(status, ts, turn of its orca-wake session at that moment). Idle deliveries are read from orca-wake's own
+sessions/*.json (woken[turn], written only after a 2xx).
+
+Log: ${WAKE_PREFILTER_LOG:-${ORCA_WAKE_STATE_DIR}/prefilter.log}, one TSV line per dropped (or, in shadow, would-drop)
+wake: time, source, rule, reason, dedup_key, bot, task, workspace. No URL, KEY or payload text.
+"""
+import json
+import os
+import re
+import signal
+import socket
+import subprocess
+import sys
+import time
+
+HOME = os.path.expanduser("~")
+STATE_DIR = os.environ.get("ORCA_WAKE_STATE_DIR") or os.path.join(HOME, ".local/state/orca-wake")
+CONFIG_DIR = os.environ.get("ORCA_WAKE_CONFIG_DIR") or os.path.join(HOME, ".config/orca-wake")
+PF_DIR = os.path.join(STATE_DIR, "prefilter")
+LOG = os.environ.get("WAKE_PREFILTER_LOG") or os.path.join(STATE_DIR, "prefilter.log")
+STOP_DIR = os.environ.get("AGENT_STOP_DIR") or os.path.join(HOME, ".orca-state/agent-stops")
+ORCA = os.environ.get("WAKE_PREFILTER_ORCA") or next(
+    (p for p in ("/usr/local/bin/orca", "/opt/homebrew/bin/orca", os.path.join(HOME, ".local/bin/orca"),
+                 "/Applications/Orca.app/Contents/Resources/bin/orca") if os.access(p, os.X_OK)), "orca")
+DEADLINE_S = 3
+WT_TTL_S = float(os.environ.get("WAKE_PREFILTER_WT_TTL_S") or 300)        # Sleep / display name cache
+LINEAR_TTL_S = float(os.environ.get("WAKE_PREFILTER_LINEAR_TTL_S") or 900)
+REFRESH_TIMEOUT_S = 90
+MUTE_NAME = ".orca-wake-mute"
+DRILL = "[演练"
+NEVER = {"failed", "needs_input", "error", "blocked"}   # real stops: no rule drops them
+QUIET = {"idle", "done", "killed"}                      # what a, b may drop
+REMINDERS = {"reported_not_accepted", "stop_not_delivered"}
+ZACK_MERGE = re.compile(r"\[Zack答-[^\]\n]*merge[^\]\n]*\]", re.I)
+ISSUE_ID = re.compile(r"(?<![A-Za-z0-9])((?:PER|FDV)-\d+)(?![0-9])", re.I)
+HOST = re.sub(r"[^A-Za-z0-9._-]", "_", socket.gethostname()) or "host"
+
+
+class Drop(Exception):
+    def __init__(self, rule, reason, covered=False):
+        Exception.__init__(self, reason)
+        self.rule, self.reason, self.covered = rule, reason, covered
+
+
+# ---------------------------------------------------------------- small helpers
+
+def iso(ts=None):
+    return time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(ts if ts is not None else time.time()))
+
+
+def mode():
+    m = os.environ.get("WAKE_PREFILTER", "").strip()
+    if not m:
+        try:
+            with open(os.path.join(CONFIG_DIR, "prefilter"), encoding="utf-8") as f:
+                m = f.readline().strip()
+        except OSError:
+            m = ""
+    return m if m in ("off", "shadow", "on") else "shadow"
+
+
+def load(path, default=None):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return default
+
+
+def save(path, data):
+    os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
+    tmp = "%s.%d.tmp" % (path, os.getpid())
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+    os.replace(tmp, path)
+
+
+def pid_alive(pid):
+    try:
+        os.kill(int(pid), 0)
+        return True
+    except PermissionError:
+        return True
+    except (OSError, ValueError, TypeError):
+        return False
+
+
+def clean(s):
+    return " ".join(str(s or "").replace("\t", " ").split())[:200] or "-"
+
+
+def log_drop(src, d, p, m):
+    line = "\t".join([iso(), src, d.rule, ("" if m == "on" else "shadow 会挡：") + clean(d.reason),
+                      clean(p.get("dedup_key")), clean(p.get("bot")), clean(p.get("task")),
+                      clean(p.get("worktree"))])
+    try:
+        os.makedirs(os.path.dirname(LOG), exist_ok=True)
+        with open(LOG, "a", encoding="utf-8") as f:
+            f.write(line + "\n")
+    except OSError:
+        pass
+
+
+def find_mute(cwd):
+    """.orca-wake-mute from cwd up to the git root (same walk as orca-wake)."""
+    if not cwd:
+        return None
+    d = os.path.abspath(cwd)
+    for _ in range(64):
+        if os.path.exists(os.path.join(d, MUTE_NAME)):
+            return os.path.join(d, MUTE_NAME)
+        if os.path.exists(os.path.join(d, ".git")):
+            return None
+        parent = os.path.dirname(d)
+        if parent == d:
+            return None
+        d = parent
+    return None
+
+
+# ---------------------------------------------------------------- orca-wake session state
+
+def sessions():
+    d = os.path.join(STATE_DIR, "sessions")
+    try:
+        names = [n for n in os.listdir(d) if n.endswith(".json")]
+    except OSError:
+        return []
+    return [s for s in (load(os.path.join(d, n)) for n in names) if isinstance(s, dict)]
+
+
+def session_of(dispatch_pid):
+    """Newest orca-wake session started by this notify-run, or None."""
+    mine = [s for s in sessions() if str(s.get("dispatch_pid") or "") == str(dispatch_pid)]
+    return max(mine, key=lambda s: s.get("last_event_ts") or 0) if mine else None
+
+
+def session_by_id(agent, sid):
+    return load(os.path.join(STATE_DIR, "sessions", "%s-%s.json" % (
+        agent, re.sub(r"[^A-Za-z0-9._-]", "_", str(sid))[:120] or "_")))
+
+
+def seq_le(a, b):
+    """Claude seq is the turn number (needs_input adds .n); Pi seq is an opaque leaf id: only equality."""
+    try:
+        return int(str(a).split(".")[0]) <= int(str(b).split(".")[0])
+    except ValueError:
+        return str(a) == str(b)
+
+
+def unit_file(dispatch_pid):
+    return os.path.join(PF_DIR, "units", "%s-%s.json" % (HOST, re.sub(r"\D", "", str(dispatch_pid)) or "0"))
+
+
+# ---------------------------------------------------------------- Orca caches (background refresh)
+
+def cached(name, ttl):
+    path = os.path.join(PF_DIR, "cache", name + ".json")
+    d = load(path)
+    if isinstance(d, dict) and time.time() - (d.get("ts") or 0) < ttl:
+        return d.get("data")
+    return None
+
+
+def refresh_later(what, arg=""):
+    """Start one detached refresher unless one started in the last REFRESH_TIMEOUT_S seconds."""
+    lock = os.path.join(PF_DIR, "cache", "%s%s.refreshing" % (what, "-" + arg if arg else ""))
+    try:
+        os.makedirs(os.path.dirname(lock), mode=0o700, exist_ok=True)
+        if os.path.exists(lock) and time.time() - os.path.getmtime(lock) < REFRESH_TIMEOUT_S:
+            return
+        with open(lock, "w") as f:
+            f.write(str(os.getpid()))
+        subprocess.Popen([sys.executable, os.path.abspath(__file__), "_refresh", what] + ([arg] if arg else []),
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True, close_fds=True)
+    except OSError:
+        pass
+
+
+def cmd_refresh(what, arg):
+    signal.alarm(REFRESH_TIMEOUT_S + 10)
+    lock = os.path.join(PF_DIR, "cache", "%s%s.refreshing" % (what, "-" + arg if arg else ""))
+    try:
+        if what == "worktrees":
+            cmd, name = [ORCA, "worktree", "list", "--json"], "worktrees"
+        elif what == "linear" and ISSUE_ID.fullmatch(arg or ""):
+            cmd, name = [ORCA, "linear", "issue", arg.upper(), "--comments", "--json"], "linear-" + arg.upper()
+        else:
+            return 2
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=REFRESH_TIMEOUT_S).stdout
+        res = json.loads(out)
+        if not res.get("ok"):
+            return 1
+        r = res["result"]
+        if what == "worktrees":
+            ws = r.get("worktrees") if isinstance(r, dict) else r
+            data = {w["path"].rstrip("/"): {"status": w.get("workspaceStatus") or "", "name": w.get("displayName") or ""}
+                    for w in ws or [] if isinstance(w, dict) and w.get("path")}
+        else:
+            iss = r.get("issue") or {}
+            data = {"state": (iss.get("state") or {}).get("type"),
+                    "zack_merge": [m.group(0) for c in r.get("comments") or [] if isinstance(c, dict)
+                                   for m in [ZACK_MERGE.search(c.get("body") or "")] if m][:3]}
+        save(os.path.join(PF_DIR, "cache", name + ".json"), {"ts": time.time(), "data": data})
+        return 0
+    except Exception:
+        return 1
+    finally:
+        try:
+            os.unlink(lock)
+        except OSError:
+            pass
+
+
+def worktree(path):
+    """(status, display name) of the Orca workspace containing path, from the cache; None if unknown."""
+    wt = cached("worktrees", WT_TTL_S)
+    if wt is None:
+        refresh_later("worktrees")
+        return None
+    p = os.path.abspath(path or "").rstrip("/")
+    best = max((k for k in wt if p == k or p.startswith(k + "/")), key=len, default=None)
+    return (wt[best]["status"], wt[best]["name"]) if best else None
+
+
+# ---------------------------------------------------------------- rules
+
+def rule_d(p, ws):
+    names = [p.get("task") or ""]
+    w = worktree(ws) if ws else None
+    if w:
+        names.append(w[1])
+    drill = [n for n in names if n.strip().startswith(DRILL)]
+    if not drill:
+        return
+    try:
+        with open(os.path.join(CONFIG_DIR, "prefilter-drill-allow"), encoding="utf-8") as f:
+            allow = [ln.strip() for ln in f if ln.strip() and not ln.lstrip().startswith("#")]
+    except OSError:
+        allow = []
+    for rx in allow:
+        try:
+            if any(re.search(rx, n) for n in names):
+                return
+        except re.error:
+            return  # a broken allow line: let it through
+    raise Drop("d", "演练（%s），不在 prefilter-drill-allow 里" % drill[0][:60])
+
+
+def rule_b_place(status, ws):
+    if status not in QUIET or not ws:
+        return
+    mute = find_mute(ws)
+    if mute:
+        raise Drop("b", "工作区有 %s" % MUTE_NAME)
+    w = worktree(ws)
+    if w and w[0].lower() in ("sleep", "sleeping"):
+        raise Drop("b", "工作区是 Sleep")
+
+
+def check_notify_run(p, a):
+    status = p.get("status")
+    if status in NEVER or status == "stuck" and p.get("kind") != "agent_not_started":
+        return
+    ws = a.get("ws") or ""
+    rule_d(p, ws)
+    if status not in QUIET:
+        return
+    rule_b_place(status, ws)
+    me, outer = str(a.get("pid") or ""), os.environ.get("ORCA_DISPATCH_PID", "")
+    if status == "killed" and a.get("child"):
+        rule_c(a)
+    if outer and outer != me:
+        if status == "done":
+            rule_f(p, outer)
+        return
+    if outer != me or status != "done":
+        return
+    # a: idle of this unit already delivered, no new turn since
+    s = session_of(me)
+    if not s:
+        return
+    turn = str(s.get("turn", ""))
+    w = (s.get("woken") or {}).get(turn.split(".")[0] if s.get("agent") == "claude" else turn) or {}
+    if w and w.get("source") != "prefilter" and not s.get("asked"):
+        raise Drop("a", "同一会话第 %s 回合的 %s 已送达（%s），之后没有新回合" % (turn, w.get("status"), w.get("ts")), True)
+
+
+def rule_c(a):
+    try:
+        names = os.listdir(STOP_DIR)
+    except OSError:
+        return
+    start = int(a.get("start") or 0)
+    for n in names:
+        m = load(os.path.join(STOP_DIR, n)) if n.endswith(".json") else None
+        if not isinstance(m, dict) or str(m.get("pid")) != str(a["child"]):
+            continue
+        if start and abs(int(m.get("start") or 0) - start) <= 10 and int(m.get("ts") or 0) >= start - 10:
+            raise Drop("c", "agent-stop 标记（%s：%s）" % (m.get("by"), clean(m.get("reason"))[:60]))
+
+
+def rule_f(p, outer):
+    if p.get("bot") != os.environ.get("ORCA_DISPATCH_BOT") or not pid_alive(outer):
+        return
+    s = session_of(outer)
+    if not s or s.get("agent") != "claude" or not pid_alive(s.get("agent_pid")):
+        return
+    stop = s.get("stop") or {}
+    if str(stop.get("turn")) != str(s.get("turn")):
+        raise Drop("f", "外层 agent（notify-run %s）正在第 %s 回合里，它自己会报" % (outer, s.get("turn")))
+    if stop.get("active_tasks"):
+        raise Drop("f", "外层 agent 停下时有后台任务，结束后会接着跑")
+
+
+def check_orca_wake(p, a):
+    status = p.get("status")
+    if status in NEVER:
+        return
+    ws = p.get("worktree") or ""
+    rule_d(p, ws)
+    if status != "idle":
+        return
+    rule_b_place(status, ws)
+    s = session_by_id(p.get("agent") or "claude", p.get("session_id") or "") or {}
+    dp = s.get("dispatch_pid")
+    u = load(unit_file(dp)) if dp else None
+    if not isinstance(u, dict) or u.get("status") != "done":
+        return
+    if u.get("session_id") not in (None, "", p.get("session_id")) or u.get("turn") in (None, ""):
+        return
+    if seq_le(p.get("seq"), u["turn"]):
+        raise Drop("a" if str(p.get("seq")) == str(u["turn"]) else "b",
+                   "同一件活的 done 已送达（%s，第 %s 回合）" % (u.get("ts_iso"), u["turn"]), True)
+
+
+def git(path, *args):
+    r = subprocess.run(["git", "-C", path] + list(args), capture_output=True, text=True, timeout=1)
+    return r.returncode, r.stdout.strip()
+
+
+def merged_clean(path):
+    """Local worktree is clean and HEAD reached origin's default branch through a merge (not by sitting on it)."""
+    if not path or not os.path.isdir(path):
+        return None
+    rc, out = git(path, "status", "--porcelain")
+    if rc or out:
+        return None
+    rc, ref = git(path, "rev-parse", "--abbrev-ref", "origin/HEAD")
+    ref = ref if rc == 0 and ref.startswith("origin/") else "origin/main"
+    rc, head = git(path, "rev-parse", "HEAD")
+    if rc or git(path, "merge-base", "--is-ancestor", head, ref)[0]:
+        return None
+    rc, chain = git(path, "rev-list", "--first-parent", "-n", "2000", ref)
+    if rc or head in chain.split():
+        return None
+    return "工作区干净，HEAD %s 已经合进 %s" % (head[:8], ref)
+
+
+def check_stuck(p, a):
+    rule_d(p, "")
+    if p.get("status") != "reported_not_accepted" and p.get("kind") not in REMINDERS:
+        return
+    where = p.get("worktree") or ""
+    label, _, path = where.partition(":")
+    if label == "iMac" and sys.platform == "darwin" or label.lower() == HOST.lower():
+        why = merged_clean(path)
+        if why:
+            raise Drop("e", why)
+    ids = {m.upper() for m in ISSUE_ID.findall("%s %s %s" % (p.get("issue") or "", p.get("task") or "", where))}
+    if len(ids) != 1:
+        return
+    ident = ids.pop()
+    info = cached("linear-" + ident, LINEAR_TTL_S)
+    if info is None:
+        refresh_later("linear", ident)
+        return
+    if info.get("state") == "completed":
+        raise Drop("e", "Linear %s 已 Done" % ident)
+    if info.get("zack_merge"):
+        raise Drop("e", "Linear %s 有 %s" % (ident, info["zack_merge"][0][:60]))
+
+
+CHECKS = {"notify-run": check_notify_run, "orca-wake": check_orca_wake, "stuck-check": check_stuck}
+
+
+# ---------------------------------------------------------------- commands
+
+def parse(argv):
+    a, i = {}, 0
+    while i < len(argv):
+        k = argv[i]
+        if k.startswith("--") and i + 1 < len(argv):
+            a[k[2:]] = argv[i + 1]
+            i += 2
+        else:
+            i += 1
+    return a
+
+
+def cmd_check(a):
+    m = mode()
+    if m == "off" or a.get("source") not in CHECKS:
+        return 0
+    p = json.loads(sys.stdin.read(4 * 1024 * 1024))
+    if not isinstance(p, dict):
+        return 0
+    try:
+        CHECKS[a["source"]](p, a)
+    except Drop as d:
+        log_drop(a["source"], d, p, m)
+        if m != "on":
+            return 0
+        print("%s\t%d\t%s" % (d.rule, 1 if d.covered else 0, clean(d.reason)))
+        return 3
+    return 0
+
+
+def cmd_record(a):
+    if mode() == "off" or a.get("source") != "notify-run":
+        return 0
+    p = json.loads(sys.stdin.read(4 * 1024 * 1024))
+    me = str(a.get("pid") or "")
+    if not me or os.environ.get("ORCA_DISPATCH_PID", "") != me:
+        return 0  # only the layer that wraps the whole agent is a work unit
+    s = session_of(me) or {}
+    save(unit_file(me), {"status": p.get("status"), "ts": time.time(), "ts_iso": iso(), "turn": s.get("turn"),
+                         "session_id": s.get("session_id"), "agent": s.get("agent"), "ws": a.get("ws"),
+                         "bot": p.get("bot"), "task": p.get("task")})
+    try:  # keep a week of units
+        d = os.path.join(PF_DIR, "units")
+        for n in os.listdir(d):
+            if time.time() - os.path.getmtime(os.path.join(d, n)) > 7 * 86400:
+                os.unlink(os.path.join(d, n))
+    except OSError:
+        pass
+    return 0
+
+
+def main(argv):
+    if argv[:1] == ["_refresh"] and len(argv) >= 2:
+        return cmd_refresh(argv[1], argv[2] if len(argv) > 2 else "")
+    signal.signal(signal.SIGALRM, lambda *_: os._exit(0))  # out of time: send it
+    signal.alarm(DEADLINE_S)
+    a = parse(argv[1:])
+    if argv[:1] == ["check"]:
+        return cmd_check(a)
+    if argv[:1] == ["record"]:
+        return cmd_record(a)
+    print(__doc__.split("\n\n")[1], file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except Exception:
+        sys.exit(0)  # never block a wake because the filter broke

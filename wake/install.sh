@@ -1,6 +1,6 @@
 #!/bin/bash
 # wake/install.sh：从 ops 仓库安装叫醒系统脚本（iMac / box 通用，可重复运行）。
-#   装到 $HOME/.local/bin/：orca-wake、orca-wake-hooks、notify-run、orca-agent-launch、agent-stop（来自 wake/bin/）和 agent-probe（来自 scripts/）。
+#   装到 $HOME/.local/bin/：orca-wake、orca-wake-hooks、notify-run、orca-agent-launch、agent-stop、wake-prefilter（来自 wake/bin/）和 agent-probe（来自 scripts/）。
 #   有 $HOME/.pi/agent/extensions/ 时同时装 Pi 扩展 dispatch-wake.ts。
 #   内容相同的文件不动；要覆盖的旧文件先备份到 <目标>.bak-<时间戳>（同目录）。
 #   不改 ~/.claude/settings.json、enabled-bots、webhook 配置；hook 条目请另跑 `orca-wake-hooks install --backup-dir ...`。
@@ -31,6 +31,7 @@ ITEMS=(
   "$WAKE_DIR/bin/notify-run|$BIN/notify-run|755"
   "$WAKE_DIR/bin/orca-agent-launch|$BIN/orca-agent-launch|755"
   "$WAKE_DIR/bin/agent-stop|$BIN/agent-stop|755"
+  "$WAKE_DIR/bin/wake-prefilter|$BIN/wake-prefilter|755"
   "$OPS_DIR/scripts/agent-probe|$BIN/agent-probe|755"
 )
 if [ -d "$PI_EXT" ]; then

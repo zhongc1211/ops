@@ -87,6 +87,9 @@
 #   --send     把 pending.json 里没被 --dismiss 的嫌疑发给各自的 bot，并补发之前没发出去的。
 #   不带参数   查一遍并把所有东西直接发掉，不经复核（codex 备用任务和手动运行用）。
 #   --dry-run  查一遍只打印，不发、不写状态。--full 强制把第二类也查了（否则按每小时一次的节奏）。
+# 叫醒前预过滤（PER-88）：发之前交给 ~/.local/bin/wake-prefilter（STUCK_PREFILTER 可改，最多 3 秒），挡掉的（演练、已处理完的提醒）
+#   不发：嫌疑和断了的记成排除（不算送达），其余按报过记；「报了没人验收」逐条过滤后再合并。WAKE_PREFILTER=off 或
+#   ~/.config/orca-wake/prefilter 写 off 时不调用。出错、超时都照发。
 # 每次 POST 之间至少隔 6 秒。POST 失败（非 2xx 或没响应）按 STUCK_BACKOFF（默认 5,15,45 秒）重试 3 次，
 # 全部失败才算失败，这次运行里发给同一个目标的不再发（别的照发），下次再试；发给派活 bot 的从第一次失败起满 STUCK_ESCALATE_MIN（默认 45）分钟改发 coding-assistant。URL 和 KEY 不会出现在输出和日志里。
 # 退出码：0 正常（--scan 见上）；2 iMac Orca 查询失败；3 有 webhook 重试后仍然失败；4 脚本自己出错
@@ -306,6 +309,32 @@ def post(cfg, payload, what):
         if ok:
             return True
     return False
+
+
+PREFILTER = os.environ.get("STUCK_PREFILTER") or os.path.join(HOME, ".local/bin/wake-prefilter")
+
+
+def prefilter(payload):
+    """叫醒前预过滤（PER-88）：挡掉时返回原因，照发返回 None（off、dry-run、出错、超时都照发）。"""
+    m = os.environ.get("WAKE_PREFILTER", "").strip()
+    if not m:
+        try:
+            m = open(os.path.join(os.environ.get("ORCA_WAKE_CONFIG_DIR") or os.path.join(HOME, ".config/orca-wake"),
+                                  "prefilter"), encoding="utf-8").readline().strip()
+        except OSError:
+            pass
+    if DRY or m == "off" or not os.access(PREFILTER, os.X_OK):
+        return None
+    try:
+        p = subprocess.run([PREFILTER, "check", "--source", "stuck-check"], capture_output=True, text=True, timeout=3,
+                           input=json.dumps(payload, ensure_ascii=False))
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if p.returncode != 3:
+        return None
+    why = p.stdout.strip().split("\t")
+    log("预过滤挡掉 | %s | %s | %s" % (payload.get("task"), why[0], why[-1]))
+    return "%s：%s" % (why[0], why[-1])
 
 
 # ---- bot 映射：orca-projects.md 的「Repo → 项目 ID」表和「Bot → 工作区」表 ----
@@ -1571,7 +1600,11 @@ def send_all(pending, known, track, seen):
         if DRY:
             log("dry-run，将 POST：%s" % json.dumps(d["payload"], ensure_ascii=False))
             continue
-        if to in broken or not post(cfg, d["payload"], d["payload"]["task"]):
+        why = prefilter(d["payload"])
+        if why and (d.get("after") or {}).get("known"):  # 挡掉的不算送达：known 记成排除
+            k, rec = d["after"].pop("known")
+            known[k] = dict(rec, dismissed=NOW, reason="预过滤 " + why)
+        if not why and (to in broken or not post(cfg, d["payload"], d["payload"]["task"])):
             failed = failed + 1
             broken.add(to)
             fails.setdefault(d["id"], NOW)
@@ -1614,6 +1647,10 @@ def send_all(pending, known, track, seen):
             payload.update(bot=to, note=note2)
         if DRY:
             log("dry-run，将 POST 给 %s：%s" % (to, json.dumps(payload, ensure_ascii=False)))
+            continue
+        why = prefilter(payload)
+        if why:
+            known[s["key"]] = {"kind": s["kind"], "marker": s["marker"], "dismissed": NOW, "reason": "预过滤 " + why}
             continue
         if to in broken or not post(cfg, payload, "%s %s → %s" % (s["kind"], s["worktree"], to)):
             failed = failed + 1
@@ -1750,6 +1787,9 @@ def main():
             if key(p) in seen:
                 seen[key(p)]["last_seen"] = NOW
         due = [p for p in problems if key(p) not in seen]
+        for p in [p for p in due if prefilter(p)]:  # 已处理完的事不提醒，按报过记
+            due.remove(p)
+            seen[key(p)] = {"notified": NOW, "last_seen": NOW, "prefilter": True}
         if due:
             direct = [d for d in direct if d["id"] != "reported"]
             direct.append({"id": "reported", "cfg": "stuck", "payload": merge_reported(due),

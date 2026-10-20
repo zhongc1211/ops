@@ -27,6 +27,9 @@
 #   orca-wake 还没有这个 notify-run 派出的会话走到第 1 个回合（sessions/*.json 里 dispatch_pid = 本进程、turn ≥ 1），而 agent 还在，
 #   就叫醒派活的 bot 一次：status stuck、kind agent_not_started（卡在启动对话框、登录、没装 hook……）。发不出去时改发 coding-assistant。
 #   pi / codex 不查（它们的扩展只在停下时才写会话）。
+# 叫醒前预过滤（PER-88）：发之前把 payload 交给同目录的 wake-prefilter（WAKE_PREFILTER_BIN 可改，最多 3 秒），退出码 3 = 挡掉：
+#   不发、不写 NOTIFY_RUN_LOG（记在 prefilter.log）。2xx 之后再交给它记一笔（工作单元账本）。总开关见 wake-prefilter；
+#   off 时两处都不调用，行为和以前一样。它出错、超时都照发。
 set -u
 
 usage() {
@@ -97,6 +100,19 @@ log_send() {  # $1=http（或说明） $2=第几次
         "$([ "$tty_mode" = 1 ] && [ "${ORCA_DISPATCH_PID:-}" = "$$" ] && echo 1 || echo 0)" >>"$NR_LOG"; } 2>/dev/null || true
 }
 
+# 预过滤（PER-88）：WAKE_PREFILTER 优先，其次 ~/.config/orca-wake/prefilter 第一行，都没有或写错按 shadow
+PF_BIN=${WAKE_PREFILTER_BIN:-$(dirname "$0")/wake-prefilter}
+pf_mode() {
+    local m=${WAKE_PREFILTER:-}
+    [ -n "$m" ] || m=$(head -n 1 "${ORCA_WAKE_CONFIG_DIR:-$HOME/.config/orca-wake}/prefilter" 2>/dev/null | tr -d ' \t\r')
+    case "$m" in off|shadow|on) echo "$m" ;; *) echo shadow ;; esac
+}
+pf_run() {  # $1 = check | record；payload 是 $tmpd/payload.json；最多 3 秒（perl alarm，到时间被杀 = 照发）
+    [ -x "$PF_BIN" ] || return 0
+    perl -e 'alarm 3; exec @ARGV or exit 0' "$PF_BIN" "$1" --source notify-run --pid $$ --child "${child:-}" \
+        --start "$start" --ws "$start_dir" <"$tmpd/payload.json" 2>/dev/null
+}
+
 # 打到 stderr 的提示一律经外部 echo：终端关掉后（HUP）写终端会失败，bash 内建 echo 失败时内容留在 stdio 缓冲里，
 # 之后每个 $(...) 子 shell 都会把它吐进捕获结果，日志的时间、ws 字段被串掉，mkdir 还建出名字带换行的目录（10-18 iMac 4 次）。
 say() { /bin/echo "$1" >&2 2>/dev/null || true; }
@@ -123,6 +139,13 @@ send_webhook() (
         say "notify-run: 生成 JSON 失败（需要 jq 或 python3），未发送"
         exit 1
     fi
+    if [ "$(pf_mode)" != off ]; then
+        pf_out=$(pf_run check)
+        if [ $? -eq 3 ]; then
+            say "notify-run: 预过滤挡掉，没发 bot=${bot} status=${status}（${pf_out}）"
+            exit 0
+        fi
+    fi
     tries=${NOTIFY_RUN_TRIES:-3}
     n=1
     while :; do
@@ -131,7 +154,7 @@ send_webhook() (
             --data-binary @"$tmpd/payload.json" "$URL" 2>/dev/null)
         say "notify-run: webhook bot=$bot status=$status exit_code=$code http=${http:-无响应} 第${n}次"
         log_send "${http:-none}" "$n"
-        case "$http" in 2??) exit 0 ;; esac
+        case "$http" in 2??) [ "$(pf_mode)" = off ] || pf_run record >/dev/null; exit 0 ;; esac
         [ "$n" -lt "$tries" ] || exit 1
         if [ "$n" -eq 1 ]; then sleep 20; else sleep 45; fi
         n=$((n + 1))

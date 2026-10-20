@@ -47,6 +47,11 @@ Dedup key = agent:session:status:seq. For Claude, seq is the turn number (UserPr
 count, needs_input adds .<n>); for Pi it is the session leaf entry id. A key is marked sent only
 after a 2xx; the key also goes into the webhook body (dedup_key) so the bot can drop repeats.
 
+Prefilter (PER-88): right before sending, the wake goes through wake-prefilter (same directory, WAKE_PREFILTER_BIN
+overrides, 3 s at most). A dropped wake is logged as skip/prefilter, like a muted one: nothing in sent/. Only when
+the prefilter says another wake for the same pause already got a 2xx ("covered") is the pause recorded as woken.
+Mode off (WAKE_PREFILTER, or ORCA_WAKE_CONFIG_DIR/prefilter): not called at all. Any error or timeout sends the wake.
+
 Retries: HTTP 429, or a 4xx whose body mentions "rate limit" (the platform answers its rate limit
 with 400), waits ORCA_WAKE_RL_DELAYS (default 60,300,900 s, +-10% jitter, Retry-After honoured up
 to 900 s). Other failures use ORCA_WAKE_RETRY_DELAYS (default 20,45 s). All retries of one wake stay
@@ -86,6 +91,8 @@ SETTLE_S = float(os.environ.get("ORCA_WAKE_SETTLE_S") or "8")
 LOG_TAIL_MAX = 4000
 SENT_TTL_S = 7 * 86400
 MUTE_NAME = ".orca-wake-mute"
+PREFILTER = os.environ.get("WAKE_PREFILTER_BIN") or os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                                  "wake-prefilter")
 BOT_RE = re.compile(r"^[A-Za-z0-9_-][A-Za-z0-9._-]*$")
 # Background task statuses that mean "finished". Anything else counts as still running.
 DONE_STATUSES = {"completed", "complete", "done", "failed", "killed", "stopped", "cancelled",
@@ -463,6 +470,28 @@ def _mark_shadow(job):
         pass
 
 
+def prefilter(job):
+    """(rule, covered, reason) when wake-prefilter drops this wake, else None (also on any error or timeout)."""
+    m = os.environ.get("WAKE_PREFILTER", "").strip()
+    if not m:
+        try:
+            with open(os.path.join(CONFIG_DIR, "prefilter"), encoding="utf-8") as f:
+                m = f.readline().strip()
+        except OSError:
+            pass
+    if m == "off" or not os.access(PREFILTER, os.X_OK):
+        return None
+    try:
+        r = subprocess.run([PREFILTER, "check", "--source", "orca-wake"], capture_output=True, text=True, timeout=3,
+                           input=json.dumps(build_payload(job), ensure_ascii=False))
+    except Exception:
+        return None
+    if r.returncode != 3:
+        return None
+    rule, covered, reason = (r.stdout.rstrip("\n").split("\t", 2) + ["", "", ""])[:3]
+    return rule, covered == "1", reason
+
+
 def read_state(agent, session_id):
     try:
         with open(os.path.join(STATE_DIR, "sessions", "%s-%s.json" % (agent, safe_name(session_id))),
@@ -484,6 +513,12 @@ def _send_now(job, sent, base):
         if str(stop.get("turn")) == str(job["seq"]) and stop.get("message"):
             # Another Stop hook may have blocked once; the later Stop of the same turn has the final text.
             job["message"] = stop["message"]
+    pf = prefilter(job)
+    if pf:
+        log("skip", reason="prefilter", rule=pf[0], covered=pf[1], note=pf[2], **base)
+        if pf[1]:  # the wake covering this pause got a 2xx: recheck must not resend it
+            mark_woken(job["agent"], job["session_id"], job["seq"], job["status"], "prefilter")
+        return
     payload = build_payload(job)
     if not enabled_for(job["bot"]):
         # Not sent, so not "woken": keep it out of sent/ and woken, or recheck would skip this pause for good.
