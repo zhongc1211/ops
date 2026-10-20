@@ -140,6 +140,35 @@ P2 Pi 后台子代理：
 {"event": "send", "key": "pi:<sid>:idle:<leaf>", "http": 200, "attempt": 1, "source": "wake-hook"}   (tail: FINAL-DONE)
 ```
 
+## 叫醒前预过滤演练（PER-88）
+
+`tests/prefilter-drill.sh <产物目录> [用例...]`：真 notify-run / orca-wake / stuck-check / wake-prefilter / agent-stop，真 Claude Code（haiku，一句话会话，经 `notify-run --tty` 起在独立的 tmux 服务器里），真 kill、真退出码。webhook 全部发到本机 `tests/mock_webhook.py`（假 key）。notify-run 和 stuck-check 用临时 HOME，orca-wake 的状态、配置、webhook 目录都指临时目录；claude 和 orca 经同名小脚本把 HOME 改回真的（登录、连 Orca）再 exec，`--setting-sources local --settings <临时 hook 配置>`，不加载用户的 hook。b3、r9 要一个状态是 sleep 的 Orca 工作区（`WAKE_DRILL_SLEEP_WS`），e2 要一个 Linear 评论里有 `[Zack答-…merge…]` 的 issue（`WAKE_DRILL_E2_ISSUE`）。回退测试：`WAKE_DRILL_CODE=<main 的导出> WAKE_DRILL_EXPECT=send`，同一套输入，该挡的都应该发出来。
+
+| 用例 | 输入 | 开关 on 时期望 |
+|---|---|---|
+| r1 / a1 | 交互 claude 一句话，回合结束后马上 `/exit`（idle 要等 30 秒 settle，done 先到） | done 照发；idle 挡（a，覆盖） |
+| a2 | 交互 claude，idle 送达后 `/exit` | done 挡（a，覆盖） |
+| r10 | idle:1 送达后第 2 回合起后台 shell（Stop 时有后台任务，按设计不发 idle），再 `/exit` | done 照发 |
+| b1 | **本地替身检查**：r10 的 done 已送达（账本第 2 回合）后，构造旧回合 idle:1 的 payload 直接交给 wake-prefilter。现在的代码里旧回合的 idle 在 settle 时就作废（superseded），真流程造不出来 | 退出码 3（b，覆盖） |
+| b2 | 同工作区、同 task 两个 claude：第二个（`-p`）的 done 送达后，第一个的 notify-run 收到 HUP，没有 agent-stop 标记 | killed 挡（b，覆盖） |
+| b3 / r9 | Orca 工作区状态 sleep 里 `claude -p`；同一工作区 claude 用不存在的模型 | done 挡（b）；failed 照发 |
+| c1 / r3 | idle 送达后 `agent-stop --mark-only`，再 `kill -HUP` notify-run；不打标记直接 HUP | killed 挡（c）；killed 照发 |
+| r3b | idle 送达后 `kill -9` claude | failed（137）照发 |
+| d1 / r8 | task 以「[演练」开头；同样的 task 写进 `prefilter-drill-allow` | done 挡（d）；照发 |
+| r2 | claude 用不存在的模型，退出非 0 | failed 照发 |
+| r5 | 交互 claude（`--permission-mode default`）要用 Bash 写文件，弹审批框 | needs_input 照发 |
+| r6 | `orca-wake send --agent pi --status error / blocked`（Pi 扩展调的命令；agent 是 notify-run 下的 sleep，不是真 Pi） | 都照发 |
+| r7 | 没信任过的目录里起交互 claude，停在信任对话框，`NOTIFY_RUN_START_MIN=0.25` | stuck / agent_not_started 照发 |
+| f1 | 外层交互 claude 回合中途跑 `notify-run -- sleep 2`（嵌套） | 内层 done 挡（f）；外层 idle 照发 |
+| r4 | `stuck-check --send`，pending 里 agent_idle、agent_silent 两条嫌疑（pending 是写进临时状态目录的，没跑真扫描） | 都照发 |
+| e1 | `stuck-check --send`，stop_not_delivered，工作区是 main 上一个经 merge 合入的提交的干净 detached 检出 | 挡（e） |
+| e2 | 同上，issue 有 `[Zack答-…merge…]`，发两次 | 第一次 Linear 缓存冷照发（后台刷新），第二次挡（e） |
+| r11 | prefilter 换成替身脚本：`exit 1`；`sleep 10` 后 `exit 3` | 都照发（超时 3 秒） |
+| s1 | `WAKE_PREFILTER=off`，`WAKE_PREFILTER_BIN` 指向会记调用的脚本 | 照发，脚本没被调；payload 和 main 逐字节比 |
+| s2 | `WAKE_PREFILTER=shadow`，输入同 a2 | 都照发；prefilter.log 记「shadow 会挡」 |
+
+每次的结果（results.tsv、假接收端收到的每一条、prefilter.log、各用例的屏幕和日志）放在 box `/workspace/ops/reports/wake-prefilter-1020/head-<短sha>/`。没覆盖：stuck-check 合并「报了没人验收」之前的那处调用（要真扫描线上 Orca，只在 TLA 里查了）；Pi 的真会话；Linear 状态 Done 那一条（e 的 Linear 分支只跑了评论这条）。
+
 ## 测试中发现并已修复的问题
 
 1. 子 agent 结束、通知排队时 Stop 看到的后台任务为空，叫醒 2 次（C5）→ Stop 后等 8 秒，期间开始新回合则作废；transcript 有未出队的 `enqueue` 时不叫。
