@@ -58,7 +58,7 @@ esac
 case "$V" in
   总判定：兼容*)   echo "NEW-COMPATIBLE $line report=$REPORTS/$R"; exit 3 ;;
   总判定：不兼容*) echo "NEW-INCOMPATIBLE $line report=$REPORTS/$R"; exit 4 ;;
-  *)               echo "NEW $line report=$REPORTS/$R（没有或还没写总判定）"; exit 1 ;;
+  *)               echo "NEW $line report=$REPORTS/${R}（没有或还没写总判定）"; exit 1 ;;
 esac
 ```
 
