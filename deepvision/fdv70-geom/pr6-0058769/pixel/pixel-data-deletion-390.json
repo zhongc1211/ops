@@ -1,0 +1,390 @@
+{
+ "page": "data-deletion",
+ "width": 390,
+ "limit": 0.0001,
+ "fontNormalized": true,
+ "original": {
+  "diff": 0.8239782071535626,
+  "diffPx": 813662,
+  "totalPx": 987480,
+  "screens": [
+   {
+    "i": 0,
+    "ryzeY": 0,
+    "oursY": 0,
+    "n": 229011,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 704,
+      "w": 260,
+      "h": 125
+     }
+    ]
+   },
+   {
+    "i": 1,
+    "ryzeY": 476,
+    "oursY": 844,
+    "n": 255491,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 704,
+      "w": 260,
+      "h": 125
+     }
+    ]
+   },
+   {
+    "i": 2,
+    "missing": "ryze"
+   }
+  ]
+ },
+ "font": {
+  "diff": 0.8251620285980475,
+  "diffPx": 814831,
+  "totalPx": 987480,
+  "screens": [
+   {
+    "i": 0,
+    "ryzeY": 0,
+    "oursY": 0,
+    "n": 228947,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 704,
+      "w": 260,
+      "h": 125
+     }
+    ]
+   },
+   {
+    "i": 1,
+    "ryzeY": 468,
+    "oursY": 844,
+    "n": 256724,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 704,
+      "w": 260,
+      "h": 125
+     }
+    ]
+   },
+   {
+    "i": 2,
+    "missing": "ryze"
+   }
+  ]
+ },
+ "blocks": [
+  {
+   "id": "nav",
+   "ryze": null,
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 57
+    }
+   },
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  },
+  {
+   "id": "col",
+   "ryze": {
+    "x": 0,
+    "y": 136,
+    "w": 390,
+    "h": 984,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 136,
+     "w": 390,
+     "h": 984
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Ryze AI – Facebook Data Deletion Instructions"
+   },
+   "ours": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 571.8,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 780,
+     "h": 572
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Ryze AI – Facebook Data Deletion Instructions"
+   },
+   "diff": 0.8679721701063164,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     7,
+     13
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "col.title",
+   "ryze": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 72,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 72
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Ryze AI – Facebook Data Deletion Instructions"
+   },
+   "ours": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 72,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 72
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Ryze AI – Facebook Data Deletion Instructions"
+   },
+   "diff": 0.7595825574177529,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "col.lookup",
+   "ryze": null,
+   "ours": {
+    "x": 16,
+    "y": 324,
+    "w": 358,
+    "h": 155.8,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 324,
+     "w": 780,
+     "h": 156
+    }
+   },
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  },
+  {
+   "id": "col.h2",
+   "ryze": {
+    "x": 16,
+    "y": 324,
+    "w": 358,
+    "h": 64,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 324,
+     "w": 358,
+     "h": 64
+    },
+    "font": 24,
+    "lineHeight": 32,
+    "heading": "Disconnect Ryze AI from your Facebook account:"
+   },
+   "ours": {
+    "x": 16,
+    "y": 503.8,
+    "w": 358,
+    "h": 64,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 504,
+     "w": 358,
+     "h": 64
+    },
+    "font": 24,
+    "lineHeight": 32,
+    "heading": "Disconnect Ryze AI from your Facebook account:"
+   },
+   "diff": 0.7003317039106145,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "footer",
+   "ryze": null,
+   "ours": {
+    "x": 0,
+    "y": 901,
+    "w": 390,
+    "h": 1452.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 901,
+     "w": 390,
+     "h": 1453
+    },
+    "font": 30,
+    "lineHeight": 33.6,
+    "heading": "Start with a short call"
+   },
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  },
+  {
+   "id": "float",
+   "ryze": null,
+   "ours": null,
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  },
+  {
+   "id": "whatsapp",
+   "ryze": null,
+   "ours": {
+    "x": 114,
+    "y": 703.5,
+    "w": 260,
+    "h": 124.5,
+    "fixed": true,
+    "cover": {
+     "x": 114,
+     "y": 704,
+     "w": 260,
+     "h": 125
+    }
+   },
+   "diff": null,
+   "exempt": "whatsapp",
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  }
+ ],
+ "repeat": {
+  "original": {
+   "ryze": {
+    "px": 0,
+    "raw": 0,
+    "total": 658320,
+    "p": 0,
+    "pRaw": 0
+   },
+   "ours": {
+    "px": 0,
+    "raw": 0,
+    "total": 987480,
+    "p": 0,
+    "pRaw": 0
+   }
+  },
+  "font": {
+   "ryze": {
+    "px": 0,
+    "raw": 0,
+    "total": 658320,
+    "p": 0,
+    "pRaw": 0
+   },
+   "ours": {
+    "px": 0,
+    "raw": 0,
+    "total": 987480,
+    "p": 0,
+    "pRaw": 0
+   }
+  }
+ }
+}

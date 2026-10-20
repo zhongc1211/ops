@@ -1,0 +1,1808 @@
+{
+ "page": "home",
+ "width": 390,
+ "ryzeUrl": "https://www.get-ryze.ai/",
+ "oursUrl": "http://localhost:4318/en",
+ "limit": 0.02,
+ "fontNormalized": true,
+ "pending": {
+  "ryze": 0,
+  "ours": 0
+ },
+ "ryze": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 60
+    }
+   },
+   "hero": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 844,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 1256
+    },
+    "font": 33.6,
+    "lineHeight": 37.632,
+    "heading": "AI runs yourads, SEO,and website"
+   },
+   "hero.cta": {
+    "x": 24,
+    "y": 326.5,
+    "w": 342,
+    "h": 46,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 326,
+     "w": 343,
+     "h": 46
+    }
+   },
+   "strip": {
+    "x": 0,
+    "y": 844,
+    "w": 390,
+    "h": 72.1,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 844,
+     "w": 390,
+     "h": 72
+    }
+   },
+   "twocol": {
+    "x": 0,
+    "y": 916.1,
+    "w": 390,
+    "h": 554.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 916,
+     "w": 390,
+     "h": 554
+    },
+    "font": 24,
+    "lineHeight": 26.88,
+    "heading": "AI to manage ads across any platform"
+   },
+   "wall": {
+    "x": 0,
+    "y": 1470.6,
+    "w": 390,
+    "h": 1228.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1471,
+     "w": 390,
+     "h": 1228
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "Wall of Love"
+   },
+   "logos": {
+    "x": 0,
+    "y": 2699,
+    "w": 390,
+    "h": 717,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2699,
+     "w": 390,
+     "h": 717
+    },
+    "font": 24,
+    "lineHeight": 30,
+    "heading": "Used by marketers behind 33,000+ brands"
+   },
+   "cards5": {
+    "x": 0,
+    "y": 3416,
+    "w": 390,
+    "h": 868.8,
+    "fixed": false,
+    "cover": {
+     "x": -11,
+     "y": 3416,
+     "w": 402,
+     "h": 2660
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "See what Ryze does inside your account"
+   },
+   "scan": {
+    "x": 0,
+    "y": 4284.7,
+    "w": 390,
+    "h": 434,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4285,
+     "w": 390,
+     "h": 434
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "Get a free scanof your website"
+   },
+   "scan.cta": {
+    "x": 24,
+    "y": 4590.7,
+    "w": 342,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 4591,
+     "w": 343,
+     "h": 48
+    }
+   },
+   "three": {
+    "x": 0,
+    "y": 4718.7,
+    "w": 390,
+    "h": 1653.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4719,
+     "w": 733,
+     "h": 1687
+    },
+    "font": 22,
+    "lineHeight": 27.5,
+    "heading": "Autonomous PPC optimization"
+   },
+   "why": {
+    "x": 0,
+    "y": 6372.2,
+    "w": 390,
+    "h": 957,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6372,
+     "w": 390,
+     "h": 957
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "Why Ryze outperforms"
+   },
+   "list": {
+    "x": 0,
+    "y": 7329.2,
+    "w": 390,
+    "h": 955.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7329,
+     "w": 390,
+     "h": 956
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "Everything you need to run paid ads."
+   },
+   "agency": {
+    "x": 0,
+    "y": 8284.9,
+    "w": 390,
+    "h": 644.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7228,
+     "w": 390,
+     "h": 1968
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "Manage 100s of accounts with AI agents"
+   },
+   "faq": null,
+   "footer": {
+    "x": 0,
+    "y": 8929.3,
+    "w": 390,
+    "h": 917.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 8929,
+     "w": 390,
+     "h": 918
+    }
+   },
+   "footer.cta": null,
+   "float": {
+    "x": 12,
+    "y": 804,
+    "w": 366,
+    "h": 52,
+    "fixed": true,
+    "cover": {
+     "x": 12,
+     "y": 804,
+     "w": 366,
+     "h": 52
+    }
+   },
+   "whatsapp": null
+  },
+  "pageH": 9847,
+  "vw": 390
+ },
+ "ours": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 57
+    }
+   },
+   "hero": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 1106.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 1106
+    },
+    "font": 34,
+    "lineHeight": 38.08,
+    "heading": "One team for your growth. You watch the results."
+   },
+   "hero.cta": {
+    "x": 24,
+    "y": 372,
+    "w": 342,
+    "h": 90,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 372,
+     "w": 342,
+     "h": 90
+    }
+   },
+   "strip": {
+    "x": 0,
+    "y": 1106.4,
+    "w": 390,
+    "h": 132.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1106,
+     "w": 390,
+     "h": 132
+    }
+   },
+   "twocol": {
+    "x": 0,
+    "y": 1238.8,
+    "w": 390,
+    "h": 1031.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1239,
+     "w": 390,
+     "h": 1032
+    },
+    "font": 26,
+    "lineHeight": 32.5,
+    "heading": "We post to all six for you"
+   },
+   "wall": {
+    "x": 0,
+    "y": 2270.5,
+    "w": 390,
+    "h": 2352,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2270,
+     "w": 390,
+     "h": 2352
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "What shows up on your accounts each month"
+   },
+   "logos": null,
+   "cards5": {
+    "x": 0,
+    "y": 4622.4,
+    "w": 390,
+    "h": 1200.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4622,
+     "w": 390,
+     "h": 1201
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "What we do for you every month"
+   },
+   "scan": {
+    "x": 0,
+    "y": 5823.1,
+    "w": 390,
+    "h": 427.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5823,
+     "w": 390,
+     "h": 428
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "How we get started"
+   },
+   "scan.cta": {
+    "x": 24,
+    "y": 6138.7,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 6139,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "three": {
+    "x": 0,
+    "y": 6250.7,
+    "w": 390,
+    "h": 1978.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6251,
+     "w": 390,
+     "h": 1979
+    },
+    "font": 22,
+    "lineHeight": 27.5,
+    "heading": "We make your videos and posts,and post them for you"
+   },
+   "why": {
+    "x": 0,
+    "y": 8229.3,
+    "w": 390,
+    "h": 1318.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 8229,
+     "w": 390,
+     "h": 1319
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "Why hand it to us"
+   },
+   "list": {
+    "x": 0,
+    "y": 9547.9,
+    "w": 390,
+    "h": 1373,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 9548,
+     "w": 390,
+     "h": 1373
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "What we do,month by month"
+   },
+   "agency": {
+    "x": 0,
+    "y": 10920.8,
+    "w": 390,
+    "h": 1261.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 10921,
+     "w": 390,
+     "h": 1262
+    },
+    "font": 32,
+    "lineHeight": 36.8,
+    "heading": "Someone asks for a price. The assistant answers."
+   },
+   "faq": {
+    "x": 0,
+    "y": 12182.5,
+    "w": 390,
+    "h": 930.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 12182,
+     "w": 390,
+     "h": 930
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "Frequently asked questions"
+   },
+   "footer": {
+    "x": 0,
+    "y": 13112.9,
+    "w": 390,
+    "h": 1452.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 13113,
+     "w": 390,
+     "h": 1453
+    },
+    "font": 30,
+    "lineHeight": 33.6,
+    "heading": "Start with a short call"
+   },
+   "footer.cta": {
+    "x": 107.2,
+    "y": 13377.5,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 107,
+     "y": 13377,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "float": null,
+   "whatsapp": null
+  },
+  "pageH": 14566,
+  "vw": 390
+ },
+ "rows": [
+  {
+   "id": "nav",
+   "name": "Top navigation (DIFF #0)",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 57
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0.02564102564102564
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h"
+  },
+  {
+   "id": "hero",
+   "name": "Hero (DIFF #1)",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 844,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 1256
+    },
+    "font": 33.6,
+    "lineHeight": 37.632,
+    "heading": "AI runs yourads, SEO,and website"
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 1106.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 1106
+    },
+    "font": 34,
+    "lineHeight": 38.08,
+    "heading": "One team for your growth. You watch the results."
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0.3109004739336494,
+    "font": 0.011904761904761862,
+    "lineHeight": 0.011904761904761916
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h"
+  },
+  {
+   "id": "hero.cta",
+   "name": "Hero email form / our buttons (DIFF #1a)",
+   "ryze": {
+    "x": 24,
+    "y": 326.5,
+    "w": 342,
+    "h": 46,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 326,
+     "w": 343,
+     "h": 46
+    }
+   },
+   "ours": {
+    "x": 24,
+    "y": 372,
+    "w": 342,
+    "h": 90,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 372,
+     "w": 342,
+     "h": 90
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.0046206966588808775,
+    "h": 0.9565217391304348
+   },
+   "status": "exempt",
+   "reason": "email-form: Buttons instead of Ryze's email forms: we have no email sign-up flow."
+  },
+  {
+   "id": "strip",
+   "name": "Press strip / platform strip (DIFF #2)",
+   "ryze": {
+    "x": 0,
+    "y": 844,
+    "w": 390,
+    "h": 72.1,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 844,
+     "w": 390,
+     "h": 72
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 1106.4,
+    "w": 390,
+    "h": 132.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1106,
+     "w": 390,
+     "h": 132
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.026647709962425114,
+    "h": 0.8363384188626909
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "twocol",
+   "name": "All platforms + AI search, two columns (DIFF #3)",
+   "ryze": {
+    "x": 0,
+    "y": 916.1,
+    "w": 390,
+    "h": 554.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 916,
+     "w": 390,
+     "h": 554
+    },
+    "font": 24,
+    "lineHeight": 26.88,
+    "heading": "AI to manage ads across any platform"
+   },
+   "ours": {
+    "x": 0,
+    "y": 1238.8,
+    "w": 390,
+    "h": 1031.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1239,
+     "w": 390,
+     "h": 1032
+    },
+    "font": 26,
+    "lineHeight": 32.5,
+    "heading": "We post to all six for you"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.032771402457601295,
+    "h": 0.8605951307484221,
+    "font": 0.08333333333333333,
+    "lineHeight": 0.209077380952381
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, font, lineHeight"
+  },
+  {
+   "id": "wall",
+   "name": "Wall of Love / monthly output wall (DIFF #4)",
+   "ryze": {
+    "x": 0,
+    "y": 1470.6,
+    "w": 390,
+    "h": 1228.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1471,
+     "w": 390,
+     "h": 1228
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "Wall of Love"
+   },
+   "ours": {
+    "x": 0,
+    "y": 2270.5,
+    "w": 390,
+    "h": 2352,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2270,
+     "w": 390,
+     "h": 2352
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "What shows up on your accounts each month"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.08123286280085307,
+    "h": 0.9146857701074567,
+    "font": 0,
+    "lineHeight": 0.19999999999999996
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, lineHeight"
+  },
+  {
+   "id": "logos",
+   "name": "Customer logo wall (DIFF #5)",
+   "ryze": {
+    "x": 0,
+    "y": 2699,
+    "w": 390,
+    "h": 717,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2699,
+     "w": 390,
+     "h": 717
+    },
+    "font": 24,
+    "lineHeight": 30,
+    "heading": "Used by marketers behind 33,000+ brands"
+   },
+   "ours": null,
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "Ryze has it; we have no such block"
+  },
+  {
+   "id": "cards5",
+   "name": "Five demo cards (DIFF #6)",
+   "ryze": {
+    "x": 0,
+    "y": 3416,
+    "w": 390,
+    "h": 868.8,
+    "fixed": false,
+    "cover": {
+     "x": -11,
+     "y": 3416,
+     "w": 402,
+     "h": 2660
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "See what Ryze does inside your account"
+   },
+   "ours": {
+    "x": 0,
+    "y": 4622.4,
+    "w": 390,
+    "h": 1200.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4622,
+     "w": 390,
+     "h": 1201
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "What we do for you every month"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.12251447141261294,
+    "h": 0.38202117863720086,
+    "font": 0,
+    "lineHeight": 0.19999999999999996
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, lineHeight"
+  },
+  {
+   "id": "scan",
+   "name": "Free scan / how we start (DIFF #7)",
+   "ryze": {
+    "x": 0,
+    "y": 4284.7,
+    "w": 390,
+    "h": 434,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4285,
+     "w": 390,
+     "h": 434
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "Get a free scanof your website"
+   },
+   "ours": {
+    "x": 0,
+    "y": 5823.1,
+    "w": 390,
+    "h": 427.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5823,
+     "w": 390,
+     "h": 428
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "How we get started"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.15623032395653505,
+    "h": 0.014746543778801791,
+    "font": 0,
+    "lineHeight": 0.03999999999999996
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, lineHeight"
+  },
+  {
+   "id": "scan.cta",
+   "name": "Scan email form / our button (DIFF #7)",
+   "ryze": {
+    "x": 24,
+    "y": 4590.7,
+    "w": 342,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 4591,
+     "w": 343,
+     "h": 48
+    }
+   },
+   "ours": {
+    "x": 24,
+    "y": 6138.7,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 6139,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0.4266666666666667,
+    "y": 0.1572052401746725,
+    "h": 0
+   },
+   "status": "exempt",
+   "reason": "email-form: Buttons instead of Ryze's email forms: we have no email sign-up flow."
+  },
+  {
+   "id": "three",
+   "name": "Three products (DIFF #8)",
+   "ryze": {
+    "x": 0,
+    "y": 4718.7,
+    "w": 390,
+    "h": 1653.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4719,
+     "w": 733,
+     "h": 1687
+    },
+    "font": 22,
+    "lineHeight": 27.5,
+    "heading": "Autonomous PPC optimization"
+   },
+   "ours": {
+    "x": 0,
+    "y": 6250.7,
+    "w": 390,
+    "h": 1978.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6251,
+     "w": 390,
+     "h": 1979
+    },
+    "font": 22,
+    "lineHeight": 27.5,
+    "heading": "We make your videos and posts,and post them for you"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.15558037981110998,
+    "h": 0.19661324463259747,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "why",
+   "name": "Why bento (DIFF #9)",
+   "ryze": {
+    "x": 0,
+    "y": 6372.2,
+    "w": 390,
+    "h": 957,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6372,
+     "w": 390,
+     "h": 957
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "Why Ryze outperforms"
+   },
+   "ours": {
+    "x": 0,
+    "y": 8229.3,
+    "w": 390,
+    "h": 1318.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 8229,
+     "w": 390,
+     "h": 1319
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "Why hand it to us"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.1885955113232456,
+    "h": 0.37784743991640535,
+    "font": 0,
+    "lineHeight": 0.19999999999999996
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, lineHeight"
+  },
+  {
+   "id": "list",
+   "name": "Everything list (DIFF #10)",
+   "ryze": {
+    "x": 0,
+    "y": 7329.2,
+    "w": 390,
+    "h": 955.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7329,
+     "w": 390,
+     "h": 956
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "Everything you need to run paid ads."
+   },
+   "ours": {
+    "x": 0,
+    "y": 9547.9,
+    "w": 390,
+    "h": 1373,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 9548,
+     "w": 390,
+     "h": 1373
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "What we do,month by month"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.2253173555397583,
+    "h": 0.43679363750523226,
+    "font": 0,
+    "lineHeight": 0.03999999999999996
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, lineHeight"
+  },
+  {
+   "id": "agency",
+   "name": "Agency / AI sales assistant (DIFF #11)",
+   "ryze": {
+    "x": 0,
+    "y": 8284.9,
+    "w": 390,
+    "h": 644.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7228,
+     "w": 390,
+     "h": 1968
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "Manage 100s of accounts with AI agents"
+   },
+   "ours": {
+    "x": 0,
+    "y": 10920.8,
+    "w": 390,
+    "h": 1261.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 10921,
+     "w": 390,
+     "h": 1262
+    },
+    "font": 32,
+    "lineHeight": 36.8,
+    "heading": "Someone asks for a price. The assistant answers."
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.2676855895196506,
+    "h": 0.9577901924270639,
+    "font": 0.14285714285714285,
+    "lineHeight": 0.051428571428571344
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, font, lineHeight"
+  },
+  {
+   "id": "faq",
+   "name": "FAQ (DIFF #12)",
+   "ryze": null,
+   "ours": {
+    "x": 0,
+    "y": 12182.5,
+    "w": 390,
+    "h": 930.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 12182,
+     "w": 390,
+     "h": 930
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "Frequently asked questions"
+   },
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "ours shows it; Ryze hides it at this width"
+  },
+  {
+   "id": "footer",
+   "name": "Footer (DIFF #13)",
+   "ryze": {
+    "x": 0,
+    "y": 8929.3,
+    "w": 390,
+    "h": 917.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 8929,
+     "w": 390,
+     "h": 918
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 13112.9,
+    "w": 390,
+    "h": 1452.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 13113,
+     "w": 390,
+     "h": 1453
+    },
+    "font": 30,
+    "lineHeight": 33.6,
+    "heading": "Start with a short call"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.4248603635625064,
+    "h": 0.582806711701896,
+    "font": 1
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, font"
+  },
+  {
+   "id": "footer.cta",
+   "name": "Footer card email form / our button (DIFF #13)",
+   "ryze": null,
+   "ours": {
+    "x": 107.2,
+    "y": 13377.5,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 107,
+     "y": 13377,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "diffs": {},
+   "status": "exempt",
+   "reason": "email-form: Buttons instead of Ryze's email forms: we have no email sign-up flow."
+  },
+  {
+   "id": "float",
+   "name": "Floating call-to-action: Ryze banner / our sticky Book a demo (DIFF #14)",
+   "ryze": {
+    "x": 12,
+    "y": 804,
+    "w": 366,
+    "h": 52,
+    "fixed": true,
+    "cover": {
+     "x": 12,
+     "y": 804,
+     "w": 366,
+     "h": 52
+    }
+   },
+   "ours": null,
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "Ryze shows it; ours is not visible"
+  },
+  {
+   "id": "whatsapp",
+   "name": "Our WhatsApp button (DIFF #14)",
+   "ryze": null,
+   "ours": null,
+   "diffs": {},
+   "status": "exempt",
+   "reason": "whatsapp: Our WhatsApp assistant button stays on every page."
+  }
+ ],
+ "gaps": [
+  {
+   "between": "hero → strip",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "strip → twocol",
+   "ryze": 0,
+   "ours": -2.2737367544323206e-13,
+   "diff": 2.3090654559077086e-17,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "twocol → wall",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "wall → cards5",
+   "ryze": 717,
+   "ours": -0.1000000000003638,
+   "diff": 0.07282421041941711,
+   "status": "FAIL",
+   "reason": "includes logos (on one side only)"
+  },
+  {
+   "between": "cards5 → scan",
+   "ryze": -0.1000000000003638,
+   "ours": 9.094947017729282e-13,
+   "diff": 0.000010155377272394972,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "scan → three",
+   "ryze": 0,
+   "ours": -9.094947017729282e-13,
+   "diff": 9.236261823630834e-17,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "three → why",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "why → list",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "list → agency",
+   "ryze": 0.1000000000003638,
+   "ours": -0.1000000000003638,
+   "diff": 0.00002031075454460522,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "agency → footer",
+   "ryze": 0,
+   "ours": 930.5,
+   "diff": 0.094495785518432,
+   "status": "FAIL",
+   "reason": "includes faq (on one side only)"
+  }
+ ],
+ "pageH": {
+  "ryze": 9847,
+  "ours": 14566,
+  "diff": 0.47923225347821674
+ },
+ "stability": {
+  "ryze": 0,
+  "ours": 0,
+  "second": {
+   "ryze": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 58.5,
+      "fixed": true,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 390,
+       "h": 60
+      }
+     },
+     "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 390,
+       "h": 1256
+      },
+      "font": 33.6,
+      "lineHeight": 37.632,
+      "heading": "AI runs yourads, SEO,and website"
+     },
+     "hero.cta": {
+      "x": 24,
+      "y": 326.5,
+      "w": 342,
+      "h": 46,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 326,
+       "w": 343,
+       "h": 46
+      }
+     },
+     "strip": {
+      "x": 0,
+      "y": 844,
+      "w": 390,
+      "h": 72.1,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 844,
+       "w": 390,
+       "h": 72
+      }
+     },
+     "twocol": {
+      "x": 0,
+      "y": 916.1,
+      "w": 390,
+      "h": 554.5,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 916,
+       "w": 390,
+       "h": 554
+      },
+      "font": 24,
+      "lineHeight": 26.88,
+      "heading": "AI to manage ads across any platform"
+     },
+     "wall": {
+      "x": 0,
+      "y": 1470.6,
+      "w": 390,
+      "h": 1228.4,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 1471,
+       "w": 390,
+       "h": 1228
+      },
+      "font": 28,
+      "lineHeight": 42,
+      "heading": "Wall of Love"
+     },
+     "logos": {
+      "x": 0,
+      "y": 2699,
+      "w": 390,
+      "h": 717,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 2699,
+       "w": 390,
+       "h": 717
+      },
+      "font": 24,
+      "lineHeight": 30,
+      "heading": "Used by marketers behind 33,000+ brands"
+     },
+     "cards5": {
+      "x": 0,
+      "y": 3416,
+      "w": 390,
+      "h": 868.8,
+      "fixed": false,
+      "cover": {
+       "x": -11,
+       "y": 3416,
+       "w": 402,
+       "h": 2660
+      },
+      "font": 28,
+      "lineHeight": 42,
+      "heading": "See what Ryze does inside your account"
+     },
+     "scan": {
+      "x": 0,
+      "y": 4284.7,
+      "w": 390,
+      "h": 434,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 4285,
+       "w": 390,
+       "h": 434
+      },
+      "font": 28,
+      "lineHeight": 35,
+      "heading": "Get a free scanof your website"
+     },
+     "scan.cta": {
+      "x": 24,
+      "y": 4590.7,
+      "w": 342,
+      "h": 48,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 4591,
+       "w": 343,
+       "h": 48
+      }
+     },
+     "three": {
+      "x": 0,
+      "y": 4718.7,
+      "w": 390,
+      "h": 1653.5,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 4719,
+       "w": 733,
+       "h": 1687
+      },
+      "font": 22,
+      "lineHeight": 27.5,
+      "heading": "Autonomous PPC optimization"
+     },
+     "why": {
+      "x": 0,
+      "y": 6372.2,
+      "w": 390,
+      "h": 957,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 6372,
+       "w": 390,
+       "h": 957
+      },
+      "font": 28,
+      "lineHeight": 42,
+      "heading": "Why Ryze outperforms"
+     },
+     "list": {
+      "x": 0,
+      "y": 7329.2,
+      "w": 390,
+      "h": 955.6,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 7329,
+       "w": 390,
+       "h": 956
+      },
+      "font": 28,
+      "lineHeight": 35,
+      "heading": "Everything you need to run paid ads."
+     },
+     "agency": {
+      "x": 0,
+      "y": 8284.9,
+      "w": 390,
+      "h": 644.4,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 7228,
+       "w": 390,
+       "h": 1968
+      },
+      "font": 28,
+      "lineHeight": 35,
+      "heading": "Manage 100s of accounts with AI agents"
+     },
+     "faq": null,
+     "footer": {
+      "x": 0,
+      "y": 8929.3,
+      "w": 390,
+      "h": 917.8,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 8929,
+       "w": 390,
+       "h": 918
+      }
+     },
+     "footer.cta": null,
+     "float": {
+      "x": 12,
+      "y": 804,
+      "w": 366,
+      "h": 52,
+      "fixed": true,
+      "cover": {
+       "x": 12,
+       "y": 804,
+       "w": 366,
+       "h": 52
+      }
+     },
+     "whatsapp": null
+    },
+    "pageH": 9847,
+    "vw": 390
+   },
+   "ours": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 57,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 390,
+       "h": 57
+      }
+     },
+     "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 1106.4,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 390,
+       "h": 1106
+      },
+      "font": 34,
+      "lineHeight": 38.08,
+      "heading": "One team for your growth. You watch the results."
+     },
+     "hero.cta": {
+      "x": 24,
+      "y": 372,
+      "w": 342,
+      "h": 90,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 372,
+       "w": 342,
+       "h": 90
+      }
+     },
+     "strip": {
+      "x": 0,
+      "y": 1106.4,
+      "w": 390,
+      "h": 132.4,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 1106,
+       "w": 390,
+       "h": 132
+      }
+     },
+     "twocol": {
+      "x": 0,
+      "y": 1238.8,
+      "w": 390,
+      "h": 1031.7,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 1239,
+       "w": 390,
+       "h": 1032
+      },
+      "font": 26,
+      "lineHeight": 32.5,
+      "heading": "We post to all six for you"
+     },
+     "wall": {
+      "x": 0,
+      "y": 2270.5,
+      "w": 390,
+      "h": 2352,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 2270,
+       "w": 390,
+       "h": 2352
+      },
+      "font": 28,
+      "lineHeight": 33.6,
+      "heading": "What shows up on your accounts each month"
+     },
+     "logos": null,
+     "cards5": {
+      "x": 0,
+      "y": 4622.4,
+      "w": 390,
+      "h": 1200.7,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 4622,
+       "w": 390,
+       "h": 1201
+      },
+      "font": 28,
+      "lineHeight": 33.6,
+      "heading": "What we do for you every month"
+     },
+     "scan": {
+      "x": 0,
+      "y": 5823.1,
+      "w": 390,
+      "h": 427.6,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 5823,
+       "w": 390,
+       "h": 428
+      },
+      "font": 28,
+      "lineHeight": 33.6,
+      "heading": "How we get started"
+     },
+     "scan.cta": {
+      "x": 24,
+      "y": 6138.7,
+      "w": 175.6,
+      "h": 48,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 6139,
+       "w": 176,
+       "h": 48
+      }
+     },
+     "three": {
+      "x": 0,
+      "y": 6250.7,
+      "w": 390,
+      "h": 1978.6,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 6251,
+       "w": 390,
+       "h": 1979
+      },
+      "font": 22,
+      "lineHeight": 27.5,
+      "heading": "We make your videos and posts,and post them for you"
+     },
+     "why": {
+      "x": 0,
+      "y": 8229.3,
+      "w": 390,
+      "h": 1318.6,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 8229,
+       "w": 390,
+       "h": 1319
+      },
+      "font": 28,
+      "lineHeight": 33.6,
+      "heading": "Why hand it to us"
+     },
+     "list": {
+      "x": 0,
+      "y": 9547.9,
+      "w": 390,
+      "h": 1373,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 9548,
+       "w": 390,
+       "h": 1373
+      },
+      "font": 28,
+      "lineHeight": 33.6,
+      "heading": "What we do,month by month"
+     },
+     "agency": {
+      "x": 0,
+      "y": 10920.8,
+      "w": 390,
+      "h": 1261.6,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 10921,
+       "w": 390,
+       "h": 1262
+      },
+      "font": 32,
+      "lineHeight": 36.8,
+      "heading": "Someone asks for a price. The assistant answers."
+     },
+     "faq": {
+      "x": 0,
+      "y": 12182.5,
+      "w": 390,
+      "h": 930.5,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 12182,
+       "w": 390,
+       "h": 930
+      },
+      "font": 28,
+      "lineHeight": 33.6,
+      "heading": "Frequently asked questions"
+     },
+     "footer": {
+      "x": 0,
+      "y": 13112.9,
+      "w": 390,
+      "h": 1452.7,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 13113,
+       "w": 390,
+       "h": 1453
+      },
+      "font": 30,
+      "lineHeight": 33.6,
+      "heading": "Start with a short call"
+     },
+     "footer.cta": {
+      "x": 107.2,
+      "y": 13377.5,
+      "w": 175.6,
+      "h": 48,
+      "fixed": false,
+      "cover": {
+       "x": 107,
+       "y": 13377,
+       "w": 176,
+       "h": 48
+      }
+     },
+     "float": null,
+     "whatsapp": null
+    },
+    "pageH": 14566,
+    "vw": 390
+   }
+  }
+ }
+}

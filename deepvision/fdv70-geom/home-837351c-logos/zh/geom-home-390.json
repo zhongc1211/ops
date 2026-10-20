@@ -1,0 +1,1868 @@
+{
+ "page": "home",
+ "width": 390,
+ "ryzeUrl": "https://www.get-ryze.ai/",
+ "oursUrl": "http://localhost:4324/zh",
+ "limit": 0.02,
+ "fontNormalized": true,
+ "pending": {
+  "ryze": 0,
+  "ours": 0
+ },
+ "ryze": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 60
+    }
+   },
+   "hero": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 844,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 1256
+    },
+    "font": 33.6,
+    "lineHeight": 37.632,
+    "heading": "AI runs yourads, SEO,and website"
+   },
+   "hero.cta": {
+    "x": 24,
+    "y": 326.5,
+    "w": 342,
+    "h": 46,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 326,
+     "w": 343,
+     "h": 46
+    }
+   },
+   "strip": {
+    "x": 0,
+    "y": 844,
+    "w": 390,
+    "h": 72.1,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 844,
+     "w": 390,
+     "h": 72
+    }
+   },
+   "twocol": {
+    "x": 0,
+    "y": 916.1,
+    "w": 390,
+    "h": 554.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 916,
+     "w": 390,
+     "h": 554
+    },
+    "font": 24,
+    "lineHeight": 26.88,
+    "heading": "AI to manage ads across any platform"
+   },
+   "wall": {
+    "x": 0,
+    "y": 1470.6,
+    "w": 390,
+    "h": 1228.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1471,
+     "w": 390,
+     "h": 1228
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "Wall of Love"
+   },
+   "logos": {
+    "x": 0,
+    "y": 2699,
+    "w": 390,
+    "h": 717,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2699,
+     "w": 390,
+     "h": 717
+    },
+    "font": 24,
+    "lineHeight": 30,
+    "heading": "Used by marketers behind 33,000+ brands"
+   },
+   "cards5": {
+    "x": 0,
+    "y": 3416,
+    "w": 390,
+    "h": 868.8,
+    "fixed": false,
+    "cover": {
+     "x": -11,
+     "y": 3416,
+     "w": 402,
+     "h": 2660
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "See what Ryze does inside your account"
+   },
+   "scan": {
+    "x": 0,
+    "y": 4284.7,
+    "w": 390,
+    "h": 434,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4285,
+     "w": 390,
+     "h": 434
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "Get a free scanof your website"
+   },
+   "scan.cta": {
+    "x": 24,
+    "y": 4590.7,
+    "w": 342,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 4591,
+     "w": 343,
+     "h": 48
+    }
+   },
+   "three": {
+    "x": 0,
+    "y": 4718.7,
+    "w": 390,
+    "h": 1653.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4719,
+     "w": 733,
+     "h": 1687
+    },
+    "font": 22,
+    "lineHeight": 27.5,
+    "heading": "Autonomous PPC optimization"
+   },
+   "why": {
+    "x": 0,
+    "y": 6372.2,
+    "w": 390,
+    "h": 957,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6372,
+     "w": 390,
+     "h": 957
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "Why Ryze outperforms"
+   },
+   "list": {
+    "x": 0,
+    "y": 7329.2,
+    "w": 390,
+    "h": 955.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7329,
+     "w": 390,
+     "h": 956
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "Everything you need to run paid ads."
+   },
+   "agency": {
+    "x": 0,
+    "y": 8284.9,
+    "w": 390,
+    "h": 644.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7228,
+     "w": 390,
+     "h": 1968
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "Manage 100s of accounts with AI agents"
+   },
+   "faq": null,
+   "footer": {
+    "x": 0,
+    "y": 8929.3,
+    "w": 390,
+    "h": 917.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 8929,
+     "w": 390,
+     "h": 918
+    }
+   },
+   "footer.cta": null,
+   "float": {
+    "x": 12,
+    "y": 804,
+    "w": 366,
+    "h": 52,
+    "fixed": true,
+    "cover": {
+     "x": 12,
+     "y": 804,
+     "w": 366,
+     "h": 52
+    }
+   },
+   "whatsapp": null
+  },
+  "pageH": 9847,
+  "vw": 390
+ },
+ "ours": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 57
+    }
+   },
+   "hero": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 1126.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 1127
+    },
+    "font": 34,
+    "lineHeight": 44.2,
+    "heading": "增长交给一个团队，你只看结果"
+   },
+   "hero.cta": {
+    "x": 24,
+    "y": 320.6,
+    "w": 342,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 321,
+     "w": 342,
+     "h": 48
+    }
+   },
+   "strip": {
+    "x": 0,
+    "y": 1126.9,
+    "w": 390,
+    "h": 132.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1127,
+     "w": 390,
+     "h": 132
+    }
+   },
+   "twocol": {
+    "x": 0,
+    "y": 1259.3,
+    "w": 390,
+    "h": 1058.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1259,
+     "w": 390,
+     "h": 1059
+    },
+    "font": 24,
+    "lineHeight": 26.88,
+    "heading": "客户常去的平台，都在这里"
+   },
+   "wall": {
+    "x": 0,
+    "y": 2318,
+    "w": 390,
+    "h": 1471,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2318,
+     "w": 390,
+     "h": 1471
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "客户常跟我们说的话"
+   },
+   "logos": {
+    "x": 0,
+    "y": 3789,
+    "w": 390,
+    "h": 463.2,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3789,
+     "w": 390,
+     "h": 463
+    },
+    "font": 24,
+    "lineHeight": 30,
+    "heading": "你的客户，就在这些平台上"
+   },
+   "cards5": {
+    "x": 0,
+    "y": 4252.1,
+    "w": 390,
+    "h": 1170.2,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4252,
+     "w": 390,
+     "h": 1262
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "我们每个月在做的事"
+   },
+   "scan": {
+    "x": 0,
+    "y": 5422.3,
+    "w": 390,
+    "h": 419,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5422,
+     "w": 390,
+     "h": 419
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "合作怎么开始"
+   },
+   "scan.cta": {
+    "x": 24,
+    "y": 5713.3,
+    "w": 140,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 5713,
+     "w": 140,
+     "h": 48
+    }
+   },
+   "three": {
+    "x": 0,
+    "y": 5841.3,
+    "w": 390,
+    "h": 1770.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5841,
+     "w": 390,
+     "h": 1771
+    },
+    "font": 22,
+    "lineHeight": 28.6,
+    "heading": "视频和图文，我们拍，也替你发"
+   },
+   "why": {
+    "x": 0,
+    "y": 7611.8,
+    "w": 390,
+    "h": 944,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7612,
+     "w": 390,
+     "h": 944
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "为什么交给我们"
+   },
+   "list": {
+    "x": 0,
+    "y": 8555.8,
+    "w": 390,
+    "h": 1069.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 8556,
+     "w": 390,
+     "h": 1070
+    },
+    "font": 28,
+    "lineHeight": 36.4,
+    "heading": "每个月，我们具体做这些"
+   },
+   "agency": {
+    "x": 0,
+    "y": 9625.5,
+    "w": 390,
+    "h": 1105.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 9625,
+     "w": 390,
+     "h": 1106
+    },
+    "font": 28,
+    "lineHeight": 36.4,
+    "heading": "有人问价，助手先接住"
+   },
+   "faq": {
+    "x": 0,
+    "y": 10731,
+    "w": 390,
+    "h": 815.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 10731,
+     "w": 390,
+     "h": 816
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "常见问题"
+   },
+   "footer": {
+    "x": 0,
+    "y": 11546.5,
+    "w": 390,
+    "h": 1418.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 11546,
+     "w": 390,
+     "h": 1419
+    },
+    "font": 30,
+    "lineHeight": 37.5,
+    "heading": "先聊一次，看合不合适"
+   },
+   "footer.cta": {
+    "x": 125,
+    "y": 11795.1,
+    "w": 140,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 125,
+     "y": 11795,
+     "w": 140,
+     "h": 48
+    }
+   },
+   "float": null,
+   "whatsapp": null
+  },
+  "pageH": 12965,
+  "vw": 390
+ },
+ "rows": [
+  {
+   "id": "nav",
+   "name": "Top navigation (DIFF #0)",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 57
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0.02564102564102564
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h"
+  },
+  {
+   "id": "hero",
+   "name": "Hero (DIFF #1)",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 844,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 1256
+    },
+    "font": 33.6,
+    "lineHeight": 37.632,
+    "heading": "AI runs yourads, SEO,and website"
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 1126.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 1127
+    },
+    "font": 34,
+    "lineHeight": 44.2,
+    "heading": "增长交给一个团队，你只看结果"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0.33518957345971573,
+    "font": 0.011904761904761862,
+    "lineHeight": 0.1745323129251702
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h, lineHeight"
+  },
+  {
+   "id": "hero.cta",
+   "name": "Hero email form / our buttons (DIFF #1a)",
+   "ryze": {
+    "x": 24,
+    "y": 326.5,
+    "w": 342,
+    "h": 46,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 326,
+     "w": 343,
+     "h": 46
+    }
+   },
+   "ours": {
+    "x": 24,
+    "y": 320.6,
+    "w": 342,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 321,
+     "w": 342,
+     "h": 48
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.0005991672590636719,
+    "h": 0.043478260869565216
+   },
+   "status": "exempt",
+   "reason": "email-form: Buttons instead of Ryze's email forms: we have no email sign-up flow."
+  },
+  {
+   "id": "strip",
+   "name": "Press strip / platform strip (DIFF #2)",
+   "ryze": {
+    "x": 0,
+    "y": 844,
+    "w": 390,
+    "h": 72.1,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 844,
+     "w": 390,
+     "h": 72
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 1126.9,
+    "w": 390,
+    "h": 132.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1127,
+     "w": 390,
+     "h": 132
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.028729562303239576,
+    "h": 0.8363384188626909
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "twocol",
+   "name": "All platforms + AI search, two columns (DIFF #3)",
+   "ryze": {
+    "x": 0,
+    "y": 916.1,
+    "w": 390,
+    "h": 554.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 916,
+     "w": 390,
+     "h": 554
+    },
+    "font": 24,
+    "lineHeight": 26.88,
+    "heading": "AI to manage ads across any platform"
+   },
+   "ours": {
+    "x": 0,
+    "y": 1259.3,
+    "w": 390,
+    "h": 1058.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1259,
+     "w": 390,
+     "h": 1059
+    },
+    "font": 24,
+    "lineHeight": 26.88,
+    "heading": "客户常去的平台，都在这里"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.03485325479841576,
+    "h": 0.9091073038773668,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "wall",
+   "name": "Wall of Love / monthly output wall (DIFF #4)",
+   "ryze": {
+    "x": 0,
+    "y": 1470.6,
+    "w": 390,
+    "h": 1228.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1471,
+     "w": 390,
+     "h": 1228
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "Wall of Love"
+   },
+   "ours": {
+    "x": 0,
+    "y": 2318,
+    "w": 390,
+    "h": 1471,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2318,
+     "w": 390,
+     "h": 1471
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "客户常跟我们说的话"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.08605666700517925,
+    "h": 0.19749267339628776,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "logos",
+   "name": "Customer logo wall (DIFF #5)",
+   "ryze": {
+    "x": 0,
+    "y": 2699,
+    "w": 390,
+    "h": 717,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2699,
+     "w": 390,
+     "h": 717
+    },
+    "font": 24,
+    "lineHeight": 30,
+    "heading": "Used by marketers behind 33,000+ brands"
+   },
+   "ours": {
+    "x": 0,
+    "y": 3789,
+    "w": 390,
+    "h": 463.2,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3789,
+     "w": 390,
+     "h": 463
+    },
+    "font": 24,
+    "lineHeight": 30,
+    "heading": "你的客户，就在这些平台上"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.11069361226769575,
+    "h": 0.35397489539748955,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "cards5",
+   "name": "Five demo cards (DIFF #6)",
+   "ryze": {
+    "x": 0,
+    "y": 3416,
+    "w": 390,
+    "h": 868.8,
+    "fixed": false,
+    "cover": {
+     "x": -11,
+     "y": 3416,
+     "w": 402,
+     "h": 2660
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "See what Ryze does inside your account"
+   },
+   "ours": {
+    "x": 0,
+    "y": 4252.1,
+    "w": 390,
+    "h": 1170.2,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4252,
+     "w": 390,
+     "h": 1262
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "我们每个月在做的事"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.08490910937341326,
+    "h": 0.34691528545119715,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "scan",
+   "name": "Free scan / how we start (DIFF #7)",
+   "ryze": {
+    "x": 0,
+    "y": 4284.7,
+    "w": 390,
+    "h": 434,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4285,
+     "w": 390,
+     "h": 434
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "Get a free scanof your website"
+   },
+   "ours": {
+    "x": 0,
+    "y": 5422.3,
+    "w": 390,
+    "h": 419,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5422,
+     "w": 390,
+     "h": 419
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "合作怎么开始"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.11552757184929424,
+    "h": 0.03456221198156682,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "scan.cta",
+   "name": "Scan email form / our button (DIFF #7)",
+   "ryze": {
+    "x": 24,
+    "y": 4590.7,
+    "w": 342,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 4591,
+     "w": 343,
+     "h": 48
+    }
+   },
+   "ours": {
+    "x": 24,
+    "y": 5713.3,
+    "w": 140,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 5713,
+     "w": 140,
+     "h": 48
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0.517948717948718,
+    "y": 0.11400426525845439,
+    "h": 0
+   },
+   "status": "exempt",
+   "reason": "email-form: Buttons instead of Ryze's email forms: we have no email sign-up flow."
+  },
+  {
+   "id": "three",
+   "name": "Three products (DIFF #8)",
+   "ryze": {
+    "x": 0,
+    "y": 4718.7,
+    "w": 390,
+    "h": 1653.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4719,
+     "w": 733,
+     "h": 1687
+    },
+    "font": 22,
+    "lineHeight": 27.5,
+    "heading": "Autonomous PPC optimization"
+   },
+   "ours": {
+    "x": 0,
+    "y": 5841.3,
+    "w": 390,
+    "h": 1770.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5841,
+     "w": 390,
+     "h": 1771
+    },
+    "font": 22,
+    "lineHeight": 28.6,
+    "heading": "视频和图文，我们拍，也替你发"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.11400426525845439,
+    "h": 0.07075899606894466,
+    "font": 0,
+    "lineHeight": 0.04000000000000005
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, lineHeight"
+  },
+  {
+   "id": "why",
+   "name": "Why bento (DIFF #9)",
+   "ryze": {
+    "x": 0,
+    "y": 6372.2,
+    "w": 390,
+    "h": 957,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6372,
+     "w": 390,
+     "h": 957
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "Why Ryze outperforms"
+   },
+   "ours": {
+    "x": 0,
+    "y": 7611.8,
+    "w": 390,
+    "h": 944,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7612,
+     "w": 390,
+     "h": 944
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "为什么交给我们"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.12588605666700523,
+    "h": 0.013584117032392894,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y"
+  },
+  {
+   "id": "list",
+   "name": "Everything list (DIFF #10)",
+   "ryze": {
+    "x": 0,
+    "y": 7329.2,
+    "w": 390,
+    "h": 955.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7329,
+     "w": 390,
+     "h": 956
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "Everything you need to run paid ads."
+   },
+   "ours": {
+    "x": 0,
+    "y": 8555.8,
+    "w": 390,
+    "h": 1069.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 8556,
+     "w": 390,
+     "h": 1070
+    },
+    "font": 28,
+    "lineHeight": 36.4,
+    "heading": "每个月，我们具体做这些"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.12456585762161058,
+    "h": 0.1194014231896191,
+    "font": 0,
+    "lineHeight": 0.03999999999999996
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, lineHeight"
+  },
+  {
+   "id": "agency",
+   "name": "Agency / AI sales assistant (DIFF #11)",
+   "ryze": {
+    "x": 0,
+    "y": 8284.9,
+    "w": 390,
+    "h": 644.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7228,
+     "w": 390,
+     "h": 1968
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "Manage 100s of accounts with AI agents"
+   },
+   "ours": {
+    "x": 0,
+    "y": 9625.5,
+    "w": 390,
+    "h": 1105.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 9625,
+     "w": 390,
+     "h": 1106
+    },
+    "font": 28,
+    "lineHeight": 36.4,
+    "heading": "有人问价，助手先接住"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.13614298771199354,
+    "h": 0.7155493482309125,
+    "font": 0,
+    "lineHeight": 0.03999999999999996
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, lineHeight"
+  },
+  {
+   "id": "faq",
+   "name": "FAQ (DIFF #12)",
+   "ryze": null,
+   "ours": {
+    "x": 0,
+    "y": 10731,
+    "w": 390,
+    "h": 815.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 10731,
+     "w": 390,
+     "h": 816
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "常见问题"
+   },
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "ours shows it; Ryze hides it at this width"
+  },
+  {
+   "id": "footer",
+   "name": "Footer (DIFF #13)",
+   "ryze": {
+    "x": 0,
+    "y": 8929.3,
+    "w": 390,
+    "h": 917.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 8929,
+     "w": 390,
+     "h": 918
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 11546.5,
+    "w": 390,
+    "h": 1418.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 11546,
+     "w": 390,
+     "h": 1419
+    },
+    "font": 30,
+    "lineHeight": 37.5,
+    "heading": "先聊一次，看合不合适"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.26578653396973706,
+    "h": 0.545870560034866,
+    "font": 1
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, font"
+  },
+  {
+   "id": "footer.cta",
+   "name": "Footer card email form / our button (DIFF #13)",
+   "ryze": null,
+   "ours": {
+    "x": 125,
+    "y": 11795.1,
+    "w": 140,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 125,
+     "y": 11795,
+     "w": 140,
+     "h": 48
+    }
+   },
+   "diffs": {},
+   "status": "exempt",
+   "reason": "email-form: Buttons instead of Ryze's email forms: we have no email sign-up flow."
+  },
+  {
+   "id": "float",
+   "name": "Floating call-to-action: Ryze banner / our sticky Book a demo (DIFF #14)",
+   "ryze": {
+    "x": 12,
+    "y": 804,
+    "w": 366,
+    "h": 52,
+    "fixed": true,
+    "cover": {
+     "x": 12,
+     "y": 804,
+     "w": 366,
+     "h": 52
+    }
+   },
+   "ours": null,
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "Ryze shows it; ours is not visible"
+  },
+  {
+   "id": "whatsapp",
+   "name": "Our WhatsApp button (DIFF #14)",
+   "ryze": null,
+   "ours": null,
+   "diffs": {},
+   "status": "exempt",
+   "reason": "whatsapp: Our WhatsApp assistant button stays on every page."
+  }
+ ],
+ "gaps": [
+  {
+   "between": "hero → strip",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "strip → twocol",
+   "ryze": 0,
+   "ours": -2.2737367544323206e-13,
+   "diff": 2.3090654559077086e-17,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "twocol → wall",
+   "ryze": 0,
+   "ours": 0.1000000000003638,
+   "diff": 0.00001015537727230261,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "wall → logos",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "logos → cards5",
+   "ryze": 0,
+   "ours": -0.0999999999994543,
+   "diff": 0.000010155377272210248,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "cards5 → scan",
+   "ryze": -0.1000000000003638,
+   "ours": 0,
+   "diff": 0.00001015537727230261,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "scan → three",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "three → why",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "why → list",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "list → agency",
+   "ryze": 0.1000000000003638,
+   "ours": 0,
+   "diff": 0.00001015537727230261,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "agency → footer",
+   "ryze": 0,
+   "ours": 815.5,
+   "diff": 0.08281710165532649,
+   "status": "FAIL",
+   "reason": "includes faq (on one side only)"
+  }
+ ],
+ "pageH": {
+  "ryze": 9847,
+  "ours": 12965,
+  "diff": 0.3166446633492434
+ },
+ "stability": {
+  "ryze": 0,
+  "ours": 0,
+  "second": {
+   "ryze": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 58.5,
+      "fixed": true,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 390,
+       "h": 60
+      }
+     },
+     "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 390,
+       "h": 1256
+      },
+      "font": 33.6,
+      "lineHeight": 37.632,
+      "heading": "AI runs yourads, SEO,and website"
+     },
+     "hero.cta": {
+      "x": 24,
+      "y": 326.5,
+      "w": 342,
+      "h": 46,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 326,
+       "w": 343,
+       "h": 46
+      }
+     },
+     "strip": {
+      "x": 0,
+      "y": 844,
+      "w": 390,
+      "h": 72.1,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 844,
+       "w": 390,
+       "h": 72
+      }
+     },
+     "twocol": {
+      "x": 0,
+      "y": 916.1,
+      "w": 390,
+      "h": 554.5,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 916,
+       "w": 390,
+       "h": 554
+      },
+      "font": 24,
+      "lineHeight": 26.88,
+      "heading": "AI to manage ads across any platform"
+     },
+     "wall": {
+      "x": 0,
+      "y": 1470.6,
+      "w": 390,
+      "h": 1228.4,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 1471,
+       "w": 390,
+       "h": 1228
+      },
+      "font": 28,
+      "lineHeight": 42,
+      "heading": "Wall of Love"
+     },
+     "logos": {
+      "x": 0,
+      "y": 2699,
+      "w": 390,
+      "h": 717,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 2699,
+       "w": 390,
+       "h": 717
+      },
+      "font": 24,
+      "lineHeight": 30,
+      "heading": "Used by marketers behind 33,000+ brands"
+     },
+     "cards5": {
+      "x": 0,
+      "y": 3416,
+      "w": 390,
+      "h": 868.8,
+      "fixed": false,
+      "cover": {
+       "x": -11,
+       "y": 3416,
+       "w": 402,
+       "h": 2660
+      },
+      "font": 28,
+      "lineHeight": 42,
+      "heading": "See what Ryze does inside your account"
+     },
+     "scan": {
+      "x": 0,
+      "y": 4284.7,
+      "w": 390,
+      "h": 434,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 4285,
+       "w": 390,
+       "h": 434
+      },
+      "font": 28,
+      "lineHeight": 35,
+      "heading": "Get a free scanof your website"
+     },
+     "scan.cta": {
+      "x": 24,
+      "y": 4590.7,
+      "w": 342,
+      "h": 48,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 4591,
+       "w": 343,
+       "h": 48
+      }
+     },
+     "three": {
+      "x": 0,
+      "y": 4718.7,
+      "w": 390,
+      "h": 1653.5,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 4719,
+       "w": 733,
+       "h": 1687
+      },
+      "font": 22,
+      "lineHeight": 27.5,
+      "heading": "Autonomous PPC optimization"
+     },
+     "why": {
+      "x": 0,
+      "y": 6372.2,
+      "w": 390,
+      "h": 957,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 6372,
+       "w": 390,
+       "h": 957
+      },
+      "font": 28,
+      "lineHeight": 42,
+      "heading": "Why Ryze outperforms"
+     },
+     "list": {
+      "x": 0,
+      "y": 7329.2,
+      "w": 390,
+      "h": 955.6,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 7329,
+       "w": 390,
+       "h": 956
+      },
+      "font": 28,
+      "lineHeight": 35,
+      "heading": "Everything you need to run paid ads."
+     },
+     "agency": {
+      "x": 0,
+      "y": 8284.9,
+      "w": 390,
+      "h": 644.4,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 7228,
+       "w": 390,
+       "h": 1968
+      },
+      "font": 28,
+      "lineHeight": 35,
+      "heading": "Manage 100s of accounts with AI agents"
+     },
+     "faq": null,
+     "footer": {
+      "x": 0,
+      "y": 8929.3,
+      "w": 390,
+      "h": 917.8,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 8929,
+       "w": 390,
+       "h": 918
+      }
+     },
+     "footer.cta": null,
+     "float": {
+      "x": 12,
+      "y": 804,
+      "w": 366,
+      "h": 52,
+      "fixed": true,
+      "cover": {
+       "x": 12,
+       "y": 804,
+       "w": 366,
+       "h": 52
+      }
+     },
+     "whatsapp": null
+    },
+    "pageH": 9847,
+    "vw": 390
+   },
+   "ours": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 57,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 390,
+       "h": 57
+      }
+     },
+     "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 1126.9,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 390,
+       "h": 1127
+      },
+      "font": 34,
+      "lineHeight": 44.2,
+      "heading": "增长交给一个团队，你只看结果"
+     },
+     "hero.cta": {
+      "x": 24,
+      "y": 320.6,
+      "w": 342,
+      "h": 48,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 321,
+       "w": 342,
+       "h": 48
+      }
+     },
+     "strip": {
+      "x": 0,
+      "y": 1126.9,
+      "w": 390,
+      "h": 132.4,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 1127,
+       "w": 390,
+       "h": 132
+      }
+     },
+     "twocol": {
+      "x": 0,
+      "y": 1259.3,
+      "w": 390,
+      "h": 1058.6,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 1259,
+       "w": 390,
+       "h": 1059
+      },
+      "font": 24,
+      "lineHeight": 26.88,
+      "heading": "客户常去的平台，都在这里"
+     },
+     "wall": {
+      "x": 0,
+      "y": 2318,
+      "w": 390,
+      "h": 1471,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 2318,
+       "w": 390,
+       "h": 1471
+      },
+      "font": 28,
+      "lineHeight": 42,
+      "heading": "客户常跟我们说的话"
+     },
+     "logos": {
+      "x": 0,
+      "y": 3789,
+      "w": 390,
+      "h": 463.2,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 3789,
+       "w": 390,
+       "h": 463
+      },
+      "font": 24,
+      "lineHeight": 30,
+      "heading": "你的客户，就在这些平台上"
+     },
+     "cards5": {
+      "x": 0,
+      "y": 4252.1,
+      "w": 390,
+      "h": 1170.2,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 4252,
+       "w": 390,
+       "h": 1262
+      },
+      "font": 28,
+      "lineHeight": 42,
+      "heading": "我们每个月在做的事"
+     },
+     "scan": {
+      "x": 0,
+      "y": 5422.3,
+      "w": 390,
+      "h": 419,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 5422,
+       "w": 390,
+       "h": 419
+      },
+      "font": 28,
+      "lineHeight": 35,
+      "heading": "合作怎么开始"
+     },
+     "scan.cta": {
+      "x": 24,
+      "y": 5713.3,
+      "w": 140,
+      "h": 48,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 5713,
+       "w": 140,
+       "h": 48
+      }
+     },
+     "three": {
+      "x": 0,
+      "y": 5841.3,
+      "w": 390,
+      "h": 1770.5,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 5841,
+       "w": 390,
+       "h": 1771
+      },
+      "font": 22,
+      "lineHeight": 28.6,
+      "heading": "视频和图文，我们拍，也替你发"
+     },
+     "why": {
+      "x": 0,
+      "y": 7611.8,
+      "w": 390,
+      "h": 944,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 7612,
+       "w": 390,
+       "h": 944
+      },
+      "font": 28,
+      "lineHeight": 42,
+      "heading": "为什么交给我们"
+     },
+     "list": {
+      "x": 0,
+      "y": 8555.8,
+      "w": 390,
+      "h": 1069.7,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 8556,
+       "w": 390,
+       "h": 1070
+      },
+      "font": 28,
+      "lineHeight": 36.4,
+      "heading": "每个月，我们具体做这些"
+     },
+     "agency": {
+      "x": 0,
+      "y": 9625.5,
+      "w": 390,
+      "h": 1105.5,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 9625,
+       "w": 390,
+       "h": 1106
+      },
+      "font": 28,
+      "lineHeight": 36.4,
+      "heading": "有人问价，助手先接住"
+     },
+     "faq": {
+      "x": 0,
+      "y": 10731,
+      "w": 390,
+      "h": 815.5,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 10731,
+       "w": 390,
+       "h": 816
+      },
+      "font": 28,
+      "lineHeight": 42,
+      "heading": "常见问题"
+     },
+     "footer": {
+      "x": 0,
+      "y": 11546.5,
+      "w": 390,
+      "h": 1418.8,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 11546,
+       "w": 390,
+       "h": 1419
+      },
+      "font": 30,
+      "lineHeight": 37.5,
+      "heading": "先聊一次，看合不合适"
+     },
+     "footer.cta": {
+      "x": 125,
+      "y": 11795.1,
+      "w": 140,
+      "h": 48,
+      "fixed": false,
+      "cover": {
+       "x": 125,
+       "y": 11795,
+       "w": 140,
+       "h": 48
+      }
+     },
+     "float": null,
+     "whatsapp": null
+    },
+    "pageH": 12965,
+    "vw": 390
+   }
+  }
+ }
+}

@@ -1,0 +1,24 @@
+{
+ "page": "pricing",
+ "width": 390,
+ "font": "http://localhost:4318/_next/static/media/e4af272ccee01ff0-s.p.woff2",
+ "fontOnly": {
+  "bad": 831209,
+  "tot": 4608240,
+  "p": 0.1803745030640765,
+  "screens": [
+   14,
+   14
+  ]
+ },
+ "noise": {
+  "bad": 0,
+  "tot": 4608240,
+  "p": 0,
+  "screens": [
+   14,
+   14
+  ]
+ },
+ "swappedPageH": 11785
+}

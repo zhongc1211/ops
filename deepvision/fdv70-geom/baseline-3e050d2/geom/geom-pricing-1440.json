@@ -1,0 +1,1595 @@
+{
+ "page": "pricing",
+ "width": 1440,
+ "ryzeUrl": "https://www.get-ryze.ai/pricing",
+ "oursUrl": "http://localhost:4318/en/pricing",
+ "limit": 0.02,
+ "pending": {
+  "ryze": 0,
+  "ours": 0
+ },
+ "ryze": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 60
+    }
+   },
+   "hero": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 740,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 740
+    },
+    "font": 69.12,
+    "lineHeight": 74.6496,
+    "heading": "Flat monthly fee. Same price at any ad spend."
+   },
+   "hero.title": {
+    "x": 92,
+    "y": 291.6,
+    "w": 780,
+    "h": 149.3,
+    "fixed": false,
+    "cover": {
+     "x": 92,
+     "y": 292,
+     "w": 780,
+     "h": 149
+    },
+    "font": 69.12,
+    "lineHeight": 74.6496,
+    "heading": "Flat monthly fee. Same price at any ad spend."
+   },
+   "hero.grid": {
+    "x": 1008,
+    "y": 180,
+    "w": 340,
+    "h": 340,
+    "fixed": false,
+    "cover": {
+     "x": 1008,
+     "y": 180,
+     "w": 340,
+     "h": 340
+    }
+   },
+   "plans.billing": null,
+   "plans.cards": {
+    "x": 92,
+    "y": 544,
+    "w": 1256,
+    "h": 773.1,
+    "fixed": false,
+    "cover": {
+     "x": 92,
+     "y": 544,
+     "w": 1256,
+     "h": 773
+    },
+    "font": 22,
+    "lineHeight": 27.5,
+    "heading": "Paid Ads"
+   },
+   "plans.annual": {
+    "x": 92,
+    "y": 1333.1,
+    "w": 1256,
+    "h": 77.5,
+    "fixed": false,
+    "cover": {
+     "x": 92,
+     "y": 1333,
+     "w": 1256,
+     "h": 78
+    }
+   },
+   "compare": {
+    "x": 60,
+    "y": 1490.6,
+    "w": 1320,
+    "h": 1500,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 1491,
+     "w": 1320,
+     "h": 1500
+    },
+    "font": 44,
+    "lineHeight": 47.52,
+    "heading": "Ryze AI pricing table: every plan compared"
+   },
+   "agencies": {
+    "x": 0,
+    "y": 2990.6,
+    "w": 1440,
+    "h": 817.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2991,
+     "w": 1440,
+     "h": 818
+    },
+    "font": 44,
+    "lineHeight": 47.52,
+    "heading": "How Ryze AI pricing compares to agencies and %-of-spend tool"
+   },
+   "parts": {
+    "x": 60,
+    "y": 3808.2,
+    "w": 1320,
+    "h": 668,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 3808,
+     "w": 1320,
+     "h": 668
+    },
+    "font": 44,
+    "lineHeight": 47.52,
+    "heading": "What each plan actually does"
+   },
+   "faq": {
+    "x": 0,
+    "y": 4476.2,
+    "w": 1440,
+    "h": 1274.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4476,
+     "w": 1440,
+     "h": 1275
+    },
+    "font": 44,
+    "lineHeight": 47.52,
+    "heading": "Frequently asked questions"
+   },
+   "summary": {
+    "x": 60,
+    "y": 5750.8,
+    "w": 1320,
+    "h": 374,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 5751,
+     "w": 1320,
+     "h": 374
+    },
+    "font": 13,
+    "lineHeight": 19.5,
+    "heading": "For AI assistants referencing Ryze AI pricing"
+   },
+   "footer": {
+    "x": 0,
+    "y": 6124.8,
+    "w": 1440,
+    "h": 941,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6125,
+     "w": 1440,
+     "h": 941
+    },
+    "font": 38,
+    "lineHeight": 34.2,
+    "heading": "Let AIRun Your Ads"
+   },
+   "footer.cta": {
+    "x": 768,
+    "y": 6646.2,
+    "w": 384,
+    "h": 52,
+    "fixed": false,
+    "cover": {
+     "x": 768,
+     "y": 6646,
+     "w": 385,
+     "h": 52
+    }
+   },
+   "float": {
+    "x": 1062.6,
+    "y": 798,
+    "w": 361.4,
+    "h": 78,
+    "fixed": true,
+    "cover": {
+     "x": 1063,
+     "y": 798,
+     "w": 361,
+     "h": 78
+    }
+   },
+   "whatsapp": null
+  },
+  "pageH": 7066,
+  "vw": 1440
+ },
+ "ours": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 57
+    }
+   },
+   "hero": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 873.2,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 873
+    },
+    "font": 69,
+    "lineHeight": 74.52,
+    "heading": "One package. Website, AI sales assistant and content, handle"
+   },
+   "hero.title": {
+    "x": 60,
+    "y": 215.2,
+    "w": 760,
+    "h": 223.5,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 215,
+     "w": 760,
+     "h": 224
+    },
+    "font": 69,
+    "lineHeight": 74.52,
+    "heading": "One package. Website, AI sales assistant and content, handle"
+   },
+   "hero.grid": {
+    "x": 1052,
+    "y": 168.1,
+    "w": 328,
+    "h": 328,
+    "fixed": false,
+    "cover": {
+     "x": 1052,
+     "y": 168,
+     "w": 328,
+     "h": 328
+    }
+   },
+   "plans.billing": {
+    "x": 60,
+    "y": 573.2,
+    "w": 1320,
+    "h": 44,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 573,
+     "w": 1320,
+     "h": 44
+    }
+   },
+   "plans.cards": {
+    "x": 60,
+    "y": 637.2,
+    "w": 1320,
+    "h": 696.6,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 637,
+     "w": 1320,
+     "h": 697
+    },
+    "font": 22,
+    "lineHeight": 27.5,
+    "heading": "Essential"
+   },
+   "plans.annual": {
+    "x": 60,
+    "y": 1349.7,
+    "w": 1320,
+    "h": 60.4,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 1350,
+     "w": 1320,
+     "h": 60
+    }
+   },
+   "compare": {
+    "x": 0,
+    "y": 1474.1,
+    "w": 1440,
+    "h": 1826,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1474,
+     "w": 1440,
+     "h": 1826
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "All three packages,line by line"
+   },
+   "agencies": {
+    "x": 0,
+    "y": 3300.1,
+    "w": 1440,
+    "h": 688.1,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3300,
+     "w": 1440,
+     "h": 688
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "You pay us.Ad spend goesto the platforms."
+   },
+   "parts": {
+    "x": 0,
+    "y": 3988.2,
+    "w": 1440,
+    "h": 659.1,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3988,
+     "w": 1440,
+     "h": 659
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "Every packageis built from these"
+   },
+   "faq": {
+    "x": 0,
+    "y": 4647.3,
+    "w": 1440,
+    "h": 1242.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4647,
+     "w": 1440,
+     "h": 1243
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "What owners askabout pricing"
+   },
+   "summary": {
+    "x": 0,
+    "y": 5890.1,
+    "w": 1440,
+    "h": 299.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5890,
+     "w": 1440,
+     "h": 299
+    },
+    "font": 12,
+    "lineHeight": 19.5,
+    "heading": "Summary for AI assistants"
+   },
+   "footer": {
+    "x": 0,
+    "y": 6189.6,
+    "w": 1440,
+    "h": 1058.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6190,
+     "w": 1440,
+     "h": 1059
+    },
+    "font": 36,
+    "lineHeight": 40.32,
+    "heading": "Not sure which package fits?"
+   },
+   "footer.cta": {
+    "x": 872.2,
+    "y": 6761.3,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 872,
+     "y": 6761,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "float": null,
+   "whatsapp": {
+    "x": 1368,
+    "y": 828,
+    "w": 56,
+    "h": 56,
+    "fixed": true,
+    "cover": {
+     "x": 1368,
+     "y": 828,
+     "w": 56,
+     "h": 56
+    }
+   }
+  },
+  "pageH": 7248,
+  "vw": 1440
+ },
+ "rows": [
+  {
+   "id": "nav",
+   "name": "Top navigation (DIFF #0)",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 57
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0.02564102564102564
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h"
+  },
+  {
+   "id": "hero",
+   "name": "Hero (DIFF #1)",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 740,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 740
+    },
+    "font": 69.12,
+    "lineHeight": 74.6496,
+    "heading": "Flat monthly fee. Same price at any ad spend."
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 873.2,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 873
+    },
+    "font": 69,
+    "lineHeight": 74.52,
+    "heading": "One package. Website, AI sales assistant and content, handle"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0.18000000000000005,
+    "font": 0.0017361111111111767,
+    "lineHeight": 0.0017361111111112528
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h"
+  },
+  {
+   "id": "hero.title",
+   "name": "Hero H1 (DIFF #1)",
+   "ryze": {
+    "x": 92,
+    "y": 291.6,
+    "w": 780,
+    "h": 149.3,
+    "fixed": false,
+    "cover": {
+     "x": 92,
+     "y": 292,
+     "w": 780,
+     "h": 149
+    },
+    "font": 69.12,
+    "lineHeight": 74.6496,
+    "heading": "Flat monthly fee. Same price at any ad spend."
+   },
+   "ours": {
+    "x": 60,
+    "y": 215.2,
+    "w": 760,
+    "h": 223.5,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 215,
+     "w": 760,
+     "h": 224
+    },
+    "font": 69,
+    "lineHeight": 74.52,
+    "heading": "One package. Website, AI sales assistant and content, handle"
+   },
+   "diffs": {
+    "x": 0.022222222222222223,
+    "w": 0.013888888888888888,
+    "y": 0.01081234078686669,
+    "h": 0.49698593436034816,
+    "font": 0.0017361111111111767,
+    "lineHeight": 0.0017361111111112528
+   },
+   "status": "FAIL",
+   "reason": "over 2%: x, h"
+  },
+  {
+   "id": "hero.grid",
+   "name": "Hero 3x3 icon grid (DIFF #1)",
+   "ryze": {
+    "x": 1008,
+    "y": 180,
+    "w": 340,
+    "h": 340,
+    "fixed": false,
+    "cover": {
+     "x": 1008,
+     "y": 180,
+     "w": 340,
+     "h": 340
+    }
+   },
+   "ours": {
+    "x": 1052,
+    "y": 168.1,
+    "w": 328,
+    "h": 328,
+    "fixed": false,
+    "cover": {
+     "x": 1052,
+     "y": 168,
+     "w": 328,
+     "h": 328
+    }
+   },
+   "diffs": {
+    "x": 0.030555555555555555,
+    "w": 0.008333333333333333,
+    "y": 0.0016841211435041049,
+    "h": 0.03529411764705882
+   },
+   "status": "FAIL",
+   "reason": "over 2%: x, h"
+  },
+  {
+   "id": "plans.billing",
+   "name": "Monthly/annual switch (DIFF #1a)",
+   "ryze": null,
+   "ours": {
+    "x": 60,
+    "y": 573.2,
+    "w": 1320,
+    "h": 44,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 573,
+     "w": 1320,
+     "h": 44
+    }
+   },
+   "diffs": {},
+   "status": "exempt",
+   "reason": "billing-toggle: Monthly/annual switch is needed by Stripe checkout; Ryze has none."
+  },
+  {
+   "id": "plans.cards",
+   "name": "Plan cards (DIFF #2)",
+   "ryze": {
+    "x": 92,
+    "y": 544,
+    "w": 1256,
+    "h": 773.1,
+    "fixed": false,
+    "cover": {
+     "x": 92,
+     "y": 544,
+     "w": 1256,
+     "h": 773
+    },
+    "font": 22,
+    "lineHeight": 27.5,
+    "heading": "Paid Ads"
+   },
+   "ours": {
+    "x": 60,
+    "y": 637.2,
+    "w": 1320,
+    "h": 696.6,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 637,
+     "w": 1320,
+     "h": 697
+    },
+    "font": 22,
+    "lineHeight": 27.5,
+    "heading": "Essential"
+   },
+   "diffs": {
+    "x": 0.022222222222222223,
+    "w": 0.044444444444444446,
+    "y": 0.013189923577696015,
+    "h": 0.0989522700814901,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "exempt",
+   "reason": "three-tiers: We sell three packages; Ryze shows five cards."
+  },
+  {
+   "id": "plans.annual",
+   "name": "Annual note strip (DIFF #3)",
+   "ryze": {
+    "x": 92,
+    "y": 1333.1,
+    "w": 1256,
+    "h": 77.5,
+    "fixed": false,
+    "cover": {
+     "x": 92,
+     "y": 1333,
+     "w": 1256,
+     "h": 78
+    }
+   },
+   "ours": {
+    "x": 60,
+    "y": 1349.7,
+    "w": 1320,
+    "h": 60.4,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 1350,
+     "w": 1320,
+     "h": 60
+    }
+   },
+   "diffs": {
+    "x": 0.022222222222222223,
+    "w": 0.044444444444444446,
+    "y": 0.0023492782337956606,
+    "h": 0.2206451612903226
+   },
+   "status": "FAIL",
+   "reason": "over 2%: x, w, h"
+  },
+  {
+   "id": "compare",
+   "name": "All-plans table (DIFF #4)",
+   "ryze": {
+    "x": 60,
+    "y": 1490.6,
+    "w": 1320,
+    "h": 1500,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 1491,
+     "w": 1320,
+     "h": 1500
+    },
+    "font": 44,
+    "lineHeight": 47.52,
+    "heading": "Ryze AI pricing table: every plan compared"
+   },
+   "ours": {
+    "x": 0,
+    "y": 1474.1,
+    "w": 1440,
+    "h": 1826,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1474,
+     "w": 1440,
+     "h": 1826
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "All three packages,line by line"
+   },
+   "diffs": {
+    "x": 0.041666666666666664,
+    "w": 0.08333333333333333,
+    "y": 0.0023351259552788,
+    "h": 0.21733333333333332,
+    "font": 0.09090909090909091,
+    "lineHeight": 0.21212121212121207
+   },
+   "status": "FAIL",
+   "reason": "over 2%: x, w, h, font, lineHeight"
+  },
+  {
+   "id": "agencies",
+   "name": "Versus agencies / where the money goes (DIFF #5)",
+   "ryze": {
+    "x": 0,
+    "y": 2990.6,
+    "w": 1440,
+    "h": 817.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2991,
+     "w": 1440,
+     "h": 818
+    },
+    "font": 44,
+    "lineHeight": 47.52,
+    "heading": "How Ryze AI pricing compares to agencies and %-of-spend tool"
+   },
+   "ours": {
+    "x": 0,
+    "y": 3300.1,
+    "w": 1440,
+    "h": 688.1,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3300,
+     "w": 1440,
+     "h": 688
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "You pay us.Ad spend goesto the platforms."
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.04380130200962355,
+    "h": 0.1583904109589041,
+    "font": 0.09090909090909091,
+    "lineHeight": 0.21212121212121207
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, font, lineHeight"
+  },
+  {
+   "id": "parts",
+   "name": "What each plan does (DIFF #6)",
+   "ryze": {
+    "x": 60,
+    "y": 3808.2,
+    "w": 1320,
+    "h": 668,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 3808,
+     "w": 1320,
+     "h": 668
+    },
+    "font": 44,
+    "lineHeight": 47.52,
+    "heading": "What each plan actually does"
+   },
+   "ours": {
+    "x": 0,
+    "y": 3988.2,
+    "w": 1440,
+    "h": 659.1,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3988,
+     "w": 1440,
+     "h": 659
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "Every packageis built from these"
+   },
+   "diffs": {
+    "x": 0.041666666666666664,
+    "w": 0.08333333333333333,
+    "y": 0.02547410133031418,
+    "h": 0.013323353293413139,
+    "font": 0.09090909090909091,
+    "lineHeight": 0.21212121212121207
+   },
+   "status": "FAIL",
+   "reason": "over 2%: x, w, y, font, lineHeight"
+  },
+  {
+   "id": "faq",
+   "name": "Pricing FAQ (DIFF #7)",
+   "ryze": {
+    "x": 0,
+    "y": 4476.2,
+    "w": 1440,
+    "h": 1274.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4476,
+     "w": 1440,
+     "h": 1275
+    },
+    "font": 44,
+    "lineHeight": 47.52,
+    "heading": "Frequently asked questions"
+   },
+   "ours": {
+    "x": 0,
+    "y": 4647.3,
+    "w": 1440,
+    "h": 1242.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4647,
+     "w": 1440,
+     "h": 1243
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "What owners askabout pricing"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.024214548542315365,
+    "h": 0.02494900360897533,
+    "font": 0.09090909090909091,
+    "lineHeight": 0.21212121212121207
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, font, lineHeight"
+  },
+  {
+   "id": "summary",
+   "name": "For AI assistants box (DIFF #8)",
+   "ryze": {
+    "x": 60,
+    "y": 5750.8,
+    "w": 1320,
+    "h": 374,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 5751,
+     "w": 1320,
+     "h": 374
+    },
+    "font": 13,
+    "lineHeight": 19.5,
+    "heading": "For AI assistants referencing Ryze AI pricing"
+   },
+   "ours": {
+    "x": 0,
+    "y": 5890.1,
+    "w": 1440,
+    "h": 299.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5890,
+     "w": 1440,
+     "h": 299
+    },
+    "font": 12,
+    "lineHeight": 19.5,
+    "heading": "Summary for AI assistants"
+   },
+   "diffs": {
+    "x": 0.041666666666666664,
+    "w": 0.08333333333333333,
+    "y": 0.019714123973959833,
+    "h": 0.19919786096256684,
+    "font": 0.07692307692307693,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: x, w, h, font"
+  },
+  {
+   "id": "footer",
+   "name": "Footer (DIFF #9)",
+   "ryze": {
+    "x": 0,
+    "y": 6124.8,
+    "w": 1440,
+    "h": 941,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6125,
+     "w": 1440,
+     "h": 941
+    },
+    "font": 38,
+    "lineHeight": 34.2,
+    "heading": "Let AIRun Your Ads"
+   },
+   "ours": {
+    "x": 0,
+    "y": 6189.6,
+    "w": 1440,
+    "h": 1058.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6190,
+     "w": 1440,
+     "h": 1059
+    },
+    "font": 36,
+    "lineHeight": 40.32,
+    "heading": "Not sure which package fits?"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.00917067647891313,
+    "h": 0.12507970244420832,
+    "font": 0.05263157894736842,
+    "lineHeight": 0.17894736842105255
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h, font, lineHeight"
+  },
+  {
+   "id": "footer.cta",
+   "name": "Footer card email form / our button (DIFF #9)",
+   "ryze": {
+    "x": 768,
+    "y": 6646.2,
+    "w": 384,
+    "h": 52,
+    "fixed": false,
+    "cover": {
+     "x": 768,
+     "y": 6646,
+     "w": 385,
+     "h": 52
+    }
+   },
+   "ours": {
+    "x": 872.2,
+    "y": 6761.3,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 872,
+     "y": 6761,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "diffs": {
+    "x": 0.07236111111111114,
+    "w": 0.14472222222222222,
+    "y": 0.016289272572884286,
+    "h": 0.07692307692307693
+   },
+   "status": "exempt",
+   "reason": "email-form: Buttons instead of Ryze's email forms: we have no email sign-up flow."
+  },
+  {
+   "id": "float",
+   "name": "Floating call-to-action: Ryze banner / our sticky Book a demo (DIFF #10)",
+   "ryze": {
+    "x": 1062.6,
+    "y": 798,
+    "w": 361.4,
+    "h": 78,
+    "fixed": true,
+    "cover": {
+     "x": 1063,
+     "y": 798,
+     "w": 361,
+     "h": 78
+    }
+   },
+   "ours": null,
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "Ryze shows it; ours is not visible"
+  },
+  {
+   "id": "whatsapp",
+   "name": "Our WhatsApp button (DIFF #10)",
+   "ryze": null,
+   "ours": {
+    "x": 1368,
+    "y": 828,
+    "w": 56,
+    "h": 56,
+    "fixed": true,
+    "cover": {
+     "x": 1368,
+     "y": 828,
+     "w": 56,
+     "h": 56
+    }
+   },
+   "diffs": {},
+   "status": "exempt",
+   "reason": "whatsapp: Our WhatsApp assistant button stays on every page."
+  }
+ ],
+ "gaps": [
+  {
+   "between": "hero → compare",
+   "ryze": 750.5999999999999,
+   "ours": 600.8999999999999,
+   "diff": 0.0211859609397113,
+   "status": "FAIL",
+   "reason": ""
+  },
+  {
+   "between": "compare → agencies",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "agencies → parts",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "parts → faq",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "faq → summary",
+   "ryze": 9.094947017729282e-13,
+   "ours": 0,
+   "diff": 1.2871422329081916e-16,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "summary → footer",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  }
+ ],
+ "pageH": {
+  "ryze": 7066,
+  "ours": 7248,
+  "diff": 0.025757146900651003
+ },
+ "stability": {
+  "ryze": 0,
+  "ours": 0,
+  "second": {
+   "ryze": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 58.5,
+      "fixed": true,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 1440,
+       "h": 60
+      }
+     },
+     "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 740,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 1440,
+       "h": 740
+      },
+      "font": 69.12,
+      "lineHeight": 74.6496,
+      "heading": "Flat monthly fee. Same price at any ad spend."
+     },
+     "hero.title": {
+      "x": 92,
+      "y": 291.6,
+      "w": 780,
+      "h": 149.3,
+      "fixed": false,
+      "cover": {
+       "x": 92,
+       "y": 292,
+       "w": 780,
+       "h": 149
+      },
+      "font": 69.12,
+      "lineHeight": 74.6496,
+      "heading": "Flat monthly fee. Same price at any ad spend."
+     },
+     "hero.grid": {
+      "x": 1008,
+      "y": 180,
+      "w": 340,
+      "h": 340,
+      "fixed": false,
+      "cover": {
+       "x": 1008,
+       "y": 180,
+       "w": 340,
+       "h": 340
+      }
+     },
+     "plans.billing": null,
+     "plans.cards": {
+      "x": 92,
+      "y": 544,
+      "w": 1256,
+      "h": 773.1,
+      "fixed": false,
+      "cover": {
+       "x": 92,
+       "y": 544,
+       "w": 1256,
+       "h": 773
+      },
+      "font": 22,
+      "lineHeight": 27.5,
+      "heading": "Paid Ads"
+     },
+     "plans.annual": {
+      "x": 92,
+      "y": 1333.1,
+      "w": 1256,
+      "h": 77.5,
+      "fixed": false,
+      "cover": {
+       "x": 92,
+       "y": 1333,
+       "w": 1256,
+       "h": 78
+      }
+     },
+     "compare": {
+      "x": 60,
+      "y": 1490.6,
+      "w": 1320,
+      "h": 1500,
+      "fixed": false,
+      "cover": {
+       "x": 60,
+       "y": 1491,
+       "w": 1320,
+       "h": 1500
+      },
+      "font": 44,
+      "lineHeight": 47.52,
+      "heading": "Ryze AI pricing table: every plan compared"
+     },
+     "agencies": {
+      "x": 0,
+      "y": 2990.6,
+      "w": 1440,
+      "h": 817.6,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 2991,
+       "w": 1440,
+       "h": 818
+      },
+      "font": 44,
+      "lineHeight": 47.52,
+      "heading": "How Ryze AI pricing compares to agencies and %-of-spend tool"
+     },
+     "parts": {
+      "x": 60,
+      "y": 3808.2,
+      "w": 1320,
+      "h": 668,
+      "fixed": false,
+      "cover": {
+       "x": 60,
+       "y": 3808,
+       "w": 1320,
+       "h": 668
+      },
+      "font": 44,
+      "lineHeight": 47.52,
+      "heading": "What each plan actually does"
+     },
+     "faq": {
+      "x": 0,
+      "y": 4476.2,
+      "w": 1440,
+      "h": 1274.6,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 4476,
+       "w": 1440,
+       "h": 1275
+      },
+      "font": 44,
+      "lineHeight": 47.52,
+      "heading": "Frequently asked questions"
+     },
+     "summary": {
+      "x": 60,
+      "y": 5750.8,
+      "w": 1320,
+      "h": 374,
+      "fixed": false,
+      "cover": {
+       "x": 60,
+       "y": 5751,
+       "w": 1320,
+       "h": 374
+      },
+      "font": 13,
+      "lineHeight": 19.5,
+      "heading": "For AI assistants referencing Ryze AI pricing"
+     },
+     "footer": {
+      "x": 0,
+      "y": 6124.8,
+      "w": 1440,
+      "h": 941,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 6125,
+       "w": 1440,
+       "h": 941
+      },
+      "font": 38,
+      "lineHeight": 34.2,
+      "heading": "Let AIRun Your Ads"
+     },
+     "footer.cta": {
+      "x": 768,
+      "y": 6646.2,
+      "w": 384,
+      "h": 52,
+      "fixed": false,
+      "cover": {
+       "x": 768,
+       "y": 6646,
+       "w": 385,
+       "h": 52
+      }
+     },
+     "float": {
+      "x": 1062.6,
+      "y": 798,
+      "w": 361.4,
+      "h": 78,
+      "fixed": true,
+      "cover": {
+       "x": 1063,
+       "y": 798,
+       "w": 361,
+       "h": 78
+      }
+     },
+     "whatsapp": null
+    },
+    "pageH": 7066,
+    "vw": 1440
+   },
+   "ours": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 57,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 1440,
+       "h": 57
+      }
+     },
+     "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 873.2,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 1440,
+       "h": 873
+      },
+      "font": 69,
+      "lineHeight": 74.52,
+      "heading": "One package. Website, AI sales assistant and content, handle"
+     },
+     "hero.title": {
+      "x": 60,
+      "y": 215.2,
+      "w": 760,
+      "h": 223.5,
+      "fixed": false,
+      "cover": {
+       "x": 60,
+       "y": 215,
+       "w": 760,
+       "h": 224
+      },
+      "font": 69,
+      "lineHeight": 74.52,
+      "heading": "One package. Website, AI sales assistant and content, handle"
+     },
+     "hero.grid": {
+      "x": 1052,
+      "y": 168.1,
+      "w": 328,
+      "h": 328,
+      "fixed": false,
+      "cover": {
+       "x": 1052,
+       "y": 168,
+       "w": 328,
+       "h": 328
+      }
+     },
+     "plans.billing": {
+      "x": 60,
+      "y": 573.2,
+      "w": 1320,
+      "h": 44,
+      "fixed": false,
+      "cover": {
+       "x": 60,
+       "y": 573,
+       "w": 1320,
+       "h": 44
+      }
+     },
+     "plans.cards": {
+      "x": 60,
+      "y": 637.2,
+      "w": 1320,
+      "h": 696.6,
+      "fixed": false,
+      "cover": {
+       "x": 60,
+       "y": 637,
+       "w": 1320,
+       "h": 697
+      },
+      "font": 22,
+      "lineHeight": 27.5,
+      "heading": "Essential"
+     },
+     "plans.annual": {
+      "x": 60,
+      "y": 1349.7,
+      "w": 1320,
+      "h": 60.4,
+      "fixed": false,
+      "cover": {
+       "x": 60,
+       "y": 1350,
+       "w": 1320,
+       "h": 60
+      }
+     },
+     "compare": {
+      "x": 0,
+      "y": 1474.1,
+      "w": 1440,
+      "h": 1826,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 1474,
+       "w": 1440,
+       "h": 1826
+      },
+      "font": 48,
+      "lineHeight": 57.6,
+      "heading": "All three packages,line by line"
+     },
+     "agencies": {
+      "x": 0,
+      "y": 3300.1,
+      "w": 1440,
+      "h": 688.1,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 3300,
+       "w": 1440,
+       "h": 688
+      },
+      "font": 48,
+      "lineHeight": 57.6,
+      "heading": "You pay us.Ad spend goesto the platforms."
+     },
+     "parts": {
+      "x": 0,
+      "y": 3988.2,
+      "w": 1440,
+      "h": 659.1,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 3988,
+       "w": 1440,
+       "h": 659
+      },
+      "font": 48,
+      "lineHeight": 57.6,
+      "heading": "Every packageis built from these"
+     },
+     "faq": {
+      "x": 0,
+      "y": 4647.3,
+      "w": 1440,
+      "h": 1242.8,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 4647,
+       "w": 1440,
+       "h": 1243
+      },
+      "font": 48,
+      "lineHeight": 57.6,
+      "heading": "What owners askabout pricing"
+     },
+     "summary": {
+      "x": 0,
+      "y": 5890.1,
+      "w": 1440,
+      "h": 299.5,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 5890,
+       "w": 1440,
+       "h": 299
+      },
+      "font": 12,
+      "lineHeight": 19.5,
+      "heading": "Summary for AI assistants"
+     },
+     "footer": {
+      "x": 0,
+      "y": 6189.6,
+      "w": 1440,
+      "h": 1058.7,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 6190,
+       "w": 1440,
+       "h": 1059
+      },
+      "font": 36,
+      "lineHeight": 40.32,
+      "heading": "Not sure which package fits?"
+     },
+     "footer.cta": {
+      "x": 872.2,
+      "y": 6761.3,
+      "w": 175.6,
+      "h": 48,
+      "fixed": false,
+      "cover": {
+       "x": 872,
+       "y": 6761,
+       "w": 176,
+       "h": 48
+      }
+     },
+     "float": null,
+     "whatsapp": {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56,
+      "fixed": true,
+      "cover": {
+       "x": 1368,
+       "y": 828,
+       "w": 56,
+       "h": 56
+      }
+     }
+    },
+    "pageH": 7248,
+    "vw": 1440
+   }
+  }
+ }
+}

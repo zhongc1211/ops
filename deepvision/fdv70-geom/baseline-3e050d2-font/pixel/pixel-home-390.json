@@ -1,0 +1,1302 @@
+{
+ "page": "home",
+ "width": 390,
+ "limit": 0.0001,
+ "fontNormalized": true,
+ "original": {
+  "diff": 0.7293565439300036,
+  "diffPx": 4321350,
+  "totalPx": 5924880,
+  "screens": [
+   {
+    "i": 0,
+    "ryzeY": 0,
+    "oursY": 0,
+    "n": 268606,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 24,
+      "y": 326,
+      "w": 343,
+      "h": 46
+     },
+     {
+      "x": 24,
+      "y": 397,
+      "w": 342,
+      "h": 48
+     }
+    ]
+   },
+   {
+    "i": 1,
+    "ryzeY": 844,
+    "oursY": 844,
+    "n": 237057,
+    "total": 329160,
+    "masks": []
+   },
+   {
+    "i": 2,
+    "ryzeY": 1688,
+    "oursY": 1688,
+    "n": 200157,
+    "total": 329160,
+    "masks": []
+   },
+   {
+    "i": 3,
+    "ryzeY": 2532,
+    "oursY": 2532,
+    "n": 197336,
+    "total": 329160,
+    "masks": []
+   },
+   {
+    "i": 4,
+    "ryzeY": 3376,
+    "oursY": 3376,
+    "n": 233314,
+    "total": 329160,
+    "masks": []
+   },
+   {
+    "i": 5,
+    "ryzeY": 4220,
+    "oursY": 4220,
+    "n": 150574,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 24,
+      "y": 351,
+      "w": 343,
+      "h": 48
+     }
+    ]
+   },
+   {
+    "i": 6,
+    "ryzeY": 5064,
+    "oursY": 5064,
+    "n": 135229,
+    "total": 329160,
+    "masks": []
+   },
+   {
+    "i": 7,
+    "ryzeY": 5908,
+    "oursY": 5908,
+    "n": 105725,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 24,
+      "y": 138,
+      "w": 179,
+      "h": 48
+     }
+    ]
+   },
+   {
+    "i": 8,
+    "ryzeY": 6752,
+    "oursY": 6752,
+    "n": 126839,
+    "total": 329160,
+    "masks": []
+   },
+   {
+    "i": 9,
+    "ryzeY": 7596,
+    "oursY": 7596,
+    "n": 115558,
+    "total": 329160,
+    "masks": []
+   },
+   {
+    "i": 10,
+    "ryzeY": 8440,
+    "oursY": 8440,
+    "n": 254681,
+    "total": 329160,
+    "masks": []
+   },
+   {
+    "i": 11,
+    "ryzeY": 8938,
+    "oursY": 9284,
+    "n": 321314,
+    "total": 329160,
+    "masks": []
+   },
+   {
+    "i": 12,
+    "missing": "ryze"
+   },
+   {
+    "i": 13,
+    "missing": "ryze"
+   },
+   {
+    "i": 14,
+    "missing": "ryze"
+   },
+   {
+    "i": 15,
+    "missing": "ryze"
+   },
+   {
+    "i": 16,
+    "missing": "ryze"
+   },
+   {
+    "i": 17,
+    "missing": "ryze"
+   }
+  ]
+ },
+ "font": {
+  "diff": 0.6991827682585976,
+  "diffPx": 4142574,
+  "totalPx": 5924880,
+  "screens": [
+   {
+    "i": 0,
+    "ryzeY": 0,
+    "oursY": 0,
+    "n": 248666,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 24,
+      "y": 326,
+      "w": 343,
+      "h": 46
+     },
+     {
+      "x": 24,
+      "y": 397,
+      "w": 342,
+      "h": 48
+     },
+     {
+      "x": 114,
+      "y": 764,
+      "w": 260,
+      "h": 73
+     }
+    ]
+   },
+   {
+    "i": 1,
+    "ryzeY": 844,
+    "oursY": 844,
+    "n": 218575,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 764,
+      "w": 260,
+      "h": 73
+     }
+    ]
+   },
+   {
+    "i": 2,
+    "ryzeY": 1688,
+    "oursY": 1688,
+    "n": 183811,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 764,
+      "w": 260,
+      "h": 73
+     }
+    ]
+   },
+   {
+    "i": 3,
+    "ryzeY": 2532,
+    "oursY": 2532,
+    "n": 182735,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 764,
+      "w": 260,
+      "h": 73
+     }
+    ]
+   },
+   {
+    "i": 4,
+    "ryzeY": 3376,
+    "oursY": 3376,
+    "n": 218999,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 764,
+      "w": 260,
+      "h": 73
+     }
+    ]
+   },
+   {
+    "i": 5,
+    "ryzeY": 4220,
+    "oursY": 4220,
+    "n": 131015,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 24,
+      "y": 371,
+      "w": 343,
+      "h": 48
+     },
+     {
+      "x": 114,
+      "y": 764,
+      "w": 260,
+      "h": 73
+     }
+    ]
+   },
+   {
+    "i": 6,
+    "ryzeY": 5064,
+    "oursY": 5064,
+    "n": 123890,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 764,
+      "w": 260,
+      "h": 73
+     }
+    ]
+   },
+   {
+    "i": 7,
+    "ryzeY": 5908,
+    "oursY": 5908,
+    "n": 105960,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 24,
+      "y": 138,
+      "w": 179,
+      "h": 48
+     },
+     {
+      "x": 114,
+      "y": 764,
+      "w": 260,
+      "h": 73
+     }
+    ]
+   },
+   {
+    "i": 8,
+    "ryzeY": 6752,
+    "oursY": 6752,
+    "n": 117242,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 764,
+      "w": 260,
+      "h": 73
+     }
+    ]
+   },
+   {
+    "i": 9,
+    "ryzeY": 7596,
+    "oursY": 7596,
+    "n": 96833,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 764,
+      "w": 260,
+      "h": 73
+     }
+    ]
+   },
+   {
+    "i": 10,
+    "ryzeY": 8440,
+    "oursY": 8440,
+    "n": 236774,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 764,
+      "w": 260,
+      "h": 73
+     }
+    ]
+   },
+   {
+    "i": 11,
+    "ryzeY": 9003,
+    "oursY": 9284,
+    "n": 303114,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 764,
+      "w": 260,
+      "h": 73
+     }
+    ]
+   },
+   {
+    "i": 12,
+    "missing": "ryze"
+   },
+   {
+    "i": 13,
+    "missing": "ryze"
+   },
+   {
+    "i": 14,
+    "missing": "ryze"
+   },
+   {
+    "i": 15,
+    "missing": "ryze"
+   },
+   {
+    "i": 16,
+    "missing": "ryze"
+   },
+   {
+    "i": 17,
+    "missing": "ryze"
+   }
+  ]
+ },
+ "blocks": [
+  {
+   "id": "nav",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 57
+    }
+   },
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     1
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     2,
+     1
+    ]
+   }
+  },
+  {
+   "id": "hero",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 844,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 1256
+    },
+    "font": 33.6,
+    "lineHeight": 37.632,
+    "heading": "AI runs yourads, SEO,and website"
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 1089.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 1089
+    },
+    "font": 34,
+    "lineHeight": 38.08,
+    "heading": "AI runs yourads, SEO,and websiteMore customers on autopilot"
+   },
+   "diff": 0.8551623460714369,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     37,
+     292
+    ],
+    "imgs": [
+     0,
+     20
+    ],
+    "bgs": [
+     1,
+     0
+    ],
+    "svgs": [
+     0,
+     13
+    ]
+   }
+  },
+  {
+   "id": "hero.cta",
+   "ryze": {
+    "x": 24,
+    "y": 326.5,
+    "w": 342,
+    "h": 46,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 326,
+     "w": 343,
+     "h": 46
+    }
+   },
+   "ours": {
+    "x": 24,
+    "y": 397,
+    "w": 342,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 397,
+     "w": 342,
+     "h": 48
+    }
+   },
+   "diff": null,
+   "exempt": "email-form",
+   "applied": {
+    "texts": [
+     2,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "strip",
+   "ryze": {
+    "x": 0,
+    "y": 844,
+    "w": 390,
+    "h": 72.1,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 844,
+     "w": 390,
+     "h": 72
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 1089.4,
+    "w": 390,
+    "h": 218.2,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1089,
+     "w": 390,
+     "h": 218
+    }
+   },
+   "diff": 0.9995883321571395,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     6,
+     4
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "twocol",
+   "ryze": {
+    "x": 0,
+    "y": 916.1,
+    "w": 390,
+    "h": 554.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 916,
+     "w": 390,
+     "h": 554
+    },
+    "font": 24,
+    "lineHeight": 26.88,
+    "heading": "AI to manage ads across any platform"
+   },
+   "ours": {
+    "x": 0,
+    "y": 1307.5,
+    "w": 390,
+    "h": 1015.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1308,
+     "w": 390,
+     "h": 1015
+    },
+    "font": 26,
+    "lineHeight": 32.5,
+    "heading": "AI to manage ads across any platform"
+   },
+   "diff": 0.6822988505747126,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     9,
+     2
+    ],
+    "imgs": [
+     6,
+     11
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "wall",
+   "ryze": {
+    "x": 0,
+    "y": 1470.6,
+    "w": 390,
+    "h": 1228.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1471,
+     "w": 390,
+     "h": 1228
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "Wall of Love"
+   },
+   "ours": {
+    "x": 0,
+    "y": 2323,
+    "w": 390,
+    "h": 2260.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2323,
+     "w": 390,
+     "h": 2261
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "Wall of Love"
+   },
+   "diff": 0.796824640787489,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     12,
+     14
+    ],
+    "imgs": [
+     2,
+     7
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     1,
+     3
+    ]
+   }
+  },
+  {
+   "id": "logos",
+   "ryze": {
+    "x": 0,
+    "y": 2699,
+    "w": 390,
+    "h": 717,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2699,
+     "w": 390,
+     "h": 717
+    },
+    "font": 24,
+    "lineHeight": 30,
+    "heading": "Used by marketers behind 33,000+ brands"
+   },
+   "ours": null,
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no block on our page"
+   }
+  },
+  {
+   "id": "cards5",
+   "ryze": {
+    "x": 0,
+    "y": 3416,
+    "w": 390,
+    "h": 868.8,
+    "fixed": false,
+    "cover": {
+     "x": -11,
+     "y": 3416,
+     "w": 402,
+     "h": 2660
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "See what Ryze does inside your account"
+   },
+   "ours": {
+    "x": 0,
+    "y": 4583.8,
+    "w": 390,
+    "h": 1200.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4584,
+     "w": 547,
+     "h": 1201
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "See what Ryze does inside your account"
+   },
+   "diff": 0.7199491876427763,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     24,
+     174
+    ],
+    "imgs": [
+     4,
+     2
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "scan",
+   "ryze": {
+    "x": 0,
+    "y": 4284.7,
+    "w": 390,
+    "h": 434,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4285,
+     "w": 390,
+     "h": 434
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "Get a free scanof your website"
+   },
+   "ours": {
+    "x": 0,
+    "y": 5784.5,
+    "w": 390,
+    "h": 373.2,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5784,
+     "w": 390,
+     "h": 373
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "Get a free scanof your website"
+   },
+   "diff": 0.8509393831974477,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     6,
+     6
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "scan.cta",
+   "ryze": {
+    "x": 24,
+    "y": 4590.7,
+    "w": 342,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 4591,
+     "w": 343,
+     "h": 48
+    }
+   },
+   "ours": {
+    "x": 24,
+    "y": 6045.6,
+    "w": 178.8,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 6046,
+     "w": 179,
+     "h": 48
+    }
+   },
+   "diff": null,
+   "exempt": "email-form",
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "three",
+   "ryze": {
+    "x": 0,
+    "y": 4718.7,
+    "w": 390,
+    "h": 1653.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4719,
+     "w": 733,
+     "h": 1687
+    },
+    "font": 22,
+    "lineHeight": 27.5,
+    "heading": "Autonomous PPC optimization"
+   },
+   "ours": {
+    "x": 0,
+    "y": 6157.6,
+    "w": 390,
+    "h": 2048,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6158,
+     "w": 441,
+     "h": 2048
+    },
+    "font": 22,
+    "lineHeight": 27.5,
+    "heading": "AutonomousPPC optimization"
+   },
+   "diff": 0.5201134314903846,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     34,
+     31
+    ],
+    "imgs": [
+     12,
+     18
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     4
+    ]
+   }
+  },
+  {
+   "id": "why",
+   "ryze": {
+    "x": 0,
+    "y": 6372.2,
+    "w": 390,
+    "h": 957,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6372,
+     "w": 390,
+     "h": 957
+    },
+    "font": 28,
+    "lineHeight": 42,
+    "heading": "Why Ryze outperforms"
+   },
+   "ours": {
+    "x": 0,
+    "y": 8205.6,
+    "w": 390,
+    "h": 1773.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 8206,
+     "w": 458,
+     "h": 1773
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "Why Ryze outperforms"
+   },
+   "diff": 0.5544329777700691,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     17,
+     13
+    ],
+    "imgs": [
+     6,
+     2
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "list",
+   "ryze": {
+    "x": 0,
+    "y": 7329.2,
+    "w": 390,
+    "h": 955.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7329,
+     "w": 390,
+     "h": 956
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "Everything you need to run paid ads."
+   },
+   "ours": {
+    "x": 0,
+    "y": 9979.1,
+    "w": 390,
+    "h": 1305.3,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 9979,
+     "w": 390,
+     "h": 1305
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "Everything you need to run paid ads."
+   },
+   "diff": 0.9800432262501229,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     38,
+     29
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     24
+    ]
+   }
+  },
+  {
+   "id": "agency",
+   "ryze": {
+    "x": 0,
+    "y": 8284.9,
+    "w": 390,
+    "h": 644.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7228,
+     "w": 390,
+     "h": 1968
+    },
+    "font": 28,
+    "lineHeight": 35,
+    "heading": "Manage 100s of accounts with AI agents"
+   },
+   "ours": {
+    "x": 0,
+    "y": 11284.4,
+    "w": 390,
+    "h": 1185.1,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 11284,
+     "w": 390,
+     "h": 1185
+    },
+    "font": 32,
+    "lineHeight": 36.8,
+    "heading": "Manage of accounts with AI agents100s"
+   },
+   "diff": 0.9485188791517906,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     13,
+     284
+    ],
+    "imgs": [
+     1,
+     7
+    ],
+    "bgs": [
+     1,
+     0
+    ],
+    "svgs": [
+     0,
+     44
+    ]
+   }
+  },
+  {
+   "id": "faq",
+   "ryze": null,
+   "ours": {
+    "x": 0,
+    "y": 12469.5,
+    "w": 390,
+    "h": 930.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 12469,
+     "w": 390,
+     "h": 930
+    },
+    "font": 28,
+    "lineHeight": 33.6,
+    "heading": "Frequently asked questions"
+   },
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  },
+  {
+   "id": "footer",
+   "ryze": {
+    "x": 0,
+    "y": 8929.3,
+    "w": 390,
+    "h": 917.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 8929,
+     "w": 390,
+     "h": 918
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 13399.9,
+    "w": 390,
+    "h": 1455,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 13400,
+     "w": 390,
+     "h": 1455
+    },
+    "font": 30,
+    "lineHeight": 33.6,
+    "heading": "Live results across"
+   },
+   "diff": 0.9847087849149705,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     38,
+     36
+    ],
+    "imgs": [
+     1,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "footer.cta",
+   "ryze": null,
+   "ours": {
+    "x": 123.4,
+    "y": 13583.3,
+    "w": 143.2,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 123,
+     "y": 13583,
+     "w": 143,
+     "h": 48
+    }
+   },
+   "diff": null,
+   "exempt": "email-form",
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  },
+  {
+   "id": "float",
+   "ryze": {
+    "x": 12,
+    "y": 804,
+    "w": 366,
+    "h": 52,
+    "fixed": true,
+    "cover": {
+     "x": 12,
+     "y": 804,
+     "w": 366,
+     "h": 52
+    }
+   },
+   "ours": {
+    "x": 158.2,
+    "y": 802.4,
+    "w": 147.6,
+    "h": 43.2,
+    "fixed": true,
+    "cover": {
+     "x": 158,
+     "y": 802,
+     "w": 148,
+     "h": 43
+    }
+   },
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no block on our page"
+   }
+  },
+  {
+   "id": "whatsapp",
+   "ryze": null,
+   "ours": {
+    "x": 114,
+    "y": 763.5,
+    "w": 260,
+    "h": 64.5,
+    "fixed": true,
+    "cover": {
+     "x": 114,
+     "y": 764,
+     "w": 260,
+     "h": 73
+    }
+   },
+   "diff": null,
+   "exempt": "whatsapp",
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  }
+ ],
+ "repeat": {
+  "original": {
+   "ryze": {
+    "px": 34,
+    "raw": 34,
+    "total": 3949920,
+    "p": 0.00000860776927127638,
+    "pRaw": 0.00000860776927127638
+   },
+   "ours": {
+    "px": 0,
+    "raw": 0,
+    "total": 5924880,
+    "p": 0,
+    "pRaw": 0
+   }
+  },
+  "font": {
+   "ryze": {
+    "px": 37,
+    "raw": 37,
+    "total": 3949920,
+    "p": 0.000009367278324624297,
+    "pRaw": 0.000009367278324624297
+   },
+   "ours": {
+    "px": 0,
+    "raw": 0,
+    "total": 5924880,
+    "p": 0,
+    "pRaw": 0
+   }
+  }
+ }
+}

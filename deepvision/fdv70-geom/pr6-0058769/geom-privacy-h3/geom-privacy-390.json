@@ -1,0 +1,816 @@
+{
+ "page": "privacy",
+ "width": 390,
+ "ryzeUrl": "https://www.get-ryze.ai/privacy",
+ "oursUrl": "http://localhost:4320/en/privacy",
+ "limit": 0.02,
+ "fontNormalized": true,
+ "pending": {
+  "ryze": 0,
+  "ours": 0
+ },
+ "ryze": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 60
+    }
+   },
+   "col": {
+    "x": 0,
+    "y": 136,
+    "w": 390,
+    "h": 10280,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 136,
+     "w": 390,
+     "h": 10280
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Privacy Policy"
+   },
+   "col.title": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 36,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 36
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Privacy Policy"
+   },
+   "col.date": {
+    "x": 16,
+    "y": 180,
+    "w": 358,
+    "h": 24,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 180,
+     "w": 358,
+     "h": 24
+    }
+   },
+   "col.h2": {
+    "x": 16,
+    "y": 204,
+    "w": 358,
+    "h": 32,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 204,
+     "w": 358,
+     "h": 32
+    },
+    "font": 24,
+    "lineHeight": 32,
+    "heading": "Introduction"
+   },
+   "footer": {
+    "x": 0,
+    "y": 10608,
+    "w": 390,
+    "h": 917.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 10608,
+     "w": 390,
+     "h": 918
+    }
+   },
+   "footer.cta": null,
+   "float": {
+    "x": 12,
+    "y": 804,
+    "w": 366,
+    "h": 52,
+    "fixed": true,
+    "cover": {
+     "x": 12,
+     "y": 804,
+     "w": 366,
+     "h": 52
+    }
+   },
+   "whatsapp": null
+  },
+  "pageH": 11526,
+  "vw": 390
+ },
+ "ours": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 57
+    }
+   },
+   "col": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 1688,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 1688
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Privacy Policy"
+   },
+   "col.title": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 36,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 36
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Privacy Policy"
+   },
+   "col.date": {
+    "x": 16,
+    "y": 180,
+    "w": 358,
+    "h": 24,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 180,
+     "w": 358,
+     "h": 24
+    }
+   },
+   "col.h2": {
+    "x": 16,
+    "y": 404,
+    "w": 358,
+    "h": 32,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 404,
+     "w": 358,
+     "h": 32
+    },
+    "font": 24,
+    "lineHeight": 32,
+    "heading": "Data We Collect"
+   },
+   "footer": {
+    "x": 0,
+    "y": 2016,
+    "w": 390,
+    "h": 1452.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2016,
+     "w": 390,
+     "h": 1453
+    },
+    "font": 30,
+    "lineHeight": 33.6,
+    "heading": "Start with a short call"
+   },
+   "footer.cta": {
+    "x": 107.2,
+    "y": 2280.6,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 107,
+     "y": 2281,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "float": null,
+   "whatsapp": {
+    "x": 114,
+    "y": 703.5,
+    "w": 260,
+    "h": 124.5,
+    "fixed": true,
+    "cover": {
+     "x": 114,
+     "y": 704,
+     "w": 260,
+     "h": 125
+    }
+   }
+  },
+  "pageH": 3469,
+  "vw": 390
+ },
+ "rows": [
+  {
+   "id": "nav",
+   "name": "Top navigation",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 57
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0.02564102564102564
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h"
+  },
+  {
+   "id": "col",
+   "name": "Text column",
+   "ryze": {
+    "x": 0,
+    "y": 136,
+    "w": 390,
+    "h": 10280,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 136,
+     "w": 390,
+     "h": 10280
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Privacy Policy"
+   },
+   "ours": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 1688,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 1688
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Privacy Policy"
+   },
+   "diffs": {
+    "x": 0.041025641025641026,
+    "w": 0.08205128205128205,
+    "y": 0,
+    "h": 0.8357976653696498,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: x, w, h"
+  },
+  {
+   "id": "col.title",
+   "name": "H1",
+   "ryze": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 36,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 36
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Privacy Policy"
+   },
+   "ours": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 36,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 36
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Privacy Policy"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "col.date",
+   "name": "Last updated",
+   "ryze": {
+    "x": 16,
+    "y": 180,
+    "w": 358,
+    "h": 24,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 180,
+     "w": 358,
+     "h": 24
+    }
+   },
+   "ours": {
+    "x": 16,
+    "y": 180,
+    "w": 358,
+    "h": 24,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 180,
+     "w": 358,
+     "h": 24
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0
+   },
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "col.h2",
+   "name": "First part heading",
+   "ryze": {
+    "x": 16,
+    "y": 204,
+    "w": 358,
+    "h": 32,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 204,
+     "w": 358,
+     "h": 32
+    },
+    "font": 24,
+    "lineHeight": 32,
+    "heading": "Introduction"
+   },
+   "ours": {
+    "x": 16,
+    "y": 404,
+    "w": 358,
+    "h": 32,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 404,
+     "w": 358,
+     "h": 32
+    },
+    "font": 24,
+    "lineHeight": 32,
+    "heading": "Data We Collect"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.01735207357279195,
+    "h": 0,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "footer",
+   "name": "Footer",
+   "ryze": {
+    "x": 0,
+    "y": 10608,
+    "w": 390,
+    "h": 917.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 10608,
+     "w": 390,
+     "h": 918
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 2016,
+    "w": 390,
+    "h": 1452.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2016,
+     "w": 390,
+     "h": 1453
+    },
+    "font": 30,
+    "lineHeight": 33.6,
+    "heading": "Start with a short call"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.7454450806871421,
+    "h": 0.582806711701896,
+    "font": 1
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, font"
+  },
+  {
+   "id": "footer.cta",
+   "name": "Footer card email form / our button",
+   "ryze": null,
+   "ours": {
+    "x": 107.2,
+    "y": 2280.6,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 107,
+     "y": 2281,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "diffs": {},
+   "status": "exempt",
+   "reason": "email-form: Buttons instead of Ryze's email forms: we have no email sign-up flow."
+  },
+  {
+   "id": "float",
+   "name": "Floating call-to-action: Ryze banner / our sticky Book a demo",
+   "ryze": {
+    "x": 12,
+    "y": 804,
+    "w": 366,
+    "h": 52,
+    "fixed": true,
+    "cover": {
+     "x": 12,
+     "y": 804,
+     "w": 366,
+     "h": 52
+    }
+   },
+   "ours": null,
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "Ryze shows it; ours is not visible"
+  },
+  {
+   "id": "whatsapp",
+   "name": "Our WhatsApp button",
+   "ryze": null,
+   "ours": {
+    "x": 114,
+    "y": 703.5,
+    "w": 260,
+    "h": 124.5,
+    "fixed": true,
+    "cover": {
+     "x": 114,
+     "y": 704,
+     "w": 260,
+     "h": 125
+    }
+   },
+   "diffs": {},
+   "status": "exempt",
+   "reason": "whatsapp: Our WhatsApp assistant button stays on every page."
+  }
+ ],
+ "gaps": [
+  {
+   "between": "col → footer",
+   "ryze": 192,
+   "ours": 192,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  }
+ ],
+ "pageH": {
+  "ryze": 11526,
+  "ours": 3469,
+  "diff": 0.6990282838799237
+ },
+ "stability": {
+  "ryze": 0,
+  "ours": 0,
+  "second": {
+   "ryze": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 58.5,
+      "fixed": true,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 390,
+       "h": 60
+      }
+     },
+     "col": {
+      "x": 0,
+      "y": 136,
+      "w": 390,
+      "h": 10280,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 136,
+       "w": 390,
+       "h": 10280
+      },
+      "font": 30,
+      "lineHeight": 36,
+      "heading": "Privacy Policy"
+     },
+     "col.title": {
+      "x": 16,
+      "y": 136,
+      "w": 358,
+      "h": 36,
+      "fixed": false,
+      "cover": {
+       "x": 16,
+       "y": 136,
+       "w": 358,
+       "h": 36
+      },
+      "font": 30,
+      "lineHeight": 36,
+      "heading": "Privacy Policy"
+     },
+     "col.date": {
+      "x": 16,
+      "y": 180,
+      "w": 358,
+      "h": 24,
+      "fixed": false,
+      "cover": {
+       "x": 16,
+       "y": 180,
+       "w": 358,
+       "h": 24
+      }
+     },
+     "col.h2": {
+      "x": 16,
+      "y": 204,
+      "w": 358,
+      "h": 32,
+      "fixed": false,
+      "cover": {
+       "x": 16,
+       "y": 204,
+       "w": 358,
+       "h": 32
+      },
+      "font": 24,
+      "lineHeight": 32,
+      "heading": "Introduction"
+     },
+     "footer": {
+      "x": 0,
+      "y": 10608,
+      "w": 390,
+      "h": 917.8,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 10608,
+       "w": 390,
+       "h": 918
+      }
+     },
+     "footer.cta": null,
+     "float": {
+      "x": 12,
+      "y": 804,
+      "w": 366,
+      "h": 52,
+      "fixed": true,
+      "cover": {
+       "x": 12,
+       "y": 804,
+       "w": 366,
+       "h": 52
+      }
+     },
+     "whatsapp": null
+    },
+    "pageH": 11526,
+    "vw": 390
+   },
+   "ours": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 57,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 390,
+       "h": 57
+      }
+     },
+     "col": {
+      "x": 16,
+      "y": 136,
+      "w": 358,
+      "h": 1688,
+      "fixed": false,
+      "cover": {
+       "x": 16,
+       "y": 136,
+       "w": 358,
+       "h": 1688
+      },
+      "font": 30,
+      "lineHeight": 36,
+      "heading": "Privacy Policy"
+     },
+     "col.title": {
+      "x": 16,
+      "y": 136,
+      "w": 358,
+      "h": 36,
+      "fixed": false,
+      "cover": {
+       "x": 16,
+       "y": 136,
+       "w": 358,
+       "h": 36
+      },
+      "font": 30,
+      "lineHeight": 36,
+      "heading": "Privacy Policy"
+     },
+     "col.date": {
+      "x": 16,
+      "y": 180,
+      "w": 358,
+      "h": 24,
+      "fixed": false,
+      "cover": {
+       "x": 16,
+       "y": 180,
+       "w": 358,
+       "h": 24
+      }
+     },
+     "col.h2": {
+      "x": 16,
+      "y": 404,
+      "w": 358,
+      "h": 32,
+      "fixed": false,
+      "cover": {
+       "x": 16,
+       "y": 404,
+       "w": 358,
+       "h": 32
+      },
+      "font": 24,
+      "lineHeight": 32,
+      "heading": "Data We Collect"
+     },
+     "footer": {
+      "x": 0,
+      "y": 2016,
+      "w": 390,
+      "h": 1452.7,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 2016,
+       "w": 390,
+       "h": 1453
+      },
+      "font": 30,
+      "lineHeight": 33.6,
+      "heading": "Start with a short call"
+     },
+     "footer.cta": {
+      "x": 107.2,
+      "y": 2280.6,
+      "w": 175.6,
+      "h": 48,
+      "fixed": false,
+      "cover": {
+       "x": 107,
+       "y": 2281,
+       "w": 176,
+       "h": 48
+      }
+     },
+     "float": null,
+     "whatsapp": {
+      "x": 114,
+      "y": 703.5,
+      "w": 260,
+      "h": 124.5,
+      "fixed": true,
+      "cover": {
+       "x": 114,
+       "y": 704,
+       "w": 260,
+       "h": 125
+      }
+     }
+    },
+    "pageH": 3469,
+    "vw": 390
+   }
+  }
+ }
+}

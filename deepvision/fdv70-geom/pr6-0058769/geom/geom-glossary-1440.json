@@ -1,0 +1,1472 @@
+{
+ "page": "glossary",
+ "width": 1440,
+ "ryzeUrl": "https://www.get-ryze.ai/glossary",
+ "oursUrl": "http://localhost:4320/en/glossary",
+ "limit": 0.02,
+ "fontNormalized": true,
+ "pending": {
+  "ryze": 0,
+  "ours": 0
+ },
+ "ryze": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 60
+    }
+   },
+   "head": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 570.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": -96,
+     "w": 1512,
+     "h": 687
+    },
+    "font": 52,
+    "lineHeight": 54.6,
+    "heading": "The AI search glossary."
+   },
+   "head.crumbs": {
+    "x": 68,
+    "y": 150,
+    "w": 1304,
+    "h": 21,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 150,
+     "w": 1304,
+     "h": 21
+    }
+   },
+   "head.title": {
+    "x": 68,
+    "y": 239.5,
+    "w": 682,
+    "h": 54.6,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 240,
+     "w": 682,
+     "h": 55
+    },
+    "font": 52,
+    "lineHeight": 54.6,
+    "heading": "The AI search glossary."
+   },
+   "head.lead": {
+    "x": 814,
+    "y": 211,
+    "w": 558,
+    "h": 303.8,
+    "fixed": false,
+    "cover": {
+     "x": 675,
+     "y": 110,
+     "w": 837,
+     "h": 481
+    },
+    "font": 28,
+    "lineHeight": 30.24,
+    "heading": "Free skills and prompts for paid ads and SEO"
+   },
+   "head.lead.cta": {
+    "x": 850,
+    "y": 440.8,
+    "w": 388.8,
+    "h": 38,
+    "fixed": false,
+    "cover": {
+     "x": 850,
+     "y": 441,
+     "w": 389,
+     "h": 38
+    }
+   },
+   "logos": {
+    "x": 0,
+    "y": 570.8,
+    "w": 1440,
+    "h": 118.3,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 571,
+     "w": 1440,
+     "h": 118
+    }
+   },
+   "body": {
+    "x": 290,
+    "y": 689.1,
+    "w": 940,
+    "h": 2340.8,
+    "fixed": false,
+    "cover": {
+     "x": 290,
+     "y": 689,
+     "w": 940,
+     "h": 2341
+    },
+    "font": 34,
+    "lineHeight": 51,
+    "heading": "Definitions"
+   },
+   "body.intro": {
+    "x": 328,
+    "y": 719.1,
+    "w": 864,
+    "h": 252,
+    "fixed": false,
+    "cover": {
+     "x": 328,
+     "y": 719,
+     "w": 864,
+     "h": 252
+    }
+   },
+   "body.terms": {
+    "x": 328,
+    "y": 971.1,
+    "w": 864,
+    "h": 683,
+    "fixed": false,
+    "cover": {
+     "x": 328,
+     "y": 971,
+     "w": 864,
+     "h": 683
+    },
+    "font": 34,
+    "lineHeight": 51,
+    "heading": "Definitions"
+   },
+   "body.where": {
+    "x": 328,
+    "y": 1654.1,
+    "w": 864,
+    "h": 581.8,
+    "fixed": false,
+    "cover": {
+     "x": 328,
+     "y": 1654,
+     "w": 864,
+     "h": 582
+    },
+    "font": 34,
+    "lineHeight": 51,
+    "heading": "Where this fits into ecommerce SEO"
+   },
+   "body.faq": {
+    "x": 328,
+    "y": 2235.8,
+    "w": 864,
+    "h": 754,
+    "fixed": false,
+    "cover": {
+     "x": 328,
+     "y": 2236,
+     "w": 864,
+     "h": 754
+    },
+    "font": 34,
+    "lineHeight": 51,
+    "heading": "Frequently asked questions"
+   },
+   "promo": {
+    "x": 68,
+    "y": 711.4,
+    "w": 222,
+    "h": 519.7,
+    "fixed": true,
+    "cover": {
+     "x": 68,
+     "y": 711,
+     "w": 222,
+     "h": 520
+    }
+   },
+   "promobar": null,
+   "footer": {
+    "x": 0,
+    "y": 3029.8,
+    "w": 1440,
+    "h": 941,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3030,
+     "w": 1440,
+     "h": 941
+    },
+    "font": 38,
+    "lineHeight": 34.2,
+    "heading": "Let AIRun Your Ads"
+   },
+   "footer.cta": {
+    "x": 768,
+    "y": 3551.3,
+    "w": 384,
+    "h": 52,
+    "fixed": false,
+    "cover": {
+     "x": 768,
+     "y": 3551,
+     "w": 385,
+     "h": 52
+    }
+   },
+   "float": {
+    "x": 1049.2,
+    "y": 798,
+    "w": 374.8,
+    "h": 78,
+    "fixed": true,
+    "cover": {
+     "x": 1049,
+     "y": 798,
+     "w": 375,
+     "h": 78
+    }
+   },
+   "whatsapp": null
+  },
+  "pageH": 3971,
+  "vw": 1440
+ },
+ "ours": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 57
+    }
+   },
+   "head": {
+    "x": 0,
+    "y": 57,
+    "w": 1440,
+    "h": 494.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 57,
+     "w": 1440,
+     "h": 495
+    },
+    "font": 52,
+    "lineHeight": 54.6,
+    "heading": "Glossary"
+   },
+   "head.crumbs": {
+    "x": 68,
+    "y": 150,
+    "w": 682,
+    "h": 21,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 150,
+     "w": 682,
+     "h": 21
+    }
+   },
+   "head.title": {
+    "x": 68,
+    "y": 240,
+    "w": 682,
+    "h": 54.6,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 240,
+     "w": 682,
+     "h": 55
+    },
+    "font": 52,
+    "lineHeight": 54.6,
+    "heading": "Glossary"
+   },
+   "head.lead": {
+    "x": 814,
+    "y": 211,
+    "w": 558,
+    "h": 283.6,
+    "fixed": false,
+    "cover": {
+     "x": 814,
+     "y": 211,
+     "w": 558,
+     "h": 284
+    }
+   },
+   "head.lead.cta": {
+    "x": 850,
+    "y": 420.6,
+    "w": 175.6,
+    "h": 38,
+    "fixed": false,
+    "cover": {
+     "x": 850,
+     "y": 421,
+     "w": 176,
+     "h": 38
+    }
+   },
+   "logos": null,
+   "body": {
+    "x": 0,
+    "y": 551.6,
+    "w": 1440,
+    "h": 1551,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 552,
+     "w": 1440,
+     "h": 1551
+    }
+   },
+   "body.intro": null,
+   "body.terms": {
+    "x": 328,
+    "y": 581.6,
+    "w": 864,
+    "h": 1409,
+    "fixed": false,
+    "cover": {
+     "x": 328,
+     "y": 582,
+     "w": 864,
+     "h": 1409
+    }
+   },
+   "body.where": null,
+   "body.faq": null,
+   "promo": {
+    "x": 68,
+    "y": 581.6,
+    "w": 240,
+    "h": 281.1,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 582,
+     "w": 240,
+     "h": 281
+    }
+   },
+   "promobar": null,
+   "footer": {
+    "x": 0,
+    "y": 2102.6,
+    "w": 1440,
+    "h": 1058.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2103,
+     "w": 1440,
+     "h": 1059
+    },
+    "font": 36,
+    "lineHeight": 40.32,
+    "heading": "Start with a short call"
+   },
+   "footer.cta": {
+    "x": 872.2,
+    "y": 2654.1,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 872,
+     "y": 2654,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "float": null,
+   "whatsapp": {
+    "x": 1164,
+    "y": 751.5,
+    "w": 260,
+    "h": 132.5,
+    "fixed": true,
+    "cover": {
+     "x": 1164,
+     "y": 752,
+     "w": 260,
+     "h": 133
+    }
+   }
+  },
+  "pageH": 3161,
+  "vw": 1440
+ },
+ "rows": [
+  {
+   "id": "nav",
+   "name": "Top navigation",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 57
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0.02564102564102564
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h"
+  },
+  {
+   "id": "head",
+   "name": "Head: breadcrumbs, title, lead card",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 570.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": -96,
+     "w": 1512,
+     "h": 687
+    },
+    "font": 52,
+    "lineHeight": 54.6,
+    "heading": "The AI search glossary."
+   },
+   "ours": {
+    "x": 0,
+    "y": 57,
+    "w": 1440,
+    "h": 494.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 57,
+     "w": 1440,
+     "h": 495
+    },
+    "font": 52,
+    "lineHeight": 54.6,
+    "heading": "Glossary"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.014354066985645933,
+    "h": 0.13349684653118418,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h"
+  },
+  {
+   "id": "head.crumbs",
+   "name": "Breadcrumbs and byline",
+   "ryze": {
+    "x": 68,
+    "y": 150,
+    "w": 1304,
+    "h": 21,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 150,
+     "w": 1304,
+     "h": 21
+    }
+   },
+   "ours": {
+    "x": 68,
+    "y": 150,
+    "w": 682,
+    "h": 21,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 150,
+     "w": 682,
+     "h": 21
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0.43194444444444446,
+    "y": 0,
+    "h": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: w"
+  },
+  {
+   "id": "head.title",
+   "name": "H1",
+   "ryze": {
+    "x": 68,
+    "y": 239.5,
+    "w": 682,
+    "h": 54.6,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 240,
+     "w": 682,
+     "h": 55
+    },
+    "font": 52,
+    "lineHeight": 54.6,
+    "heading": "The AI search glossary."
+   },
+   "ours": {
+    "x": 68,
+    "y": 240,
+    "w": 682,
+    "h": 54.6,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 240,
+     "w": 682,
+     "h": 55
+    },
+    "font": 52,
+    "lineHeight": 54.6,
+    "heading": "Glossary"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.00012591286829513975,
+    "h": 0,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "head.lead",
+   "name": "Lead card on the right",
+   "ryze": {
+    "x": 814,
+    "y": 211,
+    "w": 558,
+    "h": 303.8,
+    "fixed": false,
+    "cover": {
+     "x": 675,
+     "y": 110,
+     "w": 837,
+     "h": 481
+    },
+    "font": 28,
+    "lineHeight": 30.24,
+    "heading": "Free skills and prompts for paid ads and SEO"
+   },
+   "ours": {
+    "x": 814,
+    "y": 211,
+    "w": 558,
+    "h": 283.6,
+    "fixed": false,
+    "cover": {
+     "x": 814,
+     "y": 211,
+     "w": 558,
+     "h": 284
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0.06649111257406184,
+    "font": 1
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h, font"
+  },
+  {
+   "id": "head.lead.cta",
+   "name": "Lead card email field / our button",
+   "ryze": {
+    "x": 850,
+    "y": 440.8,
+    "w": 388.8,
+    "h": 38,
+    "fixed": false,
+    "cover": {
+     "x": 850,
+     "y": 441,
+     "w": 389,
+     "h": 38
+    }
+   },
+   "ours": {
+    "x": 850,
+    "y": 420.6,
+    "w": 175.6,
+    "h": 38,
+    "fixed": false,
+    "cover": {
+     "x": 850,
+     "y": 421,
+     "w": 176,
+     "h": 38
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0.14805555555555558,
+    "y": 0.0050868798791236436,
+    "h": 0
+   },
+   "status": "exempt",
+   "reason": "email-form: Buttons instead of Ryze's email forms: we have no email sign-up flow."
+  },
+  {
+   "id": "logos",
+   "name": "Client logo row",
+   "ryze": {
+    "x": 0,
+    "y": 570.8,
+    "w": 1440,
+    "h": 118.3,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 571,
+     "w": 1440,
+     "h": 118
+    }
+   },
+   "ours": null,
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "Ryze has it; we have no such block"
+  },
+  {
+   "id": "body",
+   "name": "Term column",
+   "ryze": {
+    "x": 290,
+    "y": 689.1,
+    "w": 940,
+    "h": 2340.8,
+    "fixed": false,
+    "cover": {
+     "x": 290,
+     "y": 689,
+     "w": 940,
+     "h": 2341
+    },
+    "font": 34,
+    "lineHeight": 51,
+    "heading": "Definitions"
+   },
+   "ours": {
+    "x": 0,
+    "y": 551.6,
+    "w": 1440,
+    "h": 1551,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 552,
+     "w": 1440,
+     "h": 1551
+    }
+   },
+   "diffs": {
+    "x": 0.2013888888888889,
+    "w": 0.3472222222222222,
+    "y": 0.03462603878116344,
+    "h": 0.33740601503759404,
+    "font": 1
+   },
+   "status": "FAIL",
+   "reason": "over 2%: x, w, y, h, font"
+  },
+  {
+   "id": "body.intro",
+   "name": "Intro section",
+   "ryze": {
+    "x": 328,
+    "y": 719.1,
+    "w": 864,
+    "h": 252,
+    "fixed": false,
+    "cover": {
+     "x": 328,
+     "y": 719,
+     "w": 864,
+     "h": 252
+    }
+   },
+   "ours": null,
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "Ryze has it; we have no such block"
+  },
+  {
+   "id": "body.terms",
+   "name": "Definitions",
+   "ryze": {
+    "x": 328,
+    "y": 971.1,
+    "w": 864,
+    "h": 683,
+    "fixed": false,
+    "cover": {
+     "x": 328,
+     "y": 971,
+     "w": 864,
+     "h": 683
+    },
+    "font": 34,
+    "lineHeight": 51,
+    "heading": "Definitions"
+   },
+   "ours": {
+    "x": 328,
+    "y": 581.6,
+    "w": 864,
+    "h": 1409,
+    "fixed": false,
+    "cover": {
+     "x": 328,
+     "y": 582,
+     "w": 864,
+     "h": 1409
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.09808612440191387,
+    "h": 1.0629575402635432,
+    "font": 1
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, font"
+  },
+  {
+   "id": "body.where",
+   "name": "Where this fits",
+   "ryze": {
+    "x": 328,
+    "y": 1654.1,
+    "w": 864,
+    "h": 581.8,
+    "fixed": false,
+    "cover": {
+     "x": 328,
+     "y": 1654,
+     "w": 864,
+     "h": 582
+    },
+    "font": 34,
+    "lineHeight": 51,
+    "heading": "Where this fits into ecommerce SEO"
+   },
+   "ours": null,
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "Ryze has it; we have no such block"
+  },
+  {
+   "id": "body.faq",
+   "name": "Questions",
+   "ryze": {
+    "x": 328,
+    "y": 2235.8,
+    "w": 864,
+    "h": 754,
+    "fixed": false,
+    "cover": {
+     "x": 328,
+     "y": 2236,
+     "w": 864,
+     "h": 754
+    },
+    "font": 34,
+    "lineHeight": 51,
+    "heading": "Frequently asked questions"
+   },
+   "ours": null,
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "Ryze has it; we have no such block"
+  },
+  {
+   "id": "promo",
+   "name": "Promo card beside the column (wide screens)",
+   "ryze": {
+    "x": 68,
+    "y": 711.4,
+    "w": 222,
+    "h": 519.7,
+    "fixed": true,
+    "cover": {
+     "x": 68,
+     "y": 711,
+     "w": 222,
+     "h": 520
+    }
+   },
+   "ours": {
+    "x": 68,
+    "y": 581.6,
+    "w": 240,
+    "h": 281.1,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 582,
+     "w": 240,
+     "h": 281
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0.0125,
+    "y": 0.03268698060941827,
+    "h": 0.45911102559168754
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "promobar",
+   "name": "Promo bar at the bottom of the screen (narrow screens)",
+   "ryze": null,
+   "ours": null,
+   "diffs": {},
+   "status": "n/a",
+   "reason": "shown on neither side at this width"
+  },
+  {
+   "id": "footer",
+   "name": "Footer",
+   "ryze": {
+    "x": 0,
+    "y": 3029.8,
+    "w": 1440,
+    "h": 941,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3030,
+     "w": 1440,
+     "h": 941
+    },
+    "font": 38,
+    "lineHeight": 34.2,
+    "heading": "Let AIRun Your Ads"
+   },
+   "ours": {
+    "x": 0,
+    "y": 2102.6,
+    "w": 1440,
+    "h": 1058.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2103,
+     "w": 1440,
+     "h": 1059
+    },
+    "font": 36,
+    "lineHeight": 40.32,
+    "heading": "Start with a short call"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.23349282296650725,
+    "h": 0.12507970244420832,
+    "font": 0.05263157894736842,
+    "lineHeight": 0.17894736842105255
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, font, lineHeight"
+  },
+  {
+   "id": "footer.cta",
+   "name": "Footer card email form / our button",
+   "ryze": {
+    "x": 768,
+    "y": 3551.3,
+    "w": 384,
+    "h": 52,
+    "fixed": false,
+    "cover": {
+     "x": 768,
+     "y": 3551,
+     "w": 385,
+     "h": 52
+    }
+   },
+   "ours": {
+    "x": 872.2,
+    "y": 2654.1,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 872,
+     "y": 2654,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "diffs": {
+    "x": 0.07236111111111114,
+    "w": 0.14472222222222222,
+    "y": 0.22593805086879887,
+    "h": 0.07692307692307693
+   },
+   "status": "exempt",
+   "reason": "email-form: Buttons instead of Ryze's email forms: we have no email sign-up flow."
+  },
+  {
+   "id": "float",
+   "name": "Floating call-to-action: Ryze banner / our sticky Book a demo",
+   "ryze": {
+    "x": 1049.2,
+    "y": 798,
+    "w": 374.8,
+    "h": 78,
+    "fixed": true,
+    "cover": {
+     "x": 1049,
+     "y": 798,
+     "w": 375,
+     "h": 78
+    }
+   },
+   "ours": null,
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "Ryze shows it; ours is not visible"
+  },
+  {
+   "id": "whatsapp",
+   "name": "Our WhatsApp button",
+   "ryze": null,
+   "ours": {
+    "x": 1164,
+    "y": 751.5,
+    "w": 260,
+    "h": 132.5,
+    "fixed": true,
+    "cover": {
+     "x": 1164,
+     "y": 752,
+     "w": 260,
+     "h": 133
+    }
+   },
+   "diffs": {},
+   "status": "exempt",
+   "reason": "whatsapp: Our WhatsApp assistant button stays on every page."
+  }
+ ],
+ "gaps": [
+  {
+   "between": "head → body",
+   "ryze": 118.30000000000007,
+   "ours": 0,
+   "diff": 0.029790984638630086,
+   "status": "FAIL",
+   "reason": "includes logos (on one side only)"
+  },
+  {
+   "between": "body → footer",
+   "ryze": -0.09999999999990905,
+   "ours": 0,
+   "diff": 0.000025182573659005048,
+   "status": "PASS",
+   "reason": "includes promobar (on one side only)"
+  }
+ ],
+ "pageH": {
+  "ryze": 3971,
+  "ours": 3161,
+  "diff": 0.2039788466381264
+ },
+ "stability": {
+  "ryze": 0,
+  "ours": 0,
+  "second": {
+   "ryze": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 58.5,
+      "fixed": true,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 1440,
+       "h": 60
+      }
+     },
+     "head": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 570.8,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": -96,
+       "w": 1512,
+       "h": 687
+      },
+      "font": 52,
+      "lineHeight": 54.6,
+      "heading": "The AI search glossary."
+     },
+     "head.crumbs": {
+      "x": 68,
+      "y": 150,
+      "w": 1304,
+      "h": 21,
+      "fixed": false,
+      "cover": {
+       "x": 68,
+       "y": 150,
+       "w": 1304,
+       "h": 21
+      }
+     },
+     "head.title": {
+      "x": 68,
+      "y": 239.5,
+      "w": 682,
+      "h": 54.6,
+      "fixed": false,
+      "cover": {
+       "x": 68,
+       "y": 240,
+       "w": 682,
+       "h": 55
+      },
+      "font": 52,
+      "lineHeight": 54.6,
+      "heading": "The AI search glossary."
+     },
+     "head.lead": {
+      "x": 814,
+      "y": 211,
+      "w": 558,
+      "h": 303.8,
+      "fixed": false,
+      "cover": {
+       "x": 675,
+       "y": 110,
+       "w": 837,
+       "h": 481
+      },
+      "font": 28,
+      "lineHeight": 30.24,
+      "heading": "Free skills and prompts for paid ads and SEO"
+     },
+     "head.lead.cta": {
+      "x": 850,
+      "y": 440.8,
+      "w": 388.8,
+      "h": 38,
+      "fixed": false,
+      "cover": {
+       "x": 850,
+       "y": 441,
+       "w": 389,
+       "h": 38
+      }
+     },
+     "logos": {
+      "x": 0,
+      "y": 570.8,
+      "w": 1440,
+      "h": 118.3,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 571,
+       "w": 1440,
+       "h": 118
+      }
+     },
+     "body": {
+      "x": 290,
+      "y": 689.1,
+      "w": 940,
+      "h": 2340.8,
+      "fixed": false,
+      "cover": {
+       "x": 290,
+       "y": 689,
+       "w": 940,
+       "h": 2341
+      },
+      "font": 34,
+      "lineHeight": 51,
+      "heading": "Definitions"
+     },
+     "body.intro": {
+      "x": 328,
+      "y": 719.1,
+      "w": 864,
+      "h": 252,
+      "fixed": false,
+      "cover": {
+       "x": 328,
+       "y": 719,
+       "w": 864,
+       "h": 252
+      }
+     },
+     "body.terms": {
+      "x": 328,
+      "y": 971.1,
+      "w": 864,
+      "h": 683,
+      "fixed": false,
+      "cover": {
+       "x": 328,
+       "y": 971,
+       "w": 864,
+       "h": 683
+      },
+      "font": 34,
+      "lineHeight": 51,
+      "heading": "Definitions"
+     },
+     "body.where": {
+      "x": 328,
+      "y": 1654.1,
+      "w": 864,
+      "h": 581.8,
+      "fixed": false,
+      "cover": {
+       "x": 328,
+       "y": 1654,
+       "w": 864,
+       "h": 582
+      },
+      "font": 34,
+      "lineHeight": 51,
+      "heading": "Where this fits into ecommerce SEO"
+     },
+     "body.faq": {
+      "x": 328,
+      "y": 2235.8,
+      "w": 864,
+      "h": 754,
+      "fixed": false,
+      "cover": {
+       "x": 328,
+       "y": 2236,
+       "w": 864,
+       "h": 754
+      },
+      "font": 34,
+      "lineHeight": 51,
+      "heading": "Frequently asked questions"
+     },
+     "promo": {
+      "x": 68,
+      "y": 711.4,
+      "w": 222,
+      "h": 519.7,
+      "fixed": true,
+      "cover": {
+       "x": 68,
+       "y": 711,
+       "w": 222,
+       "h": 520
+      }
+     },
+     "promobar": null,
+     "footer": {
+      "x": 0,
+      "y": 3029.8,
+      "w": 1440,
+      "h": 941,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 3030,
+       "w": 1440,
+       "h": 941
+      },
+      "font": 38,
+      "lineHeight": 34.2,
+      "heading": "Let AIRun Your Ads"
+     },
+     "footer.cta": {
+      "x": 768,
+      "y": 3551.3,
+      "w": 384,
+      "h": 52,
+      "fixed": false,
+      "cover": {
+       "x": 768,
+       "y": 3551,
+       "w": 385,
+       "h": 52
+      }
+     },
+     "float": {
+      "x": 1049.2,
+      "y": 798,
+      "w": 374.8,
+      "h": 78,
+      "fixed": true,
+      "cover": {
+       "x": 1049,
+       "y": 798,
+       "w": 375,
+       "h": 78
+      }
+     },
+     "whatsapp": null
+    },
+    "pageH": 3971,
+    "vw": 1440
+   },
+   "ours": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 57,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 1440,
+       "h": 57
+      }
+     },
+     "head": {
+      "x": 0,
+      "y": 57,
+      "w": 1440,
+      "h": 494.6,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 57,
+       "w": 1440,
+       "h": 495
+      },
+      "font": 52,
+      "lineHeight": 54.6,
+      "heading": "Glossary"
+     },
+     "head.crumbs": {
+      "x": 68,
+      "y": 150,
+      "w": 682,
+      "h": 21,
+      "fixed": false,
+      "cover": {
+       "x": 68,
+       "y": 150,
+       "w": 682,
+       "h": 21
+      }
+     },
+     "head.title": {
+      "x": 68,
+      "y": 240,
+      "w": 682,
+      "h": 54.6,
+      "fixed": false,
+      "cover": {
+       "x": 68,
+       "y": 240,
+       "w": 682,
+       "h": 55
+      },
+      "font": 52,
+      "lineHeight": 54.6,
+      "heading": "Glossary"
+     },
+     "head.lead": {
+      "x": 814,
+      "y": 211,
+      "w": 558,
+      "h": 283.6,
+      "fixed": false,
+      "cover": {
+       "x": 814,
+       "y": 211,
+       "w": 558,
+       "h": 284
+      }
+     },
+     "head.lead.cta": {
+      "x": 850,
+      "y": 420.6,
+      "w": 175.6,
+      "h": 38,
+      "fixed": false,
+      "cover": {
+       "x": 850,
+       "y": 421,
+       "w": 176,
+       "h": 38
+      }
+     },
+     "logos": null,
+     "body": {
+      "x": 0,
+      "y": 551.6,
+      "w": 1440,
+      "h": 1551,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 552,
+       "w": 1440,
+       "h": 1551
+      }
+     },
+     "body.intro": null,
+     "body.terms": {
+      "x": 328,
+      "y": 581.6,
+      "w": 864,
+      "h": 1409,
+      "fixed": false,
+      "cover": {
+       "x": 328,
+       "y": 582,
+       "w": 864,
+       "h": 1409
+      }
+     },
+     "body.where": null,
+     "body.faq": null,
+     "promo": {
+      "x": 68,
+      "y": 581.6,
+      "w": 240,
+      "h": 281.1,
+      "fixed": false,
+      "cover": {
+       "x": 68,
+       "y": 582,
+       "w": 240,
+       "h": 281
+      }
+     },
+     "promobar": null,
+     "footer": {
+      "x": 0,
+      "y": 2102.6,
+      "w": 1440,
+      "h": 1058.7,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 2103,
+       "w": 1440,
+       "h": 1059
+      },
+      "font": 36,
+      "lineHeight": 40.32,
+      "heading": "Start with a short call"
+     },
+     "footer.cta": {
+      "x": 872.2,
+      "y": 2654.1,
+      "w": 175.6,
+      "h": 48,
+      "fixed": false,
+      "cover": {
+       "x": 872,
+       "y": 2654,
+       "w": 176,
+       "h": 48
+      }
+     },
+     "float": null,
+     "whatsapp": {
+      "x": 1164,
+      "y": 751.5,
+      "w": 260,
+      "h": 132.5,
+      "fixed": true,
+      "cover": {
+       "x": 1164,
+       "y": 752,
+       "w": 260,
+       "h": 133
+      }
+     }
+    },
+    "pageH": 3161,
+    "vw": 1440
+   }
+  }
+ }
+}

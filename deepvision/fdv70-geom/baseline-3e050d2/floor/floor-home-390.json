@@ -1,0 +1,24 @@
+{
+ "page": "home",
+ "width": 390,
+ "font": "http://localhost:4318/_next/static/media/e4af272ccee01ff0-s.p.woff2",
+ "fontOnly": {
+  "bad": 507865,
+  "tot": 3949920,
+  "p": 0.12857602179284644,
+  "screens": [
+   12,
+   12
+  ]
+ },
+ "noise": {
+  "bad": 46,
+  "tot": 3949920,
+  "p": 0.000011645805484668044,
+  "screens": [
+   12,
+   12
+  ]
+ },
+ "swappedPageH": 9847
+}

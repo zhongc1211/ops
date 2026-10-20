@@ -1,0 +1,1767 @@
+{
+ "page": "product",
+ "width": 1440,
+ "ryzeUrl": "https://www.get-ryze.ai/muse",
+ "oursUrl": "http://localhost:4322/en/products/ai-sales-assistant",
+ "limit": 0.02,
+ "fontNormalized": true,
+ "pending": {
+  "ryze": 0,
+  "ours": 0
+ },
+ "ryze": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 60
+    }
+   },
+   "hero": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 900,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 900
+    },
+    "font": 66,
+    "lineHeight": 68.64,
+    "heading": "Muse for ads and SEO/GEO"
+   },
+   "connect": {
+    "x": 0,
+    "y": 900,
+    "w": 1440,
+    "h": 2081.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 900,
+     "w": 1440,
+     "h": 2081
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "How to connect Muse to your tools for ads and SEO"
+   },
+   "connect.title": {
+    "x": 100.5,
+    "y": 1012,
+    "w": 1239,
+    "h": 72,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1012,
+     "w": 1239,
+     "h": 72
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "How to connect Muse to your tools for ads and SEO"
+   },
+   "connect.icons": {
+    "x": 100.5,
+    "y": 1116,
+    "w": 1239,
+    "h": 84,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1116,
+     "w": 1239,
+     "h": 84
+    }
+   },
+   "connect.steps": {
+    "x": 100.5,
+    "y": 1256,
+    "w": 1239,
+    "h": 614.3,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1256,
+     "w": 1239,
+     "h": 614
+    },
+    "font": 26,
+    "lineHeight": 29.9,
+    "heading": "Paste this into Muse"
+   },
+   "connect.try": {
+    "x": 100.5,
+    "y": 1926.3,
+    "w": 1239,
+    "h": 943.2,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1926,
+     "w": 1239,
+     "h": 943
+    },
+    "font": 36,
+    "lineHeight": 39.6,
+    "heading": "Step-by-step video: how to connect 75+ marketing tools to Mu"
+   },
+   "flow": {
+    "x": 0,
+    "y": 2981.5,
+    "w": 1440,
+    "h": 960,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2981,
+     "w": 1440,
+     "h": 960
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "One connection powers every tool a marketer uses"
+   },
+   "ask": {
+    "x": 0,
+    "y": 3941.5,
+    "w": 1440,
+    "h": 599.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3941,
+     "w": 1440,
+     "h": 599
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "What to ask Muse once it is connected"
+   },
+   "does": {
+    "x": 0,
+    "y": 4540.8,
+    "w": 1440,
+    "h": 1366.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4541,
+     "w": 1440,
+     "h": 1367
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse for Google Ads, Meta Ads, SEO and GEO"
+   },
+   "who": {
+    "x": 0,
+    "y": 5907.6,
+    "w": 1440,
+    "h": 695.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5908,
+     "w": 1440,
+     "h": 696
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse for SMEs, ecommerce brands and agencies"
+   },
+   "vs": {
+    "x": 0,
+    "y": 6603.5,
+    "w": 1440,
+    "h": 851,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6603,
+     "w": 1440,
+     "h": 851
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse on its own vs Muse with Ryze AI"
+   },
+   "faq": {
+    "x": 0,
+    "y": 7454.5,
+    "w": 1440,
+    "h": 1141.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7454,
+     "w": 1440,
+     "h": 1142
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse for ads and SEO: FAQ"
+   },
+   "footer": {
+    "x": 0,
+    "y": 8596.2,
+    "w": 1440,
+    "h": 941,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 8596,
+     "w": 1440,
+     "h": 941
+    },
+    "font": 38,
+    "lineHeight": 34.2,
+    "heading": "Let MuseRun Your Ads"
+   },
+   "footer.cta": {
+    "x": 708.6,
+    "y": 9113.7,
+    "w": 384,
+    "h": 60,
+    "fixed": false,
+    "cover": {
+     "x": 709,
+     "y": 9114,
+     "w": 384,
+     "h": 60
+    }
+   },
+   "float": null,
+   "whatsapp": null
+  },
+  "pageH": 9537,
+  "vw": 1440
+ },
+ "ours": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 57
+    }
+   },
+   "hero": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 1085.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 1086
+    },
+    "font": 66,
+    "lineHeight": 68.64,
+    "heading": "An AI sales assistant for your WhatsApp enquiries"
+   },
+   "connect": {
+    "x": 0,
+    "y": 1085.9,
+    "w": 1440,
+    "h": 2092.1,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1086,
+     "w": 1440,
+     "h": 2092
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "It replies on WhatsApp and Messenger"
+   },
+   "connect.title": {
+    "x": 100.5,
+    "y": 1197.9,
+    "w": 1239,
+    "h": 72,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1198,
+     "w": 1239,
+     "h": 72
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "It replies on WhatsApp and Messenger"
+   },
+   "connect.icons": {
+    "x": 100.5,
+    "y": 1301.9,
+    "w": 1239,
+    "h": 84,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1302,
+     "w": 1239,
+     "h": 84
+    }
+   },
+   "connect.steps": {
+    "x": 100.5,
+    "y": 1479.4,
+    "w": 1239,
+    "h": 559,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1479,
+     "w": 1239,
+     "h": 559
+    },
+    "font": 26,
+    "lineHeight": 29.9,
+    "heading": "We load the knowledge base and calendar"
+   },
+   "connect.try": {
+    "x": 100.5,
+    "y": 2128.4,
+    "w": 1239,
+    "h": 903.6,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 2128,
+     "w": 1239,
+     "h": 904
+    },
+    "font": 36,
+    "lineHeight": 39.6,
+    "heading": "You be the customer"
+   },
+   "flow": {
+    "x": 0,
+    "y": 3178,
+    "w": 1440,
+    "h": 960,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3178,
+     "w": 1440,
+     "h": 960
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "From first message to booked meeting"
+   },
+   "ask": {
+    "x": 0,
+    "y": 4138,
+    "w": 1440,
+    "h": 597,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4138,
+     "w": 1440,
+     "h": 597
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "What customers ask"
+   },
+   "does": {
+    "x": 0,
+    "y": 4735,
+    "w": 1440,
+    "h": 875.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4735,
+     "w": 1440,
+     "h": 876
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Compliant, and built to close deals"
+   },
+   "who": {
+    "x": 0,
+    "y": 5610.9,
+    "w": 1440,
+    "h": 590.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5611,
+     "w": 1440,
+     "h": 591
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Who it's for"
+   },
+   "vs": {
+    "x": 0,
+    "y": 6201.5,
+    "w": 1440,
+    "h": 851,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6202,
+     "w": 1440,
+     "h": 851
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "People alone, or people plus the assistant"
+   },
+   "faq": {
+    "x": 0,
+    "y": 7052.5,
+    "w": 1440,
+    "h": 911.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7053,
+     "w": 1440,
+     "h": 912
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Frequently Asked Questions"
+   },
+   "footer": {
+    "x": 0,
+    "y": 7964.2,
+    "w": 1440,
+    "h": 1058.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7964,
+     "w": 1440,
+     "h": 1059
+    },
+    "font": 36,
+    "lineHeight": 40.32,
+    "heading": "See the AI sales assistant work your leads"
+   },
+   "footer.cta": {
+    "x": 872.2,
+    "y": 8556.1,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 872,
+     "y": 8556,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "float": null,
+   "whatsapp": {
+    "x": 1164,
+    "y": 751.5,
+    "w": 260,
+    "h": 132.5,
+    "fixed": true,
+    "cover": {
+     "x": 1164,
+     "y": 752,
+     "w": 260,
+     "h": 133
+    }
+   }
+  },
+  "pageH": 9023,
+  "vw": 1440
+ },
+ "rows": [
+  {
+   "id": "nav",
+   "name": "Top navigation",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 57
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0.02564102564102564
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h"
+  },
+  {
+   "id": "hero",
+   "name": "#1 Hero",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 900,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 900
+    },
+    "font": 66,
+    "lineHeight": 68.64,
+    "heading": "Muse for ads and SEO/GEO"
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 1085.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 1086
+    },
+    "font": 66,
+    "lineHeight": 68.64,
+    "heading": "An AI sales assistant for your WhatsApp enquiries"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0.20655555555555566,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h"
+  },
+  {
+   "id": "connect",
+   "name": "#2-#4 One white section (Ryze #how-to-connect)",
+   "ryze": {
+    "x": 0,
+    "y": 900,
+    "w": 1440,
+    "h": 2081.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 900,
+     "w": 1440,
+     "h": 2081
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "How to connect Muse to your tools for ads and SEO"
+   },
+   "ours": {
+    "x": 0,
+    "y": 1085.9,
+    "w": 1440,
+    "h": 2092.1,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1086,
+     "w": 1440,
+     "h": 2092
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "It replies on WhatsApp and Messenger"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.019492502883506353,
+    "h": 0.00509248138361754,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "connect.title",
+   "name": "#2 Section heading",
+   "ryze": {
+    "x": 100.5,
+    "y": 1012,
+    "w": 1239,
+    "h": 72,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1012,
+     "w": 1239,
+     "h": 72
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "How to connect Muse to your tools for ads and SEO"
+   },
+   "ours": {
+    "x": 100.5,
+    "y": 1197.9,
+    "w": 1239,
+    "h": 72,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1198,
+     "w": 1239,
+     "h": 72
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "It replies on WhatsApp and Messenger"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.019492502883506353,
+    "h": 0,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "connect.icons",
+   "name": "#2 Icon row / where it replies (Ryze hides it below 768px)",
+   "ryze": {
+    "x": 100.5,
+    "y": 1116,
+    "w": 1239,
+    "h": 84,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1116,
+     "w": 1239,
+     "h": 84
+    }
+   },
+   "ours": {
+    "x": 100.5,
+    "y": 1301.9,
+    "w": 1239,
+    "h": 84,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1302,
+     "w": 1239,
+     "h": 84
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.019492502883506353,
+    "h": 0
+   },
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "connect.steps",
+   "name": "#3 Two step cards",
+   "ryze": {
+    "x": 100.5,
+    "y": 1256,
+    "w": 1239,
+    "h": 614.3,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1256,
+     "w": 1239,
+     "h": 614
+    },
+    "font": 26,
+    "lineHeight": 29.9,
+    "heading": "Paste this into Muse"
+   },
+   "ours": {
+    "x": 100.5,
+    "y": 1479.4,
+    "w": 1239,
+    "h": 559,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1479,
+     "w": 1239,
+     "h": 559
+    },
+    "font": 26,
+    "lineHeight": 29.9,
+    "heading": "We load the knowledge base and calendar"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.02342455698857084,
+    "h": 0.09002116229855113,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "connect.try",
+   "name": "#4 Video tutorial / you be the customer",
+   "ryze": {
+    "x": 100.5,
+    "y": 1926.3,
+    "w": 1239,
+    "h": 943.2,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1926,
+     "w": 1239,
+     "h": 943
+    },
+    "font": 36,
+    "lineHeight": 39.6,
+    "heading": "Step-by-step video: how to connect 75+ marketing tools to Mu"
+   },
+   "ours": {
+    "x": 100.5,
+    "y": 2128.4,
+    "w": 1239,
+    "h": 903.6,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 2128,
+     "w": 1239,
+     "h": 904
+    },
+    "font": 36,
+    "lineHeight": 39.6,
+    "heading": "You be the customer"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.021191150256894217,
+    "h": 0.0419847328244275,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "flow",
+   "name": "#5 Connection diagram / first message to booking",
+   "ryze": {
+    "x": 0,
+    "y": 2981.5,
+    "w": 1440,
+    "h": 960,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2981,
+     "w": 1440,
+     "h": 960
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "One connection powers every tool a marketer uses"
+   },
+   "ours": {
+    "x": 0,
+    "y": 3178,
+    "w": 1440,
+    "h": 960,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3178,
+     "w": 1440,
+     "h": 960
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "From first message to booked meeting"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.020603963510537907,
+    "h": 0,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y"
+  },
+  {
+   "id": "ask",
+   "name": "#6 What to ask / what customers ask",
+   "ryze": {
+    "x": 0,
+    "y": 3941.5,
+    "w": 1440,
+    "h": 599.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3941,
+     "w": 1440,
+     "h": 599
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "What to ask Muse once it is connected"
+   },
+   "ours": {
+    "x": 0,
+    "y": 4138,
+    "w": 1440,
+    "h": 597,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4138,
+     "w": 1440,
+     "h": 597
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "What customers ask"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.020603963510537907,
+    "h": 0.004004004004003966,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y"
+  },
+  {
+   "id": "does",
+   "name": "#7 What it does per platform",
+   "ryze": {
+    "x": 0,
+    "y": 4540.8,
+    "w": 1440,
+    "h": 1366.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4541,
+     "w": 1440,
+     "h": 1367
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse for Google Ads, Meta Ads, SEO and GEO"
+   },
+   "ours": {
+    "x": 0,
+    "y": 4735,
+    "w": 1440,
+    "h": 875.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4735,
+     "w": 1440,
+     "h": 876
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Compliant, and built to close deals"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.020362797525427263,
+    "h": 0.35911319236116196,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "who",
+   "name": "#8 Who it's for",
+   "ryze": {
+    "x": 0,
+    "y": 5907.6,
+    "w": 1440,
+    "h": 695.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5908,
+     "w": 1440,
+     "h": 696
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse for SMEs, ecommerce brands and agencies"
+   },
+   "ours": {
+    "x": 0,
+    "y": 5610.9,
+    "w": 1440,
+    "h": 590.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5611,
+     "w": 1440,
+     "h": 591
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Who it's for"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.03111041207927029,
+    "h": 0.15131484408679402,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "vs",
+   "name": "#9 Comparison table",
+   "ryze": {
+    "x": 0,
+    "y": 6603.5,
+    "w": 1440,
+    "h": 851,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6603,
+     "w": 1440,
+     "h": 851
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse on its own vs Muse with Ryze AI"
+   },
+   "ours": {
+    "x": 0,
+    "y": 6201.5,
+    "w": 1440,
+    "h": 851,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6202,
+     "w": 1440,
+     "h": 851
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "People alone, or people plus the assistant"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.04215162000629129,
+    "h": 0,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y"
+  },
+  {
+   "id": "faq",
+   "name": "#10 FAQ",
+   "ryze": {
+    "x": 0,
+    "y": 7454.5,
+    "w": 1440,
+    "h": 1141.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7454,
+     "w": 1440,
+     "h": 1142
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse for ads and SEO: FAQ"
+   },
+   "ours": {
+    "x": 0,
+    "y": 7052.5,
+    "w": 1440,
+    "h": 911.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7053,
+     "w": 1440,
+     "h": 912
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Frequently Asked Questions"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.04215162000629129,
+    "h": 0.2015239096163951,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "footer",
+   "name": "Footer",
+   "ryze": {
+    "x": 0,
+    "y": 8596.2,
+    "w": 1440,
+    "h": 941,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 8596,
+     "w": 1440,
+     "h": 941
+    },
+    "font": 38,
+    "lineHeight": 34.2,
+    "heading": "Let MuseRun Your Ads"
+   },
+   "ours": {
+    "x": 0,
+    "y": 7964.2,
+    "w": 1440,
+    "h": 1058.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7964,
+     "w": 1440,
+     "h": 1059
+    },
+    "font": 36,
+    "lineHeight": 40.32,
+    "heading": "See the AI sales assistant work your leads"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.06626821851735357,
+    "h": 0.12507970244420832,
+    "font": 0.05263157894736842,
+    "lineHeight": 0.17894736842105255
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, font, lineHeight"
+  },
+  {
+   "id": "footer.cta",
+   "name": "Footer card email form / our button",
+   "ryze": {
+    "x": 708.6,
+    "y": 9113.7,
+    "w": 384,
+    "h": 60,
+    "fixed": false,
+    "cover": {
+     "x": 709,
+     "y": 9114,
+     "w": 384,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 872.2,
+    "y": 8556.1,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 872,
+     "y": 8556,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "diffs": {
+    "x": 0.11361111111111112,
+    "w": 0.14472222222222222,
+    "y": 0.058467023172905565,
+    "h": 0.2
+   },
+   "status": "exempt",
+   "reason": "email-form: Buttons instead of Ryze's email forms: we have no email sign-up flow."
+  },
+  {
+   "id": "float",
+   "name": "Floating call-to-action: Ryze banner / our sticky Book a demo",
+   "ryze": null,
+   "ours": null,
+   "diffs": {},
+   "status": "n/a",
+   "reason": "shown on neither side at this width"
+  },
+  {
+   "id": "whatsapp",
+   "name": "Our WhatsApp button",
+   "ryze": null,
+   "ours": {
+    "x": 1164,
+    "y": 751.5,
+    "w": 260,
+    "h": 132.5,
+    "fixed": true,
+    "cover": {
+     "x": 1164,
+     "y": 752,
+     "w": 260,
+     "h": 133
+    }
+   },
+   "diffs": {},
+   "status": "exempt",
+   "reason": "whatsapp: Our WhatsApp assistant button stays on every page."
+  }
+ ],
+ "gaps": [
+  {
+   "between": "hero → connect",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "connect → flow",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "flow → ask",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "ask → does",
+   "ryze": -0.0999999999994543,
+   "ours": 0,
+   "diff": 0.000010485477613448076,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "does → who",
+   "ryze": 0.1000000000003638,
+   "ours": 0,
+   "diff": 0.000010485477613543442,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "who → vs",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "vs → faq",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "faq → footer",
+   "ryze": -0.09999999999854481,
+   "ours": 0,
+   "diff": 0.000010485477613352712,
+   "status": "PASS",
+   "reason": ""
+  }
+ ],
+ "pageH": {
+  "ryze": 9537,
+  "ours": 9023,
+  "diff": 0.05389535493341722
+ },
+ "stability": {
+  "ryze": 0,
+  "ours": 0,
+  "second": {
+   "ryze": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 58.5,
+      "fixed": true,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 1440,
+       "h": 60
+      }
+     },
+     "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 1440,
+       "h": 900
+      },
+      "font": 66,
+      "lineHeight": 68.64,
+      "heading": "Muse for ads and SEO/GEO"
+     },
+     "connect": {
+      "x": 0,
+      "y": 900,
+      "w": 1440,
+      "h": 2081.5,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 900,
+       "w": 1440,
+       "h": 2081
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "How to connect Muse to your tools for ads and SEO"
+     },
+     "connect.title": {
+      "x": 100.5,
+      "y": 1012,
+      "w": 1239,
+      "h": 72,
+      "fixed": false,
+      "cover": {
+       "x": 101,
+       "y": 1012,
+       "w": 1239,
+       "h": 72
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "How to connect Muse to your tools for ads and SEO"
+     },
+     "connect.icons": {
+      "x": 100.5,
+      "y": 1116,
+      "w": 1239,
+      "h": 84,
+      "fixed": false,
+      "cover": {
+       "x": 101,
+       "y": 1116,
+       "w": 1239,
+       "h": 84
+      }
+     },
+     "connect.steps": {
+      "x": 100.5,
+      "y": 1256,
+      "w": 1239,
+      "h": 614.3,
+      "fixed": false,
+      "cover": {
+       "x": 101,
+       "y": 1256,
+       "w": 1239,
+       "h": 614
+      },
+      "font": 26,
+      "lineHeight": 29.9,
+      "heading": "Paste this into Muse"
+     },
+     "connect.try": {
+      "x": 100.5,
+      "y": 1926.3,
+      "w": 1239,
+      "h": 943.2,
+      "fixed": false,
+      "cover": {
+       "x": 101,
+       "y": 1926,
+       "w": 1239,
+       "h": 943
+      },
+      "font": 36,
+      "lineHeight": 39.6,
+      "heading": "Step-by-step video: how to connect 75+ marketing tools to Mu"
+     },
+     "flow": {
+      "x": 0,
+      "y": 2981.5,
+      "w": 1440,
+      "h": 960,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 2981,
+       "w": 1440,
+       "h": 960
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "One connection powers every tool a marketer uses"
+     },
+     "ask": {
+      "x": 0,
+      "y": 3941.5,
+      "w": 1440,
+      "h": 599.4,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 3941,
+       "w": 1440,
+       "h": 599
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "What to ask Muse once it is connected"
+     },
+     "does": {
+      "x": 0,
+      "y": 4540.8,
+      "w": 1440,
+      "h": 1366.7,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 4541,
+       "w": 1440,
+       "h": 1367
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "Muse for Google Ads, Meta Ads, SEO and GEO"
+     },
+     "who": {
+      "x": 0,
+      "y": 5907.6,
+      "w": 1440,
+      "h": 695.9,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 5908,
+       "w": 1440,
+       "h": 696
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "Muse for SMEs, ecommerce brands and agencies"
+     },
+     "vs": {
+      "x": 0,
+      "y": 6603.5,
+      "w": 1440,
+      "h": 851,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 6603,
+       "w": 1440,
+       "h": 851
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "Muse on its own vs Muse with Ryze AI"
+     },
+     "faq": {
+      "x": 0,
+      "y": 7454.5,
+      "w": 1440,
+      "h": 1141.8,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 7454,
+       "w": 1440,
+       "h": 1142
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "Muse for ads and SEO: FAQ"
+     },
+     "footer": {
+      "x": 0,
+      "y": 8596.2,
+      "w": 1440,
+      "h": 941,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 8596,
+       "w": 1440,
+       "h": 941
+      },
+      "font": 38,
+      "lineHeight": 34.2,
+      "heading": "Let MuseRun Your Ads"
+     },
+     "footer.cta": {
+      "x": 708.6,
+      "y": 9113.7,
+      "w": 384,
+      "h": 60,
+      "fixed": false,
+      "cover": {
+       "x": 709,
+       "y": 9114,
+       "w": 384,
+       "h": 60
+      }
+     },
+     "float": null,
+     "whatsapp": null
+    },
+    "pageH": 9537,
+    "vw": 1440
+   },
+   "ours": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 57,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 1440,
+       "h": 57
+      }
+     },
+     "hero": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1085.9,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 1440,
+       "h": 1086
+      },
+      "font": 66,
+      "lineHeight": 68.64,
+      "heading": "An AI sales assistant for your WhatsApp enquiries"
+     },
+     "connect": {
+      "x": 0,
+      "y": 1085.9,
+      "w": 1440,
+      "h": 2092.1,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 1086,
+       "w": 1440,
+       "h": 2092
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "It replies on WhatsApp and Messenger"
+     },
+     "connect.title": {
+      "x": 100.5,
+      "y": 1197.9,
+      "w": 1239,
+      "h": 72,
+      "fixed": false,
+      "cover": {
+       "x": 101,
+       "y": 1198,
+       "w": 1239,
+       "h": 72
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "It replies on WhatsApp and Messenger"
+     },
+     "connect.icons": {
+      "x": 100.5,
+      "y": 1301.9,
+      "w": 1239,
+      "h": 84,
+      "fixed": false,
+      "cover": {
+       "x": 101,
+       "y": 1302,
+       "w": 1239,
+       "h": 84
+      }
+     },
+     "connect.steps": {
+      "x": 100.5,
+      "y": 1479.4,
+      "w": 1239,
+      "h": 559,
+      "fixed": false,
+      "cover": {
+       "x": 101,
+       "y": 1479,
+       "w": 1239,
+       "h": 559
+      },
+      "font": 26,
+      "lineHeight": 29.9,
+      "heading": "We load the knowledge base and calendar"
+     },
+     "connect.try": {
+      "x": 100.5,
+      "y": 2128.4,
+      "w": 1239,
+      "h": 903.6,
+      "fixed": false,
+      "cover": {
+       "x": 101,
+       "y": 2128,
+       "w": 1239,
+       "h": 904
+      },
+      "font": 36,
+      "lineHeight": 39.6,
+      "heading": "You be the customer"
+     },
+     "flow": {
+      "x": 0,
+      "y": 3178,
+      "w": 1440,
+      "h": 960,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 3178,
+       "w": 1440,
+       "h": 960
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "From first message to booked meeting"
+     },
+     "ask": {
+      "x": 0,
+      "y": 4138,
+      "w": 1440,
+      "h": 597,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 4138,
+       "w": 1440,
+       "h": 597
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "What customers ask"
+     },
+     "does": {
+      "x": 0,
+      "y": 4735,
+      "w": 1440,
+      "h": 875.9,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 4735,
+       "w": 1440,
+       "h": 876
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "Compliant, and built to close deals"
+     },
+     "who": {
+      "x": 0,
+      "y": 5610.9,
+      "w": 1440,
+      "h": 590.6,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 5611,
+       "w": 1440,
+       "h": 591
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "Who it's for"
+     },
+     "vs": {
+      "x": 0,
+      "y": 6201.5,
+      "w": 1440,
+      "h": 851,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 6202,
+       "w": 1440,
+       "h": 851
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "People alone, or people plus the assistant"
+     },
+     "faq": {
+      "x": 0,
+      "y": 7052.5,
+      "w": 1440,
+      "h": 911.7,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 7053,
+       "w": 1440,
+       "h": 912
+      },
+      "font": 48,
+      "lineHeight": 72,
+      "heading": "Frequently Asked Questions"
+     },
+     "footer": {
+      "x": 0,
+      "y": 7964.2,
+      "w": 1440,
+      "h": 1058.7,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 7964,
+       "w": 1440,
+       "h": 1059
+      },
+      "font": 36,
+      "lineHeight": 40.32,
+      "heading": "See the AI sales assistant work your leads"
+     },
+     "footer.cta": {
+      "x": 872.2,
+      "y": 8556.1,
+      "w": 175.6,
+      "h": 48,
+      "fixed": false,
+      "cover": {
+       "x": 872,
+       "y": 8556,
+       "w": 176,
+       "h": 48
+      }
+     },
+     "float": null,
+     "whatsapp": {
+      "x": 1164,
+      "y": 751.5,
+      "w": 260,
+      "h": 132.5,
+      "fixed": true,
+      "cover": {
+       "x": 1164,
+       "y": 752,
+       "w": 260,
+       "h": 133
+      }
+     }
+    },
+    "pageH": 9023,
+    "vw": 1440
+   }
+  }
+ }
+}

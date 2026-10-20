@@ -1,0 +1,1202 @@
+{
+ "page": "about",
+ "width": 390,
+ "ryzeUrl": "https://www.get-ryze.ai/about",
+ "oursUrl": "http://localhost:4319/en/about",
+ "limit": 0.02,
+ "fontNormalized": true,
+ "pending": {
+  "ryze": 0,
+  "ours": 0
+ },
+ "ryze": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 60
+    }
+   },
+   "label": {
+    "x": 24,
+    "y": 128,
+    "w": 342,
+    "h": 15,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 128,
+     "w": 342,
+     "h": 15
+    }
+   },
+   "title": {
+    "x": 24,
+    "y": 191,
+    "w": 342,
+    "h": 102.6,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 191,
+     "w": 342,
+     "h": 103
+    },
+    "font": 36,
+    "lineHeight": 34.2,
+    "heading": "We built the ads manager we always wanted"
+   },
+   "photo1": {
+    "x": 24,
+    "y": 341.6,
+    "w": 342,
+    "h": 181.7,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 342,
+     "w": 342,
+     "h": 182
+    }
+   },
+   "split1": {
+    "x": 24,
+    "y": 619.3,
+    "w": 342,
+    "h": 650,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 619,
+     "w": 342,
+     "h": 650
+    }
+   },
+   "split2": {
+    "x": 24,
+    "y": 1333.3,
+    "w": 342,
+    "h": 670.5,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 1333,
+     "w": 342,
+     "h": 671
+    }
+   },
+   "narrow": {
+    "x": 24,
+    "y": 2067.8,
+    "w": 342,
+    "h": 539.4,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 2068,
+     "w": 342,
+     "h": 539
+    }
+   },
+   "end": {
+    "x": 24,
+    "y": 2671.1,
+    "w": 342,
+    "h": 161.5,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 2671,
+     "w": 342,
+     "h": 162
+    }
+   },
+   "marquee": {
+    "x": 0,
+    "y": 2832.6,
+    "w": 390,
+    "h": 460,
+    "fixed": false,
+    "cover": {
+     "x": -966,
+     "y": 2833,
+     "w": 4186,
+     "h": 460
+    }
+   },
+   "footer": {
+    "x": 0,
+    "y": 3292.6,
+    "w": 390,
+    "h": 917.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3293,
+     "w": 390,
+     "h": 918
+    }
+   },
+   "footer.cta": null,
+   "float": {
+    "x": 12,
+    "y": 804,
+    "w": 366,
+    "h": 52,
+    "fixed": true,
+    "cover": {
+     "x": 12,
+     "y": 804,
+     "w": 366,
+     "h": 52
+    }
+   },
+   "whatsapp": null
+  },
+  "pageH": 4210,
+  "vw": 390
+ },
+ "ours": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 57
+    }
+   },
+   "label": {
+    "x": 24,
+    "y": 128,
+    "w": 342,
+    "h": 15,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 128,
+     "w": 342,
+     "h": 15
+    }
+   },
+   "title": {
+    "x": 24,
+    "y": 191,
+    "w": 342,
+    "h": 68.4,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 191,
+     "w": 342,
+     "h": 68
+    },
+    "font": 36,
+    "lineHeight": 34.2,
+    "heading": "We do the growth work for you"
+   },
+   "photo1": {
+    "x": 24,
+    "y": 307.4,
+    "w": 342,
+    "h": 181.7,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 307,
+     "w": 342,
+     "h": 212
+    }
+   },
+   "split1": {
+    "x": 24,
+    "y": 585.1,
+    "w": 342,
+    "h": 780,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 585,
+     "w": 342,
+     "h": 810
+    }
+   },
+   "split2": {
+    "x": 24,
+    "y": 1429.1,
+    "w": 342,
+    "h": 768,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 1429,
+     "w": 342,
+     "h": 798
+    }
+   },
+   "narrow": {
+    "x": 24,
+    "y": 2261.1,
+    "w": 342,
+    "h": 681.9,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 2261,
+     "w": 342,
+     "h": 682
+    }
+   },
+   "end": {
+    "x": 24,
+    "y": 3006.9,
+    "w": 342,
+    "h": 194,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 3007,
+     "w": 342,
+     "h": 194
+    }
+   },
+   "marquee": {
+    "x": 0,
+    "y": 3200.9,
+    "w": 390,
+    "h": 351,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3201,
+     "w": 390,
+     "h": 351
+    },
+    "font": 10,
+    "lineHeight": 15,
+    "heading": "Company details"
+   },
+   "footer": {
+    "x": 0,
+    "y": 3551.9,
+    "w": 390,
+    "h": 1428.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3552,
+     "w": 390,
+     "h": 1429
+    },
+    "font": 30,
+    "lineHeight": 33.6,
+    "heading": "Want to see what we'd do for you?"
+   },
+   "footer.cta": {
+    "x": 107.2,
+    "y": 3792.7,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 107,
+     "y": 3793,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "float": null,
+   "whatsapp": {
+    "x": 114,
+    "y": 703.5,
+    "w": 260,
+    "h": 124.5,
+    "fixed": true,
+    "cover": {
+     "x": 114,
+     "y": 704,
+     "w": 260,
+     "h": 125
+    }
+   }
+  },
+  "pageH": 4981,
+  "vw": 390
+ },
+ "rows": [
+  {
+   "id": "nav",
+   "name": "Top navigation",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 57
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0.02564102564102564
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h"
+  },
+  {
+   "id": "label",
+   "name": "#1 Label above the title",
+   "ryze": {
+    "x": 24,
+    "y": 128,
+    "w": 342,
+    "h": 15,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 128,
+     "w": 342,
+     "h": 15
+    }
+   },
+   "ours": {
+    "x": 24,
+    "y": 128,
+    "w": 342,
+    "h": 15,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 128,
+     "w": 342,
+     "h": 15
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0
+   },
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "title",
+   "name": "#1 H1",
+   "ryze": {
+    "x": 24,
+    "y": 191,
+    "w": 342,
+    "h": 102.6,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 191,
+     "w": 342,
+     "h": 103
+    },
+    "font": 36,
+    "lineHeight": 34.2,
+    "heading": "We built the ads manager we always wanted"
+   },
+   "ours": {
+    "x": 24,
+    "y": 191,
+    "w": 342,
+    "h": 68.4,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 191,
+     "w": 342,
+     "h": 68
+    },
+    "font": 36,
+    "lineHeight": 34.2,
+    "heading": "We do the growth work for you"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0.33333333333333326,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h"
+  },
+  {
+   "id": "photo1",
+   "name": "#1 Wide photo",
+   "ryze": {
+    "x": 24,
+    "y": 341.6,
+    "w": 342,
+    "h": 181.7,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 342,
+     "w": 342,
+     "h": 182
+    }
+   },
+   "ours": {
+    "x": 24,
+    "y": 307.4,
+    "w": 342,
+    "h": 181.7,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 307,
+     "w": 342,
+     "h": 212
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.00812351543942994,
+    "h": 0
+   },
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "split1",
+   "name": "#2 Text left, square photo right",
+   "ryze": {
+    "x": 24,
+    "y": 619.3,
+    "w": 342,
+    "h": 650,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 619,
+     "w": 342,
+     "h": 650
+    }
+   },
+   "ours": {
+    "x": 24,
+    "y": 585.1,
+    "w": 342,
+    "h": 780,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 585,
+     "w": 342,
+     "h": 810
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.008123515439429912,
+    "h": 0.2
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h"
+  },
+  {
+   "id": "split2",
+   "name": "#3 Tall photo left, text right",
+   "ryze": {
+    "x": 24,
+    "y": 1333.3,
+    "w": 342,
+    "h": 670.5,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 1333,
+     "w": 342,
+     "h": 671
+    }
+   },
+   "ours": {
+    "x": 24,
+    "y": 1429.1,
+    "w": 342,
+    "h": 768,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 1429,
+     "w": 342,
+     "h": 798
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.022755344418052246,
+    "h": 0.14541387024608501
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "narrow",
+   "name": "#4 Narrow column: text, landscape photo, caption",
+   "ryze": {
+    "x": 24,
+    "y": 2067.8,
+    "w": 342,
+    "h": 539.4,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 2068,
+     "w": 342,
+     "h": 539
+    }
+   },
+   "ours": {
+    "x": 24,
+    "y": 2261.1,
+    "w": 342,
+    "h": 681.9,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 2261,
+     "w": 342,
+     "h": 682
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.045914489311163834,
+    "h": 0.26418242491657395
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "end",
+   "name": "#5 Closing lines",
+   "ryze": {
+    "x": 24,
+    "y": 2671.1,
+    "w": 342,
+    "h": 161.5,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 2671,
+     "w": 342,
+     "h": 162
+    }
+   },
+   "ours": {
+    "x": 24,
+    "y": 3006.9,
+    "w": 342,
+    "h": 194,
+    "fixed": false,
+    "cover": {
+     "x": 24,
+     "y": 3007,
+     "w": 342,
+     "h": 194
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.07976247030878864,
+    "h": 0.20123839009287925
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "marquee",
+   "name": "#6 Ryze photo marquee / our company details",
+   "ryze": {
+    "x": 0,
+    "y": 2832.6,
+    "w": 390,
+    "h": 460,
+    "fixed": false,
+    "cover": {
+     "x": -966,
+     "y": 2833,
+     "w": 4186,
+     "h": 460
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 3200.9,
+    "w": 390,
+    "h": 351,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3201,
+     "w": 390,
+     "h": 351
+    },
+    "font": 10,
+    "lineHeight": 15,
+    "heading": "Company details"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.0874821852731592,
+    "h": 0.23695652173913043,
+    "font": 1
+   },
+   "status": "exempt",
+   "reason": "about-marquee: 营销 r2 删了跑马灯，Zack 23:06 接受和 Ryze 不同 (/about #6: Ryze's photo marquee; we keep the company details block instead)."
+  },
+  {
+   "id": "footer",
+   "name": "Footer",
+   "ryze": {
+    "x": 0,
+    "y": 3292.6,
+    "w": 390,
+    "h": 917.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3293,
+     "w": 390,
+     "h": 918
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 3551.9,
+    "w": 390,
+    "h": 1428.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3552,
+     "w": 390,
+     "h": 1429
+    },
+    "font": 30,
+    "lineHeight": 33.6,
+    "heading": "Want to see what we'd do for you?"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.061591448931116434,
+    "h": 0.5568751361952496,
+    "font": 1
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, font"
+  },
+  {
+   "id": "footer.cta",
+   "name": "Footer card email form / our button",
+   "ryze": null,
+   "ours": {
+    "x": 107.2,
+    "y": 3792.7,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 107,
+     "y": 3793,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "diffs": {},
+   "status": "exempt",
+   "reason": "email-form: Buttons instead of Ryze's email forms: we have no email sign-up flow."
+  },
+  {
+   "id": "float",
+   "name": "Floating call-to-action: Ryze banner / our sticky Book a demo",
+   "ryze": {
+    "x": 12,
+    "y": 804,
+    "w": 366,
+    "h": 52,
+    "fixed": true,
+    "cover": {
+     "x": 12,
+     "y": 804,
+     "w": 366,
+     "h": 52
+    }
+   },
+   "ours": null,
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "Ryze shows it; ours is not visible"
+  },
+  {
+   "id": "whatsapp",
+   "name": "Our WhatsApp button",
+   "ryze": null,
+   "ours": {
+    "x": 114,
+    "y": 703.5,
+    "w": 260,
+    "h": 124.5,
+    "fixed": true,
+    "cover": {
+     "x": 114,
+     "y": 704,
+     "w": 260,
+     "h": 125
+    }
+   },
+   "diffs": {},
+   "status": "exempt",
+   "reason": "whatsapp: Our WhatsApp assistant button stays on every page."
+  }
+ ],
+ "gaps": [
+  {
+   "between": "label → title",
+   "ryze": 48,
+   "ours": 48,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "title → photo1",
+   "ryze": 48,
+   "ours": 48,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "photo1 → split1",
+   "ryze": 96,
+   "ours": 96.00000000000006,
+   "diff": 1.350199972940808e-17,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "split1 → split2",
+   "ryze": 64,
+   "ours": 64,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "split2 → narrow",
+   "ryze": 64.00000000000023,
+   "ours": 64,
+   "diff": 5.400799891763232e-17,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "narrow → end",
+   "ryze": 63.899999999999636,
+   "ours": 63.90000000000009,
+   "diff": 1.0801599783526464e-16,
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "between": "end → marquee",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": "next to exempt about-marquee (gap still judged)"
+  },
+  {
+   "between": "marquee → footer",
+   "ryze": 0,
+   "ours": 0,
+   "diff": 0,
+   "status": "PASS",
+   "reason": "next to exempt about-marquee (gap still judged)"
+  }
+ ],
+ "pageH": {
+  "ryze": 4210,
+  "ours": 4981,
+  "diff": 0.1831353919239905
+ },
+ "stability": {
+  "ryze": 0,
+  "ours": 0,
+  "second": {
+   "ryze": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 58.5,
+      "fixed": true,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 390,
+       "h": 60
+      }
+     },
+     "label": {
+      "x": 24,
+      "y": 128,
+      "w": 342,
+      "h": 15,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 128,
+       "w": 342,
+       "h": 15
+      }
+     },
+     "title": {
+      "x": 24,
+      "y": 191,
+      "w": 342,
+      "h": 102.6,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 191,
+       "w": 342,
+       "h": 103
+      },
+      "font": 36,
+      "lineHeight": 34.2,
+      "heading": "We built the ads manager we always wanted"
+     },
+     "photo1": {
+      "x": 24,
+      "y": 341.6,
+      "w": 342,
+      "h": 181.7,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 342,
+       "w": 342,
+       "h": 182
+      }
+     },
+     "split1": {
+      "x": 24,
+      "y": 619.3,
+      "w": 342,
+      "h": 650,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 619,
+       "w": 342,
+       "h": 650
+      }
+     },
+     "split2": {
+      "x": 24,
+      "y": 1333.3,
+      "w": 342,
+      "h": 670.5,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 1333,
+       "w": 342,
+       "h": 671
+      }
+     },
+     "narrow": {
+      "x": 24,
+      "y": 2067.8,
+      "w": 342,
+      "h": 539.4,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 2068,
+       "w": 342,
+       "h": 539
+      }
+     },
+     "end": {
+      "x": 24,
+      "y": 2671.1,
+      "w": 342,
+      "h": 161.5,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 2671,
+       "w": 342,
+       "h": 162
+      }
+     },
+     "marquee": {
+      "x": 0,
+      "y": 2832.6,
+      "w": 390,
+      "h": 460,
+      "fixed": false,
+      "cover": {
+       "x": -966,
+       "y": 2833,
+       "w": 4186,
+       "h": 460
+      }
+     },
+     "footer": {
+      "x": 0,
+      "y": 3292.6,
+      "w": 390,
+      "h": 917.8,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 3293,
+       "w": 390,
+       "h": 918
+      }
+     },
+     "footer.cta": null,
+     "float": {
+      "x": 12,
+      "y": 804,
+      "w": 366,
+      "h": 52,
+      "fixed": true,
+      "cover": {
+       "x": 12,
+       "y": 804,
+       "w": 366,
+       "h": 52
+      }
+     },
+     "whatsapp": null
+    },
+    "pageH": 4210,
+    "vw": 390
+   },
+   "ours": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 57,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 390,
+       "h": 57
+      }
+     },
+     "label": {
+      "x": 24,
+      "y": 128,
+      "w": 342,
+      "h": 15,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 128,
+       "w": 342,
+       "h": 15
+      }
+     },
+     "title": {
+      "x": 24,
+      "y": 191,
+      "w": 342,
+      "h": 68.4,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 191,
+       "w": 342,
+       "h": 68
+      },
+      "font": 36,
+      "lineHeight": 34.2,
+      "heading": "We do the growth work for you"
+     },
+     "photo1": {
+      "x": 24,
+      "y": 307.4,
+      "w": 342,
+      "h": 181.7,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 307,
+       "w": 342,
+       "h": 212
+      }
+     },
+     "split1": {
+      "x": 24,
+      "y": 585.1,
+      "w": 342,
+      "h": 780,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 585,
+       "w": 342,
+       "h": 810
+      }
+     },
+     "split2": {
+      "x": 24,
+      "y": 1429.1,
+      "w": 342,
+      "h": 768,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 1429,
+       "w": 342,
+       "h": 798
+      }
+     },
+     "narrow": {
+      "x": 24,
+      "y": 2261.1,
+      "w": 342,
+      "h": 681.9,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 2261,
+       "w": 342,
+       "h": 682
+      }
+     },
+     "end": {
+      "x": 24,
+      "y": 3006.9,
+      "w": 342,
+      "h": 194,
+      "fixed": false,
+      "cover": {
+       "x": 24,
+       "y": 3007,
+       "w": 342,
+       "h": 194
+      }
+     },
+     "marquee": {
+      "x": 0,
+      "y": 3200.9,
+      "w": 390,
+      "h": 351,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 3201,
+       "w": 390,
+       "h": 351
+      },
+      "font": 10,
+      "lineHeight": 15,
+      "heading": "Company details"
+     },
+     "footer": {
+      "x": 0,
+      "y": 3551.9,
+      "w": 390,
+      "h": 1428.9,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 3552,
+       "w": 390,
+       "h": 1429
+      },
+      "font": 30,
+      "lineHeight": 33.6,
+      "heading": "Want to see what we'd do for you?"
+     },
+     "footer.cta": {
+      "x": 107.2,
+      "y": 3792.7,
+      "w": 175.6,
+      "h": 48,
+      "fixed": false,
+      "cover": {
+       "x": 107,
+       "y": 3793,
+       "w": 176,
+       "h": 48
+      }
+     },
+     "float": null,
+     "whatsapp": {
+      "x": 114,
+      "y": 703.5,
+      "w": 260,
+      "h": 124.5,
+      "fixed": true,
+      "cover": {
+       "x": 114,
+       "y": 704,
+       "w": 260,
+       "h": 125
+      }
+     }
+    },
+    "pageH": 4981,
+    "vw": 390
+   }
+  }
+ }
+}

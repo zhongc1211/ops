@@ -1,0 +1,815 @@
+{
+ "page": "privacy",
+ "width": 1440,
+ "ryzeUrl": "https://www.get-ryze.ai/privacy",
+ "oursUrl": "http://localhost:4320/en/privacy",
+ "limit": 0.02,
+ "fontNormalized": true,
+ "pending": {
+  "ryze": 0,
+  "ours": 0
+ },
+ "ryze": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 60
+    }
+   },
+   "col": {
+    "x": 208,
+    "y": 184,
+    "w": 1024,
+    "h": 4984,
+    "fixed": false,
+    "cover": {
+     "x": 208,
+     "y": 184,
+     "w": 1024,
+     "h": 4984
+    },
+    "font": 48,
+    "lineHeight": 48,
+    "heading": "Privacy Policy"
+   },
+   "col.title": {
+    "x": 240,
+    "y": 184,
+    "w": 960,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 240,
+     "y": 184,
+     "w": 960,
+     "h": 48
+    },
+    "font": 48,
+    "lineHeight": 48,
+    "heading": "Privacy Policy"
+   },
+   "col.date": {
+    "x": 240,
+    "y": 240,
+    "w": 960,
+    "h": 24,
+    "fixed": false,
+    "cover": {
+     "x": 240,
+     "y": 240,
+     "w": 960,
+     "h": 24
+    }
+   },
+   "col.h2": null,
+   "footer": {
+    "x": 0,
+    "y": 5360,
+    "w": 1440,
+    "h": 941,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5360,
+     "w": 1440,
+     "h": 941
+    },
+    "font": 38,
+    "lineHeight": 34.2,
+    "heading": "Let AIRun Your Ads"
+   },
+   "footer.cta": {
+    "x": 768,
+    "y": 5881.4,
+    "w": 384,
+    "h": 52,
+    "fixed": false,
+    "cover": {
+     "x": 768,
+     "y": 5881,
+     "w": 385,
+     "h": 52
+    }
+   },
+   "float": {
+    "x": 1049.2,
+    "y": 798,
+    "w": 374.8,
+    "h": 78,
+    "fixed": true,
+    "cover": {
+     "x": 1049,
+     "y": 798,
+     "w": 375,
+     "h": 78
+    }
+   },
+   "whatsapp": null
+  },
+  "pageH": 6301,
+  "vw": 1440
+ },
+ "ours": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 57
+    }
+   },
+   "col": {
+    "x": 240,
+    "y": 184,
+    "w": 960,
+    "h": 984,
+    "fixed": false,
+    "cover": {
+     "x": 240,
+     "y": 184,
+     "w": 960,
+     "h": 984
+    },
+    "font": 48,
+    "lineHeight": 48,
+    "heading": "Privacy Policy"
+   },
+   "col.title": {
+    "x": 240,
+    "y": 184,
+    "w": 960,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 240,
+     "y": 184,
+     "w": 960,
+     "h": 48
+    },
+    "font": 48,
+    "lineHeight": 48,
+    "heading": "Privacy Policy"
+   },
+   "col.date": {
+    "x": 240,
+    "y": 240,
+    "w": 960,
+    "h": 24,
+    "fixed": false,
+    "cover": {
+     "x": 240,
+     "y": 240,
+     "w": 960,
+     "h": 24
+    }
+   },
+   "col.h2": {
+    "x": 240,
+    "y": 392,
+    "w": 960,
+    "h": 32,
+    "fixed": false,
+    "cover": {
+     "x": 240,
+     "y": 392,
+     "w": 960,
+     "h": 32
+    },
+    "font": 24,
+    "lineHeight": 32,
+    "heading": "Data We Collect"
+   },
+   "footer": {
+    "x": 0,
+    "y": 1360,
+    "w": 1440,
+    "h": 1058.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1360,
+     "w": 1440,
+     "h": 1059
+    },
+    "font": 36,
+    "lineHeight": 40.32,
+    "heading": "Start with a short call"
+   },
+   "footer.cta": {
+    "x": 872.2,
+    "y": 1911.5,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 872,
+     "y": 1912,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "float": null,
+   "whatsapp": {
+    "x": 1164,
+    "y": 751.5,
+    "w": 260,
+    "h": 132.5,
+    "fixed": true,
+    "cover": {
+     "x": 1164,
+     "y": 752,
+     "w": 260,
+     "h": 133
+    }
+   }
+  },
+  "pageH": 2419,
+  "vw": 1440
+ },
+ "rows": [
+  {
+   "id": "nav",
+   "name": "Top navigation",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 57
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0.02564102564102564
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h"
+  },
+  {
+   "id": "col",
+   "name": "Text column",
+   "ryze": {
+    "x": 208,
+    "y": 184,
+    "w": 1024,
+    "h": 4984,
+    "fixed": false,
+    "cover": {
+     "x": 208,
+     "y": 184,
+     "w": 1024,
+     "h": 4984
+    },
+    "font": 48,
+    "lineHeight": 48,
+    "heading": "Privacy Policy"
+   },
+   "ours": {
+    "x": 240,
+    "y": 184,
+    "w": 960,
+    "h": 984,
+    "fixed": false,
+    "cover": {
+     "x": 240,
+     "y": 184,
+     "w": 960,
+     "h": 984
+    },
+    "font": 48,
+    "lineHeight": 48,
+    "heading": "Privacy Policy"
+   },
+   "diffs": {
+    "x": 0.022222222222222223,
+    "w": 0.044444444444444446,
+    "y": 0,
+    "h": 0.8025682182985554,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: x, w, h"
+  },
+  {
+   "id": "col.title",
+   "name": "H1",
+   "ryze": {
+    "x": 240,
+    "y": 184,
+    "w": 960,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 240,
+     "y": 184,
+     "w": 960,
+     "h": 48
+    },
+    "font": 48,
+    "lineHeight": 48,
+    "heading": "Privacy Policy"
+   },
+   "ours": {
+    "x": 240,
+    "y": 184,
+    "w": 960,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 240,
+     "y": 184,
+     "w": 960,
+     "h": 48
+    },
+    "font": 48,
+    "lineHeight": 48,
+    "heading": "Privacy Policy"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "col.date",
+   "name": "Last updated",
+   "ryze": {
+    "x": 240,
+    "y": 240,
+    "w": 960,
+    "h": 24,
+    "fixed": false,
+    "cover": {
+     "x": 240,
+     "y": 240,
+     "w": 960,
+     "h": 24
+    }
+   },
+   "ours": {
+    "x": 240,
+    "y": 240,
+    "w": 960,
+    "h": 24,
+    "fixed": false,
+    "cover": {
+     "x": 240,
+     "y": 240,
+     "w": 960,
+     "h": 24
+    }
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0
+   },
+   "status": "PASS",
+   "reason": ""
+  },
+  {
+   "id": "col.h2",
+   "name": "First part heading",
+   "ryze": null,
+   "ours": {
+    "x": 240,
+    "y": 392,
+    "w": 960,
+    "h": 32,
+    "fixed": false,
+    "cover": {
+     "x": 240,
+     "y": 392,
+     "w": 960,
+     "h": 32
+    },
+    "font": 24,
+    "lineHeight": 32,
+    "heading": "Data We Collect"
+   },
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "ours shows it; Ryze hides it at this width"
+  },
+  {
+   "id": "footer",
+   "name": "Footer",
+   "ryze": {
+    "x": 0,
+    "y": 5360,
+    "w": 1440,
+    "h": 941,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5360,
+     "w": 1440,
+     "h": 941
+    },
+    "font": 38,
+    "lineHeight": 34.2,
+    "heading": "Let AIRun Your Ads"
+   },
+   "ours": {
+    "x": 0,
+    "y": 1360,
+    "w": 1440,
+    "h": 1058.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1360,
+     "w": 1440,
+     "h": 1059
+    },
+    "font": 36,
+    "lineHeight": 40.32,
+    "heading": "Start with a short call"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.6348198698619267,
+    "h": 0.12507970244420832,
+    "font": 0.05263157894736842,
+    "lineHeight": 0.17894736842105255
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h, font, lineHeight"
+  },
+  {
+   "id": "footer.cta",
+   "name": "Footer card email form / our button",
+   "ryze": {
+    "x": 768,
+    "y": 5881.4,
+    "w": 384,
+    "h": 52,
+    "fixed": false,
+    "cover": {
+     "x": 768,
+     "y": 5881,
+     "w": 385,
+     "h": 52
+    }
+   },
+   "ours": {
+    "x": 872.2,
+    "y": 1911.5,
+    "w": 175.6,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 872,
+     "y": 1912,
+     "w": 176,
+     "h": 48
+    }
+   },
+   "diffs": {
+    "x": 0.07236111111111114,
+    "w": 0.14472222222222222,
+    "y": 0.6300428503412157,
+    "h": 0.07692307692307693
+   },
+   "status": "exempt",
+   "reason": "email-form: Buttons instead of Ryze's email forms: we have no email sign-up flow."
+  },
+  {
+   "id": "float",
+   "name": "Floating call-to-action: Ryze banner / our sticky Book a demo",
+   "ryze": {
+    "x": 1049.2,
+    "y": 798,
+    "w": 374.8,
+    "h": 78,
+    "fixed": true,
+    "cover": {
+     "x": 1049,
+     "y": 798,
+     "w": 375,
+     "h": 78
+    }
+   },
+   "ours": null,
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "Ryze shows it; ours is not visible"
+  },
+  {
+   "id": "whatsapp",
+   "name": "Our WhatsApp button",
+   "ryze": null,
+   "ours": {
+    "x": 1164,
+    "y": 751.5,
+    "w": 260,
+    "h": 132.5,
+    "fixed": true,
+    "cover": {
+     "x": 1164,
+     "y": 752,
+     "w": 260,
+     "h": 133
+    }
+   },
+   "diffs": {},
+   "status": "exempt",
+   "reason": "whatsapp: Our WhatsApp assistant button stays on every page."
+  }
+ ],
+ "gaps": [
+  {
+   "between": "col → footer",
+   "ryze": 192,
+   "ours": 192,
+   "diff": 0,
+   "status": "PASS",
+   "reason": ""
+  }
+ ],
+ "pageH": {
+  "ryze": 6301,
+  "ours": 2419,
+  "diff": 0.6160926837009998
+ },
+ "stability": {
+  "ryze": 0,
+  "ours": 0,
+  "second": {
+   "ryze": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 58.5,
+      "fixed": true,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 1440,
+       "h": 60
+      }
+     },
+     "col": {
+      "x": 208,
+      "y": 184,
+      "w": 1024,
+      "h": 4984,
+      "fixed": false,
+      "cover": {
+       "x": 208,
+       "y": 184,
+       "w": 1024,
+       "h": 4984
+      },
+      "font": 48,
+      "lineHeight": 48,
+      "heading": "Privacy Policy"
+     },
+     "col.title": {
+      "x": 240,
+      "y": 184,
+      "w": 960,
+      "h": 48,
+      "fixed": false,
+      "cover": {
+       "x": 240,
+       "y": 184,
+       "w": 960,
+       "h": 48
+      },
+      "font": 48,
+      "lineHeight": 48,
+      "heading": "Privacy Policy"
+     },
+     "col.date": {
+      "x": 240,
+      "y": 240,
+      "w": 960,
+      "h": 24,
+      "fixed": false,
+      "cover": {
+       "x": 240,
+       "y": 240,
+       "w": 960,
+       "h": 24
+      }
+     },
+     "col.h2": null,
+     "footer": {
+      "x": 0,
+      "y": 5360,
+      "w": 1440,
+      "h": 941,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 5360,
+       "w": 1440,
+       "h": 941
+      },
+      "font": 38,
+      "lineHeight": 34.2,
+      "heading": "Let AIRun Your Ads"
+     },
+     "footer.cta": {
+      "x": 768,
+      "y": 5881.4,
+      "w": 384,
+      "h": 52,
+      "fixed": false,
+      "cover": {
+       "x": 768,
+       "y": 5881,
+       "w": 385,
+       "h": 52
+      }
+     },
+     "float": {
+      "x": 1049.2,
+      "y": 798,
+      "w": 374.8,
+      "h": 78,
+      "fixed": true,
+      "cover": {
+       "x": 1049,
+       "y": 798,
+       "w": 375,
+       "h": 78
+      }
+     },
+     "whatsapp": null
+    },
+    "pageH": 6301,
+    "vw": 1440
+   },
+   "ours": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 57,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 1440,
+       "h": 57
+      }
+     },
+     "col": {
+      "x": 240,
+      "y": 184,
+      "w": 960,
+      "h": 984,
+      "fixed": false,
+      "cover": {
+       "x": 240,
+       "y": 184,
+       "w": 960,
+       "h": 984
+      },
+      "font": 48,
+      "lineHeight": 48,
+      "heading": "Privacy Policy"
+     },
+     "col.title": {
+      "x": 240,
+      "y": 184,
+      "w": 960,
+      "h": 48,
+      "fixed": false,
+      "cover": {
+       "x": 240,
+       "y": 184,
+       "w": 960,
+       "h": 48
+      },
+      "font": 48,
+      "lineHeight": 48,
+      "heading": "Privacy Policy"
+     },
+     "col.date": {
+      "x": 240,
+      "y": 240,
+      "w": 960,
+      "h": 24,
+      "fixed": false,
+      "cover": {
+       "x": 240,
+       "y": 240,
+       "w": 960,
+       "h": 24
+      }
+     },
+     "col.h2": {
+      "x": 240,
+      "y": 392,
+      "w": 960,
+      "h": 32,
+      "fixed": false,
+      "cover": {
+       "x": 240,
+       "y": 392,
+       "w": 960,
+       "h": 32
+      },
+      "font": 24,
+      "lineHeight": 32,
+      "heading": "Data We Collect"
+     },
+     "footer": {
+      "x": 0,
+      "y": 1360,
+      "w": 1440,
+      "h": 1058.7,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 1360,
+       "w": 1440,
+       "h": 1059
+      },
+      "font": 36,
+      "lineHeight": 40.32,
+      "heading": "Start with a short call"
+     },
+     "footer.cta": {
+      "x": 872.2,
+      "y": 1911.5,
+      "w": 175.6,
+      "h": 48,
+      "fixed": false,
+      "cover": {
+       "x": 872,
+       "y": 1912,
+       "w": 176,
+       "h": 48
+      }
+     },
+     "float": null,
+     "whatsapp": {
+      "x": 1164,
+      "y": 751.5,
+      "w": 260,
+      "h": 132.5,
+      "fixed": true,
+      "cover": {
+       "x": 1164,
+       "y": 752,
+       "w": 260,
+       "h": 133
+      }
+     }
+    },
+    "pageH": 2419,
+    "vw": 1440
+   }
+  }
+ }
+}

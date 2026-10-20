@@ -1,0 +1,1157 @@
+{
+ "page": "pricing",
+ "width": 1440,
+ "limit": 0.0001,
+ "fontNormalized": true,
+ "original": {
+  "diff": 0.3603264746227709,
+  "diffPx": 4202848,
+  "totalPx": 11664000,
+  "screens": [
+   {
+    "i": 0,
+    "ryzeY": 0,
+    "oursY": 0,
+    "n": 744505,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 60,
+      "y": 499,
+      "w": 1320,
+      "h": 44
+     },
+     {
+      "x": 92,
+      "y": 544,
+      "w": 1256,
+      "h": 773
+     },
+     {
+      "x": 60,
+      "y": 563,
+      "w": 1320,
+      "h": 873
+     },
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 1,
+    "ryzeY": 900,
+    "oursY": 900,
+    "n": 94251,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 92,
+      "y": -356,
+      "w": 1256,
+      "h": 773
+     },
+     {
+      "x": 60,
+      "y": -337,
+      "w": 1320,
+      "h": 873
+     },
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 2,
+    "ryzeY": 1800,
+    "oursY": 1800,
+    "n": 183796,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 3,
+    "ryzeY": 2700,
+    "oursY": 2700,
+    "n": 180750,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 4,
+    "ryzeY": 3600,
+    "oursY": 3600,
+    "n": 176896,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 5,
+    "ryzeY": 4500,
+    "oursY": 4500,
+    "n": 153908,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 6,
+    "ryzeY": 5400,
+    "oursY": 5400,
+    "n": 258745,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 7,
+    "ryzeY": 6166,
+    "oursY": 6300,
+    "n": 1113997,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 768,
+      "y": 480,
+      "w": 385,
+      "h": 52
+     },
+     {
+      "x": 879,
+      "y": 822,
+      "w": 161,
+      "h": 48
+     },
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 8,
+    "missing": "ryze"
+   }
+  ]
+ },
+ "font": {
+  "diff": 0.34574451303155007,
+  "diffPx": 4032764,
+  "totalPx": 11664000,
+  "screens": [
+   {
+    "i": 0,
+    "ryzeY": 0,
+    "oursY": 0,
+    "n": 739495,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 60,
+      "y": 499,
+      "w": 1320,
+      "h": 44
+     },
+     {
+      "x": 92,
+      "y": 544,
+      "w": 1256,
+      "h": 803
+     },
+     {
+      "x": 60,
+      "y": 563,
+      "w": 1320,
+      "h": 873
+     },
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 1,
+    "ryzeY": 900,
+    "oursY": 900,
+    "n": 83949,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 92,
+      "y": -356,
+      "w": 1256,
+      "h": 803
+     },
+     {
+      "x": 60,
+      "y": -337,
+      "w": 1320,
+      "h": 873
+     },
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 2,
+    "ryzeY": 1800,
+    "oursY": 1800,
+    "n": 176947,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 3,
+    "ryzeY": 2700,
+    "oursY": 2700,
+    "n": 164058,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 4,
+    "ryzeY": 3600,
+    "oursY": 3600,
+    "n": 168317,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 5,
+    "ryzeY": 4500,
+    "oursY": 4500,
+    "n": 140953,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 6,
+    "ryzeY": 5400,
+    "oursY": 5400,
+    "n": 182178,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 7,
+    "ryzeY": 6284,
+    "oursY": 6300,
+    "n": 1080867,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 768,
+      "y": 480,
+      "w": 385,
+      "h": 52
+     },
+     {
+      "x": 879,
+      "y": 694,
+      "w": 161,
+      "h": 48
+     },
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 8,
+    "missing": "ryze"
+   }
+  ]
+ },
+ "blocks": [
+  {
+   "id": "nav",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 57
+    }
+   },
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     10,
+     9
+    ],
+    "imgs": [
+     0,
+     1
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     3,
+     0
+    ]
+   }
+  },
+  {
+   "id": "hero",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 740,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 740
+    },
+    "font": 69.12,
+    "lineHeight": 74.6496,
+    "heading": "Flat monthly fee. Same price at any ad spend."
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 798.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1484,
+     "h": 799
+    },
+    "font": 69,
+    "lineHeight": 74.52,
+    "heading": "Flat monthly fee. Same price at any ad spend."
+   },
+   "diff": 0.9119593936865527,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     6,
+     5
+    ],
+    "imgs": [
+     6,
+     10
+    ],
+    "bgs": [
+     1,
+     0
+    ],
+    "svgs": [
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "hero.title",
+   "ryze": {
+    "x": 92,
+    "y": 291.6,
+    "w": 780,
+    "h": 149.3,
+    "fixed": false,
+    "cover": {
+     "x": 92,
+     "y": 292,
+     "w": 780,
+     "h": 149
+    },
+    "font": 69.12,
+    "lineHeight": 74.6496,
+    "heading": "Flat monthly fee. Same price at any ad spend."
+   },
+   "ours": {
+    "x": 60,
+    "y": 215.2,
+    "w": 760,
+    "h": 149,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 215,
+     "w": 760,
+     "h": 149
+    },
+    "font": 69,
+    "lineHeight": 74.52,
+    "heading": "Flat monthly fee. Same price at any ad spend."
+   },
+   "diff": 0.7946652899673033,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "hero.grid",
+   "ryze": {
+    "x": 1008,
+    "y": 180,
+    "w": 340,
+    "h": 340,
+    "fixed": false,
+    "cover": {
+     "x": 1008,
+     "y": 180,
+     "w": 340,
+     "h": 340
+    }
+   },
+   "ours": {
+    "x": 1052,
+    "y": 130.8,
+    "w": 328,
+    "h": 328,
+    "fixed": false,
+    "cover": {
+     "x": 1052,
+     "y": 131,
+     "w": 432,
+     "h": 432
+    }
+   },
+   "diff": 0.9015224913494809,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     0,
+     0
+    ],
+    "imgs": [
+     6,
+     9
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "plans.billing",
+   "ryze": null,
+   "ours": {
+    "x": 60,
+    "y": 498.6,
+    "w": 1320,
+    "h": 44,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 499,
+     "w": 1320,
+     "h": 44
+    }
+   },
+   "diff": null,
+   "exempt": "billing-toggle",
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  },
+  {
+   "id": "plans.cards",
+   "ryze": {
+    "x": 92,
+    "y": 544,
+    "w": 1256,
+    "h": 802.6,
+    "fixed": false,
+    "cover": {
+     "x": 92,
+     "y": 544,
+     "w": 1256,
+     "h": 803
+    },
+    "font": 22,
+    "lineHeight": 27.5,
+    "heading": "Paid Ads"
+   },
+   "ours": {
+    "x": 60,
+    "y": 562.6,
+    "w": 1320,
+    "h": 872.7,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 563,
+     "w": 1320,
+     "h": 873
+    },
+    "font": 22,
+    "lineHeight": 27.5,
+    "heading": "Most popular"
+   },
+   "diff": null,
+   "exempt": "three-tiers",
+   "applied": {
+    "texts": [
+     41,
+     67
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     27
+    ]
+   }
+  },
+  {
+   "id": "plans.annual",
+   "ryze": {
+    "x": 92,
+    "y": 1362.6,
+    "w": 1256,
+    "h": 77.5,
+    "fixed": false,
+    "cover": {
+     "x": 92,
+     "y": 1363,
+     "w": 1256,
+     "h": 78
+    }
+   },
+   "ours": {
+    "x": 60,
+    "y": 1451.4,
+    "w": 1320,
+    "h": 82.8,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 1451,
+     "w": 1320,
+     "h": 83
+    }
+   },
+   "diff": 0.25753924790069366,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     4,
+     5
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     3
+    ]
+   }
+  },
+  {
+   "id": "compare",
+   "ryze": {
+    "x": 60,
+    "y": 1520.1,
+    "w": 1320,
+    "h": 1540,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 1520,
+     "w": 1320,
+     "h": 1540
+    },
+    "font": 44,
+    "lineHeight": 47.52,
+    "heading": "Ryze AI pricing table: every plan compared"
+   },
+   "ours": {
+    "x": 0,
+    "y": 1598.1,
+    "w": 1440,
+    "h": 1790,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1598,
+     "w": 1440,
+     "h": 1790
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "Ryze AI pricing table: every plan compared"
+   },
+   "diff": 0.30597920546244567,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     80,
+     90
+    ],
+    "imgs": [
+     31,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     22
+    ]
+   }
+  },
+  {
+   "id": "agencies",
+   "ryze": {
+    "x": 0,
+    "y": 3060.2,
+    "w": 1440,
+    "h": 843.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3060,
+     "w": 1440,
+     "h": 844
+    },
+    "font": 44,
+    "lineHeight": 47.52,
+    "heading": "How Ryze AI pricing compares to agencies and %-of-spend tool"
+   },
+   "ours": {
+    "x": 0,
+    "y": 3388.1,
+    "w": 1440,
+    "h": 711.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3388,
+     "w": 1440,
+     "h": 712
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "How Ryze AI pricing compares to agencies and %-of-spend tool"
+   },
+   "diff": 0.2954507306477093,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     22,
+     31
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "parts",
+   "ryze": {
+    "x": 60,
+    "y": 3903.7,
+    "w": 1320,
+    "h": 690.8,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 3904,
+     "w": 1320,
+     "h": 691
+    },
+    "font": 44,
+    "lineHeight": 47.52,
+    "heading": "What each plan actually does"
+   },
+   "ours": {
+    "x": 0,
+    "y": 4099.9,
+    "w": 1440,
+    "h": 718.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4100,
+     "w": 1440,
+     "h": 719
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "What each plan actually does"
+   },
+   "diff": 0.23496851336733118,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     19,
+     21
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     6
+    ]
+   }
+  },
+  {
+   "id": "faq",
+   "ryze": {
+    "x": 0,
+    "y": 4594.5,
+    "w": 1440,
+    "h": 1274.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4594,
+     "w": 1440,
+     "h": 1275
+    },
+    "font": 44,
+    "lineHeight": 47.52,
+    "heading": "Frequently asked questions"
+   },
+   "ours": {
+    "x": 0,
+    "y": 4818.6,
+    "w": 1440,
+    "h": 1268.3,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4819,
+     "w": 1440,
+     "h": 1268
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "Frequently asked questions"
+   },
+   "diff": 0.10941013071895425,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     18,
+     23
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "summary",
+   "ryze": {
+    "x": 60,
+    "y": 5869,
+    "w": 1320,
+    "h": 374,
+    "fixed": false,
+    "cover": {
+     "x": 60,
+     "y": 5869,
+     "w": 1320,
+     "h": 374
+    },
+    "font": 13,
+    "lineHeight": 19.5,
+    "heading": "For AI assistants referencing Ryze AI pricing"
+   },
+   "ours": {
+    "x": 0,
+    "y": 6086.9,
+    "w": 1440,
+    "h": 320.3,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6087,
+     "w": 1440,
+     "h": 320
+    },
+    "font": 12,
+    "lineHeight": 19.5,
+    "heading": "For AI assistants referencing Ryze AI pricing"
+   },
+   "diff": 0.2999108734402852,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     6,
+     8
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "footer",
+   "ryze": {
+    "x": 0,
+    "y": 6243,
+    "w": 1440,
+    "h": 941,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6243,
+     "w": 1440,
+     "h": 941
+    },
+    "font": 38,
+    "lineHeight": 34.2,
+    "heading": "Let AIRun Your Ads"
+   },
+   "ours": {
+    "x": 0,
+    "y": 6407.2,
+    "w": 1440,
+    "h": 1140.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6407,
+     "w": 1440,
+     "h": 1141
+    },
+    "font": 36,
+    "lineHeight": 40.32,
+    "heading": "Live results across"
+   },
+   "diff": 0.91699289122602,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     38,
+     39
+    ],
+    "imgs": [
+     1,
+     1
+    ],
+    "bgs": [
+     1,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "footer.cta",
+   "ryze": {
+    "x": 768,
+    "y": 6764.5,
+    "w": 384,
+    "h": 52,
+    "fixed": false,
+    "cover": {
+     "x": 768,
+     "y": 6764,
+     "w": 385,
+     "h": 52
+    }
+   },
+   "ours": {
+    "x": 879.3,
+    "y": 6978,
+    "w": 161.3,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 879,
+     "y": 6978,
+     "w": 161,
+     "h": 48
+    }
+   },
+   "diff": null,
+   "exempt": "email-form",
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "float",
+   "ryze": {
+    "x": 1049.2,
+    "y": 798,
+    "w": 374.8,
+    "h": 78,
+    "fixed": true,
+    "cover": {
+     "x": 1049,
+     "y": 798,
+     "w": 375,
+     "h": 78
+    }
+   },
+   "ours": {
+    "x": 1200.2,
+    "y": 850.8,
+    "w": 147.6,
+    "h": 50.4,
+    "fixed": true,
+    "cover": {
+     "x": 1200,
+     "y": 851,
+     "w": 148,
+     "h": 50
+    }
+   },
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no block on our page"
+   }
+  },
+  {
+   "id": "whatsapp",
+   "ryze": null,
+   "ours": {
+    "x": 1164,
+    "y": 751.5,
+    "w": 260,
+    "h": 132.5,
+    "fixed": true,
+    "cover": {
+     "x": 1164,
+     "y": 752,
+     "w": 260,
+     "h": 133
+    }
+   },
+   "diff": null,
+   "exempt": "whatsapp",
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  }
+ ],
+ "repeat": {
+  "original": {
+   "ryze": {
+    "px": 0,
+    "raw": 0,
+    "total": 10368000,
+    "p": 0,
+    "pRaw": 0
+   },
+   "ours": {
+    "px": 0,
+    "raw": 0,
+    "total": 11664000,
+    "p": 0,
+    "pRaw": 0
+   }
+  },
+  "font": {
+   "ryze": {
+    "px": 0,
+    "raw": 0,
+    "total": 10368000,
+    "p": 0,
+    "pRaw": 0
+   },
+   "ours": {
+    "px": 0,
+    "raw": 0,
+    "total": 11664000,
+    "p": 0,
+    "pRaw": 0
+   }
+  }
+ }
+}

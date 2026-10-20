@@ -1,0 +1,946 @@
+{
+ "page": "glossary",
+ "width": 1440,
+ "limit": 0.0001,
+ "fontNormalized": true,
+ "original": {
+  "diff": 0.5709776234567902,
+  "diffPx": 3699935,
+  "totalPx": 6480000,
+  "screens": [
+   {
+    "i": 0,
+    "ryzeY": 0,
+    "oursY": 0,
+    "n": 414417,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 850,
+      "y": 419,
+      "w": 389,
+      "h": 38
+     },
+     {
+      "x": 850,
+      "y": 429,
+      "w": 185,
+      "h": 38
+     },
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 1,
+    "ryzeY": 900,
+    "oursY": 900,
+    "n": 195994,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 2,
+    "ryzeY": 1800,
+    "oursY": 1800,
+    "n": 703938,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 3,
+    "ryzeY": 2700,
+    "oursY": 2586,
+    "n": 1089586,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 768,
+      "y": 712,
+      "w": 385,
+      "h": 52
+     },
+     {
+      "x": 879,
+      "y": 207,
+      "w": 161,
+      "h": 48
+     },
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 4,
+    "missing": "ours"
+   }
+  ]
+ },
+ "font": {
+  "diff": 0.5731220679012345,
+  "diffPx": 3713831,
+  "totalPx": 6480000,
+  "screens": [
+   {
+    "i": 0,
+    "ryzeY": 0,
+    "oursY": 0,
+    "n": 421136,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 850,
+      "y": 441,
+      "w": 389,
+      "h": 38
+     },
+     {
+      "x": 850,
+      "y": 429,
+      "w": 185,
+      "h": 38
+     },
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 1,
+    "ryzeY": 900,
+    "oursY": 900,
+    "n": 199635,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 2,
+    "ryzeY": 1800,
+    "oursY": 1800,
+    "n": 708653,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 3,
+    "ryzeY": 2700,
+    "oursY": 2567,
+    "n": 1088407,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 768,
+      "y": 851,
+      "w": 385,
+      "h": 52
+     },
+     {
+      "x": 879,
+      "y": 197,
+      "w": 161,
+      "h": 48
+     },
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 4,
+    "missing": "ours"
+   }
+  ]
+ },
+ "blocks": [
+  {
+   "id": "nav",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 57
+    }
+   },
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     10,
+     9
+    ],
+    "imgs": [
+     0,
+     1
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     3,
+     0
+    ]
+   }
+  },
+  {
+   "id": "head",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 570.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": -96,
+     "w": 1512,
+     "h": 687
+    },
+    "font": 52,
+    "lineHeight": 54.6,
+    "heading": "The AI search glossary."
+   },
+   "ours": {
+    "x": 0,
+    "y": 57,
+    "w": 1440,
+    "h": 503.2,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 57,
+     "w": 1440,
+     "h": 503
+    },
+    "font": 52,
+    "lineHeight": 54.6,
+    "heading": "The AI search glossary."
+   },
+   "diff": 0.5381944444444444,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     8,
+     14
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     2
+    ]
+   }
+  },
+  {
+   "id": "head.crumbs",
+   "ryze": {
+    "x": 68,
+    "y": 150,
+    "w": 1304,
+    "h": 21,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 150,
+     "w": 1304,
+     "h": 21
+    }
+   },
+   "ours": {
+    "x": 68,
+    "y": 150,
+    "w": 682,
+    "h": 21,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 150,
+     "w": 682,
+     "h": 21
+    }
+   },
+   "diff": 0.5918054338299737,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     2,
+     7
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "head.title",
+   "ryze": {
+    "x": 68,
+    "y": 239.5,
+    "w": 682,
+    "h": 54.6,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 240,
+     "w": 682,
+     "h": 55
+    },
+    "font": 52,
+    "lineHeight": 54.6,
+    "heading": "The AI search glossary."
+   },
+   "ours": {
+    "x": 68,
+    "y": 240,
+    "w": 682,
+    "h": 54.6,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 240,
+     "w": 682,
+     "h": 55
+    },
+    "font": 52,
+    "lineHeight": 54.6,
+    "heading": "The AI search glossary."
+   },
+   "diff": 0.17291388962943216,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "head.lead",
+   "ryze": {
+    "x": 814,
+    "y": 211,
+    "w": 558,
+    "h": 303.8,
+    "fixed": false,
+    "cover": {
+     "x": 675,
+     "y": 110,
+     "w": 837,
+     "h": 481
+    },
+    "font": 28,
+    "lineHeight": 30.24,
+    "heading": "Free skills and prompts for paid ads and SEO"
+   },
+   "ours": {
+    "x": 814,
+    "y": 211,
+    "w": 558,
+    "h": 292.2,
+    "fixed": false,
+    "cover": {
+     "x": 814,
+     "y": 211,
+     "w": 558,
+     "h": 292
+    }
+   },
+   "diff": 0.8922196283720053,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     4,
+     4
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     2
+    ]
+   }
+  },
+  {
+   "id": "head.lead.cta",
+   "ryze": {
+    "x": 850,
+    "y": 440.8,
+    "w": 388.8,
+    "h": 38,
+    "fixed": false,
+    "cover": {
+     "x": 850,
+     "y": 441,
+     "w": 389,
+     "h": 38
+    }
+   },
+   "ours": {
+    "x": 850,
+    "y": 429.2,
+    "w": 184.6,
+    "h": 38,
+    "fixed": false,
+    "cover": {
+     "x": 850,
+     "y": 429,
+     "w": 185,
+     "h": 38
+    }
+   },
+   "diff": null,
+   "exempt": "email-form",
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "logos",
+   "ryze": {
+    "x": 0,
+    "y": 570.8,
+    "w": 1440,
+    "h": 118.3,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 571,
+     "w": 1440,
+     "h": 118
+    }
+   },
+   "ours": null,
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no block on our page"
+   }
+  },
+  {
+   "id": "body",
+   "ryze": {
+    "x": 290,
+    "y": 689.1,
+    "w": 940,
+    "h": 2340.8,
+    "fixed": false,
+    "cover": {
+     "x": 290,
+     "y": 689,
+     "w": 940,
+     "h": 2341
+    },
+    "font": 34,
+    "lineHeight": 51,
+    "heading": "Definitions"
+   },
+   "ours": {
+    "x": 0,
+    "y": 560.2,
+    "w": 1440,
+    "h": 1766,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 560,
+     "w": 1440,
+     "h": 1766
+    }
+   },
+   "diff": 0.5347070933599126,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     26,
+     24
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "body.intro",
+   "ryze": {
+    "x": 328,
+    "y": 719.1,
+    "w": 864,
+    "h": 252,
+    "fixed": false,
+    "cover": {
+     "x": 328,
+     "y": 719,
+     "w": 864,
+     "h": 252
+    }
+   },
+   "ours": null,
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no block on our page"
+   }
+  },
+  {
+   "id": "body.terms",
+   "ryze": {
+    "x": 328,
+    "y": 971.1,
+    "w": 864,
+    "h": 683,
+    "fixed": false,
+    "cover": {
+     "x": 328,
+     "y": 971,
+     "w": 864,
+     "h": 683
+    },
+    "font": 34,
+    "lineHeight": 51,
+    "heading": "Definitions"
+   },
+   "ours": {
+    "x": 328,
+    "y": 590.2,
+    "w": 864,
+    "h": 1624,
+    "fixed": false,
+    "cover": {
+     "x": 328,
+     "y": 590,
+     "w": 864,
+     "h": 1624
+    }
+   },
+   "diff": 0.6605111692665572,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     21,
+     9
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "body.where",
+   "ryze": {
+    "x": 328,
+    "y": 1654.1,
+    "w": 864,
+    "h": 581.8,
+    "fixed": false,
+    "cover": {
+     "x": 328,
+     "y": 1654,
+     "w": 864,
+     "h": 582
+    },
+    "font": 34,
+    "lineHeight": 51,
+    "heading": "Where this fits into ecommerce SEO"
+   },
+   "ours": null,
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no block on our page"
+   }
+  },
+  {
+   "id": "body.faq",
+   "ryze": {
+    "x": 328,
+    "y": 2235.8,
+    "w": 864,
+    "h": 754,
+    "fixed": false,
+    "cover": {
+     "x": 328,
+     "y": 2236,
+     "w": 864,
+     "h": 754
+    },
+    "font": 34,
+    "lineHeight": 51,
+    "heading": "Frequently asked questions"
+   },
+   "ours": null,
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no block on our page"
+   }
+  },
+  {
+   "id": "promo",
+   "ryze": {
+    "x": 68,
+    "y": 711.4,
+    "w": 222,
+    "h": 519.7,
+    "fixed": true,
+    "cover": {
+     "x": 68,
+     "y": 711,
+     "w": 222,
+     "h": 520
+    }
+   },
+   "ours": {
+    "x": 68,
+    "y": 590.2,
+    "w": 240,
+    "h": 281.1,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 590,
+     "w": 240,
+     "h": 281
+    }
+   },
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     5,
+     12
+    ],
+    "imgs": [
+     0,
+     5
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "promobar",
+   "ryze": null,
+   "ours": null,
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  },
+  {
+   "id": "footer",
+   "ryze": {
+    "x": 0,
+    "y": 3029.8,
+    "w": 1440,
+    "h": 941,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3030,
+     "w": 1440,
+     "h": 941
+    },
+    "font": 38,
+    "lineHeight": 34.2,
+    "heading": "Let AIRun Your Ads"
+   },
+   "ours": {
+    "x": 0,
+    "y": 2326.2,
+    "w": 1440,
+    "h": 1140.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2326,
+     "w": 1440,
+     "h": 1141
+    },
+    "font": 36,
+    "lineHeight": 40.32,
+    "heading": "Live results across"
+   },
+   "diff": 0.9176849011588275,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     38,
+     39
+    ],
+    "imgs": [
+     1,
+     1
+    ],
+    "bgs": [
+     1,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "footer.cta",
+   "ryze": {
+    "x": 768,
+    "y": 3551.3,
+    "w": 384,
+    "h": 52,
+    "fixed": false,
+    "cover": {
+     "x": 768,
+     "y": 3551,
+     "w": 385,
+     "h": 52
+    }
+   },
+   "ours": {
+    "x": 879.3,
+    "y": 2897,
+    "w": 161.3,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 879,
+     "y": 2897,
+     "w": 161,
+     "h": 48
+    }
+   },
+   "diff": null,
+   "exempt": "email-form",
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "float",
+   "ryze": {
+    "x": 1049.2,
+    "y": 798,
+    "w": 374.8,
+    "h": 78,
+    "fixed": true,
+    "cover": {
+     "x": 1049,
+     "y": 798,
+     "w": 375,
+     "h": 78
+    }
+   },
+   "ours": null,
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no block on our page"
+   }
+  },
+  {
+   "id": "whatsapp",
+   "ryze": null,
+   "ours": {
+    "x": 1164,
+    "y": 751.5,
+    "w": 260,
+    "h": 132.5,
+    "fixed": true,
+    "cover": {
+     "x": 1164,
+     "y": 752,
+     "w": 260,
+     "h": 133
+    }
+   },
+   "diff": null,
+   "exempt": "whatsapp",
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  }
+ ],
+ "repeat": {
+  "original": {
+   "ryze": {
+    "px": 0,
+    "raw": 0,
+    "total": 6480000,
+    "p": 0,
+    "pRaw": 0
+   },
+   "ours": {
+    "px": 0,
+    "raw": 0,
+    "total": 5184000,
+    "p": 0,
+    "pRaw": 0
+   }
+  },
+  "font": {
+   "ryze": {
+    "px": 0,
+    "raw": 0,
+    "total": 6480000,
+    "p": 0,
+    "pRaw": 0
+   },
+   "ours": {
+    "px": 0,
+    "raw": 0,
+    "total": 5184000,
+    "p": 0,
+    "pRaw": 0
+   }
+  }
+ }
+}

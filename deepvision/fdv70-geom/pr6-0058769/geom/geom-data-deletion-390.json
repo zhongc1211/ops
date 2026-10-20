@@ -1,0 +1,598 @@
+{
+ "page": "data-deletion",
+ "width": 390,
+ "ryzeUrl": "https://www.get-ryze.ai/facebook-data",
+ "oursUrl": "http://localhost:4320/en/data-deletion",
+ "limit": 0.02,
+ "fontNormalized": true,
+ "pending": {
+  "ryze": 0,
+  "ours": 0
+ },
+ "ryze": {
+  "blocks": {
+   "nav": null,
+   "col": {
+    "x": 0,
+    "y": 136,
+    "w": 390,
+    "h": 984,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 136,
+     "w": 390,
+     "h": 984
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Ryze AI – Facebook Data Deletion Instructions"
+   },
+   "col.title": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 72,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 72
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Ryze AI – Facebook Data Deletion Instructions"
+   },
+   "col.lookup": null,
+   "col.h2": {
+    "x": 16,
+    "y": 324,
+    "w": 358,
+    "h": 64,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 324,
+     "w": 358,
+     "h": 64
+    },
+    "font": 24,
+    "lineHeight": 32,
+    "heading": "Disconnect Ryze AI from your Facebook account:"
+   },
+   "footer": null,
+   "float": null,
+   "whatsapp": null
+  },
+  "pageH": 1312,
+  "vw": 390
+ },
+ "ours": {
+  "blocks": {
+   "nav": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 57
+    }
+   },
+   "col": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 915.8,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 916
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Data Deletion"
+   },
+   "col.title": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 36,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 36
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Data Deletion"
+   },
+   "col.lookup": {
+    "x": 16,
+    "y": 400,
+    "w": 358,
+    "h": 155.8,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 400,
+     "w": 358,
+     "h": 156
+    }
+   },
+   "col.h2": {
+    "x": 16,
+    "y": 579.8,
+    "w": 358,
+    "h": 32,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 580,
+     "w": 358,
+     "h": 32
+    },
+    "font": 24,
+    "lineHeight": 32,
+    "heading": "How to Request Deletion"
+   },
+   "footer": {
+    "x": 0,
+    "y": 1243.8,
+    "w": 390,
+    "h": 1452.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1244,
+     "w": 390,
+     "h": 1453
+    },
+    "font": 30,
+    "lineHeight": 33.6,
+    "heading": "Start with a short call"
+   },
+   "float": null,
+   "whatsapp": {
+    "x": 114,
+    "y": 703.5,
+    "w": 260,
+    "h": 124.5,
+    "fixed": true,
+    "cover": {
+     "x": 114,
+     "y": 704,
+     "w": 260,
+     "h": 125
+    }
+   }
+  },
+  "pageH": 2696,
+  "vw": 390
+ },
+ "rows": [
+  {
+   "id": "nav",
+   "name": "Top navigation (Ryze has none on this page)",
+   "ryze": null,
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 57
+    }
+   },
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "we have it; Ryze has no such block"
+  },
+  {
+   "id": "col",
+   "name": "Text column",
+   "ryze": {
+    "x": 0,
+    "y": 136,
+    "w": 390,
+    "h": 984,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 136,
+     "w": 390,
+     "h": 984
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Ryze AI – Facebook Data Deletion Instructions"
+   },
+   "ours": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 915.8,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 916
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Data Deletion"
+   },
+   "diffs": {
+    "x": 0.041025641025641026,
+    "w": 0.08205128205128205,
+    "y": 0,
+    "h": 0.06930894308943095,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: x, w, h"
+  },
+  {
+   "id": "col.title",
+   "name": "H1",
+   "ryze": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 72,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 72
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Ryze AI – Facebook Data Deletion Instructions"
+   },
+   "ours": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 36,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 36
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Data Deletion"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0,
+    "h": 0.5,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: h"
+  },
+  {
+   "id": "col.lookup",
+   "name": "Our deletion status lookup",
+   "ryze": null,
+   "ours": {
+    "x": 16,
+    "y": 400,
+    "w": 358,
+    "h": 155.8,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 400,
+     "w": 358,
+     "h": 156
+    }
+   },
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "we have it; Ryze has no such block"
+  },
+  {
+   "id": "col.h2",
+   "name": "First step heading",
+   "ryze": {
+    "x": 16,
+    "y": 324,
+    "w": 358,
+    "h": 64,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 324,
+     "w": 358,
+     "h": 64
+    },
+    "font": 24,
+    "lineHeight": 32,
+    "heading": "Disconnect Ryze AI from your Facebook account:"
+   },
+   "ours": {
+    "x": 16,
+    "y": 579.8,
+    "w": 358,
+    "h": 32,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 580,
+     "w": 358,
+     "h": 32
+    },
+    "font": 24,
+    "lineHeight": 32,
+    "heading": "How to Request Deletion"
+   },
+   "diffs": {
+    "x": 0,
+    "w": 0,
+    "y": 0.19496951219512193,
+    "h": 0.5,
+    "font": 0,
+    "lineHeight": 0
+   },
+   "status": "FAIL",
+   "reason": "over 2%: y, h"
+  },
+  {
+   "id": "footer",
+   "name": "Footer (Ryze has none on this page)",
+   "ryze": null,
+   "ours": {
+    "x": 0,
+    "y": 1243.8,
+    "w": 390,
+    "h": 1452.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1244,
+     "w": 390,
+     "h": 1453
+    },
+    "font": 30,
+    "lineHeight": 33.6,
+    "heading": "Start with a short call"
+   },
+   "diffs": {},
+   "status": "FAIL",
+   "reason": "we have it; Ryze has no such block"
+  },
+  {
+   "id": "float",
+   "name": "Floating call-to-action (Ryze has none on this page)",
+   "ryze": null,
+   "ours": null,
+   "diffs": {},
+   "status": "n/a",
+   "reason": "shown on neither side at this width"
+  },
+  {
+   "id": "whatsapp",
+   "name": "Our WhatsApp button",
+   "ryze": null,
+   "ours": {
+    "x": 114,
+    "y": 703.5,
+    "w": 260,
+    "h": 124.5,
+    "fixed": true,
+    "cover": {
+     "x": 114,
+     "y": 704,
+     "w": 260,
+     "h": 125
+    }
+   },
+   "diffs": {},
+   "status": "exempt",
+   "reason": "whatsapp: Our WhatsApp assistant button stays on every page."
+  }
+ ],
+ "gaps": [],
+ "pageH": {
+  "ryze": 1312,
+  "ours": 2696,
+  "diff": 1.0548780487804879
+ },
+ "stability": {
+  "ryze": 0,
+  "ours": 0,
+  "second": {
+   "ryze": {
+    "blocks": {
+     "nav": null,
+     "col": {
+      "x": 0,
+      "y": 136,
+      "w": 390,
+      "h": 984,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 136,
+       "w": 390,
+       "h": 984
+      },
+      "font": 30,
+      "lineHeight": 36,
+      "heading": "Ryze AI – Facebook Data Deletion Instructions"
+     },
+     "col.title": {
+      "x": 16,
+      "y": 136,
+      "w": 358,
+      "h": 72,
+      "fixed": false,
+      "cover": {
+       "x": 16,
+       "y": 136,
+       "w": 358,
+       "h": 72
+      },
+      "font": 30,
+      "lineHeight": 36,
+      "heading": "Ryze AI – Facebook Data Deletion Instructions"
+     },
+     "col.lookup": null,
+     "col.h2": {
+      "x": 16,
+      "y": 324,
+      "w": 358,
+      "h": 64,
+      "fixed": false,
+      "cover": {
+       "x": 16,
+       "y": 324,
+       "w": 358,
+       "h": 64
+      },
+      "font": 24,
+      "lineHeight": 32,
+      "heading": "Disconnect Ryze AI from your Facebook account:"
+     },
+     "footer": null,
+     "float": null,
+     "whatsapp": null
+    },
+    "pageH": 1312,
+    "vw": 390
+   },
+   "ours": {
+    "blocks": {
+     "nav": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 57,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 0,
+       "w": 390,
+       "h": 57
+      }
+     },
+     "col": {
+      "x": 16,
+      "y": 136,
+      "w": 358,
+      "h": 915.8,
+      "fixed": false,
+      "cover": {
+       "x": 16,
+       "y": 136,
+       "w": 358,
+       "h": 916
+      },
+      "font": 30,
+      "lineHeight": 36,
+      "heading": "Data Deletion"
+     },
+     "col.title": {
+      "x": 16,
+      "y": 136,
+      "w": 358,
+      "h": 36,
+      "fixed": false,
+      "cover": {
+       "x": 16,
+       "y": 136,
+       "w": 358,
+       "h": 36
+      },
+      "font": 30,
+      "lineHeight": 36,
+      "heading": "Data Deletion"
+     },
+     "col.lookup": {
+      "x": 16,
+      "y": 400,
+      "w": 358,
+      "h": 155.8,
+      "fixed": false,
+      "cover": {
+       "x": 16,
+       "y": 400,
+       "w": 358,
+       "h": 156
+      }
+     },
+     "col.h2": {
+      "x": 16,
+      "y": 579.8,
+      "w": 358,
+      "h": 32,
+      "fixed": false,
+      "cover": {
+       "x": 16,
+       "y": 580,
+       "w": 358,
+       "h": 32
+      },
+      "font": 24,
+      "lineHeight": 32,
+      "heading": "How to Request Deletion"
+     },
+     "footer": {
+      "x": 0,
+      "y": 1243.8,
+      "w": 390,
+      "h": 1452.7,
+      "fixed": false,
+      "cover": {
+       "x": 0,
+       "y": 1244,
+       "w": 390,
+       "h": 1453
+      },
+      "font": 30,
+      "lineHeight": 33.6,
+      "heading": "Start with a short call"
+     },
+     "float": null,
+     "whatsapp": {
+      "x": 114,
+      "y": 703.5,
+      "w": 260,
+      "h": 124.5,
+      "fixed": true,
+      "cover": {
+       "x": 114,
+       "y": 704,
+       "w": 260,
+       "h": 125
+      }
+     }
+    },
+    "pageH": 2696,
+    "vw": 390
+   }
+  }
+ }
+}

@@ -1,0 +1,1355 @@
+{
+ "page": "home",
+ "width": 1440,
+ "limit": 0.0001,
+ "fontNormalized": true,
+ "original": {
+  "diff": 0.6245702861952862,
+  "diffPx": 8903874,
+  "totalPx": 14256000,
+  "screens": [
+   {
+    "i": 0,
+    "ryzeY": 0,
+    "oursY": 0,
+    "n": 1043191,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 55,
+      "y": 574,
+      "w": 374,
+      "h": 49
+     },
+     {
+      "x": 68,
+      "y": 721,
+      "w": 496,
+      "h": 48
+     },
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 1,
+    "ryzeY": 900,
+    "oursY": 900,
+    "n": 684695,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 2,
+    "ryzeY": 1800,
+    "oursY": 1800,
+    "n": 939371,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 3,
+    "ryzeY": 2700,
+    "oursY": 2700,
+    "n": 486315,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 4,
+    "ryzeY": 3600,
+    "oursY": 3600,
+    "n": 808374,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 655,
+      "y": 561,
+      "w": 577,
+      "h": 52
+     },
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 5,
+    "ryzeY": 4500,
+    "oursY": 4500,
+    "n": 458661,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 626,
+      "y": 116,
+      "w": 179,
+      "h": 48
+     },
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 6,
+    "ryzeY": 5400,
+    "oursY": 5400,
+    "n": 232231,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 7,
+    "ryzeY": 6300,
+    "oursY": 6300,
+    "n": 1160175,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 8,
+    "ryzeY": 7200,
+    "oursY": 7200,
+    "n": 842996,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 9,
+    "ryzeY": 7790,
+    "oursY": 8100,
+    "n": 951865,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 768,
+      "y": 480,
+      "w": 385,
+      "h": 52
+     },
+     {
+      "x": 1368,
+      "y": 828,
+      "w": 56,
+      "h": 56
+     }
+    ]
+   },
+   {
+    "i": 10,
+    "missing": "ryze"
+   }
+  ]
+ },
+ "font": {
+  "diff": 0.6052751823793491,
+  "diffPx": 8628803,
+  "totalPx": 14256000,
+  "screens": [
+   {
+    "i": 0,
+    "ryzeY": 0,
+    "oursY": 0,
+    "n": 1011718,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 55,
+      "y": 574,
+      "w": 374,
+      "h": 49
+     },
+     {
+      "x": 68,
+      "y": 721,
+      "w": 496,
+      "h": 48
+     },
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 1,
+    "ryzeY": 900,
+    "oursY": 900,
+    "n": 657633,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 2,
+    "ryzeY": 1800,
+    "oursY": 1800,
+    "n": 917782,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 3,
+    "ryzeY": 2700,
+    "oursY": 2700,
+    "n": 454708,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 4,
+    "ryzeY": 3600,
+    "oursY": 3600,
+    "n": 784547,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 655,
+      "y": 578,
+      "w": 577,
+      "h": 52
+     },
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 5,
+    "ryzeY": 4500,
+    "oursY": 4500,
+    "n": 457832,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 626,
+      "y": 116,
+      "w": 179,
+      "h": 48
+     },
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 6,
+    "ryzeY": 5400,
+    "oursY": 5400,
+    "n": 218358,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 7,
+    "ryzeY": 6300,
+    "oursY": 6300,
+    "n": 1128817,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 8,
+    "ryzeY": 7200,
+    "oursY": 7200,
+    "n": 780373,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 9,
+    "ryzeY": 7835,
+    "oursY": 8100,
+    "n": 921035,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 768,
+      "y": 480,
+      "w": 385,
+      "h": 52
+     },
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 10,
+    "missing": "ryze"
+   }
+  ]
+ },
+ "blocks": [
+  {
+   "id": "nav",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 57
+    }
+   },
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     10,
+     9
+    ],
+    "imgs": [
+     0,
+     1
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     3,
+     0
+    ]
+   }
+  },
+  {
+   "id": "hero",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 900,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 2351
+    },
+    "font": 69.12,
+    "lineHeight": 74.6496,
+    "heading": "AI runs yourads, SEO,and website"
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 900,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 900
+    },
+    "font": 69,
+    "lineHeight": 74.52,
+    "heading": "AI runs yourads, SEO,and websiteMore customers on autopilot"
+   },
+   "diff": 0.8072523148148149,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     37,
+     292
+    ],
+    "imgs": [
+     0,
+     20
+    ],
+    "bgs": [
+     1,
+     0
+    ],
+    "svgs": [
+     0,
+     13
+    ]
+   }
+  },
+  {
+   "id": "hero.cta",
+   "ryze": {
+    "x": 55,
+    "y": 574.1,
+    "w": 373,
+    "h": 49,
+    "fixed": false,
+    "cover": {
+     "x": 55,
+     "y": 574,
+     "w": 374,
+     "h": 49
+    }
+   },
+   "ours": {
+    "x": 68,
+    "y": 721.2,
+    "w": 495.5,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 68,
+     "y": 721,
+     "w": 496,
+     "h": 48
+    }
+   },
+   "diff": null,
+   "exempt": "email-form",
+   "applied": {
+    "texts": [
+     2,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "strip",
+   "ryze": {
+    "x": 0,
+    "y": 900,
+    "w": 1440,
+    "h": 93.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 900,
+     "w": 1440,
+     "h": 94
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 900,
+    "w": 1440,
+    "h": 210,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 900,
+     "w": 1440,
+     "h": 210
+    }
+   },
+   "diff": 0.999834656084656,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     6,
+     5
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "twocol",
+   "ryze": {
+    "x": 0,
+    "y": 993.8,
+    "w": 1440,
+    "h": 447.6,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 994,
+     "w": 1440,
+     "h": 448
+    },
+    "font": 34,
+    "lineHeight": 38.08,
+    "heading": "AI to manage ads across any platform"
+   },
+   "ours": {
+    "x": 0,
+    "y": 1110,
+    "w": 1440,
+    "h": 661.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1110,
+     "w": 1440,
+     "h": 662
+    },
+    "font": 36,
+    "lineHeight": 45,
+    "heading": "AI to manage ads across any platform"
+   },
+   "diff": 0.4807496223564955,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     9,
+     2
+    ],
+    "imgs": [
+     6,
+     11
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "wall",
+   "ryze": {
+    "x": 0,
+    "y": 1441.3,
+    "w": 1440,
+    "h": 1028,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1441,
+     "w": 1440,
+     "h": 1028
+    },
+    "font": 56,
+    "lineHeight": 62.2222,
+    "heading": "Wall of Love"
+   },
+   "ours": {
+    "x": 0,
+    "y": 1771.5,
+    "w": 1440,
+    "h": 1689.1,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1772,
+     "w": 1440,
+     "h": 1689
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "Wall of Love"
+   },
+   "diff": 0.7464677488323137,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     20,
+     26
+    ],
+    "imgs": [
+     3,
+     16
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     1,
+     9
+    ]
+   }
+  },
+  {
+   "id": "logos",
+   "ryze": {
+    "x": 0,
+    "y": 2469.3,
+    "w": 1440,
+    "h": 624.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2469,
+     "w": 1440,
+     "h": 625
+    },
+    "font": 38,
+    "lineHeight": 47.5,
+    "heading": "Used by marketers behind 33,000+ brands"
+   },
+   "ours": null,
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no block on our page"
+   }
+  },
+  {
+   "id": "cards5",
+   "ryze": {
+    "x": 0,
+    "y": 3093.8,
+    "w": 1440,
+    "h": 750.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3094,
+     "w": 1440,
+     "h": 3280
+    },
+    "font": 44,
+    "lineHeight": 66,
+    "heading": "See what Ryze does inside your account"
+   },
+   "ours": {
+    "x": 0,
+    "y": 3460.6,
+    "w": 1440,
+    "h": 798.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3461,
+     "w": 1440,
+     "h": 799
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "See what Ryze does inside your account"
+   },
+   "diff": 0.46344214990960925,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     24,
+     219
+    ],
+    "imgs": [
+     4,
+     2
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     2
+    ]
+   }
+  },
+  {
+   "id": "scan",
+   "ryze": {
+    "x": 0,
+    "y": 3844.7,
+    "w": 1440,
+    "h": 497,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3696,
+     "w": 1440,
+     "h": 646
+    },
+    "font": 42,
+    "lineHeight": 52.5,
+    "heading": "Get a free scanof your website"
+   },
+   "ours": {
+    "x": 0,
+    "y": 4259.1,
+    "w": 1440,
+    "h": 517.2,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4191,
+     "w": 1440,
+     "h": 585
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "Get a free scanof your website"
+   },
+   "diff": 0.9111769288630991,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     6,
+     6
+    ],
+    "imgs": [
+     0,
+     1
+    ],
+    "bgs": [
+     1,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "scan.cta",
+   "ryze": {
+    "x": 654.8,
+    "y": 4177.7,
+    "w": 576,
+    "h": 52,
+    "fixed": false,
+    "cover": {
+     "x": 655,
+     "y": 4178,
+     "w": 577,
+     "h": 52
+    }
+   },
+   "ours": {
+    "x": 626.4,
+    "y": 4616.3,
+    "w": 178.8,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 626,
+     "y": 4616,
+     "w": 179,
+     "h": 48
+    }
+   },
+   "diff": null,
+   "exempt": "email-form",
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "three",
+   "ryze": {
+    "x": 0,
+    "y": 4341.7,
+    "w": 1440,
+    "h": 647,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4342,
+     "w": 1651,
+     "h": 680
+    },
+    "font": 36,
+    "lineHeight": 45,
+    "heading": "Autonomous PPC optimization"
+   },
+   "ours": {
+    "x": 0,
+    "y": 4776.3,
+    "w": 1440,
+    "h": 847.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4776,
+     "w": 1440,
+     "h": 848
+    },
+    "font": 36,
+    "lineHeight": 45,
+    "heading": "AutonomousPPC optimization"
+   },
+   "diff": 0.4926444575471698,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     34,
+     37
+    ],
+    "imgs": [
+     12,
+     18
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     4
+    ]
+   }
+  },
+  {
+   "id": "why",
+   "ryze": {
+    "x": 0,
+    "y": 4988.7,
+    "w": 1440,
+    "h": 647.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4989,
+     "w": 1440,
+     "h": 648
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Why Ryze outperforms"
+   },
+   "ours": {
+    "x": 0,
+    "y": 5624.3,
+    "w": 1440,
+    "h": 614.2,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5624,
+     "w": 1440,
+     "h": 614
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "Why Ryze outperforms"
+   },
+   "diff": 0.14139553326474621,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     17,
+     17
+    ],
+    "imgs": [
+     6,
+     8
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "list",
+   "ryze": {
+    "x": 0,
+    "y": 5636.2,
+    "w": 1440,
+    "h": 760,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5636,
+     "w": 1440,
+     "h": 760
+    },
+    "font": 48,
+    "lineHeight": 60,
+    "heading": "Everything you need to run paid ads."
+   },
+   "ours": {
+    "x": 0,
+    "y": 6238.4,
+    "w": 1440,
+    "h": 840.3,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6238,
+     "w": 1440,
+     "h": 840
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "Everything you need to run paid ads."
+   },
+   "diff": 0.9911268187830687,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     38,
+     29
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     24
+    ]
+   }
+  },
+  {
+   "id": "agency",
+   "ryze": {
+    "x": 0,
+    "y": 6396.2,
+    "w": 1440,
+    "h": 558.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3612,
+     "w": 1464,
+     "h": 3806
+    },
+    "font": 42,
+    "lineHeight": 52.5,
+    "heading": "Manage 100s of accounts with AI agents"
+   },
+   "ours": {
+    "x": 0,
+    "y": 7078.8,
+    "w": 1440,
+    "h": 597.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7079,
+     "w": 1440,
+     "h": 599
+    },
+    "font": 48,
+    "lineHeight": 55.2,
+    "heading": "Manage of accounts with AI agents100s"
+   },
+   "diff": 0.8671695001858045,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     13,
+     284
+    ],
+    "imgs": [
+     1,
+     7
+    ],
+    "bgs": [
+     1,
+     0
+    ],
+    "svgs": [
+     0,
+     44
+    ]
+   }
+  },
+  {
+   "id": "faq",
+   "ryze": {
+    "x": 0,
+    "y": 6954.7,
+    "w": 1440,
+    "h": 839,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6955,
+     "w": 1440,
+     "h": 859
+    },
+    "font": 40,
+    "lineHeight": 60,
+    "heading": "Frequently asked questions"
+   },
+   "ours": {
+    "x": 0,
+    "y": 7676.6,
+    "w": 1440,
+    "h": 890.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7677,
+     "w": 1440,
+     "h": 891
+    },
+    "font": 48,
+    "lineHeight": 57.6,
+    "heading": "Frequently asked questions"
+   },
+   "diff": 0.10434748721785758,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     19,
+     27
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     8,
+     8
+    ]
+   }
+  },
+  {
+   "id": "footer",
+   "ryze": {
+    "x": 0,
+    "y": 7793.7,
+    "w": 1440,
+    "h": 941,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7794,
+     "w": 1440,
+     "h": 941
+    },
+    "font": 38,
+    "lineHeight": 34.2,
+    "heading": "Let AIRun Your Ads"
+   },
+   "ours": {
+    "x": 0,
+    "y": 8567.3,
+    "w": 1440,
+    "h": 1140.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 8567,
+     "w": 1440,
+     "h": 1141
+    },
+    "font": 36,
+    "lineHeight": 40.32,
+    "heading": "Live results across"
+   },
+   "diff": 0.895451723634239,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     38,
+     39
+    ],
+    "imgs": [
+     1,
+     1
+    ],
+    "bgs": [
+     1,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "footer.cta",
+   "ryze": {
+    "x": 768,
+    "y": 8315.2,
+    "w": 384,
+    "h": 52,
+    "fixed": false,
+    "cover": {
+     "x": 768,
+     "y": 8315,
+     "w": 385,
+     "h": 52
+    }
+   },
+   "ours": {
+    "x": 879.3,
+    "y": 9138.2,
+    "w": 161.3,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 879,
+     "y": 9138,
+     "w": 161,
+     "h": 48
+    }
+   },
+   "diff": null,
+   "exempt": "email-form",
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "float",
+   "ryze": {
+    "x": 1049.2,
+    "y": 798,
+    "w": 374.8,
+    "h": 78,
+    "fixed": true,
+    "cover": {
+     "x": 1049,
+     "y": 798,
+     "w": 375,
+     "h": 78
+    }
+   },
+   "ours": {
+    "x": 1200.2,
+    "y": 850.8,
+    "w": 147.6,
+    "h": 50.4,
+    "fixed": true,
+    "cover": {
+     "x": 1200,
+     "y": 851,
+     "w": 148,
+     "h": 50
+    }
+   },
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no block on our page"
+   }
+  },
+  {
+   "id": "whatsapp",
+   "ryze": null,
+   "ours": {
+    "x": 1164,
+    "y": 751.5,
+    "w": 260,
+    "h": 132.5,
+    "fixed": true,
+    "cover": {
+     "x": 1164,
+     "y": 752,
+     "w": 260,
+     "h": 133
+    }
+   },
+   "diff": null,
+   "exempt": "whatsapp",
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  }
+ ],
+ "repeat": {
+  "original": {
+   "ryze": {
+    "px": 0,
+    "raw": 0,
+    "total": 12960000,
+    "p": 0,
+    "pRaw": 0
+   },
+   "ours": {
+    "px": 0,
+    "raw": 0,
+    "total": 14256000,
+    "p": 0,
+    "pRaw": 0
+   }
+  },
+  "font": {
+   "ryze": {
+    "px": 0,
+    "raw": 0,
+    "total": 12960000,
+    "p": 0,
+    "pRaw": 0
+   },
+   "ours": {
+    "px": 0,
+    "raw": 0,
+    "total": 14256000,
+    "p": 0,
+    "pRaw": 0
+   }
+  }
+ }
+}

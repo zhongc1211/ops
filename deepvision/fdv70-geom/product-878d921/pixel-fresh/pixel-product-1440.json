@@ -1,0 +1,1255 @@
+{
+ "page": "product",
+ "width": 1440,
+ "limit": 0.0001,
+ "fontNormalized": true,
+ "original": {
+  "diff": 0.5001736812570146,
+  "diffPx": 7130476,
+  "totalPx": 14256000,
+  "screens": [
+   {
+    "i": 0,
+    "ryzeY": 0,
+    "oursY": 0,
+    "n": 1174699,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 1,
+    "ryzeY": 900,
+    "oursY": 900,
+    "n": 437779,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 2,
+    "ryzeY": 1800,
+    "oursY": 1800,
+    "n": 914120,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 3,
+    "ryzeY": 2700,
+    "oursY": 2700,
+    "n": 1083327,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 4,
+    "ryzeY": 3600,
+    "oursY": 3600,
+    "n": 990396,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 5,
+    "ryzeY": 4500,
+    "oursY": 4500,
+    "n": 151531,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 6,
+    "ryzeY": 5400,
+    "oursY": 5400,
+    "n": 185463,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 7,
+    "ryzeY": 6300,
+    "oursY": 6300,
+    "n": 183106,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 8,
+    "ryzeY": 7200,
+    "oursY": 7200,
+    "n": 108378,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 9,
+    "ryzeY": 8100,
+    "oursY": 8100,
+    "n": 738011,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 709,
+      "y": 875,
+      "w": 384,
+      "h": 60
+     },
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 10,
+    "ryzeY": 8499,
+    "oursY": 8745,
+    "n": 1163666,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 709,
+      "y": 476,
+      "w": 384,
+      "h": 60
+     },
+     {
+      "x": 879,
+      "y": 567,
+      "w": 161,
+      "h": 48
+     },
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   }
+  ]
+ },
+ "font": {
+  "diff": 0.4956007996632997,
+  "diffPx": 7065285,
+  "totalPx": 14256000,
+  "screens": [
+   {
+    "i": 0,
+    "ryzeY": 0,
+    "oursY": 0,
+    "n": 1174870,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 1,
+    "ryzeY": 900,
+    "oursY": 900,
+    "n": 434635,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 2,
+    "ryzeY": 1800,
+    "oursY": 1800,
+    "n": 902798,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 3,
+    "ryzeY": 2700,
+    "oursY": 2700,
+    "n": 1058464,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 4,
+    "ryzeY": 3600,
+    "oursY": 3600,
+    "n": 998420,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 5,
+    "ryzeY": 4500,
+    "oursY": 4500,
+    "n": 148926,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 6,
+    "ryzeY": 5400,
+    "oursY": 5400,
+    "n": 157977,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 7,
+    "ryzeY": 6300,
+    "oursY": 6300,
+    "n": 191950,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 8,
+    "ryzeY": 7200,
+    "oursY": 7200,
+    "n": 112191,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 9,
+    "ryzeY": 8100,
+    "oursY": 8100,
+    "n": 717407,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   },
+   {
+    "i": 10,
+    "ryzeY": 8637,
+    "oursY": 8726,
+    "n": 1167647,
+    "total": 1296000,
+    "masks": [
+     {
+      "x": 709,
+      "y": 477,
+      "w": 384,
+      "h": 60
+     },
+     {
+      "x": 879,
+      "y": 419,
+      "w": 161,
+      "h": 48
+     },
+     {
+      "x": 1164,
+      "y": 752,
+      "w": 260,
+      "h": 133
+     }
+    ]
+   }
+  ]
+ },
+ "blocks": [
+  {
+   "id": "nav",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 57
+    }
+   },
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     10,
+     9
+    ],
+    "imgs": [
+     0,
+     1
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     3,
+     0
+    ]
+   }
+  },
+  {
+   "id": "hero",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 900,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 900
+    },
+    "font": 66,
+    "lineHeight": 68.64,
+    "heading": "Muse for ads and SEO/GEO"
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 1440,
+    "h": 1085.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 1440,
+     "h": 1086
+    },
+    "font": 66,
+    "lineHeight": 68.64,
+    "heading": "An AI sales assistant for your WhatsApp enquiries"
+   },
+   "diff": 0.9442794659300184,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     16,
+     5
+    ],
+    "imgs": [
+     3,
+     12
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "connect",
+   "ryze": {
+    "x": 0,
+    "y": 900,
+    "w": 1440,
+    "h": 2081.5,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 900,
+     "w": 1440,
+     "h": 2081
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "How to connect Muse to your tools for ads and SEO"
+   },
+   "ours": {
+    "x": 0,
+    "y": 1085.9,
+    "w": 1440,
+    "h": 2225.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 1086,
+     "w": 1440,
+     "h": 2226
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "How to connect Muse to your tools for ads and SEO"
+   },
+   "diff": 0.4675726265348907,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     28,
+     36
+    ],
+    "imgs": [
+     2,
+     14
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     2,
+     4
+    ]
+   }
+  },
+  {
+   "id": "connect.title",
+   "ryze": {
+    "x": 100.5,
+    "y": 1012,
+    "w": 1239,
+    "h": 72,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1012,
+     "w": 1239,
+     "h": 72
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "How to connect Muse to your tools for ads and SEO"
+   },
+   "ours": {
+    "x": 100.5,
+    "y": 1197.9,
+    "w": 1239,
+    "h": 72,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1198,
+     "w": 1239,
+     "h": 72
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "How to connect Muse to your tools for ads and SEO"
+   },
+   "diff": 0.029739485247959826,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "connect.icons",
+   "ryze": {
+    "x": 100.5,
+    "y": 1116,
+    "w": 1239,
+    "h": 84,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1116,
+     "w": 1239,
+     "h": 84
+    }
+   },
+   "ours": {
+    "x": 100.5,
+    "y": 1301.9,
+    "w": 1239,
+    "h": 84,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1302,
+     "w": 1239,
+     "h": 84
+    }
+   },
+   "diff": 0.22624812636919175,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     0,
+     0
+    ],
+    "imgs": [
+     2,
+     14
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "connect.steps",
+   "ryze": {
+    "x": 100.5,
+    "y": 1256,
+    "w": 1239,
+    "h": 614.3,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1256,
+     "w": 1239,
+     "h": 614
+    },
+    "font": 26,
+    "lineHeight": 29.9,
+    "heading": "Paste this into Muse"
+   },
+   "ours": {
+    "x": 100.5,
+    "y": 1479.4,
+    "w": 1239,
+    "h": 653,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1479,
+     "w": 1239,
+     "h": 653
+    },
+    "font": 26,
+    "lineHeight": 29.9,
+    "heading": "30 seconds"
+   },
+   "diff": 0.28947540809352007,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     16,
+     31
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     2,
+     3
+    ]
+   }
+  },
+  {
+   "id": "connect.try",
+   "ryze": {
+    "x": 100.5,
+    "y": 1926.3,
+    "w": 1239,
+    "h": 943.2,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 1926,
+     "w": 1239,
+     "h": 943
+    },
+    "font": 36,
+    "lineHeight": 39.6,
+    "heading": "Step-by-step video: how to connect 75+ marketing tools to Mu"
+   },
+   "ours": {
+    "x": 100.5,
+    "y": 2222.4,
+    "w": 1239,
+    "h": 943.2,
+    "fixed": false,
+    "cover": {
+     "x": 101,
+     "y": 2222,
+     "w": 1239,
+     "h": 943
+    },
+    "font": 36,
+    "lineHeight": 39.6,
+    "heading": "Step-by-step video: how to connect 75+ marketing tools to Mu"
+   },
+   "diff": 0.7229481580003715,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     5,
+     4
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "flow",
+   "ryze": {
+    "x": 0,
+    "y": 2981.5,
+    "w": 1440,
+    "h": 960,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2981,
+     "w": 1440,
+     "h": 960
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "One connection powers every tool a marketer uses"
+   },
+   "ours": {
+    "x": 0,
+    "y": 3311.6,
+    "w": 1440,
+    "h": 960,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3312,
+     "w": 1440,
+     "h": 960
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "One connection powers every tool a marketer uses"
+   },
+   "diff": 0.9799768518518519,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     14,
+     17
+    ],
+    "imgs": [
+     0,
+     17
+    ],
+    "bgs": [
+     1,
+     0
+    ],
+    "svgs": [
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "ask",
+   "ryze": {
+    "x": 0,
+    "y": 3941.5,
+    "w": 1440,
+    "h": 599.4,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 3941,
+     "w": 1440,
+     "h": 599
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "What to ask Muse once it is connected"
+   },
+   "ours": {
+    "x": 0,
+    "y": 4271.6,
+    "w": 1440,
+    "h": 669.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4272,
+     "w": 1440,
+     "h": 670
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "What to ask Muse once it is connected"
+   },
+   "diff": 0.16910655058043117,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     15,
+     13
+    ],
+    "imgs": [
+     0,
+     9
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     4,
+     0
+    ]
+   }
+  },
+  {
+   "id": "does",
+   "ryze": {
+    "x": 0,
+    "y": 4540.8,
+    "w": 1440,
+    "h": 1366.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4541,
+     "w": 1440,
+     "h": 1367
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse for Google Ads, Meta Ads, SEO and GEO"
+   },
+   "ours": {
+    "x": 0,
+    "y": 4941.5,
+    "w": 1440,
+    "h": 1022.3,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 4942,
+     "w": 1440,
+     "h": 1022
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse for Google Ads, Meta Ads, SEO and GEO"
+   },
+   "diff": 0.3201886734942697,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     14,
+     38
+    ],
+    "imgs": [
+     0,
+     17
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     6,
+     24
+    ]
+   }
+  },
+  {
+   "id": "who",
+   "ryze": {
+    "x": 0,
+    "y": 5907.6,
+    "w": 1440,
+    "h": 695.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5908,
+     "w": 1440,
+     "h": 696
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse for SMEs, ecommerce brands and agencies"
+   },
+   "ours": {
+    "x": 0,
+    "y": 5963.8,
+    "w": 1440,
+    "h": 732.9,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 5964,
+     "w": 1440,
+     "h": 733
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse for SMEs, ecommerce brands and agencies"
+   },
+   "diff": 0.18105388813096862,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     11,
+     10
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "vs",
+   "ryze": {
+    "x": 0,
+    "y": 6603.5,
+    "w": 1440,
+    "h": 851,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6603,
+     "w": 1440,
+     "h": 851
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse on its own vs Muse with Ryze AI"
+   },
+   "ours": {
+    "x": 0,
+    "y": 6696.7,
+    "w": 1440,
+    "h": 851,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 6697,
+     "w": 1440,
+     "h": 851
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse on its own vs Muse with Ryze AI"
+   },
+   "diff": 0.017507181094137615,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     22,
+     22
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "faq",
+   "ryze": {
+    "x": 0,
+    "y": 7454.5,
+    "w": 1440,
+    "h": 1141.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7454,
+     "w": 1440,
+     "h": 1142
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse for ads and SEO: FAQ"
+   },
+   "ours": {
+    "x": 0,
+    "y": 7547.7,
+    "w": 1440,
+    "h": 937.3,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 7548,
+     "w": 1440,
+     "h": 937
+    },
+    "font": 48,
+    "lineHeight": 72,
+    "heading": "Muse for ads and SEO: FAQ"
+   },
+   "diff": 0.1945709281961471,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     15,
+     20
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     7,
+     9
+    ]
+   }
+  },
+  {
+   "id": "footer",
+   "ryze": {
+    "x": 0,
+    "y": 8596.2,
+    "w": 1440,
+    "h": 941,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 8596,
+     "w": 1440,
+     "h": 941
+    },
+    "font": 38,
+    "lineHeight": 34.2,
+    "heading": "Let MuseRun Your Ads"
+   },
+   "ours": {
+    "x": 0,
+    "y": 8485,
+    "w": 1440,
+    "h": 1140.7,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 8485,
+     "w": 1440,
+     "h": 1141
+    },
+    "font": 36,
+    "lineHeight": 40.32,
+    "heading": "Live results across"
+   },
+   "diff": 0.9539865128055313,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     38,
+     39
+    ],
+    "imgs": [
+     1,
+     1
+    ],
+    "bgs": [
+     1,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "footer.cta",
+   "ryze": {
+    "x": 708.6,
+    "y": 9113.7,
+    "w": 384,
+    "h": 60,
+    "fixed": false,
+    "cover": {
+     "x": 709,
+     "y": 9114,
+     "w": 384,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 879.3,
+    "y": 9055.8,
+    "w": 161.3,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 879,
+     "y": 9056,
+     "w": 161,
+     "h": 48
+    }
+   },
+   "diff": null,
+   "exempt": "email-form",
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "float",
+   "ryze": null,
+   "ours": null,
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  },
+  {
+   "id": "whatsapp",
+   "ryze": null,
+   "ours": {
+    "x": 1164,
+    "y": 751.5,
+    "w": 260,
+    "h": 132.5,
+    "fixed": true,
+    "cover": {
+     "x": 1164,
+     "y": 752,
+     "w": 260,
+     "h": 133
+    }
+   },
+   "diff": null,
+   "exempt": "whatsapp",
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  }
+ ],
+ "repeat": {
+  "original": {
+   "ryze": {
+    "px": 0,
+    "raw": 0,
+    "total": 14256000,
+    "p": 0,
+    "pRaw": 0
+   },
+   "ours": {
+    "px": 1,
+    "raw": 1,
+    "total": 14256000,
+    "p": 7.01459034792368e-8,
+    "pRaw": 7.01459034792368e-8
+   }
+  },
+  "font": {
+   "ryze": {
+    "px": 0,
+    "raw": 0,
+    "total": 14256000,
+    "p": 0,
+    "pRaw": 0
+   },
+   "ours": {
+    "px": 18,
+    "raw": 18,
+    "total": 14256000,
+    "p": 0.0000012626262626262627,
+    "pRaw": 0.0000012626262626262627
+   }
+  }
+ }
+}

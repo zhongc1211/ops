@@ -1,0 +1,637 @@
+{
+ "page": "privacy",
+ "width": 390,
+ "limit": 0.0001,
+ "fontNormalized": true,
+ "original": {
+  "diff": 0.9583141703356797,
+  "diffPx": 4100703,
+  "totalPx": 4279080,
+  "screens": [
+   {
+    "i": 0,
+    "ryzeY": 0,
+    "oursY": 0,
+    "n": 296499,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 704,
+      "w": 260,
+      "h": 125
+     }
+    ]
+   },
+   {
+    "i": 1,
+    "ryzeY": 844,
+    "oursY": 844,
+    "n": 295516,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 704,
+      "w": 260,
+      "h": 125
+     }
+    ]
+   },
+   {
+    "i": 2,
+    "ryzeY": 1688,
+    "oursY": 1688,
+    "n": 291462,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 704,
+      "w": 260,
+      "h": 125
+     }
+    ]
+   },
+   {
+    "i": 3,
+    "ryzeY": 2532,
+    "oursY": 2532,
+    "n": 289157,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 123,
+      "y": 163,
+      "w": 143,
+      "h": 48
+     },
+     {
+      "x": 114,
+      "y": 704,
+      "w": 260,
+      "h": 125
+     }
+    ]
+   },
+   {
+    "i": 4,
+    "ryzeY": 3376,
+    "oursY": 3143,
+    "n": 294789,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 704,
+      "w": 260,
+      "h": 125
+     }
+    ]
+   },
+   {
+    "i": 5,
+    "missing": "ours"
+   },
+   {
+    "i": 6,
+    "missing": "ours"
+   },
+   {
+    "i": 7,
+    "missing": "ours"
+   },
+   {
+    "i": 8,
+    "missing": "ours"
+   },
+   {
+    "i": 9,
+    "missing": "ours"
+   },
+   {
+    "i": 10,
+    "missing": "ours"
+   },
+   {
+    "i": 11,
+    "missing": "ours"
+   },
+   {
+    "i": 12,
+    "missing": "ours"
+   }
+  ]
+ },
+ "font": {
+  "diff": 0.9618351040744406,
+  "diffPx": 4432367,
+  "totalPx": 4608240,
+  "screens": [
+   {
+    "i": 0,
+    "ryzeY": 0,
+    "oursY": 0,
+    "n": 295907,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 704,
+      "w": 260,
+      "h": 125
+     }
+    ]
+   },
+   {
+    "i": 1,
+    "ryzeY": 844,
+    "oursY": 844,
+    "n": 295385,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 704,
+      "w": 260,
+      "h": 125
+     }
+    ]
+   },
+   {
+    "i": 2,
+    "ryzeY": 1688,
+    "oursY": 1688,
+    "n": 292431,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 704,
+      "w": 260,
+      "h": 125
+     }
+    ]
+   },
+   {
+    "i": 3,
+    "ryzeY": 2532,
+    "oursY": 2532,
+    "n": 289779,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 123,
+      "y": 163,
+      "w": 143,
+      "h": 48
+     },
+     {
+      "x": 114,
+      "y": 704,
+      "w": 260,
+      "h": 125
+     }
+    ]
+   },
+   {
+    "i": 4,
+    "ryzeY": 3376,
+    "oursY": 3123,
+    "n": 296425,
+    "total": 329160,
+    "masks": [
+     {
+      "x": 114,
+      "y": 704,
+      "w": 260,
+      "h": 125
+     }
+    ]
+   },
+   {
+    "i": 5,
+    "missing": "ours"
+   },
+   {
+    "i": 6,
+    "missing": "ours"
+   },
+   {
+    "i": 7,
+    "missing": "ours"
+   },
+   {
+    "i": 8,
+    "missing": "ours"
+   },
+   {
+    "i": 9,
+    "missing": "ours"
+   },
+   {
+    "i": 10,
+    "missing": "ours"
+   },
+   {
+    "i": 11,
+    "missing": "ours"
+   },
+   {
+    "i": 12,
+    "missing": "ours"
+   },
+   {
+    "i": 13,
+    "missing": "ours"
+   }
+  ]
+ },
+ "blocks": [
+  {
+   "id": "nav",
+   "ryze": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 58.5,
+    "fixed": true,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 60
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 57,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 0,
+     "w": 390,
+     "h": 57
+    }
+   },
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     1
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     2,
+     1
+    ]
+   }
+  },
+  {
+   "id": "col",
+   "ryze": {
+    "x": 0,
+    "y": 136,
+    "w": 390,
+    "h": 10280,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 136,
+     "w": 390,
+     "h": 10280
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Privacy Policy"
+   },
+   "ours": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 2184,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 2184
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Privacy Policy"
+   },
+   "diff": 0.9998969869300609,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     15,
+     141
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "col.title",
+   "ryze": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 36,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 36
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Privacy Policy"
+   },
+   "ours": {
+    "x": 16,
+    "y": 136,
+    "w": 358,
+    "h": 36,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 136,
+     "w": 358,
+     "h": 36
+    },
+    "font": 30,
+    "lineHeight": 36,
+    "heading": "Privacy Policy"
+   },
+   "diff": 0.9957324643078833,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "col.date",
+   "ryze": {
+    "x": 16,
+    "y": 180,
+    "w": 358,
+    "h": 24,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 180,
+     "w": 358,
+     "h": 24
+    }
+   },
+   "ours": {
+    "x": 16,
+    "y": 180,
+    "w": 358,
+    "h": 24,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 180,
+     "w": 358,
+     "h": 24
+    }
+   },
+   "diff": 0.9271415270018621,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     1,
+     1
+    ],
+    "imgs": [
+     0,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "col.h2",
+   "ryze": null,
+   "ours": {
+    "x": 16,
+    "y": 264,
+    "w": 358,
+    "h": 512,
+    "fixed": false,
+    "cover": {
+     "x": 16,
+     "y": 264,
+     "w": 358,
+     "h": 512
+    },
+    "font": 24,
+    "lineHeight": 32,
+    "heading": "Ryze AI is operated by Meow AI, LLC, San Francisco, CA (\"Ryz"
+   },
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  },
+  {
+   "id": "footer",
+   "ryze": {
+    "x": 0,
+    "y": 10608,
+    "w": 390,
+    "h": 917.8,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 10608,
+     "w": 390,
+     "h": 918
+    }
+   },
+   "ours": {
+    "x": 0,
+    "y": 2512,
+    "w": 390,
+    "h": 1455,
+    "fixed": false,
+    "cover": {
+     "x": 0,
+     "y": 2512,
+     "w": 390,
+     "h": 1455
+    },
+    "font": 30,
+    "lineHeight": 33.6,
+    "heading": "Live results across"
+   },
+   "diff": 0.9836197021764032,
+   "exempt": null,
+   "applied": {
+    "texts": [
+     38,
+     36
+    ],
+    "imgs": [
+     1,
+     0
+    ],
+    "bgs": [
+     0,
+     0
+    ],
+    "svgs": [
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "footer.cta",
+   "ryze": null,
+   "ours": {
+    "x": 123.4,
+    "y": 2695.4,
+    "w": 143.2,
+    "h": 48,
+    "fixed": false,
+    "cover": {
+     "x": 123,
+     "y": 2695,
+     "w": 143,
+     "h": 48
+    }
+   },
+   "diff": null,
+   "exempt": "email-form",
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  },
+  {
+   "id": "float",
+   "ryze": {
+    "x": 12,
+    "y": 804,
+    "w": 366,
+    "h": 52,
+    "fixed": true,
+    "cover": {
+     "x": 12,
+     "y": 804,
+     "w": 366,
+     "h": 52
+    }
+   },
+   "ours": null,
+   "diff": null,
+   "exempt": null,
+   "applied": {
+    "skipped": "no block on our page"
+   }
+  },
+  {
+   "id": "whatsapp",
+   "ryze": null,
+   "ours": {
+    "x": 114,
+    "y": 703.5,
+    "w": 260,
+    "h": 124.5,
+    "fixed": true,
+    "cover": {
+     "x": 114,
+     "y": 704,
+     "w": 260,
+     "h": 125
+    }
+   },
+   "diff": null,
+   "exempt": "whatsapp",
+   "applied": {
+    "skipped": "no Ryze content"
+   }
+  }
+ ],
+ "repeat": {
+  "original": {
+   "ryze": {
+    "px": 0,
+    "raw": 0,
+    "total": 4279080,
+    "p": 0,
+    "pRaw": 0
+   },
+   "ours": {
+    "px": 0,
+    "raw": 0,
+    "total": 1645800,
+    "p": 0,
+    "pRaw": 0
+   }
+  },
+  "font": {
+   "ryze": {
+    "px": 0,
+    "raw": 0,
+    "total": 4608240,
+    "p": 0,
+    "pRaw": 0
+   },
+   "ours": {
+    "px": 0,
+    "raw": 0,
+    "total": 1645800,
+    "p": 0,
+    "pRaw": 0
+   }
+  }
+ }
+}

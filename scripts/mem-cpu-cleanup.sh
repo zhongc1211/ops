@@ -481,7 +481,7 @@ def main():
     hook, rc = "没有关不掉的进程，也没有新的 Chrome 异常，不发 webhook", 0
     if items:
         kinds = (["kill_failed"] if failed else []) + (["chrome_abnormal"] if chrome_new else [])
-        payload = {"bot": "ops", "task": "cleanup", "worktree": "iMac",
+        payload = {"bot": "ops", "task": "cleanup", "worktree": "MBA",
                    "status": kinds[0] if len(kinds) == 1 else "mixed",
                    "note": items[0] if len(items) == 1 else "共 %d 条：\n" % len(items) + "\n".join(
                        "%d. %s" % (i, t) for i, t in enumerate(items, 1))}
