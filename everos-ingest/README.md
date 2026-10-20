@@ -127,6 +127,8 @@ EVEROS_INGEST_ROOT=$HOME/.orca-state/bin/everos-ingest \
     `python3 -I everos_readback.py --project deepvision-site --from-log <D>-deepvision-site-addflush.json --session nightly-review-deepvision-site-<D>`。
   - 只读复查：`everos_readback.py --project P --from-log LOG.json --session SID --skill NAME --report OUT.json`；
     两个写入脚本也有 `--readback-only`（不 add/flush）。
+  - 接替运行（PER-79，MBA 错过一晚由 iMac 或 box 补跑）：`nightly_addflush.py --skip-existing` 写之前按 session_id 查，
+    已有 episode 的会话记 `result=ALREADY`，不写也不再读回；`--sessions-dir` 指向从 box 同步下来的清单目录。
 - 演练专用（夜审里不用）：`EVEROS_WRITE_STUB_URL`（add/flush 只发到这个地址，读回仍查真 EverOS）、
   `everos_readback.py --query-project-id`、`EVEROS_PUBLIC_URL`（CLI 的公网回落地址）。
 - 演练产物：`/workspace/ops/reports/drills/per67-a-readback/`。

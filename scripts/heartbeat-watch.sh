@@ -14,7 +14,7 @@
 #   environment 写空串 = 本机 Orca。
 # 自己的心跳也一样：main() 出错（rc 4）时 last_scan 不前进，盯它的另一个 heartbeat-watch 照样能报（PER-67 F8 同类）。
 # 状态：HB_STATE_DIR（默认 ~/.orca-state/heartbeat-watch）/state.json、watch.log、heartbeat.json。
-# webhook：~/.config/grokbot/webhooks/<bot>.env（URL、KEY）。演练用 STUCK_FORCE_BOT=test（所有消息改发 test），
+# webhook：~/.config/grokbot/webhooks/<bot>.env（URL、KEY）。演练用 STUCK_FORCE_BOT=ops-system（所有消息改发 ops-system；只换收件 bot，task 不加「[演练 叫醒通路]」，那是手动 notify-run 演练的前缀），
 #   STUCK_WEBHOOK_DIR 可改目录。URL 和 KEY 只经 stdin 交给 curl，不进日志和输出。
 # 退出码：0 正常；1 正常（--precheck：给 Orca 自动任务当 precheck 用，返回 1 不启动 agent）；2 用法错误；
 #   3 有报警没发出去（下次再发）；4 脚本自己出错。

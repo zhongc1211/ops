@@ -3,7 +3,9 @@
 
 对本机 `orca worktree list` 里的每个工作区（只读，GIT_OPTIONAL_LOCKS=0，不 fetch、不提交、不推、不 stash、不 reset）：
   unpushed — HEAD 上有不在任何远程分支里的提交（git rev-list HEAD --not --remotes），最早的一个超过 2 小时
-  dirty    — 有未提交的改动（含未跟踪文件，不含未跟踪的 node_modules 软链接），其中最早的一处改动超过 2 小时
+  dirty    — 有未提交的改动（含未跟踪文件，不含未跟踪的 node_modules 软链接），其中最早的一处改动超过 2 小时；
+             未跟踪条目正好是本仓库另一个已注册 worktree 的根目录、并且这次也在扫的工作区里（Orca 把 ops 工作区
+             建在 ops 主检出里面）不算，那个工作区自己会单独扫；git worktree list 失败或超时就照旧算
 发现了就用 notify-run 叫醒该项目的 bot（按 git remote 认项目），同一个 bot 一次运行只叫一次，消息里列出全部发现。
 限流（状态在 ~/.orca-state/unpushed-scan/state.json）：
   - 同一个工作区 4 小时内只叫一次（项目 bot 和 coding-assistant 都算），不管是哪种发现、内容变没变；
@@ -16,7 +18,7 @@
 iMac 上是本机镜像，由 unpushed-scan.sh 再经 ssh 追加到 box 的同一个文件）。
 忽略名单 IGNORE：按 --machine 和路径跳过的工作区（如 MBA 的 ~/orca/projects/local 占位仓库）。
 演练：--only <路径前缀> 只扫这些工作区，--state 用单独的状态文件，--drill 让叫醒标题带「【演练】」，
-  环境变量 UNPUSHED_FORCE_BOT=<bot> 让所有叫醒改发给这个 bot（演练用 test，不叫醒真 bot）。
+  环境变量 UNPUSHED_FORCE_BOT=<bot> 让所有叫醒改发给这个 bot（演练用 ops-system，不叫醒业务 bot；只换收件 bot，标题不加「[演练 叫醒通路]」，--drill 时带「【演练】」）。
 退出码：0 = 扫完（不管有没有发现）；2 = 拿不到工作区列表。
 """
 import argparse
@@ -91,6 +93,19 @@ def git(path, *args):
     return p.returncode, p.stdout
 
 
+def other_worktrees(path):
+    """本仓库另外注册的 worktree 根目录（realpath）。git worktree list 失败或超时返回空集，宁可多报。"""
+    try:
+        p = subprocess.run(["git", "-C", path, "worktree", "list", "--porcelain"],
+                           capture_output=True, text=True, env=GIT_ENV, timeout=15)
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    if p.returncode != 0:
+        return set()
+    roots = {os.path.realpath(l[len("worktree "):]) for l in p.stdout.splitlines() if l.startswith("worktree ")}
+    return roots - {os.path.realpath(path)}
+
+
 def bot_for(path):
     rc, url = git(path, "remote", "get-url", "origin")
     url = url.strip() if rc == 0 else ""
@@ -100,8 +115,8 @@ def bot_for(path):
     return "coding-assistant", url or "(没有 origin)"
 
 
-def scan_one(path):
-    """返回这个工作区的发现列表 [(kind, 指纹, 说明)]。"""
+def scan_one(path, scanned=frozenset()):
+    """返回这个工作区的发现列表 [(kind, 指纹, 说明)]。scanned：这次运行要扫的工作区（realpath）。"""
     found = []
     rc, head = git(path, "rev-parse", "HEAD")
     if rc != 0:
@@ -123,7 +138,7 @@ def scan_one(path):
                 branch, len(commits), age / 3600, up, subj.strip()[:80])))
     rc, out = git(path, "status", "--porcelain=v1", "-z", "--untracked-files=normal")
     if rc == 0 and out:
-        entries, oldest, now = [], None, time.time()
+        entries, oldest, now, nested = [], None, time.time(), None
         parts = out.split("\0")
         i = 0
         while i < len(parts):
@@ -136,6 +151,11 @@ def scan_one(path):
                 i += 1  # 改名的原路径
             if st == "??" and name.rstrip("/").split("/")[-1] == "node_modules":
                 continue  # 指向共享依赖的 node_modules 软链接：gitignore 的 node_modules/ 匹配不到软链接，不算改动
+            if st == "??" and name.endswith("/"):
+                if nested is None:
+                    nested = other_worktrees(path) & scanned
+                if os.path.realpath(os.path.join(path, name)) in nested:
+                    continue  # 嵌在主检出里、这次也在扫的另一个工作区，它自己单独扫
             entries.append(st + " " + name)
             try:
                 m = os.lstat(os.path.join(path, name)).st_mtime
@@ -192,13 +212,14 @@ def main():
     for k, v in state.items():
         pth = k.rsplit("::", 1)[0]
         path_last[pth] = max(path_last.get(pth, 0), v.get("last", 0), v.get("esc", 0))
+    scanned = frozenset(os.path.realpath(w["path"]) for w in wts if os.path.isdir(w["path"]))
     for w in wts:
         path = w["path"]
         if not os.path.isdir(path):
             skipped += 1
             continue
         try:
-            found = scan_one(path)
+            found = scan_one(path, scanned)
         except Exception as e:
             log("%s 扫描出错：%s" % (path, type(e).__name__))
             continue

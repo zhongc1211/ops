@@ -85,7 +85,7 @@ user_id 一律用 `zack`；`EVEROS_BASE_URL=https://everos.deepvision.sg`；MCP 
 ### 2.2 内容（每份 6 行，不多不少；`EVEROS_AGENT_ID` 可以有，导入脚本会用，但值必须等于 sender，MCP 不读它）
 ```
 EVEROS_BASE_URL=https://everos.deepvision.sg
-EVEROS_API_KEY=<eggbot 写入，任何人不回显>
+EVEROS_API_KEY=<ops 系统写入，任何人不回显>
 EVEROS_APP_ID=<app_id>
 EVEROS_PROJECT_ID=<project_id>
 EVEROS_ASSISTANT_SENDER_ID=coding-<project_id>
@@ -93,7 +93,7 @@ EVEROS_USER_ID=zack
 ```
 
 ### 2.3 谁放、怎么放
-- 只有 eggbot 能写这些文件。项目 bot 和编码会话不 cat、不 echo、不复制。
+- 只有 ops 系统能写这些文件（唯一写入方）；dr eggbot 只读，只做核对，不写。项目 bot 和编码会话不 cat、不 echo、不复制。
 - key 不能出现在命令行参数里，因为 `ps` 看得到。`printf` 和 `read` 是 shell 内建命令，不会产生新进程，所以下面的写法安全：
 ```bash
 umask 077; mkdir -p ~/.config/everos; chmod 700 ~/.config/everos
@@ -125,7 +125,7 @@ PY
 
 ### 2.6 轮换
 1. 在 site 上换 nginx 的 token；
-2. eggbot 按 §2.3 重写两台机器上的全部 env 文件（box 4 份加 `.proxy-token`，iMac 4 份）；
+2. ops 系统按 §2.3 重写两台机器上的全部 env 文件（box 4 份加 `.proxy-token`，iMac 4 份）；
 3. 已经开着的会话里，MCP 进程还拿着旧 key，nginx 切换后会报 401，重开会话就好；
 4. 用 §2.5 核对，每台机器再按 §11 抽一格做 recall。
 
@@ -294,7 +294,7 @@ claude mcp get everos      # 分别在主 checkout、一个已有 worktree、一
 ### 5.1 写法：一个全局扩展，里面一张表
 - 文件是 `~/.pi/agent/extensions/everos.ts`，两台机器逐字节相同。这份文件不含密钥。
 - 目前在 box 上测过的版本：`EV/everos.ts`，sha256 `743e3d27d88e7d77f3a52fac4371dbd13b95091baad84772e86453f7516214fd`。
-- 只有 eggbot 能改表，改完两台机器一起换，并比对 sha。
+- 只有 ops 系统能改表，改完两台机器一起换，并比对 sha。
 ```ts
 // Pi user extension (EverOS MCP wiring standard v2): ~/.pi/agent/extensions/everos.ts, same bytes on box and iMac.
 // Mounts the EverOS MCP server "everos" for the project that owns the session's working directory, read-only.
@@ -385,7 +385,7 @@ shasum -a 256 ~/.pi/agent/extensions/everos.ts      # 应为 743e3d27…（表�
 - box 上 deepvision-site FDV-68 worktree 里的 `.pi/mcp.json` 要删掉，删之前复制到证据目录。
   - 删的原因：同名时 `mcp.json` 优先，它会把扩展盖掉；而且它的 `exposure:"direct"` 会把写工具也直接给模型。
   - `~/.pi/agent/trust.json` 里 `deepvision-site` 那两条信任，是专门为这份文件加的。它们让 deepvision-site 下所有 worktree 里的 `.pi/extensions` 都会自动执行。和官网 bot 确认后删掉。
-- 「规范副本」：建议上线前由 eggbot 把 `everos.ts`、模板和 `EV/tools/` 提 PR 放进 ops 仓库（比如 `everos/mcp/`），两台机器都从那里取，用 sha 核对。在那之前，以 `EV/` 里的副本为准。
+- 「规范副本」：建议上线前由 ops 系统把 `everos.ts`、模板和 `EV/tools/` 提 PR 放进 ops 仓库（比如 `everos/mcp/`），两台机器都从那里取，用 sha 核对。在那之前，以 `EV/` 里的副本为准。
 
 ### 5.3 不允许的写法（列进验收 G4）
 - `~/.pi/agent/mcp.json` 里有 `everos`：会对所有目录生效；
@@ -413,7 +413,7 @@ shasum -a 256 ~/.pi/agent/extensions/everos.ts      # 应为 743e3d27…（表�
 |---|---|---|
 | 编码会话（Claude 和 pi，父会话） | 派活对着的会话 | 只能用 `recall_agent_experience`、`search_memory`、`list_memories`。`add_memory`、`record_trajectory`、`forget_session`、`get_profile` 在两个客户端都不可达（§4.4、§5.1） |
 | 夜审写入 | box 上的自动化 `75b324a4`（心月）；其他项目以后照做 | HTTP `/api/v2/memory/add` 加 `/flush`（`nightly_addflush.py`），key 从 env 文件读 |
-| LESSONS / skill 导入 | eggbot | 在 site 上用 `AgentSkillWriter.write_main`，脚本先在 ops 里审过（`PROJECT-ISOLATION-142.md` P2）；写之前备份，写完核对 |
+| LESSONS / skill 导入 | ops 系统（唯一写入方；dr eggbot 只读，只做查询/核对） | 在 site 上用 `AgentSkillWriter.write_main`，脚本先在 ops 里审过（`PROJECT-ISOLATION-142.md` P2）；写之前备份，写完核对 |
 | 收工回写（`record_trajectory`） | 还没开 | 要开的话 Zack 单独批，然后同时改：Claude 的 deny、pi 的 `toolExposure`、模板的版本号 |
 
 - 限制：nginx 只有一个 bearer，服务端不按项目鉴权。拿到 key 的任何进程都能用 curl 读写任意 scope。客户端的 scope 隔离靠的是脚本锁和每个项目各自的 env 文件。
@@ -659,7 +659,7 @@ PY
 | `~/.config/everos/deepvision.env` | 13:10，600；多了一行注释和 `EVEROS_AGENT_ID` | **没有** | box 保留；iMac 上线时补 |
 | `~/.config/everos/dv-ads.env` | 13:12，600 | 13:15，600 | 保留 |
 | `~/.config/everos/vllm-omni.env` | 13:10，600，多了 `EVEROS_AGENT_ID` | 13:11，600，同样多这一行 | 保留 |
-| `~/.config/everos/.proxy-token` | 03:32，600 | 没有 | 作为 box 上 key 的来源保留（也可以由 eggbot 决定删掉） |
+| `~/.config/everos/.proxy-token` | 03:32，600 | 没有 | 作为 box 上 key 的来源保留（也可以由 ops 系统决定删掉） |
 | `~/.pi/agent/extensions/everos-*` | `everos-dv-ads.ts`，13:17，sha `e1cc222c…`（广告 FDV-67） | 没有 | 换成 `everos.ts`，同一步删掉旧的（§5.2） |
 | `.pi/mcp.json` | `~/orca/workspaces/deepvision-site/dv运维-FDV-68-EverOS接入/.pi/mcp.json`，13:17，没进 git，`exposure:"direct"`（官网 FDV-68） | 没有 | 删掉 |
 | `~/.pi/agent/trust.json` | 13:17 新增了 `~/orca/workspaces/deepvision-site` 和 `/workspace/repos/deepvision-site` 两条 | 今天没改（最后修改是 10-10） | 和官网 bot 确认后删掉这两条 |

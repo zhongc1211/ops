@@ -1,0 +1,3 @@
+#!/bin/bash
+# Same shape as the real orca CLI: a bash wrapper whose child does the work and holds stdout.
+python3 "$(dirname "$0")/../fake_orca.py" "$@"
