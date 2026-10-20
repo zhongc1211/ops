@@ -63,13 +63,15 @@ wake/tla/check.sh w0 h0           # 只跑名字以 w0、h0 开头的（P2、P3�
 
 ```bash
 wake/tests/prefilter-drill.sh <产物目录>        # 当前分支；全部用临时 HOME、本机假接收端 wake/tests/mock_webhook.py、假 key
-WAKE_DRILL_BASE=1 wake/tests/prefilter-drill.sh <产物目录>   # 回退测试：同一套输入跑 main 的代码，该挡的都会发出
+WAKE_DRILL_CODE=<main 的 git archive 导出> WAKE_DRILL_EXPECT=send WAKE_DRILL_PORT=18822 \
+    wake/tests/prefilter-drill.sh <产物目录>   # 回退测试：同一套输入跑 main 的代码，该挡的都会发出
 ```
 
 | 演练 | 期望（开关 on） |
 |---|---|
-| a1 a2 b1 b2 b3 c1 d1 e1 e2 f1 | 挡掉：假接收端 0 条，prefilter.log 一行（规则字母对得上） |
+| a1 a2 b1 b2 b3 c1 d1 d3 e1 e2 f1 | 挡掉：假接收端 0 条，prefilter.log 一行（规则字母对得上） |
 | r1～r11 | 照发：假接收端条数和 main 一样，prefilter.log 没有这一条 |
+| d2 | 照发（ops-system 的「[演练 叫醒通路]」内置放行），prefilter.log 一行「放行：」 |
 | s1 off / s2 shadow | 全部照发；off 的 payload 和 main 逐字节相同；shadow 的 prefilter.log 记「shadow 会挡」 |
 
 逐条输入和判定写在脚本里，说明在 `wake/docs/TESTS.md`「叫醒前预过滤演练」。只在两次线上卡住检查扫描之间跑，不发真叫醒、不读真 env。

@@ -30,7 +30,7 @@ BOT=drill-bot
 MOCK_OUT="$OUT/mock.jsonl"
 RES="$OUT/results.tsv"
 PFLOG="$TMP/state/prefilter.log"
-CASES_ALL="r1a1 a2 r10 b1 b2 b3 r9 c1 r3 r3b d1 r8 r2 r5 r6 r7 f1 r4 e1 e2 r11 s1 s2"
+CASES_ALL="r1a1 a2 r10 b1 b2 b3 r9 c1 r3 r3b d1 r8 d2 d3 r2 r5 r6 r7 f1 r4 e1 e2 r11 s1 s2"
 CASES=${*:-$CASES_ALL}
 
 mkdir -p "$FAKE/.config/grokbot/webhooks" "$TMP/state" "$TMP/config" "$TMP/stops" "$TMP/stuck" "$WS" "$TMP/cbin"
@@ -39,11 +39,11 @@ for c in claude orca; do
     printf '#!/bin/sh\nHOME=%q; export HOME\nexec %q "$@"\n' "$REAL_HOME" "$(command -v "$c")" >"$TMP/cbin/$c"
     chmod +x "$TMP/cbin/$c"
 done
-for b in "$BOT" coding-assistant; do
+for b in "$BOT" coding-assistant ops-system xinyue; do
     printf 'URL=http://127.0.0.1:%s/hook/%s\nKEY=drill-key\n' "$PORT" "$b" >"$FAKE/.config/grokbot/webhooks/$b.env"
 done
 cp "$FAKE/.config/grokbot/webhooks/coding-assistant.env" "$FAKE/.config/grokbot/stuck-webhook.env"
-printf '%s\ncoding-assistant\n' "$BOT" >"$TMP/config/enabled-bots"
+printf '%s\ncoding-assistant\nops-system\nxinyue\n' "$BOT" >"$TMP/config/enabled-bots"
 cat >"$TMP/settings.json" <<EOF
 {"hooks": {
 $(for ev in UserPromptSubmit Stop StopFailure PermissionRequest Notification; do
@@ -229,7 +229,7 @@ for f in glob.glob('$TMP/state/prefilter/units/*.json'):
         if [ "$c" = b3 ]; then
             tty b3 "$SLEEP_WS" "$t" "${CLAUDE[@]}" --dangerously-skip-permissions -p "$OKP"
             waitfor 120 gone b3; sleep 6; waitfor 30 settled
-            row b3 "Orca 工作区状态 sleep 里 claude -p 一句话" "done、idle 都挡（b）" "$t" "$(want "$t" done 0 idle 0)"
+            row b3 "Orca 工作区状态 sleep 里 claude -p 一句话（-p 不跑异步 Stop hook，只有 done）" "done 挡（b）" "$t" "$(want "$t" done 0)"
         else
             tty r9 "$SLEEP_WS" "$t" "${CLAUDE[@]}" --model no-such-model-pf -p "$OKP"
             waitfor 120 gone r9; waitfor 30 settled
@@ -254,6 +254,23 @@ for f in glob.glob('$TMP/state/prefilter/units/*.json'):
         waitfor 120 has "$t" idle; sleep 1
         kill -9 "$(child_of "$(nrpid r3b)")"; waitfor 60 gone r3b; waitfor 30 settled
         row r3b "idle 送达后 kill -9 claude（崩溃）" "failed 137 照发" "$t" "$(want_send "$t" idle 1 failed 1)" ;;
+    d2)  # 内置放行：bot ops-system + task「[演练 叫醒通路]…」，开关 on 也照发，prefilter.log 记一行放行
+        local BOT=ops-system dt="[演练 叫醒通路] pfdrill d2" ok=0
+        tty d2 "$WS/d2" "$dt" "${CLAUDE[@]}" --dangerously-skip-permissions -p "$OKP"
+        waitfor 120 gone d2; sleep 6; waitfor 30 settled
+        if [ "$(count "$dt" done)" = 1 ] && [ "$(count "$dt")" = 1 ]; then
+            if [ -x "$BIN/wake-prefilter" ] && [ "$MODE" != off ]; then
+                [ "$(pfcount "$dt")" = 1 ] && grep -F "	$dt	" "$PFLOG" | grep -qF '放行：' && ok=1
+            else ok=1; fi
+        fi
+        row d2 "bot ops-system，task「${dt}」，claude -p 一句话" "done 照发；prefilter.log 一行放行" "$dt" "$ok" ;;
+    d3)  # 放行只认 ops-system + [演练 叫醒通路]：别的 bot 或别的 [演练 照旧挡
+        local dx="[演练 叫醒通路] pfdrill d3" dy="[演练 pfdrill d3] 别的演练"
+        BOT=xinyue tty d3x "$WS/d3x" "$dx" "${CLAUDE[@]}" --dangerously-skip-permissions -p "$OKP"
+        BOT=ops-system tty d3y "$WS/d3y" "$dy" "${CLAUDE[@]}" --dangerously-skip-permissions -p "$OKP"
+        waitfor 120 gone d3x; waitfor 120 gone d3y; sleep 6; waitfor 30 settled
+        row d3 "bot xinyue，task「${dx}」，claude -p 一句话" "done 挡（d）" "$dx" "$(want "$dx" done 0)"
+        row d3 "bot ops-system，task「${dy}」，claude -p 一句话" "done 挡（d）" "$dy" "$(want "$dy" done 0)" ;;
     d1 | r8)  # 「[演练」task：不在白名单挡（d1）；在白名单照发（r8）
         local dt="[演练 pfdrill $c] 预过滤"
         if [ "$c" = r8 ]; then printf '# 演练白名单\npfdrill r8\n' >"$TMP/config/prefilter-drill-allow"; fi
@@ -261,7 +278,7 @@ for f in glob.glob('$TMP/state/prefilter/units/*.json'):
         waitfor 120 gone "$c"; sleep 6; waitfor 30 settled
         rm -f "$TMP/config/prefilter-drill-allow"
         if [ "$c" = d1 ]; then
-            row d1 "task「${dt}」，claude -p 一句话，白名单里没有" "done、idle 都挡（d）" "$dt" "$(want "$dt" done 0 idle 0)"
+            row d1 "task「${dt}」，claude -p 一句话（只有 done），白名单里没有" "done 挡（d）" "$dt" "$(want "$dt" done 0)"
         else
             row r8 "task「${dt}」，prefilter-drill-allow 有一行 pfdrill r8" "done 照发" "$dt" "$(want_send "$dt" done 1)"
         fi ;;

@@ -151,7 +151,7 @@ P2 Pi 后台子代理：
 | r10 | idle:1 送达后第 2 回合起后台 shell（Stop 时有后台任务，按设计不发 idle），再 `/exit` | done 照发 |
 | b1 | **本地替身检查**：r10 的 done 已送达（账本第 2 回合）后，构造旧回合 idle:1 的 payload 直接交给 wake-prefilter。现在的代码里旧回合的 idle 在 settle 时就作废（superseded），真流程造不出来 | 退出码 3（b，覆盖） |
 | b2 | 同工作区、同 task 两个 claude：第二个（`-p`）的 done 送达后，第一个的 notify-run 收到 HUP，没有 agent-stop 标记 | killed 挡（b，覆盖） |
-| b3 / r9 | Orca 工作区状态 sleep 里 `claude -p`；同一工作区 claude 用不存在的模型 | done 挡（b）；failed 照发 |
+| b3 / r9 | Orca 工作区状态 sleep 里 `claude -p`（`-p` 不跑异步 Stop hook，只有 done，d1～d3 同）；同一工作区 claude 用不存在的模型 | done 挡（b）；failed 照发 |
 | c1 / r3 | idle 送达后 `agent-stop --mark-only`，再 `kill -HUP` notify-run；不打标记直接 HUP | killed 挡（c）；killed 照发 |
 | r3b | idle 送达后 `kill -9` claude | failed（137）照发 |
 | d1 / r8 | task 以「[演练」开头；同样的 task 写进 `prefilter-drill-allow` | done 挡（d）；照发 |
