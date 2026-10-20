@@ -23,6 +23,10 @@
 # 每次发送（含重试、找不到配置）另外追加一行到 NOTIFY_RUN_LOG（默认 ~/.orca-state/notify-run/notify-run.log），
 #   制表符分隔：时间 bot issue status exit_code http 第几次 工作区（命令启动时的目录） pane（ORCA_PANE_KEY） agent（1 = 这一层是
 #   --tty 包住整个 agent 的那层，0 = 嵌套的长命令等）。不写 URL、KEY、payload 和输出。卡住检查按 pane 认主目录里退出的 agent 有没有送达（PER-67 F2）。
+# 起没起来（PER-67 第 6 组）：--tty 包住 claude、带了提示词（最后一个参数不以 - 开头）时，NOTIFY_RUN_START_MIN（默认 5，0 = 不查）分钟后
+#   orca-wake 还没有这个 notify-run 派出的会话走到第 1 个回合（sessions/*.json 里 dispatch_pid = 本进程、turn ≥ 1），而 agent 还在，
+#   就叫醒派活的 bot 一次：status stuck、kind agent_not_started（卡在启动对话框、登录、没装 hook……）。发不出去时改发 coding-assistant。
+#   pi / codex 不查（它们的扩展只在停下时才写会话）。
 set -u
 
 usage() {
@@ -67,16 +71,19 @@ build_json() {
     if command -v jq >/dev/null 2>&1; then
         jq -n --arg bot "$bot" --arg task "$task" --arg issue "$issue" \
             --arg machine "$machine" --arg status "$status" --arg log_tail "$tail_text" \
-            --argjson exit_code "$code" --argjson duration_s "$duration" \
+            --argjson exit_code "$code" --argjson duration_s "$duration" --arg kind "${kind:-}" --arg note "${note:-}" \
             '{bot: $bot, task: $task, issue: $issue, machine: $machine, exit_code: $exit_code,
-              status: $status, log_tail: $log_tail, duration_s: $duration_s, source: "notify-run"}'
+              status: $status, log_tail: $log_tail, duration_s: $duration_s, source: "notify-run"}
+             + (if $kind == "" then {} else {kind: $kind, note: $note} end)'
     else
         python3 -c 'import json, sys
 a = sys.argv[1:]
-print(json.dumps({"bot": a[0], "task": a[1], "issue": a[2], "machine": a[3], "exit_code": int(a[4]),
-                  "status": a[5], "log_tail": a[6], "duration_s": int(a[7]),
-                  "source": "notify-run"}))' \
-            "$bot" "$task" "$issue" "$machine" "$code" "$status" "$tail_text" "$duration"
+d = {"bot": a[0], "task": a[1], "issue": a[2], "machine": a[3], "exit_code": int(a[4]),
+     "status": a[5], "log_tail": a[6], "duration_s": int(a[7]), "source": "notify-run"}
+if a[8]:
+    d.update(kind=a[8], note=a[9])
+print(json.dumps(d))' \
+            "$bot" "$task" "$issue" "$machine" "$code" "$status" "$tail_text" "$duration" "${kind:-}" "${note:-}"
     fi
 }
 
@@ -141,9 +148,36 @@ on_signal() {
     return 0
 }
 
+# 起没起来（见文件头）：orca-wake 里有没有本进程派出的、走到第 1 个回合的会话
+agent_started() {
+    python3 - "${ORCA_WAKE_STATE_DIR:-$HOME/.local/state/orca-wake}/sessions" "$$" <<'PY'
+import glob, json, os, sys
+for f in glob.glob(os.path.join(sys.argv[1], "*.json")):
+    try:
+        d = json.load(open(f, encoding="utf-8"))
+        if str(d.get("dispatch_pid")) == sys.argv[2] and int(d.get("turn") or 0) >= 1:
+            sys.exit(0)
+    except (OSError, ValueError, TypeError):
+        continue
+sys.exit(1)
+PY
+}
+start_watch() (  # 后台子 shell：到时间 agent 还在、还没走到第 1 个回合就叫醒一次
+    sleep "$(awk "BEGIN{print ${NOTIFY_RUN_START_MIN:-5} * 60}")"
+    kill -0 "$child" 2>/dev/null || exit 0
+    agent_started && exit 0
+    status=stuck code=0 kind=agent_not_started duration=$(( $(date +%s) - start ))
+    note="notify-run 起了 ${agent_name}（pid ${child}）已 ${NOTIFY_RUN_START_MIN:-5} 分钟，orca-wake 里还没有它的第 1 个回合（UserPromptSubmit）：可能卡在启动对话框、登录或信任目录，或者没装 hook。去终端看一眼"
+    send_webhook && exit 0
+    [ "$bot" = coding-assistant ] && exit 0
+    note="${note}（原本发给 ${bot}，没发出去）" bot=coding-assistant
+    send_webhook
+)
+
 finish() {
     trap '' INT TERM HUP
     trap - EXIT
+    [ -z "${watch:-}" ] || kill "$watch" 2>/dev/null
     if [ -n "$sig_num" ]; then
         status=killed code=$((128 + sig_num))
     elif [ "$cmd_rc" -eq 0 ]; then
@@ -188,6 +222,13 @@ else
     tee_err=$!
     "$@" <&0 >"$tmpd/out" 2>"$tmpd/err" &
     child=$!
+fi
+watch="" agent_name=$(basename -- "$1")
+last_arg=${!#}
+if [ "$tty_mode" = 1 ] && [ "${ORCA_DISPATCH_PID:-}" = "$$" ] && [ "$agent_name" = claude ] && \
+        [ "${NOTIFY_RUN_START_MIN:-5}" != 0 ] && [ "${last_arg#-}" = "$last_arg" ] && [ $# -gt 1 ]; then
+    start_watch &
+    watch=$!
 fi
 # 信号可能在 child 赋值之前就到了，这时 on_signal 没转发，在这里补发。
 [ -z "$sig_num" ] || kill -s TERM "$child" 2>/dev/null

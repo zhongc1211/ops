@@ -41,8 +41,8 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 
 | 文件 | sha256（前 16 位） | box `~/.local/bin` | iMac | MBA |
 |---|---|---|---|---|
-| wake/bin/notify-run | ba212e93614c3fe8（F2 加了 pane、agent 字段；建模时 72e01f954dc624ee） | 一致 | 一致 | 一致 |
-| wake/bin/orca-agent-launch | 4355bc557b4876d0 | 一致 | 一致 | 一致 |
+| wake/bin/notify-run | 4ce9845ef12349d4（F2 加了 pane、agent 字段，第 6 组加了起没起来的检查，bash 3.2 下改写 `${var}`、行号不变；建模时 72e01f954dc624ee） | 没核对 | 没核对 | 没核对 |
+| wake/bin/orca-agent-launch | 907611083b053b4b（第 6 组加了拒绝时叫醒，bash 3.2 下改写 `${var}`、行号不变；建模时 4355bc557b4876d0） | 没核对 | 没核对 | 没核对 |
 | wake/bin/orca-wake | ab75137c97142a40 | 一致 | 一致 | 一致 |
 | wake/bin/orca-wake-hooks | 1a5e66d777618c76 | 一致 | 一致 | 一致 |
 | wake/bin/agent-stop | 7cc0ebefd5b5c53a | 一致 | 一致 | 一致 |
@@ -79,6 +79,7 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | P3 | 卡住检查自己停了（自动任务不跑 / Orca 挂了 / 每次超时 / 每次出错），最终一定告警 Coding助手；P3_BOUND：最后一次跑完的扫描后 75 分钟内 | 兜底没了，没人知道 | Step 的 WF；假设 box 上的 heartbeat-watch 自己在跑、Coding助手 webhook 可用 |
 | P4 | 没有任务停下超过 1 小时、没有任何 bot 收到、也没叫醒 Coding助手 | 同 P1，且时间有上限 | 安全性；前提 Coding助手 webhook 一直可用（`CA_ALWAYS_UP`） |
 | P5（代码里找到的） | 一个 bot 的 webhook 坏了，不挡派给 Coding助手 的任务被收到 | 一个坏掉的 bot 让所有卡住告警（含给 Coding助手 的）都发不出去 | 前提 Coding助手 webhook 最终一直可用 |
+| P6（第 6 组） | agent 没起来（orca-agent-launch 拒绝，或 notify-run 起了 claude 却一直没有第 1 个回合），最终有 bot 收到「没起来」（或者它后来起来了）；P6_BOUND：一直没起来的 START+1 分钟内 | 派活 bot 以为 agent 在干活，其实一个都没起（10-19 07:24 iMac term_b8179e9b） | `Launch.tla`；前提 Coding助手 webhook 一直可用 |
 
 ## 界限和简化
 
@@ -128,6 +129,8 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | h01 P3（dead）+ P3_BOUND + NoFalseAlarm | pass | 自动任务停 / Orca 挂了会告警，75 分钟内 |
 | h02 改坏：查不到运行记录不报 | violated | |
 | h03 P3（hang） / h04 P3（crash） | pass（F7、F8 已修） | 加了 P3_BOUND：75 分钟内告警 |
+| l01 P6 + P6_BOUND | pass | 第 6 组：orca-agent-launch 拒绝时、notify-run 起的 claude 5 分钟没有第 1 个回合时叫醒派活 bot，发不出去改发 Coding助手 |
+| l02 改坏：两处都不叫醒（修之前的代码） / l03 改坏：不改发 Coding助手 | violated | |
 | h05 / h06 改坏：last_scan 取扫描开始时间（修之前的代码） | violated | |
 
 「修法」只在模型里（`Fixes` 常量），用来证明性质不是空的、模型不是怎么都失败；没有改任何产品代码。
