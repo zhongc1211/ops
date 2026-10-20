@@ -137,11 +137,13 @@ if os.path.abspath(target) == os.path.abspath(settings) and text == raw:
     sys.exit(0)
 if backup == "1":
     bak = settings + ".bak-" + time.strftime("%Y%m%d%H%M%S")
-    try:
-        shutil.copy2(settings, bak)
-    except OSError as e:
-        sys.exit("backup failed, settings not written: %s" % e)
-    print("backup: " + bak)
+    # an existing same-second backup (pin-claude-plugins.sh writes first) already holds the earlier content
+    if not os.path.exists(bak):
+        try:
+            shutil.copy2(settings, bak)
+        except OSError as e:
+            sys.exit("backup failed, settings not written: %s" % e)
+        print("backup: " + bak)
 dirn = os.path.dirname(os.path.abspath(target))
 fd, tmp = tempfile.mkstemp(dir=dirn, prefix=".per89-")
 with os.fdopen(fd, "w") as f:

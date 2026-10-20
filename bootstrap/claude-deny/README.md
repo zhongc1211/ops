@@ -39,6 +39,8 @@ Skill(skill:compound-engineering:lfg)
 
 #48 装的 10 条旧规则（`Skill(pstack:tdd)`、`Skill(pstack:tdd *)` 等）保留不动，新规则是追加。
 
+pstack 0.15.27 的 `poteto-mode`、`tdd`、`reflect` 自己带 `disable-model-invocation: true`：模型用 Skill 工具调用时，Claude Code 先按这个字段拒绝（`cannot be used with Skill tool due to disable-model-invocation`），轮不到 deny 规则。所以 E2E 另用一份去掉该字段的 pstack 临时副本（`--plugin-dir`）单独验 deny，并配一组去掉全部 `Skill(...)` deny 的对照。插件以后去掉这个字段，deny 照样挡。`setup-pstack` 和 `lfg` 没有这个字段，直接由 deny 拒绝（`Permission to use Skill with skill:<名字> has been denied.`）。
+
 ### 为什么 deny 管不到人手输入的 slash 命令
 
 deny 规则作用在工具调用上。人直接输入 `/name` 不经过 Skill 工具，也不触发 `PreToolUse`。官方文档（[hooks · UserPromptExpansion](https://code.claude.com/docs/en/hooks#userpromptexpansion)）：
@@ -90,9 +92,11 @@ bootstrap/claude-deny/install.sh --uninstall   # 撤掉本目录加的项，见�
 
 改超时：只改 `hook-timeout`，再跑 `--apply`；`--check` 读同一个文件。`tests/install-sandbox.sh` 验证改成 7 后两个 hook 都变 7、`--check` 跟着变，并用一个写死 timeout 的安装器副本做回退用例（它不跟着变，检查会挂）。
 
-## 和 #48 的关系
+## 和 bootstrap/claude-plugins 的关系
 
-#48（`bootstrap/claude-plugins/`）的 `block-disabled-skills.sh` 和 `install-block-hook.sh` 被本目录取代。本 PR 不改这两个文件，由 #48 的负责人另行处理。注意：#48 的 `pin-claude-plugins.sh` 会调 `install-block-hook.sh`，在装了本目录之后再跑它，会把旧的 `UserPromptSubmit` 项加回来；这时重跑 `install.sh --apply` 即可换回。
+本目录和 #48 的 `bootstrap/claude-plugins/` 在同一个 PR 里合并（PER-83 + PER-89）。挡禁用命令只有本目录这一套：#48 原来的 `block-disabled-skills.sh` 已删除，`install-block-hook.sh` 改成转调 `install.sh --apply`；`pin-claude-plugins.sh` 安装时调 `install.sh --apply`，`--check` 时调 `install.sh --check`。超时只在 `hook-timeout` 一处。
+
+`pin-claude-plugins.sh` 先写 `settings.json`（并备份），紧接着 `install.sh` 再写一次；两次落在同一秒时，`install.sh` 不覆盖已有的同名备份，留下的是运行前的原内容。
 
 ## 已知绕过
 
