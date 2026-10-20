@@ -8,8 +8,10 @@
 |---|---|
 | `settings-fragment.json` | 要合并进 `~/.claude/settings.json` 的内容：5 条 deny、1 个 `UserPromptExpansion` hook、1 个 `UserPromptSubmit` hook |
 | `hooks/disabled-cmd-prompt-guard.sh` | 补充用的 `UserPromptSubmit` 脚本，只用 bash 内建命令 |
-| `install.sh` | 合并、核对、回滚，幂等 |
+| `hook-timeout` | 两个 hook 的 `timeout`（秒）。唯一来源：`install.sh` 写入和 `--check` 核对都读它，片段里不写 timeout |
+| `install.sh` | 合并、核对、卸载，幂等 |
 | `tests/e2e-load.sh` | 端到端测试：隔离配置 + 真实 `claude -p` + CPU 加压 + 故障注入 |
+| `tests/install-sandbox.sh` | 安装器检查：幂等、备份、卸载、备份失败、超时单一来源（含回退用例） |
 
 ## 三道防线
 
@@ -50,7 +52,7 @@ E2E 的故障注入 (c) 把两个 hook 都去掉、只留 deny：模型调用照
 - `matcher`：`^((pstack:)?(poteto-mode|tdd|reflect|setup-pstack)|(compound-engineering:)?lfg)$`。含 `^`，Claude Code 按 JavaScript 正则处理；整串锚定，不会误伤 `tdd-guide`、`superpowers:tdd`、`pstack:how`、`lfgx`。
 - `command_name` 的实际取值（2026-10-20 在 MBA 用探针 hook 记 stdin 实测，Claude Code 2.1.304）：输入 `/pstack:how` 得到 `pstack:how`；输入不带前缀的 `/poteto-mode` 得到 `pstack:poteto-mode`，`command_source` 是 `plugin`。即不带前缀的写法会解析成带前缀的全名。matcher 两种都写上，以防以后版本行为变化。
 - `command`：`echo 'Blocked (PER-89): ...' >&2; exit 2`。不读 stdin，不起 node、python、grep。`Blocked (PER-89)` 也是 `install.sh` 认自己条目的标记。
-- `timeout: 5`，`onFailure: "block"`（要求 Claude Code ≥ 2.1.295）。官方文档（[Block the action when a hook fails](https://code.claude.com/docs/en/hooks#block-the-action-when-a-hook-fails)）："With `"block"` set, a failure does what exit code 2 does on that event"。
+- `timeout` 取 `hook-timeout`（现为 5），`onFailure: "block"`（要求 Claude Code ≥ 2.1.295；三台都是 2.1.304）。官方文档（[Block the action when a hook fails](https://code.claude.com/docs/en/hooks#block-the-action-when-a-hook-fails)）："With `"block"` set, a failure does what exit code 2 does on that event"。
 
 ### UserPromptSubmit 补充脚本
 
@@ -67,9 +69,9 @@ E2E 的故障注入 (c) 把两个 hook 都去掉、只留 deny：模型调用照
 ```bash
 bootstrap/claude-deny/install.sh --dry-run --out /tmp/settings.per89.json   # 看合并结果，不动原文件，打印 sha256
 diff -u ~/.claude/settings.json /tmp/settings.per89.json
-bootstrap/claude-deny/install.sh --apply       # 备份为 settings.json.bak-per89-<时间>，装 hook 脚本，原子写回，打印前后 sha256
+bootstrap/claude-deny/install.sh --apply       # 装 hook 脚本，备份为 settings.json.bak-<YYYYmmddHHMMSS>，原子写回，打印前后 sha256
 bootstrap/claude-deny/install.sh --check       # 一致退出 0；不一致逐项列出，退出 1
-bootstrap/claude-deny/install.sh --uninstall   # 回滚，见下
+bootstrap/claude-deny/install.sh --uninstall   # 撤掉本目录加的项，见下
 ```
 
 `--settings-file <路径>`、`--hooks-dir <目录>` 可以改目标（测试用）。
@@ -80,9 +82,13 @@ bootstrap/claude-deny/install.sh --uninstall   # 回滚，见下
 - `hooks.UserPromptExpansion`：没有带 `Blocked (PER-89)` 的条目就追加，有就换成片段里的版本；
 - `hooks.UserPromptSubmit`：调 `block-disabled-skills.sh` 的那一项原位换成新脚本；已经是新脚本就更新成片段里的版本；都没有就追加。
 
-`--uninstall` 撤掉 5 条 deny 和 `UserPromptExpansion` 条目；`UserPromptSubmit` 里的新脚本项，若 `~/.claude/hooks/block-disabled-skills.sh` 还在就换回旧项（`timeout: 30`，与 #48 一致），否则删掉；再删掉 `~/.claude/hooks/disabled-cmd-prompt-guard.sh`。在 iMac 设置副本上实测：`--apply` 再 `--uninstall`，sha256 回到原值。
+改 settings 前先备份成 `settings.json.bak-<YYYYmmddHHMMSS>`；内容不变就不写也不备份；备份失败就退出非 0、不写。`--apply` 和 `--uninstall` 都这样。
 
-也可以直接用 `--apply` 打印的备份文件回滚：`cp -p ~/.claude/settings.json.bak-per89-<时间> ~/.claude/settings.json`。
+`--uninstall` 撤掉 5 条 deny、`UserPromptExpansion` 条目、`UserPromptSubmit` 里的新脚本项，删掉 `~/.claude/hooks/disabled-cmd-prompt-guard.sh`；不把旧 hook 加回来。
+
+回滚到装之前的原样：`cp -p ~/.claude/settings.json.bak-<YYYYmmddHHMMSS> ~/.claude/settings.json`（`--apply` 会打印备份文件名）。
+
+改超时：只改 `hook-timeout`，再跑 `--apply`；`--check` 读同一个文件。`tests/install-sandbox.sh` 验证改成 7 后两个 hook 都变 7、`--check` 跟着变，并用一个写死 timeout 的安装器副本做回退用例（它不跟着变，检查会挂）。
 
 ## 和 #48 的关系
 

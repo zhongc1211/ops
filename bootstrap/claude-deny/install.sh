@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # PER-89: merge bootstrap/claude-deny/settings-fragment.json into Claude Code settings. Idempotent.
 #   install.sh [--settings-file F] [--hooks-dir D] --dry-run --out O    write the merged result to O only, print its sha256
-#   install.sh [--settings-file F] [--hooks-dir D] --apply              back up F, install the hook script, write F atomically
+#   install.sh [--settings-file F] [--hooks-dir D] --apply              install the hook script, back up F, write F atomically
 #   install.sh [--settings-file F] [--hooks-dir D] --check              compare only; exit 1 and list what is missing
 #   install.sh [--settings-file F] [--hooks-dir D] --uninstall [--dry-run --out O]
 # Only touches permissions.deny, hooks.UserPromptExpansion and hooks.UserPromptSubmit entries that belong to this feature.
+# Before writing a settings file it is copied to <file>.bak-<YYYYmmddHHMMSS>; no change = no write, no backup;
+# a failed backup exits non-zero without writing. The hook timeout comes only from ./hook-timeout.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 settings="$HOME/.claude/settings.json"
@@ -30,21 +32,23 @@ fi
 [ -f "$settings" ] || { echo "settings file not found: $settings" >&2; exit 66; }
 guard_src="$here/hooks/disabled-cmd-prompt-guard.sh"
 guard_dst="$hooks_dir/disabled-cmd-prompt-guard.sh"
+hook_timeout=$(tr -d ' \n' < "$here/hook-timeout")
+case "$hook_timeout" in ''|*[!0-9]*) echo "bad hook-timeout: '$hook_timeout'" >&2; exit 65 ;; esac
 
-# Merge logic. argv: settings fragment mode(apply|uninstall|check) target hooks_dir
+# Merge logic. argv: settings fragment mode(apply|uninstall|check) target hooks_dir hook_timeout backup(0|1)
 merge_py=$(cat <<'PY'
-import json, os, sys, tempfile
-settings, fragment, mode, target, hooks_dir = sys.argv[1:6]
+import json, os, shutil, sys, tempfile, time
+settings, fragment, mode, target, hooks_dir, timeout, backup = sys.argv[1:8]
 raw = open(settings).read()
 d = json.loads(raw)
 frag = json.load(open(fragment))
 NEW_SCRIPT = "disabled-cmd-prompt-guard.sh"
 OLD_SCRIPT = "block-disabled-skills.sh"
-OLD_HOOK = {"type": "command", "command": 'bash "$HOME/.claude/hooks/block-disabled-skills.sh"', "timeout": 30}
 MARK = "Blocked (PER-89)"
 deny_new = frag["permissions"]["deny"]
 upe_new = frag["hooks"]["UserPromptExpansion"][0]
 ups_new = frag["hooks"]["UserPromptSubmit"][0]["hooks"][0]
+upe_new["hooks"][0]["timeout"] = ups_new["timeout"] = int(timeout)
 
 def ours_upe(e):
     return any(MARK in h.get("command", "") for h in e.get("hooks", []))
@@ -92,15 +96,11 @@ def unmerged(d):
         hooks["UserPromptExpansion"] = [e for e in hooks["UserPromptExpansion"] if not ours_upe(e)]
         if not hooks["UserPromptExpansion"]:
             del hooks["UserPromptExpansion"]
-    old_present = os.path.isfile(os.path.join(hooks_dir, OLD_SCRIPT))
     if "UserPromptSubmit" in hooks:
         for e in hooks["UserPromptSubmit"]:
             hs = []
             for h in e.get("hooks", []):
-                if NEW_SCRIPT in h.get("command", ""):
-                    if old_present:
-                        hs.append(OLD_HOOK)
-                else:
+                if NEW_SCRIPT not in h.get("command", ""):
                     hs.append(h)
             e["hooks"] = hs
         hooks["UserPromptSubmit"] = [e for e in hooks["UserPromptSubmit"] if e.get("hooks")]
@@ -135,6 +135,13 @@ text = dump(new)
 if os.path.abspath(target) == os.path.abspath(settings) and text == raw:
     print("no change: " + settings)
     sys.exit(0)
+if backup == "1":
+    bak = settings + ".bak-" + time.strftime("%Y%m%d%H%M%S")
+    try:
+        shutil.copy2(settings, bak)
+    except OSError as e:
+        sys.exit("backup failed, settings not written: %s" % e)
+    print("backup: " + bak)
 dirn = os.path.dirname(os.path.abspath(target))
 fd, tmp = tempfile.mkstemp(dir=dirn, prefix=".per89-")
 with os.fdopen(fd, "w") as f:
@@ -152,7 +159,7 @@ sha() { shasum -a 256 "$1" | cut -d' ' -f1; }
 
 if [ "$mode" = check ]; then
   rc=0
-  python3 -c "$merge_py" "$settings" "$here/settings-fragment.json" check "$settings" "$hooks_dir" || rc=$?
+  python3 -c "$merge_py" "$settings" "$here/settings-fragment.json" check "$settings" "$hooks_dir" "$hook_timeout" 0 || rc=$?
   if [ ! -f "$guard_dst" ]; then echo "missing: hook script $guard_dst"; rc=1
   elif ! cmp -s "$guard_src" "$guard_dst"; then echo "differs: hook script $guard_dst"; rc=1; fi
   [ "$rc" != 0 ] || echo "ok: $settings matches the PER-89 fragment"
@@ -161,21 +168,18 @@ fi
 
 before=$(sha "$settings")
 if [ "$dry" = 1 ]; then
-  python3 -c "$merge_py" "$settings" "$here/settings-fragment.json" "$mode" "$out" "$hooks_dir"
+  python3 -c "$merge_py" "$settings" "$here/settings-fragment.json" "$mode" "$out" "$hooks_dir" "$hook_timeout" 0
   echo "sha256 source: $before  $settings"
   echo "sha256 out:    $(sha "$out")  $out"
   exit 0
 fi
 
-bak="$settings.bak-per89-$(date +%Y%m%d-%H%M%S)"
-cp -p "$settings" "$bak"
-echo "backup: $bak"
 if [ "$mode" = apply ]; then
   mkdir -p "$hooks_dir"
   install -m 755 "$guard_src" "$guard_dst"
   echo "hook script: $guard_dst"
 fi
-python3 -c "$merge_py" "$settings" "$here/settings-fragment.json" "$mode" "$settings" "$hooks_dir"
+python3 -c "$merge_py" "$settings" "$here/settings-fragment.json" "$mode" "$settings" "$hooks_dir" "$hook_timeout" 1
 if [ "$mode" = uninstall ] && [ -f "$guard_dst" ]; then
   rm -f "$guard_dst"
   echo "removed: $guard_dst"

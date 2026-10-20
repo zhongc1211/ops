@@ -16,7 +16,6 @@
           {
             "type": "command",
             "command": "echo 'Blocked (PER-89): this command is disabled on this machine (pstack poteto-mode/tdd/reflect/setup-pstack, compound-engineering lfg). See ops bootstrap/claude-deny/README.md.' >&2; exit 2",
-            "timeout": 5,
             "onFailure": "block"
           }
         ]
@@ -27,8 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$HOME/.claude/hooks/disabled-cmd-prompt-guard.sh\"",
-            "timeout": 5
+            "command": "bash \"$HOME/.claude/hooks/disabled-cmd-prompt-guard.sh\""
           }
         ]
       }
