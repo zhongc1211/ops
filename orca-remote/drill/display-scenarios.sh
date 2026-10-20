@@ -10,7 +10,8 @@ s_xerr(){ slog "[$$:1020/105401.000000:ERROR:ui/gfx/x/connection.cc:66] X connec
 s_nvl(){ slog "[serve] DISPLAY=$1 is not verifiably live; leaving it untouched. Unset DISPLAY to let Orca start its own Xvfb."; }
 s_exit(){ slog "[$(date '+%F %T %Z')] orca-ide serve exited (1); restarting in 5s"; }
 # xsetup NAME: setup with serve.log wired in (the pre watchdog ignores WATCHDOG_SERVE_LOG)
-xsetup(){ export WATCHDOG_SERVE_LOG=/run/drill/$LABEL/$1/serve.log; setup "$1"; }
+xsetup(){ export WATCHDOG_SERVE_LOG=/run/drill/$LABEL/$1/serve.log; setup "$1"
+  [ "$(pub)" = 200 ] || note "WARNING: world not healthy at start (public $(pub)); a previous scenario left something running"; }
 xteardown(){ teardown; cp "$W/serve.log" "$OUT/$S/" 2>/dev/null; unset WATCHDOG_SERVE_LOG; }
 # wait_count REGEX N TIMEOUT: wait until N watchdog lines after the mark match REGEX
 wait_count(){ local end=$(( $(now)+$3 )); while [ "$(now)" -lt "$end" ]; do
@@ -30,7 +31,7 @@ X1(){ xsetup X1; s_start own; s_ready; sleep 8
 # X2 (W2): same as X1, but serve never comes back (own Xvfb cannot start): the extra round must not block the restart.
 X2(){ xsetup X2; s_start own; s_ready; sleep 8
   T0=$(now); s_xerr; echo down >"$W/orca_mode"; s_exit; sleep 1; s_start own; note "X connection error, serve never ready again"
-  for _ in $(seq 60); do [ "$(restarts_after "$T0")" -ge 1 ] && break; sleep 1; done
+  for _ in $(seq 60); do [ "$(restarts_after "$T0")" -ge 1 ] && break; sleep 1; done; sleep 5  # let the fake restart finish (stop, start)
   check "W2 own display failure that does not heal still gets a full restart within 60s" $([ "$(restarts_after "$T0")" -ge 1 ]; echo $?) "first restart $(first_restart "$T0")"
   xteardown; }
 
@@ -51,13 +52,13 @@ X3b(){ xsetup X3b; x3 "" 40; xteardown; }
 # X4 (W6): own. A display error happened, serve was ready again afterwards; now Orca hangs for an unrelated reason.
 X4(){ xsetup X4; s_start own; s_xerr; s_exit; s_start own; s_ready; sleep 8
   T0=$(now); echo hang >"$W/orca_mode"; cp "$W/orca_mode" "$W/orca_mode_after_restart"; note "Orca hung, no display error since the last ready"
-  for _ in $(seq 60); do [ "$(restarts_after "$T0")" -ge 1 ] && break; sleep 1; done
+  for _ in $(seq 60); do [ "$(restarts_after "$T0")" -ge 1 ] && break; sleep 1; done; sleep 5  # let the fake restart finish (stop, start)
   check "W6 old display error does not stop a restart for an unrelated hang (own, within 60s)" $([ "$(restarts_after "$T0")" -ge 1 ]; echo $?) "first restart $(first_restart "$T0")"
   xteardown; }
 
 # X5 (W6): non-own. An earlier serve run died of the display; the last run has no display error but hangs before ready.
 X5(){ xsetup X5; s_start :4; s_ready; s_xerr; s_exit; s_start :4; s_nvl :4; s_exit; s_start :4; sleep 8
   T0=$(now); echo hang >"$W/orca_mode"; cp "$W/orca_mode" "$W/orca_mode_after_restart"; note "last serve run hangs, no display error in it"
-  for _ in $(seq 60); do [ "$(restarts_after "$T0")" -ge 1 ] && break; sleep 1; done
+  for _ in $(seq 60); do [ "$(restarts_after "$T0")" -ge 1 ] && break; sleep 1; done; sleep 5  # let the fake restart finish (stop, start)
   check "W6 earlier display failure does not stop a restart when the last run has none (:4, within 60s)" $([ "$(restarts_after "$T0")" -ge 1 ]; echo $?) "first restart $(first_restart "$T0")"
   xteardown; }
