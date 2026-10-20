@@ -59,4 +59,4 @@ wake/tla/check.sh w0 h0           # 只跑名字以 w0、h0 开头的（P2、P3�
 ## 5. 不要做
 
 - 不要为了让检查通过去放宽性质、删 cfg、把期望改成实际结果却不解释。
-- 不要在检查时发真实叫醒；这些模型不碰网络和线上状态。要在真环境演练叫醒，只发 ops-system 自己的 routine（`--bot ops-system` / `STUCK_FORCE_BOT=ops-system`）。手动演练的 task 以 `[演练 叫醒通路]` 开头，例如 `notify-run --bot ops-system --task "[演练 叫醒通路] <说明>" -- true`；`STUCK_FORCE_BOT` 只换收件 bot，不会给 task 加这个前缀。
+- 不要在检查时发真实叫醒；这些模型不碰网络和线上状态。要在真环境演练叫醒，只发 ops-system 自己的 routine（`--bot ops-system` / `STUCK_FORCE_BOT=ops-system`）。手动演练的 task 以 `[演练 叫醒通路]` 开头，例如 `notify-run --bot ops-system --task "[演练 叫醒通路] <说明>" -- true`；`STUCK_FORCE_BOT` / `UNPUSHED_FORCE_BOT` 改发时会自动给 task 加这个前缀（PER-105；stuck-check 发 stuck-webhook 的那条不改发，不加）。
