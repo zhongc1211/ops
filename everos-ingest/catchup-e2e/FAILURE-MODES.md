@@ -23,14 +23,20 @@ box 还会再冻（`/workspace/ops/reports/orca-serve-1020/REPORT.md` 第 (3) �
 | F7 | 本机日期目录在、清单不在（采集中途失败），补推时报错或推半份 | 造一个只有空目录的 D-2，运行不报错、不推 |
 | F8 | 超过 N 天的日期也去推 | 造一个 D-(N+1) 本机清单，运行后 box 上没有 |
 | F9 | 补推子进程又去补推（递归）或又采集 | 子进程用 `PUSH_ONLY=1`；日志里每个补推日期只出现一次，没有采集输出 |
-| F10 | box 列表 ssh 失败时当作「box 全没有」，把 N 天全推一遍 | 没查（要在运行中途让 box 只断列表这一步，做不到可控）；代码里列表失败直接跳过，退出 6 |
-| F11 | 补推失败时当天的成功被盖掉、或写了标记 | 没查（box 可写时造不出单个子进程失败）；代码里只在子进程 exit 1 后由子进程自己写标记 |
+| F10 | box 列表 ssh 失败时当作「box 全没有」，把 N 天全推一遍（`collect-mba.sh:59-60`） | 2026-10-20 dr eggbot 复验后补查（见下「F10/F11 怎么造故障」）：run6 先把 box 上 D0 清单挪进隔离目录，`CATCHUP_ONLY=1`，只让含 `for d in <日期>` 的那次 ssh 失败。预期：退出 6，日志有 `cannot list box`，没有 `pushing the local copy`，box 上 D0 仍然没有清单，D1 mtime 不变，替身日志里这次失败恰好触发 1 次 |
+| F11 | 补推失败时当天的成功被盖掉、或写了标记（`collect-mba.sh:73-74`） | run7：box 上 D0 仍然没有清单，删掉本机 D0 `.pushed`，`CATCHUP_ONLY=1`，只让推 D0 清单的 scp 失败（子进程 retry3 三次后退出 3）。预期：退出 6，日志有 `catch-up <D0>: push exited 3`，本机 D0 没有 `.pushed`，box 上 D0 没有清单，D1 的 `.pushed` = 本机 sha、box D1 mtime 不变，替身日志里触发 3 次 |
 | F12 | 补推超出 precheck 600s 时限 | 没查；仓库三类脚本按剩余预算传给子进程（repo/官网 `PUSH_BUDGET`），心月用 `CATCHUP_BUDGET` 截止 |
 | F13 | 今天推失败了还去补推，失败原因被补推输出淹没 | 第 1 次运行（box 不通）日志里没有 catch-up 行 |
 | F14 | `CATCHUP_ONLY=1` 去采集，或者漏了 D 本身 | 第 6 次运行：`CATCHUP_ONLY=1`，删掉 box 上 D 的清单，运行后推上，本机清单 sha256 不变 |
 | F15 | 改动碰到真目录（`~/.orca-state/everos-ingest`、box `/var/lib/everos-ingest`） | 全程用 `EVEROS_LOCAL_BASE` / `EVEROS_REMOTE_BASE` 指到 scratch 和 box `/tmp`；结束前后对比真目录列表 |
 | F16 | 回退：旧脚本其实也会补推（那就不需要改） | 旧脚本（只替换路径和主机名）跑同样 3 次，D-1 一直不在 box 上 |
 | F17 | 6 份脚本改得不一样 | 用 diff 对比 MBA/iMac 副本，只差机器名 |
+| F21 | box 上已有同一天、内容不同的清单时，补推直接覆盖，box 原件丢了，查不回当时夜审读的是哪份。做法：推之前在 box 上把清单、excluded 清单和 `mba/` 复制成 `<名字>.replaced-<box 时间戳>`（用复制不用 mv：推到一半失败时，box 上仍是原来那份，不会变成没有清单） | run8：box 上 D0 清单换成一份内容不同的旧文件（记下 sha），`CATCHUP_ONLY=1` 无故障。预期：退出 1；box D0 下恰好 1 个 `sessions-mba.jsonl.replaced-<时间戳>`，sha = 旧文件；box D0 清单 = 本机；`.pushed` = 本机 sha。run9 再跑一次：日志是 `on box, sha ok`，`.replaced-*` 仍是 1 个，box D0 mtime 不变（sha 相同不改名、不重写） |
+
+### F10/F11 怎么造故障（2026-10-20 补）
+`catchup-e2e/shim/ssh`、`shim/scp` 放在 PATH 最前，只给被测脚本用（检查用的 ssh 不经过它）。命令行匹配 `E2E_FAIL_SSH` / `E2E_FAIL_SCP` 正则的那一次直接退出 255，并在 `E2E_SHIM_LOG` 记一行；其余调用原样交给 `/usr/bin/ssh`、`/usr/bin/scp`。被测的采集、推送、box 都是真的。
+覆盖心月（`collect-mba.sh`）和广告（`collect-mba-repo.sh`）。回退：旧脚本（3d8294b）用和 run6、run7 相同的环境变量和替身再跑两次（旧脚本不认 `CATCHUP_ONLY`，会照常采集、推 D1），预期退出 1、替身一次都没触发、box 上始终没有 D0。差异就在这里：旧脚本不列 box、不补推，故障对它没有作用；新脚本碰到故障退出 6，下次再补。
+F21 只在新脚本上查（旧脚本不补推，没有覆盖这一步）。
 
 ## E2E 跑出来、事先没写到的
 | # | 失败方式 | 怎么发现 / 怎么查 |
