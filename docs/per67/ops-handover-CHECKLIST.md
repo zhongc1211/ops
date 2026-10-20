@@ -9,7 +9,7 @@
 - [ ] 3 EverOS：10-19 补写完成并读回（[Zack答-PER67-9]）→ 服务端移交 ops 系统；dr eggbot 只读权限配好
 - [ ] 4 ops 系统 webhook：三台机器配好；dev-bot-rules 81/88 行加上 ops-system
 - [ ] 5 pstack 用最新兼容版（10-20 起最新 0.15.29，先做兼容检查再钉，替代 0148b78） + compound-engineering 同一 commit：box / iMac / MBA 都钉住；bootstrap 锁版本（⑧）；禁用命令真禁住
-- [ ] 6 verify skill：官网 ✅（#101）；去掉 ports.test.mjs 单测；心月；vllm（落点待 Zack 定）；ops verify / SYSTEM_MAP（#28）
+- [ ] 6 verify skill：官网 ✅（#101）；去掉 ports.test.mjs 单测 ✅（Coding助手报 #106 合 main 10-20 18:43，FDV-94；dr eggbot 看不到 futuredeepvision 仓库，未独立核）；心月；vllm（落点待 Zack 定）；ops verify / SYSTEM_MAP（#28）
 - [x] 7 ops 仓库文档里「eggbot 管 EverOS」的说法改掉（见 reports/ops-bot-handover-20261019/ownership-grep.txt） —— ✅ #47 合 main b28b7a5（10-20 19:23，锁 26bd94d，6 个 .md），[Zack答-PER84-1]，PER-84 Done
 - [ ] 8 采集脚本 box 冻结后能自动补推
 - [ ] 9 卡住检查误报（子进程无 notify-run）修复；告警路由到 ops-system（#45，未合）
