@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # PER-89 end-to-end test: real `claude -p` runs under CPU load, isolated from the live user settings.
-#   tests/e2e-load.sh --live <settings.json to copy> --out <evidence dir> [--load N] [--budget USD] [--only selftest|main] [--run-timeout S]
+#   tests/e2e-load.sh --live <settings.json to copy> --out <evidence dir> [--load N] [--budget USD] [--only selftest|main]
+#                     [--run-timeout S] [--cases REGEX]   (--load 0 = no added load; --cases runs only matching case names)
 # The live file is only copied (read). Settings for each case are generated from that copy with install.sh --dry-run.
 # MCP servers are not started (--strict-mcp-config): they are unrelated to skills and hooks and dominate startup time under load.
 # Load: N busy loops started by this script (perl alarm 300, so each round lasts at most 5 minutes);
 # only those PIDs are killed. Needs: claude logged in (run from a GUI-session terminal on macOS), python3, perl, node.
 set -uo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)
-live="" out="" load_n=8 budget=1.00 only=all run_timeout=900
+live="" out="" load_n=8 budget=1.00 only=all run_timeout=900 cases=.
 while [ $# -gt 0 ]; do
   case "$1" in
     --live) live="$2"; shift 2 ;;
@@ -16,6 +17,7 @@ while [ $# -gt 0 ]; do
     --budget) budget="$2"; shift 2 ;;
     --only) only="$2"; shift 2 ;;
     --run-timeout) run_timeout="$2"; shift 2 ;;
+    --cases) cases="$2"; shift 2 ;;
     *) echo "unknown argument: $1" >&2; exit 64 ;;
   esac
 done
@@ -130,6 +132,9 @@ u["hooks"]["UserPromptSubmit"] = [e for e in u["hooks"]["UserPromptSubmit"] if n
 save("upe-only", u)
 # (a) UserPromptExpansion hook hangs past its timeout
 a = fix(m); h = a["hooks"]["UserPromptExpansion"][-1]["hooks"][0]; h["command"] = "sleep 10"; h["timeout"] = 1; save("fault-a", a)
+# (a2) same hang with the guard script removed, so only the main hook decides; (a2-nofail) regression: no onFailure
+a2 = json.loads(json.dumps(u)); h = a2["hooks"]["UserPromptExpansion"][-1]["hooks"][0]; h["command"] = "sleep 10"; h["timeout"] = 1; save("fault-a2", a2)
+a3 = json.loads(json.dumps(a2)); del a3["hooks"]["UserPromptExpansion"][-1]["hooks"][0]["onFailure"]; save("fault-a2-nofail", a3)
 # (b) UserPromptSubmit guard hangs past its timeout
 b = fix(m); h = ups_guard(b); h["command"] = "sleep 10"; h["timeout"] = 1; save("fault-b", b)
 # (c) deny rules only, both hooks removed
@@ -138,9 +143,9 @@ cc["hooks"]["UserPromptExpansion"] = [e for e in cc["hooks"]["UserPromptExpansio
 cc["hooks"]["UserPromptSubmit"] = [e for e in cc["hooks"]["UserPromptSubmit"] if not any("disabled-cmd-prompt-guard" in h["command"] for h in e["hooks"])]
 save("fault-c", cc)
 PY
-  cp "$T"/{pr,upe-only,control,fault-a,fault-b,fault-c}.json "$out/" 2>/dev/null
+  cp "$T"/{pr,upe-only,control,fault-a,fault-a2,fault-a2-nofail,fault-b,fault-c}.json "$out/" 2>/dev/null
   # settings copies contain env values from the live file; keep only the hooks/permissions parts as evidence
-  for n in pr upe-only control fault-a fault-b fault-c; do
+  for n in pr upe-only control fault-a fault-a2 fault-a2-nofail fault-b fault-c; do
     python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));json.dump({"permissions":{"deny":d.get("permissions",{}).get("deny")},"hooks":{k:d["hooks"].get(k) for k in ("UserPromptExpansion","UserPromptSubmit")}},open(sys.argv[1],"w"),indent=1)' "$out/$n.json"
   done
 }
@@ -175,6 +180,7 @@ COST=0
 printf 'case\tconfig\tkind\tinput\tload1\tresult\tblocked_by\tskill_body_seen\tcost_usd\tsecs\tdetail\n' > "$out/results.tsv"
 run() { # case config kind(human|model) input expect
   local case=$1 cfg=$2 kind=$3 input=$4 expect=$5 prompt turns
+  [[ $case =~ $cases ]] || return 0
   if python3 -c "import sys;sys.exit(0 if float('$COST')>float('$budget') else 1)"; then
     log "budget reached ($COST > $budget), skip $case"; printf '%s\t%s\t%s\t%s\t-\tnot run (budget)\t-\t-\t-\t-\t-\n' "$case" "$cfg" "$kind" "$input" >> "$out/results.tsv"; return
   fi
@@ -203,7 +209,7 @@ res = [e for e in ev if e.get("type") == "result"]
 r = res[-1] if res else {}
 cost = r.get("total_cost_usd", 0) or 0
 text = str(r.get("result", ""))
-assistant = [e for e in ev if e.get("type") == "assistant"]
+assistant = [e for e in ev if e.get("type") == "assistant" and e.get("message", {}).get("model") != "<synthetic>"]
 users = [e for e in ev if e.get("type") == "user"]
 body = any(("Base directory for this skill" in json.dumps(u)) or ("<command-message>" in json.dumps(u)) for u in users)
 blocked_by = "-"
@@ -226,6 +232,8 @@ else:
         detail = ("input=" + json.dumps(calls[0].get("input"), ensure_ascii=False) + " tool_result=" + otext.replace("\n", " "))[:300]
 if not res:
     result = "no result (rc=%s)" % rc
+elif "Not logged in" in text:
+    result = "invalid: not logged in"
 print("\t".join([result, blocked_by, "yes" if body else "no", str(cost), detail.replace("\t", " ")]))
 PY
 )
@@ -242,6 +250,9 @@ skills="pstack:poteto-mode pstack:tdd pstack:reflect pstack:setup-pstack compoun
 slug() { echo "$1" | tr -c 'a-zA-Z0-9-\n' '_' | sed 's/^_*//'; }
 
 st=0
+if [ "$only" != selftest ] && ! claude auth status 2>/dev/null | grep -q '"loggedIn": true'; then
+  log "claude is not logged in here (on macOS run from a GUI-session terminal); stop"; rm -rf "$T"; exit 69
+fi
 if [ "$only" != main ]; then selftest || st=1; fi
 if [ "$only" != selftest ]; then
   gen_settings
@@ -250,6 +261,8 @@ if [ "$only" != selftest ]; then
   for s in $skills; do run "pr-model-$(slug "$s")" pr model "$s" denied; done
   run pr-allow-pstack-how pr human /pstack:how passed
   run fault-a-human-pstack-tdd fault-a human /pstack:tdd blocked
+  run fault-a2-human-pstack-tdd fault-a2 human /pstack:tdd blocked
+  run fault-a2-nofail-human-pstack-tdd fault-a2-nofail human /pstack:tdd passed
   run fault-b-human-pstack-tdd fault-b human /pstack:tdd blocked
   run fault-c-model-pstack-tdd fault-c model pstack:tdd denied
   run fault-c-human-pstack-tdd fault-c human /pstack:tdd passed
