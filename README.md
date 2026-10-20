@@ -40,5 +40,6 @@ Orca 项目和工作区清单见 [orca-projects.md](orca-projects.md)。
 | [`scripts/naming-check.py`](scripts/naming-check.py) | Orca 工作区命名检查 |
 | [`scripts/seo-weekly-precheck.sh`](scripts/seo-weekly-precheck.sh)、[`scripts/vllm-upstream-precheck.sh`](scripts/vllm-upstream-precheck.sh) | 定时任务的预检 |
 | [`reports/`](reports/) | 各次检查和整理的报告 |
+| [`bootstrap/claude-plugins/`](bootstrap/claude-plugins/) | 把 Claude Code 的 pstack、compound-engineering 插件钉在固定 commit，挡停用的 slash 命令（`--check` 只比对） |
 
 定时任务只放在 Orca automations 里，命名「项目 · 编号 描述」。
