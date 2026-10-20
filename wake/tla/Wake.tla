@@ -12,10 +12,10 @@
 (*       （wake/bin/orca-wake:724-739,764-779,370-423,475-554）            *)
 (*   RC  卡住检查调 orca-wake recheck 补叫醒（scripts/stuck-check.sh:      *)
 (*       996-1002,1027-1069 + orca-wake:990-1014），和 OW 共用去重键      *)
-(*   SC  卡住检查自己 POST：agent_gone 给派活 bot（stuck-check.sh:962-976,  *)
-(*       1457-1475），「报了没人验收」给 Coding助手（:1586-1604,1266-1360） *)
+(*   SC  卡住检查自己 POST：agent_gone 给派活 bot（stuck-check.sh:966-980,  *)
+(*       1501-1527），「报了没人验收」给 Coding助手（:1638-1656,1282-1376） *)
 (*                                                                         *)
-(* 时间：一个 Tick = 15 分钟 = 一次卡住检查扫描（stuck-check.sh:138        *)
+(* 时间：一个 Tick = 15 分钟 = 一次卡住检查扫描（stuck-check.sh:141        *)
 (* INTERVAL_MIN，闸门 :1694）。一次 POST 连重试都在 1～2 分钟内（notify-run 20s+45s，   *)
 (* orca-wake 20s+45s，stuck-check 5/15/45s），所以 Tick 要等在途的发送都结束 *)
 (* 才走。webhook 是否可用用 up[b] 表示，随时可以变；down 时每次 POST 返回 *)
@@ -27,10 +27,10 @@ CONSTANTS
     NT,            \* 任务数
     NR_TRIES,      \* notify-run 的 NOTIFY_RUN_TRIES，默认 3（notify-run:117）
     OW_TRIES,      \* orca-wake 非限流失败的总次数 = 1 + len(RETRY_DELAYS "20,45") = 3（orca-wake:79,539-543）
-    GONE_TICKS,    \* STUCK_GONE_MIN 10 分钟 → 至少 1 个 Tick（stuck-check.sh:115,970）
-    IDLE_TICKS,    \* STUCK_IDLE_MIN 30 分钟 → 2 个 Tick（stuck-check.sh:114,978；orca-wake --idle-min 30）
+    GONE_TICKS,    \* STUCK_GONE_MIN 10 分钟 → 至少 1 个 Tick（stuck-check.sh:115,974）
+    IDLE_TICKS,    \* STUCK_IDLE_MIN 30 分钟 → 2 个 Tick（stuck-check.sh:114,982；orca-wake --idle-min 30）
     ACCEPT_TICKS,  \* 「标完成超过 1 小时」→ 4 个 Tick（stuck-check.sh:112 THRESH_H，check_reported）
-    FULL_TICKS,    \* 第二类约每小时查一次：NOW - last_full >= 55 分钟 → 每 4 次扫描（stuck-check.sh:1586）
+    FULL_TICKS,    \* 第二类约每小时查一次：NOW - last_full >= 55 分钟 → 每 4 次扫描（stuck-check.sh:1638）
     LATE_TICKS,    \* P4 的「超过 1 小时」：停下后第 5 个 Tick 起（60～75 分钟）
     CAP,           \* 计数器封顶，保持状态有限
     CA_ALWAYS_UP,  \* TRUE：Coding助手 的 webhook 一直可用（P4 用）
@@ -52,7 +52,7 @@ OK == 200
 VARIABLES
     disp,      \* 每个任务的派活 bot（--bot），整个行为里不变
     work,      \* 任务工作区有要验收的东西（PR、本地提交或未提交改动）；整个行为里不变
-    kind,      \* "task" = 任务工作区；"main" = ops 主目录里按终端查的 agent（stuck-check.sh:811-847）
+    kind,      \* "task" = 任务工作区；"main" = ops 主目录里按终端查的 agent（stuck-check.sh:814-850）
     agent,     \* "running" | "paused" | "exited"
     ws,        \* 工作区看板状态 "in-progress" | "completed"
     up,        \* 每个 bot 的 webhook 现在能不能收（2xx）
@@ -196,24 +196,24 @@ WebhookUp(b) ==
 
 (* ---------------------------------------------------------------- stuck-check *)
 
-(* 第一类 agent_gone（stuck-check.sh:962-976）：任务工作区 in-progress、agent 进程 *)
-(* 不在、安静超过 STUCK_GONE_MIN、agents.json 里没有记录（:879-883）。          *)
+(* 第一类 agent_gone（stuck-check.sh:966-980）：任务工作区 in-progress、agent 进程 *)
+(* 不在、安静超过 STUCK_GONE_MIN、agents.json 里没有记录（:883-887）。          *)
 (* ops 主目录（kind = "main"）里退出的 agent：包了 notify-run 的一律不报          *)
-(* （:889-894 `if ms.get("wrapped") is not False ... continue`）。               *)
+(* （:893-898 `if ms.get("wrapped") is not False ... continue`）。               *)
 (* Fix "main_gone"：主目录里 notify-run 最终 failed 的也报。                     *)
 Gone(t) ==
     /\ agent[t] = "exited" /\ age[t] >= GONE_TICKS /\ known[t] = "none"
     /\ \/ kind[t] = "task" /\ ws[t] = "in-progress"
        \/ "main_gone" \in Fixes /\ kind[t] = "main" /\ nr[t].ph = "failed"
 
-(* 停在输入框超过 STUCK_IDLE_MIN，交给 orca-wake recheck（stuck-check.sh:978-1002, *)
-(* wake_recheck :550-606）。主目录不看 workspaceStatus（:811-847,850-852）。     *)
+(* 停在输入框超过 STUCK_IDLE_MIN，交给 orca-wake recheck（stuck-check.sh:982-1006, *)
+(* wake_recheck :553-609）。主目录不看 workspaceStatus（:814-850,854-856）。     *)
 IdleCand(t) ==
     /\ agent[t] = "paused" /\ age[t] >= IDLE_TICKS /\ known[t] = "none"
     /\ (kind[t] = "main" \/ ws[t] = "in-progress")
 
-(* 第二类「报了没人验收」（check_reported，stuck-check.sh:1266-1360；合并成一条 *)
-(* 发 Coding助手，cfg "stuck"，:1586-1604）：completed、标完成超过 1 小时、agent *)
+(* 第二类「报了没人验收」（check_reported，stuck-check.sh:1282-1376；合并成一条 *)
+(* 发 Coding助手，cfg "stuck"，:1638-1656）：completed、标完成超过 1 小时、agent *)
 (* 没在工作。「已验收」在模型里 = 有 bot 收到过这次停下（假设收到的 bot 一小时内 *)
 (* 会 review / 评论 / 归档）。                                                 *)
 (* 工作区干净、没有本地提交、没有 PR 的（work = FALSE）：只在最后一次停下送达过    *)
@@ -227,15 +227,31 @@ RepCand(t, doFull) ==
     /\ cage[t] >= ACCEPT_TICKS /\ accepted[t] = {} /\ ~seen2[t]
     /\ (work[t] \/ Mutant # "clean_pass")
 
-(* Fix "ca_escalate"：停下 45 分钟还没有任何 bot 收到就报 Coding助手（代码里没有）。*)
-EscCand(t) == "ca_escalate" \in Fixes /\ agent[t] # "running" /\ age[t] >= 3 /\ accepted[t] = {} /\ ~esc[t]
+(* stuck-check 会去叫醒这个任务（agent_gone / ws_broken 自己 POST，或 agent_idle 交给 orca-wake recheck）。 *)
+ScTries(t) ==
+    \/ kind[t] = "task" /\ ws[t] = "in-progress"
+    \/ kind[t] = "main" /\ agent[t] = "paused"
+    \/ "main_gone" \in Fixes /\ kind[t] = "main" /\ nr[t].ph = "failed"
+
+(* 升级到 Coding助手（PER-67 F4）：发给派活 bot 的从第一次失败起满 STUCK_ESCALATE_MIN 45 分钟改发   *)
+(* coding-assistant（send_all 里的 escalate），交给 orca-wake 的补叫醒从第一次交出起满 45 分钟还没   *)
+(* already_woken 就转报 coding-assistant（wake_recheck 结果处理）。第一次尝试最晚在停下后 30 分钟    *)
+(* （idle），所以模型里写成停下后 ESC_TICKS = 5 个 Tick（75 分钟）起：只会比代码晚，不会早。           *)
+(* 代码对已经有 bot 收到过的任务也会改发（send_all 不知道 accepted），只会多报；模型按 accepted = {}。 *)
+(* Mutant "no_escalate" / "old_send_all"：修之前的代码，没有这条路。                                  *)
+(* Fix "ca_escalate"：停下 45 分钟就报（代码里没有，F6 的假设修法）。                                *)
+ESC_TICKS == 5
+EscCand(t) ==
+    /\ agent[t] # "running" /\ accepted[t] = {} /\ ~esc[t]
+    /\ \/ "ca_escalate" \in Fixes /\ age[t] >= 3
+       \/ Mutant \notin {"no_escalate", "old_send_all"} /\ disp[t] # CA /\ age[t] >= ESC_TICKS /\ ScTries(t)
 
 (* recheck 的结果（orca-wake cmd_recheck :938-987，candidate :893-910）：         *)
-(*   woken 有这次停顿 → already_woken → stuck-check 记 dismissed（:1053-1055）；  *)
-(*   去重键 inflight → skip (inflight)（:1009-1012）→ 下次再查（:1068-1069）；      *)
+(*   woken 有这次停顿 → already_woken → stuck-check 记 dismissed（:1069-1071）；  *)
+(*   去重键 inflight → skip (inflight)（:1009-1012）→ 下次再查（:1084-1085）；      *)
 (*   否则打印 "send idle" 并 gate_and_send（:1013-1014）→ 新的 detached 发送任务。   *)
-(* stuck-check 看到 "send" 只记 known[key] = {handed: NOW, via: orca-wake}（:1045-1052），*)
-(* 不算叫醒过；带 handed 的 key 下次扫描不跳过（:879-883），再 recheck：送达过就是     *)
+(* stuck-check 看到 "send" 只记 known[key] = {handed: NOW, via: orca-wake}（:1051-1068），*)
+(* 不算叫醒过；带 handed 的 key 下次扫描不跳过（:883-887），再 recheck：送达过就是     *)
 (* already_woken → dismissed，发送失败就重新认领同一个去重键再发（PER-67 F1）。        *)
 (* 模型里 known 保持 none 即「下次再 recheck」。                                      *)
 (* Mutant "sc_handoff"：修之前的代码，看到 send 就记 notified，之后一直跳过。          *)
@@ -250,11 +266,13 @@ RecheckKnown(t) ==
     ELSE IF Mutant # "sc_handoff" THEN known[t]
     ELSE "notified_ow"
 
-(* send_all（stuck-check.sh:1418-1477）：先 direct（第二类合并的一条、以前没发出去的），*)
-(* 再 suspects（agent_gone）。一条 post 重试后仍失败 → broken = True，这次运行剩下的  *)
-(* 一条都不发（:1437-1438,1471-1472），留到下次。post（:292-306）：200<=code<300 才算成功。     *)
+(* send_all（stuck-check.sh:1449-1529）：先 direct（第二类合并的一条、以前没发出去的），*)
+(* 再 suspects（agent_gone）。一条 post 重试后仍失败 → 这次运行里发给同一个目标的不再发，    *)
+(* 发给别的目标的照发（broken 是目标的集合，:1478-1481,1520-1523；PER-67 F5），留到下次。     *)
+(* post（:295-309）：200<=code<300 才算成功。                                            *)
+(* Mutant "old_send_all"：修之前的代码，一条失败其余全停，也没有 F4 的改发。               *)
 (* 一次 post 连 3 次重试约 65 秒：模型里按「这一刻 up[to] 决定」折叠成一步。        *)
-(* Mutant "sc_any_http"：把 :300 改成 ok = isinstance(code, int)。                    *)
+(* Mutant "sc_any_http"：把 :303 改成 ok = isinstance(code, int)。                    *)
 (* Fix "no_hol"：一条失败不挡后面的。                                              *)
 Scan ==
     /\ ~scanned
@@ -269,7 +287,9 @@ Scan ==
           LET code(i) == IF up[items[i].to] THEN OK ELSE fc[i]
               okc(c) == IF Mutant = "sc_any_http" THEN c # 0 ELSE c = OK
               \* res[i]：TRUE = 发了且算成功；FALSE = 发了失败或被前面的失败挡住
-              att[i \in 1..L] == IF i = 1 \/ "no_hol" \in Fixes THEN TRUE ELSE att[i-1] /\ okc(code(i-1))
+              att[i \in 1..L] == IF i = 1 \/ "no_hol" \in Fixes THEN TRUE
+                                 ELSE IF Mutant = "old_send_all" THEN att[i-1] /\ okc(code(i-1))
+                                 ELSE \A j \in 1..(i-1) : items[j].to = items[i].to => (att[j] /\ okc(code(j)))
               posted(i) == att[i]
               good(i) == posted(i) /\ okc(code(i))
               real(i) == posted(i) /\ code(i) = OK
