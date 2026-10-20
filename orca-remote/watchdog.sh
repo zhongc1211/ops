@@ -25,18 +25,27 @@
 # - full Orca restart is deferred while memory PSI "full avg10" > PSI_MAX % (restarting into thrash only adds load; 11:55:59
 #   restarted an Orca that was back by itself at 11:56:45), at most DEFER_MAX s; a freeze starts the deferral over. Gap between
 #   restarts doubles MINGAP..MAXGAP, back to MINGAP once a restart is MAXGAP old.
-# - state file $STATE (state=ok|unhealthy|stalled|paused|deferred|restarting, since=epoch, ...) for whoever decides to wake
-#   someone (stuck-check / orca-bot-guard do not read it yet).
+# - state file $STATE (state=ok|unhealthy|stalled|paused|deferred|restarting|display_dead, since=epoch, ...) for whoever decides
+#   to wake someone (stuck-check / orca-bot-guard do not read it yet).
+# rev 2026-10-20: serve no longer borrows :4 (a host-managed Grok desktop, torn down and recreated; ops reports/orca-serve-1020).
+#   orca-remote now lets `orca-ide serve` start its own Xvfb (ORCA_SERVE_DISPLAY=own, default). On 10-20 every serve exit was a
+#   display failure and the 21 full restarts during the :4 outages did nothing. Display failures (serve.log: "not verifiably
+#   live" / "X connection error") are now handled apart:
+# - own mode, display error since serve was last ready: serve-loop is already restarting serve on a fresh Xvfb -> the first
+#   such unhealthy round is not counted (one more round), then the normal strikes apply.
+# - other modes (ORCA_SERVE_DISPLAY=:N, or an old serve.log line without display=), last serve run died of the display: a full
+#   restart cannot bring that display back -> no restart, log it, state display_dead (serve-loop keeps retrying by itself).
 # WATCHDOG_* env vars below are for the scratch drill (orca-remote/drill); defaults are production.
 LOG=${WATCHDOG_LOG:-/workspace/ops/orca-remote/watchdog.log}; R=${ORCA_REMOTE_BIN:-/workspace/ops/orca-remote/orca-remote}
 STATE=${WATCHDOG_STATE:-/workspace/ops/orca-remote/watchdog.state}; TLOG=${WATCHDOG_TUNNEL_LOG:-/home/box/.local/state/orca-remote/tunnel.log}
+SLOG=${WATCHDOG_SERVE_LOG:-/home/box/.local/state/orca-remote/serve.log}
 UPF=${WATCHDOG_UPTIME_FILE:-/proc/uptime}; PSIF=${WATCHDOG_PSI_MEM:-/proc/pressure/memory}; SESSION=${WATCHDOG_SESSION:-orca-remote}
-# DISPLAY is pinned to the orca-bot desktop :4 (never inherited): 10-17 12:40 a caller passed a missing :3 and orca-bot served 502.
-export DISPLAY=:4 PATH=/home/box/.local/bin:/usr/local/bin:/usr/bin:/bin
+# No DISPLAY here: orca-remote picks the display from ORCA_SERVE_DISPLAY (default own); serve never gets a caller's DISPLAY.
+export PATH=/home/box/.local/bin:/usr/local/bin:/usr/bin:/bin
 INT=${WATCHDOG_INT:-45}; MINGAP=${WATCHDOG_MINGAP:-90}; MAXGAP=${WATCHDOG_MAXGAP:-900}; GRACE=${WATCHDOG_GRACE:-120}
 STALL_SLACK=${WATCHDOG_STALL_SLACK:-30}; STALL_GRACE=${WATCHDOG_STALL_GRACE:-180}; STRIKE_WIN=$((2*INT+STALL_SLACK))
 T_LOCAL=10; T_PUB=15; CF_FRESH=${WATCHDOG_CF_FRESH:-60}; PSI_MAX=${WATCHDOG_PSI_MAX:-10}; DEFER_MAX=${WATCHDOG_DEFER_MAX:-300}
-grace_until=0; ts=0; resumed=0; last_strike=0; defer_since=0; rgap=$MINGAP; last_stall=0; wst=init; wsince=$(date +%s); wdet=""
+grace_until=0; dround=0; ts=0; resumed=0; last_strike=0; defer_since=0; rgap=$MINGAP; last_stall=0; wst=init; wsince=$(date +%s); wdet=""
 LOCAL=${WATCHDOG_LOCAL_URL:-http://127.0.0.1:6768/}
 PUB=${WATCHDOG_PUBLIC_URL:-https://orca-bot.deepvision.sg/}; PBODY=${WATCHDOG_PBODY:-/tmp/orca-remote-watchdog.public-body}
 CF_MATCH=${WATCHDOG_CF_MATCH:-"cloudflared tunnel --config /home/box/.cloudflared/config.yml"}
@@ -95,6 +104,21 @@ tunnel_fix(){ local a old i t0 ok c; a=$(cf_fresh); if [ -n "$a" ]; then log "cl
   while [ $(( $(date +%s)-t0 )) -lt 60 ]; do sleep 3 9>&-; c=$(curl -s -o /dev/null -w '%{http_code}' -m 10 $PUB); [ "$c" = 200 ] && ok=$((ok+1)) || ok=0; [ $ok -ge 3 ] && break; done
   if [ $ok -ge 3 ]; then log "tunnel-only restart verified: public 200 x3, $(( $(date +%s)-t0 ))s after kill"; return 0; fi
   log "tunnel-only restart NOT verified within 60s (last public=$c)"; return 1; }
+# display_fail: if Orca's serve is down because of its display, print "MODE: ERROR" (MODE own, :N or legacy = old orca-remote
+# line without display=, which pinned :4). own: a display error since the last orca_server_ready (serve-loop is mid self-heal);
+# other modes: a display error in the last serve run (after the last "starting orca-ide serve" line). Missing log -> nothing.
+DISP_ERR='not verifiably live|X connection error'
+display_fail(){ local t m e
+  t=$(tail -n 300 "$SLOG" 2>/dev/null) || return 1
+  m=$(printf '%s\n' "$t" | grep 'starting orca-ide serve' | tail -n 1); [ -n "$m" ] || return 1
+  case $m in *display=*) m=${m##*display=}; m=${m%%)*};; *) m=legacy;; esac
+  if [ "$m" = own ]; then e=$(printf '%s\n' "$t" | awk '/orca_server_ready/{b=""; next} {b=b $0 "\n"} END{printf "%s", b}')
+  else e=$(printf '%s\n' "$t" | awk '/starting orca-ide serve/{b=""} {b=b $0 "\n"} END{printf "%s", b}'); fi
+  e=$(printf '%s' "$e" | grep -oE "$DISP_ERR" | tail -n 1); [ -n "$e" ] || return 1
+  echo "$m: $e"; }
+# unhealthy: count a strike; 2 consecutive -> full restart
+unhealthy(){ f=$((f+1)); ts=0; last_strike=$now; log "unhealthy local=$l public=$p (strike $f)$1"; setst unhealthy "strike $f local=$l public=$p"
+  [ $f -ge 2 ] && restart "unhealthy x2"; }
 psi_full(){ sed -n 's/^full avg10=\([0-9]*\).*/\1/p' "$PSIF" 2>/dev/null; }
 restart(){ now=$(date +%s)
   if [ $((now-last_restart)) -lt $rgap ]; then log "restart wanted ($1) but backoff ($((now-last_restart))s<${rgap}s)"; setst unhealthy "restart backoff"; return; fi
@@ -130,10 +154,13 @@ while true; do
   elif [ "$l" = 200 ] && { [ "$p" = 530 ] || [ "$p" = 502 ]; }; then
     ts=$((ts+1)); f=0; last_strike=$now; log "stale tunnel local=$l public=$p (strike $ts)"; setst unhealthy "stale tunnel strike $ts"
     if [ $ts -ge 2 ]; then tunnel_fix "stale tunnel x2"; ts=0; fi
-  elif [ "$l" = 000 ] || [ "$p" != 200 ]; then
-    f=$((f+1)); ts=0; last_strike=$now; log "unhealthy local=$l public=$p (strike $f)"; setst unhealthy "strike $f local=$l public=$p"
-    [ $f -ge 2 ] && restart "unhealthy x2"
-  else f=0; ts=0; defer_since=0; setst ok ""
+  elif [ "$l" != 200 ] && df=$(display_fail); then
+    if [ "${df%%:*}" = own ]; then
+      if [ $dround = 0 ]; then dround=1; ts=0; log "unhealthy local=$l public=$p: display failure in own mode ($df) -> serve-loop restarts serve on its own Xvfb; one more round, not counted"; setst unhealthy "display failure (own), waiting one round"
+      else unhealthy " after display failure ($df)"; fi
+    else f=0; ts=0; log "unhealthy local=$l public=$p: display dead ($df) -> no full restart (it cannot bring the display back); serve-loop keeps retrying"; setst display_dead "$df"; fi
+  elif [ "$l" = 000 ] || [ "$p" != 200 ]; then unhealthy ""
+  else f=0; ts=0; dround=0; defer_since=0; setst ok ""
     [ $last_restart -gt 0 ] && [ $rgap -gt $MINGAP ] && [ $((now-last_restart)) -ge $MAXGAP ] && { rgap=$MINGAP; log "healthy ${MAXGAP}s after last restart -> restart gap back to ${MINGAP}s"; }
   fi
   [ $(stat -c%s $LOG) -gt 1000000 ] && mv $LOG $LOG.old
