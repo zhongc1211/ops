@@ -49,8 +49,8 @@
 #   每个进程报一次（进程不退出就一直记着，在 Orca 工作区外面的也一样，10-19 MBA pid 36142），同一个 bot 的合成一条。
 #   脱离了父进程的子 agent 不报：父链里没有 agent 也没有 notify-run，但同一个 Orca 终端（ORCA_PANE_KEY）里有一个被
 #   notify-run 包着的顶层 agent（agent-probe 的 adopted_by），算那个 agent 的子 agent（10-19 17:42 ce-code-review 的
-#   peer-job-runner 起的 codex 被 launchd 收养，误报过）。读不到 paneKey 的，同一个任务工作区（主目录除外）里有包着的顶层
-#   agent 也算。
+#   peer-job-runner 起的 codex 被 launchd 收养，误报过）。只认父链里已经没有 Orca 的；读不到 paneKey 的脱离进程本来就不算
+#   在 Orca 里，不报。
 #   起 agent 用 wake/bin/orca-agent-launch（不带 --bot 就拒绝）。
 #
 # 一 b、due date 对账（每次都查，脚本直接发）。有 due 的 Linear issue：In Progress 超过 STUCK_DUE_GRACE_MIN（默认 30）
@@ -75,8 +75,8 @@
 #   常有几十秒连不上）；两轮都失败才算这次连不上。连续 2 次检查都连不上，报一次给 coding-assistant（kind box_unreachable /
 #   mba_unreachable），恢复后复位。MBA 按常开机器算（Zack 10-18），环境名 mba（STUCK_MBA_ENV 可改，设成空串不查）；
 #   MBA 上的临时终端开在 STUCK_MBA_PROBE_WT（默认 MBA 的 ops 主目录）。远端的 agent-probe 临时终端失败时也等 15 秒再试一次。
-# 派活 bot 的判断顺序：orca-projects.md 里的 Linear 编号（工作区没关联 Linear 时取显示名里的编号）→ 工作区显示名前缀（「营销 · 」「dv营销 · 」→ deepvision-marketing，
-#   见 NAME_BOT）→ 仓库映射；第一类里 agent 外面包的 notify-run --bot（agent-probe 的 dispatch_bot）优先于以上全部；
+# 派活 bot 的判断顺序：orca-projects.md 里的 Linear 编号 → 工作区显示名前缀（「营销 · 」「dv营销 · 」→ deepvision-marketing，
+#   见 NAME_BOT）→ 没关联 Linear 时显示名「<bot> · <编号> …」里的编号 → 仓库映射；第一类里 agent 外面包的 notify-run --bot（agent-probe 的 dispatch_bot）优先于以上全部；
 #   都没有的发给 coding-assistant。
 # 心跳：每次跑完（含闸门关着直接退出）写 STATE_DIR/heartbeat.json，并在 stdout 打一行「@@HB {"ts","mode","rc","last_scan"}」。
 #   Orca 自动任务的运行记录会存 precheck 的 stdout，另一台机器上的 scripts/heartbeat-watch.sh 读它，太久没有新的就报警。
@@ -353,13 +353,15 @@ MAP_ID, MAP_NAME, MAP_LINEAR = load_mapping()
 
 
 def bot_for(repo_id, repo_name, slug, linear, display=None):
-    # 没关联 Linear 的按显示名里的编号认（box 上好几个「ops · PER-67 …」工作区没关联卡片，应归 coding-assistant）
-    for lin in [linear] if linear else ["%s-%s" % m for m in re.findall(r"\b([A-Z]{2,6})-(\d+)\b", display or "")]:
-        if lin in MAP_LINEAR:
-            return BOT_SLUG.get(MAP_LINEAR[lin], MAP_LINEAR[lin])
+    if linear and linear in MAP_LINEAR:
+        return BOT_SLUG.get(MAP_LINEAR[linear], MAP_LINEAR[linear])
     for rx, b in NAME_BOT:
         if display and rx.search(display):
             return b
+    # 没关联 Linear 的按显示名「<bot> · <编号> …」里的编号认（box 上好几个「ops · PER-67 …」工作区没关联卡片，应归 coding-assistant）
+    m = None if linear else re.match(r"^[^·]*·\s*([A-Z]{2,6}-\d+)\b", display or "")
+    if m and m.group(1) in MAP_LINEAR:
+        return BOT_SLUG.get(MAP_LINEAR[m.group(1)], MAP_LINEAR[m.group(1)])
     info = MAP_ID.get(repo_id, {})
     slug = slug or info.get("slug")
     names = [info.get("name"), repo_name, slug.split("/")[-1] if slug else None]
@@ -735,15 +737,11 @@ def check_unwrapped(host, track, pend=()):
     per_bot = {}
     # 报过的记录只在进程真的没了才删（ONLY 过滤掉的、这次不算的照样留着），同一个进程只报一次（10-19 MBA pid 36142）
     alive = {"%s:%d" % (label, p["pid"]) for p in probe.get("procs", [])}
-    mains = {w["path"] for w in host["worktrees"] if w.get("isMainWorktree")}
-    # 读不到 paneKey 的脱离子 agent 按工作区认父 agent：这些任务工作区里有被 notify-run 包着的顶层 agent（主目录里 agent 太多，不算）
-    wrapped_ws = {ws_of(p.get("cwd") or "", ws_paths) for p in probe.get("procs", []) if p["kind"] == "agent" and
-                  p.get("notify_anc") and not p.get("agent_anc_cwds")} - mains - {None}
     for p in probe.get("procs", []):
         if p["kind"] != "agent" or p.get("name") not in WATCH_AGENTS or p.get("agent_anc_cwds") or \
                 p.get("notify_anc") or not p.get("in_orca") or (ONLY and not ONLY.search(p.get("cwd") or "")):
             continue
-        if p.get("adopted_by") or (not p.get("pane") and ws_of(p.get("cwd") or "", ws_paths) in wrapped_ws):
+        if p.get("adopted_by"):
             continue  # 脱离了父进程的子 agent，派它的顶层 agent 包着 notify-run
         k = "%s:%d" % (label, p["pid"])
         start = int(probe.get("ts", NOW) - p.get("etime_s", 0))
