@@ -44,7 +44,8 @@ done
 [ "$connected" = 1 ] || { echo "cannot reach box over ssh; nothing pushed" >&2; exit 2; }
 # catch-up: push again, from the local copy, recent days whose list box does not have (same sha256).
 # box's own sha256 decides; a day box already has only gets its .pushed marker (re)written.
-# A day is only started while SECONDS < CATCHUP_BUDGET, to stay inside the precheck timeout.
+# A day is only started while SECONDS < CATCHUP_BUDGET (420 of the 600 s precheck timeout): today's
+# push alone took ~6 min for 49 MB in the E2E, and xinyue pushes are not resumable.
 catch_up() {   # $1 = first day before D to check (0 = D itself)
   local i day days="" want have rc
   for i in $(seq "$1" "${CATCHUP_DAYS:-3}"); do
@@ -61,7 +62,7 @@ catch_up() {   # $1 = first day before D to check (0 = D itself)
       echo "catch-up $day: on box, sha ok"
       continue
     fi
-    [ "$SECONDS" -lt "${CATCHUP_BUDGET:-300}" ] || { echo "catch-up $day: time budget used up; left for the next run" >&2; return 1; }
+    [ "$SECONDS" -lt "${CATCHUP_BUDGET:-420}" ] || { echo "catch-up $day: time budget used up; left for the next run" >&2; return 1; }
     echo "catch-up $day: box $(echo "$have" | awk -v d="$day" '$1 == d {print "sha=" substr($2, 1, 12)}' | grep . || echo missing), local sha=${want:0:12}; pushing the local copy"
     rc=0
     PUSH_ONLY=1 CATCHUP_ONLY=0 D=$day bash "$0" || rc=$?

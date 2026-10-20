@@ -139,7 +139,8 @@ EVEROS_INGEST_ROOT=$HOME/.orca-state/bin/everos-ingest \
   - 推成功后在本机 `<项目>/<D>/.pushed` 写清单 `sessions-<machine>.jsonl` 的 sha256。
   - 然后看 D 之前 `CATCHUP_DAYS`（默认 3）天：本机有清单、box 上没有或 sha256 不同的日期，用 `PUSH_ONLY=1 D=<那天>`
     重跑本脚本，推本机已有的那份（不重新采集）。box 上已有同一份的日期只补写 `.pushed`，不重推。以 box 的 sha256 为准。
-  - 时限：官网/广告/vllm 把剩余的 `PUSH_BUDGET` 传给补推，剩不到 60 秒就留给下次；心月在第 `CATCHUP_BUDGET`（300）秒后不再开始新的一天。
+  - 时限：官网/广告/vllm 把剩余的 `PUSH_BUDGET` 传给补推，剩不到 60 秒就留给下次；心月在第 `CATCHUP_BUDGET`（420，precheck 时限 600）秒后不再开始新的一天。
+    心月推送不能续传：当天转写大时补推常常排不进同一次运行，要靠下一次运行或下面的低频 automation。
   - 补推没做完（列不出 box、某天推失败、时间用完）退出 6，下次运行再补。今天这次推失败时不补推，退出码照旧。
   - `CATCHUP_ONLY=1`：不采集，只补推 D 和之前 3 天（给下面可选的低频 automation 用）。
   - `EVEROS_LOCAL_BASE` / `EVEROS_REMOTE_BASE` / `EVEROS_BOX` 只给 E2E 用，平时不设。

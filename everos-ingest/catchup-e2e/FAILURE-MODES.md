@@ -36,3 +36,4 @@ box 还会再冻（`/workspace/ops/reports/orca-serve-1020/REPORT.md` 第 (3) �
 | # | 失败方式 | 怎么发现 / 怎么查 |
 |---|---|---|
 | F18 | 当天没有转写时，`n_tx=$(ls "$LOCAL/<machine>/"*.jsonl … \| wc -l)` 在 `set -euo pipefail` 下让脚本在推完后直接 exit 1，补推一步没跑 | 第 2 轮 E2E（bc18b80）广告 run2：D1 推上了、`.pushed` 写了，日志停在 `box: swapped`，D0 没补推。旧脚本里同一行也是这样，只是它本来就在最后，退出码碰巧是 1。修后由 run2 的 F3/F9 检查覆盖（广告、官网 D1 都没有转写） |
+| F19 | 心月当天转写大时，推送本身就用掉大半时限，`CATCHUP_BUDGET=300` 让补推一次都开始不了 | 第 3 轮 E2E（fd84ec5）心月 run2：采集 30 秒，推 49 MB 用了约 6 分钟（四个目标同时推），到第 400 秒才轮到补推，按 300 秒截止退出 6。默认改为 420（MBA、iMac 的采集 automation precheck 时限都是 600s）。修后由心月 run2 的 F3/F9 检查覆盖；转写更大时仍可能排不上，见 README |
