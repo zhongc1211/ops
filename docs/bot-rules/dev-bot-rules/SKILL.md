@@ -23,10 +23,10 @@ description: >-
 - 项目按仓库分，不按 bot 分：同一仓库可以有几个 bot 共用一个项目；新仓库（新产品）就新建自己的项目，不借别的仓库的项目；自动任务放 ops 项目。动 Orca 前先读 iMac ~/orca/workspaces/ops/orca-projects.md（仓库→项目 ID，bot→工作区），新建了项目或工作区，同一轮补进表里。
 - 每个 Linear 任务单独开一个自己的工作区，不要一个 bot 守着一个工作区一直用；绝不用别的 bot 的工作区，也不在别人的工作区里开标签或终端。
 - 建工作区一律 `worktree create --repo id:<仓库对应的项目ID> --no-parent --name <英文短名>`，再 `worktree set --worktree <新工作区> --display-name "<项目> · <Linear编号> <中文简述>"`（例：「心月 · PER-52 手机测试修复」；项目简称用 心月 / vllm / dv广告 / dv运维 / dv官网 / dv营销 / ops），工作区绝不建在 /tmp 或其他临时目录下。指定工作区用完整 ID `<项目ID>::<路径>`。不带 --repo 会继承当前工作区的项目。
-- 派到哪台电脑（Zack 2026-10-18 15:25 本人原话「你的电脑老断，mba 接活优先级最高，然后是 imac 和你按轻重分」，取代 10-14 那条；自动任务不受影响）：MBA（tailnet 100.64.0.7，iMac 上 `ssh mba`）配好并经 Coding助手 验收后，所有动手的活优先派到 MBA 的 Orca；MBA 忙或不可用时，重要但不吃资源的活（改 PR 描述、写草稿、rebase、合并、review）派到 iMac Orca，重活（编译、测试、GPU 相关、大功能开发）也不再派 box（Zack 2026-10-20 17:45 SGT 选「重活挪去 MBA/iMac，并反馈给平台」，原因是 box 宿主内存紧、当天冻结 27 次约 3.4 小时）：MBA 忙就派 iMac，MBA 和 iMac 都不可用才放 box，并在 status.md 写一句原因。MBA 验收前照旧：轻活 iMac、重活 box。
-- box Orca（`orca` 不带 --environment）8 核 15G，只作最后备用，同时最多 2 个重任务；对照表里注明工作树在哪台。
+- 派到哪台电脑（Zack 2026-10-18 15:25 本人原话「你的电脑老断，mba 接活优先级最高，然后是 imac 和你按轻重分」，取代 10-14 那条；自动任务不受影响）：MBA（tailnet 100.64.0.7，iMac 上 `ssh mba`）配好并经 Coding助手 验收后，所有动手的活优先派到 MBA 的 Orca；MBA 忙或不可用时，重要但不吃资源的活（改 PR 描述、写草稿、rebase、合并、review）派到 iMac Orca，重活（编译、测试、GPU 相关、大功能开发）也不再派 box（Zack 2026-10-20 17:45 SGT 选「重活挪去 MBA/iMac，并反馈给平台」，原因是 box 宿主内存紧、当天冻结 27 次约 3.4 小时）：MBA 忙就派 iMac，MBA 和 iMac 都不可用时，重活等它们空出来，不放 box（见下条）。
+- box Orca（`orca` 不带 --environment）8 核 15G：Zack 2026-10-20 22:36 SGT 原话「你电脑上的活都挪走，按照负载分布到 imac 和 mba 上」「只有轻量且不在意被打断的才放你那」。box 上只放轻量、被打断也无所谓的活（不放重任务，也不放跑到一半断了要重来的长任务）；其余一律按负载派 MBA/iMac；起 agent 前看目标机内存和 swap，满了就换机器或排队（iMac 只有 8GB，10-20 同时 24 个 claude 撑爆过；上限由 orca-agent-launch 卡）。对照表里注明工作树在哪台。
 - 功能多的开发要拆开：一个功能（一个 Linear issue）一个工作树，并行开发，不要把很多功能堆在一个工作树里；拆出来的工作树按叠加 PR 的顺序来定 base。
-- 在 Orca 里起 agent（claude / pi / codex）一律用 `orca-agent-launch`（2026-10-19 起，PER-65；iMac、box、MBA 都在 ~/.local/bin/）：`orca-agent-launch --bot <派活的 bot> --task "<Linear 编号> <简述>：agent 进程退出了" [--issue X --eta "YYYY-MM-DD HH:MM"] -- claude --dangerously-skip-permissions ...`。带 `--issue` 必须同时带 `--eta`（预计回复时间，SGT），它会先把 due 和「负责 bot」写进那张 Linear 卡，写不进去就不起 agent（退出码 3）；不想碰 Linear 的加 `--no-linear`（2026-10-19 起，PER-66）。它检查参数后 exec `notify-run --tty`；没带 --bot/--task、bot 没 webhook 配置、经 `bash -c`/`env`/`nohup` 转一层的都会被拒绝（退出码 2）。直接敲 `claude` 或没经 notify-run 起的，卡住检查会当 `agent_unwrapped` 报给派活的 bot，收到就关掉按这个写法重开。agent 进程退出、崩溃、断线、终端被关，都会叫醒派活的 bot（status 是 done / failed / killed）；收到这条，或被 Orca 启动自检/30 分钟巡检叫醒说「进行中但没 agent」，说明 agent 已经不在了：工作区还没做完就当场重开 agent 接着干，不等人确认。自己关终端也会收到一条 killed，不用处理。不能停下来等 Zack 授权。Orca agent 要审批时，由派活的 bot 自己处理：关掉会话，换成这个模式重开，然后接着干；绝不找 Zack。
+- 在 Orca 里起 agent（claude / pi / codex）一律用 `orca-agent-launch`（2026-10-19 起，PER-65；iMac、box、MBA 都在 ~/.local/bin/）：`orca-agent-launch --bot <派活的 bot> --task "<Linear 编号> <简述>：agent 进程退出了" [--issue X --eta "YYYY-MM-DD HH:MM"] -- claude --dangerously-skip-permissions ...`。带 `--issue` 必须同时带 `--eta`（预计回复时间，SGT），它会先把 due 和「负责 bot」写进那张 Linear 卡，写不进去就不起 agent（退出码 3）；不想碰 Linear 的加 `--no-linear`（2026-10-19 起，PER-66）。它检查参数后 exec `notify-run --tty`；没带 --bot/--task、bot 没 webhook 配置、经 `bash -c`/`env`/`nohup` 转一层的都会被拒绝（退出码 2）。直接敲 `claude` 或没经 notify-run 起的，卡住检查会当 `agent_unwrapped` 报给派活的 bot，收到就关掉按这个写法重开。agent 进程退出、崩溃、断线、终端被关，都会叫醒派活的 bot（status 是 done / failed / killed）；收到这条，或被 Orca 启动自检/30 分钟巡检叫醒说「进行中但没 agent」，说明 agent 已经不在了：工作区还没做完就当场重开 agent 接着干，不等人确认；重开前先用 `orca terminal read` 确认那个终端里没有活的 agent，有就不敲。自己关终端也会收到一条 killed，不用处理。不能停下来等 Zack 授权。Orca agent 要审批时，由派活的 bot 自己处理：关掉会话，换成这个模式重开，然后接着干；绝不找 Zack。
 - 显示名建的时候就用 --display-name 设好（格式见上），不能事后补；关联 Linear issue；开工、开 PR、卡住时用 `worktree set` 更新 --comment 和 --workspace-status，做完把卡片状态改成 completed。
 
 ## Orca 标签页
@@ -79,14 +79,15 @@ description: >-
 ## 派活必须叫醒、做完自己报（Zack 10-12 批）
 notify-run --tty 起的 agent 由 orca-wake 自动叫醒（见「叫醒 v5」）；本节手动 curl 只在没法用 notify-run --tty、或 orca-wake hook 没装好时兜底。
 - SendToAgent：要对方动手、验收或回话的（含改完 PR、卡住）一律 priority true，纯通知才用 false。转批准或派活的一方当场在 Linear issue 设 due date 和负责 bot；没开工或到点没交，由卡住工作检查叫醒（Zack 10-18 13:18）。
-- 谁派的 Orca coding agent，做完或卡住就直接叫醒谁，不经 Coding助手 转。每个开发 bot 有自己的 webhook routine「Orca 完工/卡住唤醒」，地址和密钥放在 iMac `~/.config/grokbot/webhooks/<bot>.env`（URL=…、KEY=…）。bot 名分别是 deepvision-ops、deepvision-ads、vllm-omni、xinyue、deepvision-marketing（营销 bot 也照此执行）。
+- 谁派的 Orca coding agent，做完或卡住就直接叫醒谁，不经 Coding助手 转。每个开发 bot 有自己的 webhook routine「Orca 完工/卡住唤醒」，地址和密钥放在 box / MBA / iMac 三台的 `~/.config/grokbot/webhooks/<bot>.env`（URL=…、KEY=…）。bot 名分别是 deepvision-ops、deepvision-ads、vllm-omni、xinyue、deepvision-marketing、ops-system（营销 bot 也照此执行）。
+- 验收要看 agent 的工作区或终端时，brief 和工作区名写明要留（如加「[演练」前缀），起跑前告诉各 bot 别关。
 - 兜底时，派活任务里只写文件路径，不写密钥：完成或卡住时执行 `source ~/.config/grokbot/webhooks/<bot>.env && curl -fsS -X POST "$URL" -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' -d '{"bot":"<bot>","task":"<Linear 编号>","worktree":"<路径>","status":"done|stuck","note":"..."}'`。
 - 被 routine 叫醒后读 payload，按本 skill 验收或处理；需要时回 Coding助手，不找 Zack；bot=test 只确认收到。
 - 兜底：Coding助手 的 webhook（`~/.config/grokbot/stuck-webhook.env`）只用于兜底。iMac Orca ops 自动任务「卡住工作检查」每天 8–23 点每 15 分钟跑一次、0–7 点每小时一次（2026-10-17 起周末也跑），iMac 和 box 两边的 Orca 都查。completed / in-review 的工作区叫醒后超过 1 小时还没人验收，才 POST 兜底 webhook。
 - 「卡住工作检查」对 in-progress 的工作区直接叫醒派活的 bot（payload 里 status=stuck、source=stuck-check，kind 说明是哪一种），只报三种：agent 进程不在了而工作区没标完成（agent_gone）；agent 停在输入框等输入超过 30 分钟（agent_idle）；agent 还在、不在等输入，但 30 分钟没有新输出，也没有 notify-run 在跑（agent_silent）。同一工作区有新活动前只报一次。todo / in-review / completed / Sleep 的工作区不查，所以状态要随时改准：等 review 或等拍板就改 in-review 或 Sleep，做完改 completed，不然会被当成卡住。
 
 ## 叫醒 v5 bot 端处理（Zack 10-15 16:55 批；分批生效）
-只对放进 enabled-bots（各机 `~/.config/orca-wake/enabled-bots` 一致）的 bot 生效；10-17 起 coding-assistant、deepvision-ops、deepvision-ads、vllm-omni、xinyue、deepvision-marketing 都已放行。
+只对放进 enabled-bots（各机 `~/.config/orca-wake/enabled-bots`，三台应一致，用 `wake/install.sh --check` 核对）的 bot 生效；10-17 起 coding-assistant、deepvision-ops、deepvision-ads、vllm-omni、xinyue、deepvision-marketing 都已放行，10-20 起 ops-system 也已放行。
 叫醒系统代码（orca-wake、orca-wake-hooks、notify-run、Pi 扩展 dispatch-wake.ts）在 ops 仓库 `wake/`（原 orca-agent-wake 仓库，10-17 并入后已只读归档），卡住检查在 ops `scripts/stuck-check.sh`。装或核对已装版本用 ops 里的 `wake/install.sh`（`--check` 只比对不写）。
 1. 去重：叫醒脚本先过滤（已处理的 dedup_key、completed/Sleep 工作区、主动关终端的 killed、同任务 done+idle 双发），命中只记 wake.log、不叫醒；漏过来的查 status.md，记过就忽略。
 2. 同一任务收到多条，以最新的 status 为准：
@@ -95,7 +96,7 @@ notify-run --tty 起的 agent 由 orca-wake 自动叫醒（见「叫醒 v5」）
    - error / blocked：先查原因（日志、额度、权限）；能自己修就派 agent 继续，修不了私聊 Coding助手 并写明卡点。
 3. 交接格式：agent 最后一条消息写「结论 + 报告路径」。派活模板里不再写「做完就 /exit」。
 4. 不想被叫醒（Zack 自己接手会话）时，在工作区放 .orca-wake-mute，用完删掉。
-5. 新 bot 放进 enabled-bots 前：确认它的 webhook routine「Orca 完工/卡住唤醒」能读五种 status（done / idle / needs_input / error / blocked）和 dedup_key，不认识的 status 当 error 处理并私聊 Coding助手；用测试 webhook 各发一条五种 status 的 e2e，每条处理对、同一 dedup_key 只处理一次，证据（wake.log + bot 回复）存档后才放行。
+5. 新 bot 放进 enabled-bots 前：确认它的 webhook routine「Orca 完工/卡住唤醒」能读五种 status（done / idle / needs_input / error / blocked）和 dedup_key，不认识的 status 当 error 处理并私聊 Coding助手；往新 bot 自己的 routine 发一组带「[演练」前缀的 webhook，五种 status 各一条，每条处理对、同一 dedup_key 只处理一次，证据（wake.log + bot 回复）存档后才放行。
 
 ## 错题本和验收硬标准（Zack 2026-10-13 批，已推到所有项目）
 - 派活给 coding agent 时写明动手前先查教训：4 个项目都已接 EverOS MCP v2.2。动手前调 EverOS `recall_agent_experience`（task 写几个关键词），不调写入类 everos 工具。LESSONS.md 已弃用。接入标准见 ops 仓库 `everos-mcp/`。
@@ -116,7 +117,7 @@ notify-run --tty 起的 agent 由 orca-wake 自动叫醒（见「叫醒 v5」）
 ## 每个 PR 必须有端到端测试（Zack 2026-10-13，永久）
 
 - 每一个 PR（含 vllm-omni 上游 PR 和各项目 PR）都必须有该 PR 本身 head 上跑的真实端到端测试；单元测试过、CI 绿都不能替代。
-- PR 描述里写端到端结果：命令、硬件、commit、结果；单元测试只写一句"CI covers unit tests"。没跑的写「没跑」并说明原因。
+- PR 描述里写端到端结果：命令、硬件、commit、结果。没跑的写「没跑」并说明原因。
 - 没有端到端结果的 PR 不转 ready、不请人 review。
 
 ## 派活前核对 AGENTS.md（Zack 2026-10-16）
