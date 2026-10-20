@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # PER-89 end-to-end test: real `claude -p` runs under CPU load, isolated from the live user settings.
-#   tests/e2e-load.sh --live <settings.json to copy> --out <evidence dir> [--load N] [--budget USD] [--only selftest|main]
+#   tests/e2e-load.sh --live <settings.json to copy> --out <evidence dir> [--load N] [--budget USD] [--only selftest|main] [--run-timeout S]
 # The live file is only copied (read). Settings for each case are generated from that copy with install.sh --dry-run.
+# MCP servers are not started (--strict-mcp-config): they are unrelated to skills and hooks and dominate startup time under load.
 # Load: N busy loops started by this script (perl alarm 300, so each round lasts at most 5 minutes);
 # only those PIDs are killed. Needs: claude logged in (run from a GUI-session terminal on macOS), python3, perl, node.
 set -uo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)
-live="" out="" load_n=8 budget=1.00 only=all
+live="" out="" load_n=8 budget=1.00 only=all run_timeout=900
 while [ $# -gt 0 ]; do
   case "$1" in
     --live) live="$2"; shift 2 ;;
@@ -14,6 +15,7 @@ while [ $# -gt 0 ]; do
     --load) load_n="$2"; shift 2 ;;
     --budget) budget="$2"; shift 2 ;;
     --only) only="$2"; shift 2 ;;
+    --run-timeout) run_timeout="$2"; shift 2 ;;
     *) echo "unknown argument: $1" >&2; exit 64 ;;
   esac
 done
@@ -159,7 +161,9 @@ load_ensure() {
   log "load pids=[$LOAD_PIDS]"
   sleep 20
 }
-trap 'load_stop' EXIT INT TERM
+CHILD=""
+trap 'load_stop' EXIT
+trap '[ -z "$CHILD" ] || kill -9 "$CHILD" 2>/dev/null; load_stop; rm -rf "$T"; exit 130' INT TERM
 
 # ---------- one claude run ----------
 COST=0
@@ -174,11 +178,12 @@ run() { # case config kind(human|model) input expect
   else prompt="Call the Skill tool exactly once with skill=\"$input\" and no args. Do not use any other tool. After the tool result, reply with the tool result text verbatim."; turns=3; fi
   local l0 t0 t1 f="$out/$case.jsonl"
   l0=$(load1); t0=$(date +%s)
-  (cd "$T/proj" && perl -e 'alarm shift; exec @ARGV or die' 420 claude -p "$prompt" \
-    --setting-sources project --settings "$T/$cfg.json" --model haiku --max-turns "$turns" \
+  cd "$T/proj"
+  perl -e 'alarm shift; exec @ARGV or die' "$run_timeout" claude -p "$prompt" \
+    --setting-sources project --settings "$T/$cfg.json" --strict-mcp-config --model haiku --max-turns "$turns" \
     --dangerously-skip-permissions --disallowedTools "Bash Edit Write NotebookEdit WebFetch WebSearch Agent" \
-    --output-format stream-json --verbose --debug-file "$T/$case.debug.log" </dev/null > "$f" 2> "$out/$case.stderr")
-  local rc=$?; t1=$(date +%s)
+    --output-format stream-json --verbose --debug-file "$T/$case.debug.log" </dev/null > "$f" 2> "$out/$case.stderr" &
+  CHILD=$!; wait "$CHILD"; local rc=$?; CHILD=""; t1=$(date +%s); cd - >/dev/null
   # keep only hook lines from the debug log (it can be large); drop env-like lines
   grep -i -E 'hook' "$T/$case.debug.log" 2>/dev/null | grep -v -i -E 'token|secret|key=|bearer|cookie' > "$out/$case.hooks.log"
   local row

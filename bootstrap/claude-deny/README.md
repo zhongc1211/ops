@@ -105,7 +105,7 @@ bootstrap/claude-deny/tests/e2e-load.sh --live ~/.claude/settings.json --out <�
 bootstrap/claude-deny/tests/e2e-load.sh --live ~/.claude/settings.json --out <证据目录> --only selftest   # 只跑匹配表和耗时，不调 claude
 ```
 
-- live 设置只复制、不改；每种配置都由 `install.sh --dry-run` 对副本生成，用 `--setting-sources project --settings <副本>` 起 `claude -p`（haiku），插件照常加载。
+- live 设置只复制、不改；每种配置都由 `install.sh --dry-run` 对副本生成，用 `--setting-sources project --settings <副本>` 起 `claude -p`（haiku），插件和插件 hook 照常加载。加 `--strict-mcp-config` 不起 MCP 服务器：它们和 skill、hook 无关，在 MBA 高负载下光连 MCP 就要几分钟。单次运行上限 `--run-timeout`（默认 900 秒）。
 - 加压：脚本自己起 N 个忙循环（`perl -e 'alarm 300; 1 while 1'`，每轮最多 5 分钟），只 kill 自己的 PID，前后记 `uptime`。
 - macOS 上要在图形会话里的终端跑（ssh 会话读不到钥匙串里的登录凭据，`claude -p` 会报 Not logged in）。
 - 输出：`results.tsv`（每次运行一行：配置、写法、load、挡/放、由哪个 hook 挡、是否出现 skill 正文、cost）、`selftest.tsv`、每次运行的 stream-json 和 hook 调试日志行、`run.log`。
