@@ -8,15 +8,25 @@
 # Installed 2026-10-08; see ~/backups/orca-config-20261008/CHANGES.md
 set -u
 SESSION=orca-remote
-U_HOME=/home/box
-PORT=6768
+U_HOME=${ORCA_REMOTE_HOME:-/home/box}
+PORT=${ORCA_REMOTE_PORT:-6768}
 PAIRING_ADDRESS=wss://orca-bot.deepvision.sg
 TUNNEL=orca-bot
 CF_CONFIG=$U_HOME/.cloudflared/config.yml
-STATE=$U_HOME/.local/state/orca-remote
+STATE=${ORCA_REMOTE_STATE:-$U_HOME/.local/state/orca-remote}
 SECRET_DIR=$U_HOME/.config/orca/remote-pairing
 BASE_PATH=$U_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin
 SERVE_MATCH='out/cli/index.js serve --port 6768'
+# rev 2026-10-20 (ops reports/orca-serve-1020): serve no longer borrows a host-managed agent desktop.
+# DISPLAY :4 is a per-agent Grok Bot desktop (start-desktop.sh under pod-daemon, SAND_DESKTOP_UNIT=:4) that the host tears
+# down and recreates; each time it went away serve died ("X connection error") and crash-looped on "DISPLAY=:4 is not
+# verifiably live" until that desktop came back (10-20: 10:54-12:32, 13:12-16:15, 16:32-16:48 SGT). Default now is
+# ORCA_SERVE_DISPLAY=own: DISPLAY is unset, so `orca-ide serve` starts and owns its own Xvfb (:99, -terminate) per run.
+# Rollback without editing: ORCA_SERVE_DISPLAY=:4 (old behaviour). ORCA_SERVE_RUNTIME defaults to electron: 1.4.224's
+# orcad probe entry (app.asar.unpacked/out/main/orcad/...) is only packed inside app.asar, so the probe always failed
+# with MODULE_NOT_FOUND and fell back to Electron anyway. Fast crash loops back off 5s..60s instead of flooding serve.log.
+# ORCA_IDE / ORCA_REMOTE_STATE / ORCA_REMOTE_PORT / ORCA_REMOTE_HOME are for the e2e test only; defaults are production.
+ORCA_IDE=${ORCA_IDE:-/workspace/ops/orca-app/Orca/resources/bin/orca-ide}
 
 read_env_var() { tr '\0' '\n' 2>/dev/null <"/proc/$1/environ" | sed -n "s/^$2=//p" | head -n1; }
 desktop_env() { # prints XDG_RUNTIME_DIR, DBUS_SESSION_BUS_ADDRESS of the desktop on $DISPLAY (for Computer Use)
@@ -61,18 +71,29 @@ PY
 
 serve_loop() {
   mkdir -p "$STATE"
+  local mode=${ORCA_SERVE_DISPLAY:-own} fast=0 delay=5 t0 rc
   while true; do
-    export DISPLAY=${DISPLAY:-:4}
-    local de x="" d=""
-    de=$(desktop_env); x=$(printf '%s\n' "$de" | sed -n 1p); d=$(printf '%s\n' "$de" | sed -n 2p)
-    [ -z "$x" ] && [ -d "/tmp/xdg-runtime-${DISPLAY#:}" ] && x="/tmp/xdg-runtime-${DISPLAY#:}"
-    echo "[$(date '+%F %T %Z')] starting orca-ide serve on 127.0.0.1:$PORT (advertise $PAIRING_ADDRESS)" | tee -a "$STATE/serve.log"
+    local x="" d="" de dispvar=()
+    if [ "$mode" = own ]; then
+      # Orca serve starts its own Xvfb when DISPLAY is unset; give it a private runtime dir, no desktop D-Bus.
+      x=/tmp/xdg-runtime-orca-remote; mkdir -p "$x" && chmod 700 "$x"
+    else
+      export DISPLAY=$mode; dispvar=(DISPLAY="$DISPLAY")
+      de=$(desktop_env); x=$(printf '%s\n' "$de" | sed -n 1p); d=$(printf '%s\n' "$de" | sed -n 2p)
+      [ -z "$x" ] && [ -d "/tmp/xdg-runtime-${DISPLAY#:}" ] && x="/tmp/xdg-runtime-${DISPLAY#:}"
+    fi
+    echo "[$(date '+%F %T %Z')] starting orca-ide serve on 127.0.0.1:$PORT (advertise $PAIRING_ADDRESS, display=$mode)" | tee -a "$STATE/serve.log"
+    t0=$(date +%s)
     env -i HOME=$U_HOME USER=box LOGNAME=box SHELL=/bin/bash LANG=${LANG:-C.UTF-8} TERM=xterm-256color \
-      PATH="$BASE_PATH" DISPLAY="$DISPLAY" ${x:+XDG_RUNTIME_DIR=$x} ${d:+DBUS_SESSION_BUS_ADDRESS=$d} \
-      /workspace/ops/orca-app/Orca/resources/bin/orca-ide serve --port "$PORT" --pairing-address "$PAIRING_ADDRESS" --json 2>&1 \
+      PATH="$BASE_PATH" "${dispvar[@]}" ${x:+XDG_RUNTIME_DIR=$x} ${d:+DBUS_SESSION_BUS_ADDRESS=$d} \
+      ORCA_SERVE_RUNTIME=${ORCA_SERVE_RUNTIME:-electron} \
+      "$ORCA_IDE" serve --port "$PORT" --pairing-address "$PAIRING_ADDRESS" --json 2>&1 \
       | python3 -u -c "$FILTER" "$SECRET_DIR" | tee -a "$STATE/serve.log"
-    echo "[$(date '+%F %T %Z')] orca-ide serve exited (${PIPESTATUS[0]}); restarting in 5s" | tee -a "$STATE/serve.log"
-    sleep 5
+    rc=${PIPESTATUS[0]}
+    # back off only for fast failures (died within 30s of start); a run that lived resets the delay
+    if [ $(( $(date +%s) - t0 )) -lt 30 ]; then fast=$((fast+1)); [ $fast -ge 3 ] && delay=$(( delay*2 > 60 ? 60 : delay*2 )); else fast=0; delay=5; fi
+    echo "[$(date '+%F %T %Z')] orca-ide serve exited ($rc); restarting in ${delay}s$([ $fast -gt 0 ] && echo " (fast failures: $fast)")" | tee -a "$STATE/serve.log"
+    sleep $delay
   done
 }
 
@@ -100,7 +121,7 @@ case "${1:-status}" in
         || sudo -n $t -I INPUT 1 -p tcp --dport "$PORT" ! -i lo -m comment --comment orca-remote-localhost-only -j DROP 2>/dev/null \
         || echo "warning: could not add $t loopback-only rule for port $PORT" >&2
     done
-    tmux new-session -d -s "$SESSION" -n serve "DISPLAY=${DISPLAY:-:4} $0 serve-loop"
+    tmux new-session -d -s "$SESSION" -n serve "ORCA_SERVE_DISPLAY=${ORCA_SERVE_DISPLAY:-own} $0 serve-loop"
     tmux new-window -d -t "$SESSION" -n tunnel "$0 tunnel-loop"
     echo "started tmux session $SESSION (windows: serve, tunnel)";;
   stop)
