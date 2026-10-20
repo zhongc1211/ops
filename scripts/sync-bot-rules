@@ -1,0 +1,68 @@
+#!/bin/bash
+# sync-bot-rules [--check|--apply] [--repo DIR] [--ref REF] [--no-fetch] [--machine NAME]
+# Copy bot-rule skill directories from the ops repo (default ref origin/main) to their real locations, or report drift.
+# What goes where lives in docs/bot-rules/targets.tsv, read from the same ref: machine, host glob, source dir, target dir.
+# Only rows whose host glob matches this host (or whose machine = --machine) are handled; nothing outside those target dirs
+# is touched. Content comes from `git show <ref>:<path>`, so a dirty or other-branch worktree does not matter. Whole
+# directories are synced (every file under the source dir), so a skill split into several files needs no change here.
+# --check (default, read-only): one line per file: machine | target path | source sha256 | target sha256 | status, where
+#   status is same / drift / missing (in git, not in target) / extra (in target, not in git; *.bak* files are ignored).
+#   Exit 0 = all same, 1 = drift/missing/extra, 2 = error (bad ref, no targets.tsv, target dir missing, ...).
+# --apply: writes only drift/missing files. A drifted file is first copied to <file>.bak-YYYYMMDD-HHMM in the same dir;
+#   extra files are reported and left alone. Prints the sha256 again after writing. A missing target dir is an error, never
+#   created (a wrong path in targets.tsv must not create a new tree). See docs/bot-rules/SYNC.md before using --apply.
+MODE=check; REPO=$(cd "$(dirname "$0")/.." && pwd); REF=origin/main; FETCH=1; MACHINE=
+while [ $# -gt 0 ]; do case $1 in
+  --check) MODE=check; shift;; --apply) MODE=apply; shift;; --no-fetch) FETCH=0; shift;;
+  --repo) REPO=$2; shift 2;; --ref) REF=$2; shift 2;; --machine) MACHINE=$2; shift 2;;
+  *) echo "usage: $0 [--check|--apply] [--repo DIR] [--ref REF] [--no-fetch] [--machine NAME]" >&2; exit 2;;
+esac; done
+TSV=docs/bot-rules/targets.tsv
+die(){ echo "sync-bot-rules: $*" >&2; exit 2; }
+sha(){ if command -v sha256sum >/dev/null 2>&1; then sha256sum | cut -d' ' -f1; else shasum -a 256 | cut -d' ' -f1; fi; }
+g(){ git -C "$REPO" "$@"; }
+g rev-parse --git-dir >/dev/null 2>&1 || die "not a git repo: $REPO"
+case $REF in origin/*) [ $FETCH = 1 ] && { g fetch -q origin || die "git fetch origin failed in $REPO"; };; esac
+COMMIT=$(g rev-parse --verify -q "$REF^{commit}") || die "unknown ref: $REF"
+TARGETS=$(g show "$COMMIT:$TSV" 2>/dev/null) || die "$TSV not found at $REF ($COMMIT)"
+HOST=$(hostname | cut -d. -f1)
+echo "# sync-bot-rules --$MODE  ref=$REF  commit=$COMMIT  host=$HOST${MACHINE:+  machine=$MACHINE}"
+echo "机器 | 目标路径 | 源 sha256 | 目标 sha256 | 状态"
+rc=0; rows=0; STAMP=$(date +%Y%m%d-%H%M)
+while IFS='	' read -r m glob src dst; do
+  case $m in ''|'#'*) continue;; esac
+  if [ -n "$MACHINE" ]; then [ "$m" = "$MACHINE" ] || continue; else case $HOST in $glob) ;; *) continue;; esac; fi
+  rows=$((rows+1)); src=${src%/}; dst=${dst%/}
+  [ -n "$src" ] && [ -n "$dst" ] || die "bad row in $TSV for machine $m"
+  case $dst in /*) ;; *) die "target dir must be absolute: $dst";; esac
+  [ -d "$dst" ] || die "target dir missing on $m: $dst (not created; check $TSV)"
+  files=$(g ls-tree -r --name-only "$COMMIT" -- "$src/")
+  [ -n "$files" ] || die "no files under $src at $REF"
+  while IFS= read -r f; do
+    rel=${f#$src/}; t=$dst/$rel
+    want=$(g show "$COMMIT:$f" | sha)
+    if [ -f "$t" ]; then have=$(sha <"$t"); [ "$have" = "$want" ] && st=same || st=drift; else have=-; st=missing; fi
+    echo "$m | $t | $want | $have | $st"
+    [ $st = same ] && continue
+    if [ $MODE = check ]; then rc=1; continue; fi
+    [ -d "$(dirname "$t")" ] || mkdir -p "$(dirname "$t")" || die "cannot create $(dirname "$t")"
+    if [ $st = drift ]; then
+      bak=$t.bak-$STAMP; [ -e "$bak" ] && bak=$t.bak-$(date +%Y%m%d-%H%M%S)
+      cp -p "$t" "$bak" || die "backup failed: $bak"; echo "  备份 $bak"
+    fi
+    tmp=$t.sync-bot-rules.$$
+    g show "$COMMIT:$f" >"$tmp" && mv "$tmp" "$t" || { rm -f "$tmp"; die "write failed: $t"; }
+    now=$(sha <"$t"); [ "$now" = "$want" ] || die "sha256 after write does not match: $t"
+    echo "  写入 $t -> $now"
+  done <<EOF
+$files
+EOF
+  (cd "$dst" && find . -type f ! -name '*.bak*' ! -name '*.sync-bot-rules.*' | sed 's#^\./##') | while IFS= read -r rel; do
+    printf '%s\n' "$files" | grep -qxF "$src/$rel" && continue
+    echo "$m | $dst/$rel | - | $(sha <"$dst/$rel") | extra"; echo x
+  done | { extra=0; while IFS= read -r l; do [ "$l" = x ] && extra=1 || echo "$l"; done; exit $extra; } || rc=1
+done <<EOF
+$TARGETS
+EOF
+[ $rows = 0 ] && echo "# 本机（$HOST${MACHINE:+ / $MACHINE}）在 $TSV 里没有目标"
+exit $rc
