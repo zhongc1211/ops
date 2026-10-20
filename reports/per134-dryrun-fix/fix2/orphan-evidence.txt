@@ -1,0 +1,26 @@
+# 2026-10-21 复查时取证：第一次回放（01:47 被 pkill 打断）留下的 stuck-check 进程，在第二次回放写完后又写进 runformal-head
+## ls -lT（out/ 和回放状态目录）
+-rw-r--r--@ 1 jiawenwang  staff   2262 Oct 21 01:48:27 2026 out/runformal-base.out.calls
+-rw-r--r--@ 1 jiawenwang  staff  26458 Oct 21 01:48:27 2026 out/runformal-head.norm
+-rw-r--r--@ 1 jiawenwang  staff   3036 Oct 21 01:48:39 2026 out/runformal-head.out.calls
+total 104
+-rw-r--r--@ 1 jiawenwang  staff   1205 Oct 21 01:48:39 2026 agents.json
+-rw-r--r--@ 1 jiawenwang  staff    249 Oct 21 01:48:39 2026 gate.json
+-rw-r--r--@ 1 jiawenwang  staff    101 Oct 21 01:48:39 2026 heartbeat.json
+-rw-r--r--@ 1 jiawenwang  staff   5903 Oct 21 01:48:39 2026 notified.json
+-rw-r--r--@ 1 jiawenwang  staff     66 Oct 21 01:48:39 2026 pending.json
+-rw-r--r--@ 1 jiawenwang  staff     17 Oct 21 01:48:27 2026 run.lock
+-rw-r--r--@ 1 jiawenwang  staff  13173 Oct 21 01:48:39 2026 scan-history.json
+-rw-r--r--@ 1 jiawenwang  staff   2025 Oct 21 01:48:39 2026 stuck-check.log
+-rw-r--r--@ 1 jiawenwang  staff   3889 Oct 21 01:48:39 2026 track.json
+## rep-runformal-head/scan-history.json 最后三条（pid mode start end rc 时长）
+15219 --scan 1792517112.5 1792517162.1 1 49.6
+53267 --run 1792517491.3 1792517491.3 0 0.0
+48818 --run 1792517491.3 1792517555.0 0 63.7
+## rep-runformal-head/stuck-check.log 尾部
+2026-10-21 01:31:31 SGT 结束：0 条嫌疑，0 条直发，0 条发送失败
+2026-10-21 01:32:33 SGT box（--environment __no_box__）重试 3 次仍查询失败，这次跳过（连续第 1 次）：{"code": "invalid_argument", "message": "
+2026-10-21 01:32:34 SGT MBA：in-progress 任务工作区和主目录 agent 1 个，新嫌疑 0 个，断了的 0 个
+2026-10-21 01:32:34 SGT MBA：没包 notify-run 的 agent 新报 0 条
+2026-10-21 01:32:34 SGT box 这次没查到，不对 due date
+2026-10-21 01:32:34 SGT 结束：0 条嫌疑，0 条直发，0 条发送失败

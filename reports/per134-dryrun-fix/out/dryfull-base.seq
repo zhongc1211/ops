@@ -1,0 +1,6 @@
+["/Applications/Orca.app/Contents/Resources/bin/orca", "worktree", "ps"] -> 0 
+["/Applications/Orca.app/Contents/Resources/bin/orca", "terminal", "list"] -> 0 
+["/Applications/Orca.app/Contents/Resources/bin/orca", "environment", "list"] -> 0 
+["/Library/Frameworks/Python.framework/Versions/3.13/bin/python3", "/Users/jiawenwang/.local/bin/agent-probe"] -> 0 
+["/Applications/Orca.app/Contents/Resources/bin/orca", "terminal", "wait"] -> 0 
+["bash", "-c", "echo @@WAKE\"\"-BEGIN; { W=/Users/jiawenwang/.local/bin/orca-wake; C=\"${ORCA_WAKE_CONFIG_DIR:-$HOME/.config/orca-wake}\"\n\"$W\" recheck --list --idle-min 30 2>/dev/null | sed \"s/^/L /\"\n[ -r \"$C/enabled-bots\" ] && sed \"s/^/E /\" \"$C/enabled-bots\"\n} 2>&1 | gzip -c | base64; echo @@WAKE\"\"-END\n"] -> 0 

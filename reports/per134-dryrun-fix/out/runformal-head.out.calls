@@ -15,10 +15,3 @@
 {"kind": "replay", "cmd": ["/Applications/Orca.app/Contents/Resources/bin/orca", "terminal", "create"], "rc": 0}
 {"kind": "replay", "cmd": ["/Applications/Orca.app/Contents/Resources/bin/orca", "terminal", "read"], "rc": 0}
 {"kind": "replay", "cmd": ["/Applications/Orca.app/Contents/Resources/bin/orca", "terminal", "close"], "rc": 0}
-{"kind": "replay", "cmd": ["/Applications/Orca.app/Contents/Resources/bin/orca", "worktree", "ps"], "rc": 1}
-{"kind": "replay", "cmd": ["/Applications/Orca.app/Contents/Resources/bin/orca", "worktree", "ps"], "rc": 1}
-{"kind": "replay", "cmd": ["/Applications/Orca.app/Contents/Resources/bin/orca", "worktree", "ps"], "rc": 0}
-{"kind": "replay", "cmd": ["/Applications/Orca.app/Contents/Resources/bin/orca", "terminal", "list"], "rc": 0}
-{"kind": "replay", "cmd": ["/Applications/Orca.app/Contents/Resources/bin/orca", "terminal", "create"], "rc": 0}
-{"kind": "replay", "cmd": ["/Applications/Orca.app/Contents/Resources/bin/orca", "terminal", "read"], "rc": 0}
-{"kind": "replay", "cmd": ["/Applications/Orca.app/Contents/Resources/bin/orca", "terminal", "close"], "rc": 0}

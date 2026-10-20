@@ -34,9 +34,16 @@ fresh_state() {  # fresh_state <dir>：从冻结快照复制一份，每次运�
     rm -rf "$1" && mkdir -p "$1" && cp -R "$IN/state0/." "$1/" && mkdir -p "$1.runs"
 }
 
+seq_of() {  # seq_of <calls 文件>：调用序列，每行「命令前三段 → 返回码」（不含 record/replay 标记，录制和回放可比）
+    python3 -I -c 'import json,sys
+for l in open(sys.argv[1], encoding="utf-8"):
+    d = json.loads(l)
+    print(json.dumps(d["cmd"], ensure_ascii=False), "->", d["rc"], "(%s)" % d["kind"] if d["kind"] not in ("record", "replay") else "")' "$1"
+}
+
 go() {  # go <mode record|replay> <tape> <script> <state> <stdout> <args...>；额外环境变量由调用方 export
     local mode=$1 tape=$2 script=$3 st=$4 so=$5; shift 5
-    rm -f "$tape.calls"
+    rm -f "$so.calls"  # harness 是追加写；不清掉会把上一次的调用记录接在前面
     env PYTHONPATH="$SAFE" PER134_MODE="$mode" PER134_TAPE="$tape" PER134_CALLS="$so.calls" \
         STUCK_STATE_DIR="$st" STUCK_RUNS_DIR="$st.runs" STUCK_ENV_FILE="$IN/stuck-webhook.env" \
         STUCK_WEBHOOK_DIR="$IN/webhooks" STUCK_BOX_ENV=__no_box__ STUCK_NO_GATE=1 \
@@ -52,6 +59,12 @@ CASES=(
   "runfull|base|STUCK_NO_SEND=1|--full"
   "scan|base|STUCK_NO_SEND=1|--scan"
 )
+
+# 同一时间只许一个对照在跑：上次被打断时留下的 stuck-check 进程会继续往同名的调用记录和状态目录里写（PER134-FIX2 查到过一次）
+if pgrep -f "$IN/bin/stuck-check-" >/dev/null; then
+    echo "还有上次留下的 stuck-check 进程在跑，先停掉再来："; pgrep -lf "$IN/bin/stuck-check-"; exit 1
+fi
+trap 'pkill -f "$IN/bin/stuck-check-"; exit 130' INT TERM
 
 case "${1:-}" in
 record)
@@ -85,12 +98,16 @@ replay)
             fresh_state "$st"
             ( [ -n "$extra" ] && export $extra; go replay "$tape" "$s" "$st" "$OUT/$name-$side.out" $args )
             python3 -I "$HERE/normalize.py" "$OUT/$name-$side.out" "$st" > "$OUT/$name-$side.norm"
+            seq_of "$OUT/$name-$side.out.calls" > "$OUT/$name-$side.seq"
         done
         if cmp -s "$OUT/$name-base.norm" "$OUT/$name-head.norm"; then same=一致; else same=不一致; fi
+        if cmp -s "$OUT/$name-base.seq" "$OUT/$name-head.seq"; then sq=一致; else sq=不一致; fi
         diff "$OUT/$name-base.norm" "$OUT/$name-head.norm" > "$OUT/$name.diff"
-        printf '%-10s base rc=%s head rc=%s  判定和状态：%s（diff %s 行）  head 未命中磁带 %s 条，截住 curl %s 次、box %s 次\n' \
+        diff "$OUT/$name-base.seq" "$OUT/$name-head.seq" > "$OUT/$name.seq.diff"
+        printf '%-13s base rc=%s head rc=%s  判定和状态：%s（diff %s 行）  调用序列：%s（base %s 条 / head %s 条）  head 未命中磁带 %s 条，截住 curl %s 次、box %s 次\n' \
             "$name" "$(cat "$OUT/$name-base.out.rc")" "$(cat "$OUT/$name-head.out.rc")" "$same" \
-            "$(wc -l < "$OUT/$name.diff" | tr -d ' ')" \
+            "$(wc -l < "$OUT/$name.diff" | tr -d ' ')" "$sq" \
+            "$(wc -l < "$OUT/$name-base.seq" | tr -d ' ')" "$(wc -l < "$OUT/$name-head.seq" | tr -d ' ')" \
             "$(grep -c '"miss"' "$OUT/$name-head.out.calls" 2>/dev/null || true)" \
             "$(grep -c 'blocked-curl' "$OUT/$name-head.out.calls" 2>/dev/null || true)" \
             "$(grep -c 'blocked-box' "$OUT/$name-head.out.calls" 2>/dev/null || true)"
@@ -100,7 +117,13 @@ replay)
         python3 -I "$HERE/normalize.py" "$IN/rec-$name.out" "$IN/rec-$name" > "$OUT/$name-base-recorded.norm"
         if cmp -s "$OUT/$name-base-recorded.norm" "$OUT/$name-base.norm"; then f=一致; else f=不一致; fi
         diff "$OUT/$name-base-recorded.norm" "$OUT/$name-base.norm" > "$OUT/$name-fidelity.diff"
-        echo "回放可信度：base $name 录制（真跑）vs 回放：$f" | tee -a "$OUT/SUMMARY.txt"
+        # 录制那次的调用序列从磁带取：磁带每次录制整份重写，rec-*.out.calls 在 FIX2 之前是追加写的，重录过的用例里叠着两次
+        python3 -I -c 'import json,sys
+for c in json.load(open(sys.argv[1], encoding="utf-8"))["calls"]:
+    print(json.dumps(json.loads(c["key"])[:3], ensure_ascii=False), "->", c["rc"], "")' "$IN/$name.tape" > "$OUT/$name-base-recorded.seq"
+        if cmp -s "$OUT/$name-base-recorded.seq" "$OUT/$name-base.seq"; then q=一致; else q=不一致; fi
+        diff "$OUT/$name-base-recorded.seq" "$OUT/$name-base.seq" > "$OUT/$name-fidelity.seq.diff"
+        echo "回放可信度：base $name 录制（真跑）vs 回放：判定和状态 $f，调用序列 $q" | tee -a "$OUT/SUMMARY.txt"
     done
     cp "$IN/RECORDED" "$IN/SHA256SUMS" "$OUT/"
     ;;
