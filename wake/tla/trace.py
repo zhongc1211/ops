@@ -15,9 +15,9 @@ CODE = {
     "IdlePrompt": "Claude idle_prompt hook（wake/bin/orca-wake:764-779）→ dispatch_send 去重（:378-397）",
     "WebhookDown": "派活 bot 的 webhook 开始不可用（环境）",
     "WebhookUp": "webhook 恢复（环境）",
-    "Scan": "卡住检查一次扫描：check_agents + wake_recheck + send_all（scripts/stuck-check.sh:772-1071,1362-1421,1530-1548）",
-    "Tick": "过 15 分钟（下一次扫描，stuck-check.sh:1638）",
-    "Step": "过 1 分钟：ops · 01 precheck（scripts/stuck-check.sh:1699-1739）+ 每 5 分钟 heartbeat-watch（scripts/heartbeat-watch.sh:188-257）",
+    "Scan": "卡住检查一次扫描：check_agents + wake_recheck + send_all（scripts/stuck-check.sh:772-1071,1418-1477,1586-1604）",
+    "Tick": "过 15 分钟（下一次扫描，stuck-check.sh:1694）",
+    "Step": "过 1 分钟：ops · 01 precheck（scripts/stuck-check.sh:1755-1795）+ 每 5 分钟 heartbeat-watch（scripts/heartbeat-watch.sh:188-257）",
     "Fail": "卡住检查出故障（自动任务停 / 每次出错 / 每次超时）",
 }
 

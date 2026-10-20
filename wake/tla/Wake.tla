@@ -13,10 +13,10 @@
 (*   RC  卡住检查调 orca-wake recheck 补叫醒（scripts/stuck-check.sh:      *)
 (*       996-1002,1027-1069 + orca-wake:990-1014），和 OW 共用去重键      *)
 (*   SC  卡住检查自己 POST：agent_gone 给派活 bot（stuck-check.sh:962-976,  *)
-(*       1401-1419），「报了没人验收」给 Coding助手（:1530-1548,1216-1304） *)
+(*       1457-1475），「报了没人验收」给 Coding助手（:1586-1604,1266-1360） *)
 (*                                                                         *)
 (* 时间：一个 Tick = 15 分钟 = 一次卡住检查扫描（stuck-check.sh:138        *)
-(* INTERVAL_MIN，闸门 :1638）。一次 POST 连重试都在 1～2 分钟内（notify-run 20s+45s，   *)
+(* INTERVAL_MIN，闸门 :1694）。一次 POST 连重试都在 1～2 分钟内（notify-run 20s+45s，   *)
 (* orca-wake 20s+45s，stuck-check 5/15/45s），所以 Tick 要等在途的发送都结束 *)
 (* 才走。webhook 是否可用用 up[b] 表示，随时可以变；down 时每次 POST 返回 *)
 (* 0（curl 000 / 超时 / 连不上）或 500。                                    *)
@@ -30,7 +30,7 @@ CONSTANTS
     GONE_TICKS,    \* STUCK_GONE_MIN 10 分钟 → 至少 1 个 Tick（stuck-check.sh:115,970）
     IDLE_TICKS,    \* STUCK_IDLE_MIN 30 分钟 → 2 个 Tick（stuck-check.sh:114,978；orca-wake --idle-min 30）
     ACCEPT_TICKS,  \* 「标完成超过 1 小时」→ 4 个 Tick（stuck-check.sh:112 THRESH_H，check_reported）
-    FULL_TICKS,    \* 第二类约每小时查一次：NOW - last_full >= 55 分钟 → 每 4 次扫描（stuck-check.sh:1530）
+    FULL_TICKS,    \* 第二类约每小时查一次：NOW - last_full >= 55 分钟 → 每 4 次扫描（stuck-check.sh:1586）
     LATE_TICKS,    \* P4 的「超过 1 小时」：停下后第 5 个 Tick 起（60～75 分钟）
     CAP,           \* 计数器封顶，保持状态有限
     CA_ALWAYS_UP,  \* TRUE：Coding助手 的 webhook 一直可用（P4 用）
@@ -212,14 +212,20 @@ IdleCand(t) ==
     /\ agent[t] = "paused" /\ age[t] >= IDLE_TICKS /\ known[t] = "none"
     /\ (kind[t] = "main" \/ ws[t] = "in-progress")
 
-(* 第二类「报了没人验收」（check_reported，stuck-check.sh:1216-1304；合并成一条 *)
-(* 发 Coding助手，cfg "stuck"，:1530-1548）：completed、标完成超过 1 小时、agent *)
+(* 第二类「报了没人验收」（check_reported，stuck-check.sh:1266-1360；合并成一条 *)
+(* 发 Coding助手，cfg "stuck"，:1586-1604）：completed、标完成超过 1 小时、agent *)
 (* 没在工作。「已验收」在模型里 = 有 bot 收到过这次停下（假设收到的 bot 一小时内 *)
 (* 会 review / 评论 / 归档）。                                                 *)
+(* 工作区干净、没有本地提交、没有 PR 的（work = FALSE）：只在最后一次停下送达过    *)
+(* 叫醒时放行（:1344-1356，GIT_FACTS 里的 WAKEPY :1183-1229 读 orca-wake 会话的     *)
+(* woken[turn] 和之后 notify-run 的 2xx；PER-67 F3）。代码只认 orca-wake / notify-run *)
+(* 的送达，比 accepted 窄（不认 stuck-check 自己的 agent_gone），只会多报不会少报， *)
+(* 所以模型里按 accepted = {} 才报。                                            *)
+(* Mutant "clean_pass"：修之前的代码，干净的一律放行。                           *)
 RepCand(t, doFull) ==
     /\ doFull /\ ws[t] = "completed" /\ agent[t] # "running"
     /\ cage[t] >= ACCEPT_TICKS /\ accepted[t] = {} /\ ~seen2[t]
-    /\ (work[t] \/ "clean_report" \in Fixes)   \* Fix "clean_report"；现在：completed、工作区干净、没有本地提交、没有 PR 的直接放行（:1294-1300）
+    /\ (work[t] \/ Mutant # "clean_pass")
 
 (* Fix "ca_escalate"：停下 45 分钟还没有任何 bot 收到就报 Coding助手（代码里没有）。*)
 EscCand(t) == "ca_escalate" \in Fixes /\ agent[t] # "running" /\ age[t] >= 3 /\ accepted[t] = {} /\ ~esc[t]
@@ -242,9 +248,9 @@ RecheckKnown(t) ==
     ELSE IF "sc_wait" \in Fixes THEN known[t]
     ELSE "notified_ow"
 
-(* send_all（stuck-check.sh:1362-1421）：先 direct（第二类合并的一条、以前没发出去的），*)
+(* send_all（stuck-check.sh:1418-1477）：先 direct（第二类合并的一条、以前没发出去的），*)
 (* 再 suspects（agent_gone）。一条 post 重试后仍失败 → broken = True，这次运行剩下的  *)
-(* 一条都不发（:1381-1382,1415-1416），留到下次。post（:292-306）：200<=code<300 才算成功。     *)
+(* 一条都不发（:1437-1438,1471-1472），留到下次。post（:292-306）：200<=code<300 才算成功。     *)
 (* 一次 post 连 3 次重试约 65 秒：模型里按「这一刻 up[to] 决定」折叠成一步。        *)
 (* Mutant "sc_any_http"：把 :300 改成 ok = isinstance(code, int)。                    *)
 (* Fix "no_hol"：一条失败不挡后面的。                                              *)

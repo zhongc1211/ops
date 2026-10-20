@@ -7,7 +7,7 @@
 ## 复跑
 
 ```bash
-wake/tla/check.sh            # 全部 27 个检查，约 10 分钟（不含等资源的时间）；退出码 0 = 和期望一致
+wake/tla/check.sh            # 全部 28 个检查，约 10 分钟（不含等资源的时间）；退出码 0 = 和期望一致
 wake/tla/check.sh w0 h0      # 只跑 P2、P3（一分钟内）
 wake/tla/trace.py wake/tla/out/w13a_p1h_only_recheck.out   # 把反例翻成「第几步、哪个动作、对应代码、变了什么」
 ```
@@ -47,7 +47,7 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | wake/bin/orca-wake-hooks | 1a5e66d777618c76 | 一致 | 一致 | 一致 |
 | wake/bin/agent-stop | 7cc0ebefd5b5c53a | 一致 | 一致 | 一致 |
 | scripts/agent-probe | 0fb882eb340a8004 | 一致 | 一致 | 一致 |
-| scripts/stuck-check.sh | d5747aa4a77a5c31（F7/F8 修过；建模时 c0bf9c6dad8c4a09） | — | `~/orca/workspaces/ops/scripts/`（ops · 01/02 跑的）一致 | **不一致**（d743f664…，MBA 上没有自动任务跑它） |
+| scripts/stuck-check.sh | ce32eb2893418864（F7/F8、F3 修过；建模时 c0bf9c6dad8c4a09） | — | `~/orca/workspaces/ops/scripts/`（ops · 01/02 跑的）一致 | **不一致**（d743f664…，MBA 上没有自动任务跑它） |
 | scripts/heartbeat-watch.sh | a36d3dc8a88702a8（F8 同类修过；建模时 682dfa079840cf2e） | `~/.orca-state/bin/`（box ops · 29 跑的）一致 | `~/.orca-state/bin/`（iMac ops · 29 跑的）一致 | — |
 | wake/pi/dispatch-wake.ts | 350c898595552ed6 | 没核对（Pi 扩展装在各 agent 的扩展目录） | | |
 
@@ -63,10 +63,10 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | `AgentExit` | notify-run wait 循环 194-203 → `finish` 142-156 | |
 | `NrAttempt` | notify-run 120-128（一次 curl），成功判断 125，日志 124 | 一次 curl |
 | `MarkCompleted` | agent 把 Orca 工作区标 completed | |
-| `Scan` | stuck-check `main()` 一次扫描：`check_agents` 772-1071（agent_gone 962-976、主目录退出 886-894、idle → `wake_recheck` 978-1002/550-606、结果处理 1027-1069）、第二类 1530-1548 / `check_reported` 1216-1304、`send_all` 1362-1421 | 一次扫描是一个进程顺序执行（run.lock 保证同时只有一个），别的进程在扫描中途的交错对这些性质没有影响（见「假设」） |
-| `Tick` | 15 分钟（`INTERVAL_MIN` 138，闸门 1638） | |
+| `Scan` | stuck-check `main()` 一次扫描：`check_agents` 772-1071（agent_gone 962-976、主目录退出 886-894、idle → `wake_recheck` 978-1002/550-606、结果处理 1027-1069）、第二类 1586-1604 / `check_reported` 1266-1360、`send_all` 1418-1477 | 一次扫描是一个进程顺序执行（run.lock 保证同时只有一个），别的进程在扫描中途的交错对这些性质没有影响（见「假设」） |
+| `Tick` | 15 分钟（`INTERVAL_MIN` 138，闸门 1694） | |
 | `WebhookUp/Down` | 环境：bot 的 webhook 服务通不通 | |
-| Heartbeat `Step` | 每分钟一次 precheck（stuck-check 1699-1739：闸门关 1702-1706 打 `@@HB`，闸门开先写 gate.last 1721 再 `main()` 1726，异常 1727-1735，跑完才写 gate.done 1736-1737；@@HB 的 last_scan = done 1676）+ 每 5 分钟 heartbeat-watch `main()` 188-257 | |
+| Heartbeat `Step` | 每分钟一次 precheck（stuck-check 1755-1795：闸门关 1758-1762 打 `@@HB`，闸门开先写 gate.last 1777 再 `main()` 1782，异常 1783-1791，跑完才写 gate.done 1792-1793；@@HB 的 last_scan = done 1732）+ 每 5 分钟 heartbeat-watch `main()` 188-257 | |
 | Heartbeat `Fail` | 卡住检查出故障并一直坏：dead（自动任务不跑 / Orca 挂了）、crash（`main()` 每次抛异常）、hang（每次超过 300 秒被杀） | |
 
 ## 性质
@@ -110,10 +110,12 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | w08 同上 + 修法 sc_wait | pass | |
 | w09 / w09a P4 | **violated** | 发现 F4、F6 |
 | w10 P4 + 修法 ca_escalate | pass | |
-| w11 / w11a P1 | **violated** | 发现 F3、F4 |
-| w12 P1 + 四个修法 | pass | |
-| w13 / w13a / w13b / w13c P1h | **violated** | 发现 F3、F1、F2（各自单独也违反） |
-| w14 P1h + 三个修法 | pass | |
+| w11 / w11a P1 | **violated** | 发现 F4（w11 没加任何假设修法，F1、F2 也会让它违反） |
+| w12 P1 + 三个假设修法（F3 已在代码里） | pass | |
+| w13 / w13a / w13b P1h | **violated** | 发现 F1、F2（各自单独也违反） |
+| w13c P1h 只剩 F3 | pass（F3 已修） | |
+| w13d 改坏：干净工作区一律放行（F3 修之前的代码） | violated | |
+| w14 P1h + 两个假设修法（F3 已在代码里） | pass | |
 | w15 P5 | **violated** | 发现 F5 |
 | w16 P5 + 修法 no_hol | pass | |
 | h01 P3（dead）+ P3_BOUND + NoFalseAlarm | pass | 自动任务停 / Orca 挂了会告警，75 分钟内 |
@@ -129,7 +131,7 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 
 - **F1** 卡住检查把 orca-wake 补叫醒记成「已通知」时还没发出去；发送失败后这次停顿永远不再补（stuck-check.sh:1045-1052）。
 - **F2** ops 主目录里 agent 退出、notify-run 三次都发不出去（约 65 秒的中断）就没人知道：卡住检查对包了 notify-run 的退出一律不报（stuck-check.sh:889-894）。
-- **F3** 工作区标 completed、停顿时 hook 没发（有后台 shell 时按设计不发）、工作区干净没 PR → 第二类放行，永远没人知道（stuck-check.sh:1294-1300 + orca-wake:731-732,769-771）。
+- **F3**（已修，PER-67 F3 PR：放行前看最后一次停下有没有送达过叫醒，没有就照报）工作区标 completed、停顿时 hook 没发（有后台 shell 时按设计不发）、工作区干净没 PR → 第二类放行，永远没人知道（stuck-check.sh:1294-1300 + orca-wake:731-732,769-771）。
 - **F4** 派活 bot 的 webhook 一直坏时，没有任何路径升级到 Coding助手（`bot_cfg` 只在没有 env 文件时转，stuck-check.sh:1347-1354）。
 - **F5** `send_all` 一条失败就停（`broken`，stuck-check.sh:1381-1382,1415-1416）：一个坏掉的 bot 每次扫描都排在前面，挡住给 Coding助手 的告警；挡路的还可能是 notify-run 已经送达过的重复 agent_gone。
 - **F6** 第二类「报了没人验收」最早 1 小时、按约每小时一次查，completed 任务最坏接近 2 小时才到 Coding助手，P4 的 1 小时在设计上就达不到。
