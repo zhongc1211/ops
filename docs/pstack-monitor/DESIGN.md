@@ -11,7 +11,9 @@
 每天 ops-verify 跑 U-pstack-upstream（便宜检查，纯 shell，约 1–25 秒，不调模型）
  ├─ 没出新版 → PASS，结束
  ├─ 新版已判不兼容 → PASS（证据写报告路径），结束
- ├─ 出新版、没有兼容报告 → FAIL → ops 系统在 iMac 起一个兼容检查 agent（第 2 节）
+ ├─ 出新版、没有兼容报告 → FAIL → ops 系统先过 apiKeySource 闸（5.1）
+ │     ├─ 闸不过（不是订阅 / 额度不够 / 读不到）→ 停，不跑，给 Zack 弹花钱卡；批了才往下
+ │     └─ 闸过了 → 在 iMac 起一个兼容检查 agent（第 2 节）
  │     agent 写 box /workspace/ops/briefs/pstack-<版本>-compat-REPORT.md，末尾写「总判定：兼容 / 不兼容」
  │     ├─ 兼容 → 改 PSTACK_SHA 的 draft PR + 叫醒 ops 系统 → ops 系统给 Zack 弹升级卡（第 3 节）
  │     └─ 不兼容 → 记 Linear、留旧版、告 dr eggbot（第 3 节）
@@ -151,8 +153,9 @@ pstack 近期大约 1–2 天发一个版本，每天查一次足够。
 - agent 本身用线上 pstack；每一项检查里另起子 claude，带候选参数，只在那个子进程里换成新版。候选不装进 `~/.claude`。
 - 证据目录：iMac `~/orca/workspaces/ops/e2e-out/pstack-<版本>/`；报告写 box `/workspace/ops/briefs/pstack-<版本>-compat-REPORT.md`，关键日志 scp 到 box `/workspace/ops/reports/pstack-<版本>/`。
 - 同一步最多试 2 次，不行就停，报告里写「没判定」，不写 `总判定：`（这样第二天便宜检查还会报 FAIL，不会漏）。
+- **apiKeySource 闸（5.1），起 agent 之前**：ops 系统先跑闸 A（不调 claude）；过了再在 iMac 做 2.1 的准备和 init 探测（一次 Haiku、1 轮），把 `$OUT/0-init.jsonl` 交给闸 B。任何一步不过：不起 agent，按 5.1 弹花钱卡，Linear 卡上记一条评论。2.1 的 init 探测由 ops 系统在这里跑过，agent 不再重复。
 
-起 agent（iMac，ops 系统执行；PER-xx 是上面新开的 Linear 号）：
+起 agent（iMac，ops 系统执行；PER-xx 是上面新开的 Linear 号；闸 A、闸 B 都过了才执行）：
 
 ```bash
 WT=$(orca worktree create --repo id:e9b33f9c-7218-4f6c-b03a-3b85fd8933ac --no-parent --name ops-pstack-<版本>-compat --json | python3 -c 'import json,sys;print(json.load(sys.stdin)["result"]["worktree"]["id"])')
@@ -321,21 +324,37 @@ grep -c "Base directory for this skill" ~/.claude/projects/*/$(python3 -c 'impor
 
 前提：iMac 要有 Java 17 和 tla2tools.jar v1.7.4（`wake/tla/README.md`「安装」，装在 `~/.local/opt/`，不用 sudo）。**10-20 20:20 核对：iMac 只有 Java 1.8.0_292，MBA 没有 Java**。PER-83 是 ssh 到 box 上跑的，不符合「不在 box 跑」。所以这项在 Java 17 装好之前跑不了，安装列在第 7 节待批。
 
+默认跑**全量 36 项**（`check.sh` 不带名字前缀）。缩减版不在默认流程里，见第 7 节待批第 6 条。
+
 ```bash
 cd ~/orca/workspaces/ops/ops-pstack-$V-compat   # 2.0 建的工作区，origin/main 最新
 git rev-parse HEAD | tee "$OUT/3-ops-sha.txt"
-notify-run --bot ops-system --task "PER-xx wake-tla-verify 候选" -- \
-  claude -p "/wake-tla-verify 只跑 wake/tla/check.sh --out $OUT/3-candidate-tla w0 h0，不改模型、不改代码，最后原样贴出 check.sh 的最后 20 行和退出码。" \
+notify-run --bot ops-system --task "PER-xx wake-tla-verify 候选（全量）" -- \
+  claude -p "/wake-tla-verify 跑全量：wake/tla/check.sh --out $OUT/3-candidate-tla（不带名字前缀），不改模型、不改代码，最后原样贴出 check.sh 的最后 20 行和退出码。" \
   --model sonnet --dangerously-skip-permissions --output-format stream-json --verbose "${CAND[@]}" > "$OUT/3-candidate.jsonl" 2>&1
-wake/tla/check.sh --out "$OUT/3-direct-tla" w0 h0; echo "check.sh rc=$?" | tee "$OUT/3-direct-rc.txt"
+python3 - "$OUT/3-candidate-tla/summary.tsv" <<'PY2'
+import csv, sys
+rows = list(csv.DictReader(open(sys.argv[1]), delimiter="\t"))
+bad = [r["name"] for r in rows if r["match"] != "ok"]
+print("rows", len(rows), "不一致", bad)
+sys.exit(0 if len(rows) == 36 and not bad else 1)
+PY2
+```
+
+判过（全部满足）：候选 transcript 里有 wake-tla-verify 的 skill 正文；`check.sh` 退出 0，输出「全部和期望一致。」，没有「模型对应的代码和建模时不一样了」提示；`summary.tsv` 36 行、每行 `match=ok`（PER-83 10-20 在 box 上 a27ece5 的结果就是 36/36 ok，见 `e2e-out/per83/B-candidate-out/summary.tsv`）。36 是 10-20 `check.sh` 表里的条数；以后 `wake/tla/` 加减了检查，以当时 `check.sh` 表里的行数为准，并在报告里写出来。
+
+对照组只在候选不过时跑（和 verify-dv-site 同法）：`check.sh` 自己的期望表就是基线，候选全绿时不必再跑一遍 25 分钟以上的全量。候选不过时，在同一 commit、不带 `CAND` 直接跑全量：
+
+```bash
+notify-run --bot ops-system --task "PER-xx wake-tla-verify 对照（全量）" -- wake/tla/check.sh --out "$OUT/3-direct-tla"; echo "check.sh rc=$?" | tee "$OUT/3-direct-rc.txt"
 diff <(cut -f1-5 "$OUT/3-candidate-tla/summary.tsv") <(cut -f1-5 "$OUT/3-direct-tla/summary.tsv") && echo 一致 | tee -a "$OUT/3-direct-rc.txt"
 ```
 
-判过：候选 transcript 里有 wake-tla-verify 的 skill 正文；候选和直接跑的 `check.sh` 都退出 0（=和 `check.sh` 表里的期望一致），没有「模型对应的代码和建模时不一样了」提示，两份 `summary.tsv` 前 5 列（name、module、expect、result、match）相同。`check.sh` 自己在 load > 8 时会先等 5 分钟（最多 3 次），iMac 平时 load 20 以上，这一项可能多花 15 分钟。
+- 候选没触发 skill → 重跑一次，仍不触发 → 不兼容。
+- 候选不过、对照过 → 不兼容。
+- 两组都不过且 `summary.tsv` 前 5 列（name、module、expect、result、match）相同 → 和版本无关（代码或环境问题），另开 Linear，本项记「与版本无关」。
 
-只跑 `w0 h0`（P2、P3，一分钟内）而不是全量（约 25 分钟，box 上 PER-83 实测 24.5 分钟）：全量结果只取决于 `wake/**` 的代码，和 pstack 版本无关，每个新版都跑全量只是重复。如果 Zack 要求每次全量，把两行里的 `w0 h0` 删掉即可，命令外面已经包了 notify-run。
-
-不过：候选没触发 skill → 重跑一次，仍不触发 → 不兼容。候选和直接跑结果不同 → 不兼容。两个都不是 0 且结果相同 → 和版本无关（代码或环境问题），另开 Linear，本项记「与版本无关」。
+耗时：PER-83 在 box 跑全量是 24.5 分钟（36 项 TLC 时间合计 1471 秒，最长 w15 190 秒、w16 189 秒）。iMac 没跑过。`check.sh` 在 load > 8 时先等 5 分钟、最多等 3 次，iMac 平时 load 20 以上，所以按 25–45 分钟估；要跑对照再加一倍。
 
 ### 2.5 检查四：bootstrap `--check`（沙箱，不碰线上 `~/.claude`）
 
@@ -451,14 +470,110 @@ git -C <ops 工作区> revert <改 PSTACK_SHA 的那个提交>   # 开 draft PR�
 
 配置文件被改坏时（不该发生：脚本只改 deny、市场源、启用插件、hook 四类键）：先 `diff` 备份和现在的 `~/.claude/settings.json`，确认只差本次改动，再 `cp -p ~/claude-backups/cfg-<TS>/settings.json ~/.claude/settings.json`；`plugins/*.json` 同理。不要整包解回 `~/.claude` 的 tgz（会覆盖期间所有会话记录）。
 
-## 5. 成本（估算）
+## 5. 成本与花钱闸
+
+### 5.1 apiKeySource 闸（开跑前硬闸）
+
+兼容检查要起 4 个 Sonnet 会话和约 30 次 Haiku 调用。只有在走登录订阅、额度够、不会按量计费时才跑。闸由 ops 系统在起兼容 agent 之前执行（2.0），任何一项读不到都按「不是订阅」处理。
+
+**闸 A：不调 claude**，只看变量名和键名，不读值（在 iMac 跑）：
+
+```bash
+# 闸 A：不调 claude，只看变量名和键名，不读值。有任何一项 → 按量计费的可能，停。
+bad=0
+for v in ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_CODE_USE_BEDROCK CLAUDE_CODE_USE_VERTEX; do
+  if [ -n "${!v+x}" ]; then echo "STOP 环境变量 $v 存在"; bad=1; fi
+done
+python3 - <<'PY' || bad=1
+import json, os, sys
+p = os.path.expanduser("~/.claude/settings.json")
+try: s = json.load(open(p))
+except Exception as e: print("STOP 读不了 settings.json：%s" % type(e).__name__); sys.exit(1)
+hits = (["apiKeyHelper"] if "apiKeyHelper" in s else []) + [k for k in s.get("env", {}) if k.startswith(("ANTHROPIC_", "CLAUDE_CODE_USE_"))]
+print(("STOP settings.json 有 " + ", ".join(hits)) if hits else "OK settings.json 没有 apiKeyHelper / ANTHROPIC_* / CLAUDE_CODE_USE_*")
+sys.exit(1 if hits else 0)
+PY
+[ $bad = 0 ] && echo "闸 A 通过" || echo "闸 A 不通过：弹花钱卡，不起 agent"
+exit $bad
+```
+
+**闸 B：读 init 消息和用量**。`apiKeySource` 和 5 小时 / 7 天用量只出现在 `claude -p --output-format stream-json --verbose` 的输出里：init 消息（`"subtype":"init"`）带 `apiKeySource`，`"type":"rate_limit_event"` 带 `rate_limit_info.unifiedWindows.five_hour/seven_day.utilization` 和 `overageStatus`、`isUsingOverage`。普通会话 transcript（`~/.claude/projects/*/*.jsonl`）里没有这两样（10-20 21:1x 查了 iMac 最近 30 个 transcript，都没有）。所以闸 B 用 2.1 的 init 探测（一次 Haiku、1 轮）的输出 `$OUT/0-init.jsonl`：
+
+```python
+# 闸 B：读一次 claude -p --output-format stream-json --verbose 的输出（init 消息 + rate_limit_event）。
+# 用法：python3 gate-probe.py <stream-json 文件> [5h 上限，默认 0.5] [7d 上限，默认 0.7]
+# 退出 0 = 订阅且额度够；1 = 停下弹花钱卡。读不到任何一项都按「不是订阅 / 额度不明」处理。
+import json, sys, time
+f = sys.argv[1]; max5 = float(sys.argv[2]) if len(sys.argv) > 2 else 0.5; max7 = float(sys.argv[3]) if len(sys.argv) > 3 else 0.7
+init = rl = None
+for l in open(f, errors="replace"):
+    try: d = json.loads(l)
+    except ValueError: continue
+    if d.get("subtype") == "init" and init is None: init = d
+    if d.get("type") == "rate_limit_event": rl = d.get("rate_limit_info") or {}
+why = []
+src = init.get("apiKeySource") if init else None
+if src != "none": why.append("apiKeySource=%r（只有 none = 登录订阅；读不到也算不是订阅）" % src)
+w = (rl or {}).get("unifiedWindows") or {}
+u5 = (w.get("five_hour") or {}).get("utilization"); u7 = (w.get("seven_day") or {}).get("utilization")
+if u5 is None or u7 is None: why.append("没有 rate_limit_event 的 5h/7d 用量")
+else:
+    if u5 > max5: why.append("5h 用量 %.2f > %.2f" % (u5, max5))
+    if u7 > max7: why.append("7d 用量 %.2f > %.2f" % (u7, max7))
+if rl and rl.get("isUsingOverage"): why.append("isUsingOverage=true（已在用超额，按量计费）")
+if rl and rl.get("overageStatus") != "rejected": why.append("overageStatus=%r（超额没关，用超了会计费）" % rl.get("overageStatus"))
+fmt = lambda t: time.strftime("%m-%d %H:%M", time.localtime(t)) if t else "?"
+print("apiKeySource=%s 5h=%s（%s 重置） 7d=%s（%s 重置） overage=%s/%s" % (src, u5, fmt((w.get("five_hour") or {}).get("resetsAt")),
+      u7, fmt((w.get("seven_day") or {}).get("resetsAt")), (rl or {}).get("overageStatus"), (rl or {}).get("isUsingOverage")))
+print("闸 B 通过" if not why else "闸 B 不通过：" + "；".join(why))
+sys.exit(1 if why else 0)
+```
+
+两段都由 ops 系统第一次用时从本文拷出来，放到 `~/orca/workspaces/ops/e2e-out/pstack-gate-static.sh` 和 `pstack-gate-probe.py`（和 `pstack-judge.py` 同目录；落地 PR 里放 `scripts/`）：
+
+```bash
+bash ~/orca/workspaces/ops/e2e-out/pstack-gate-static.sh || { echo 弹花钱卡; exit 1; }
+# 2.1 准备候选 + init 探测之后：
+python3 ~/orca/workspaces/ops/e2e-out/pstack-gate-probe.py "$OUT/0-init.jsonl"   # 默认 5h ≤ 0.5、7d ≤ 0.7；退出 1 = 弹花钱卡
+```
+
+不过的条件（任一项）：
+
+| 条件 | 为什么 |
+|---|---|
+| 闸 A：有 `ANTHROPIC_API_KEY`、`ANTHROPIC_AUTH_TOKEN`、`CLAUDE_CODE_USE_BEDROCK`、`CLAUDE_CODE_USE_VERTEX` 环境变量，或 `settings.json` 有 `apiKeyHelper`、`env` 里有 `ANTHROPIC_*` / `CLAUDE_CODE_USE_*` | 这些会让 Claude Code 改走 API key、Bedrock 或 Vertex，按量计费 |
+| `apiKeySource` 不是 `"none"`，或读不到 | `none` = 没用 API key，走登录订阅（三台 10-20 的 init 都是 `none`）；其他值（如 `ANTHROPIC_API_KEY`、`apiKeyHelper`）按量计费 |
+| 没有 `rate_limit_event`，或缺 5h / 7d 用量 | 读不到额度，按不够处理 |
+| `five_hour.utilization` > 0.5 | 兼容检查要连续跑 1.5–3 小时，会跨进下一个 5 小时窗口；起点过半就可能在中途撞上限 |
+| `seven_day.utilization` > 0.7 | 留 30% 给三台日常派活 |
+| `isUsingOverage` 是 true，或 `overageStatus` 不是 `"rejected"` | 超额开着时，用超了会按量计费 |
+
+阈值 0.5 / 0.7 是估算：现在没有「一次完整兼容检查用掉多少额度」的实测。每次跑完，在报告里记开跑前和每项检查后 `rate_limit_event` 的两个用量（每个子 claude 的 stream-json 里都有），攒 2–3 次后按实测改阈值。
+
+**跑的中途也看**：每项检查跑完，对这一项的子 claude 输出再跑一次 `pstack-gate-probe.py <那个文件> 0.85 0.85`。不过就停在这里，报告写「额度不够，没跑完」，不写总判定，等额度重置后第二天重来；不改成按量继续跑。
+
+**闸 B 本身的花费**：闸 A 过了，闸 B 那次 Haiku 调用走订阅，不花现金。如果闸 A 漏判、实际在按量计费，这一次最多花约 US$0.006（PER-83 同样一次 1 轮 Haiku 的 `total_cost_usd` 是 0.00558）。
+
+**不过时：停下，弹花钱卡**。ops 系统给 Zack 单独弹一张卡（不和升级卡合并），卡上写：
+
+- Linear 编号（2.0 开的那张）、pstack 新版本号和 sha；
+- 哪一条没过、实际值（例如「apiKeySource=ANTHROPIC_API_KEY」「5h 用量 0.62 > 0.5，21:50 重置」），不贴任何 key；
+- 按量计费时的估算花费：见 5.2「出新版那天」一行，按 API 价格约 US$7–20（估算）；
+- 两个选项：批准按量跑这一次；或等额度重置 / 等订阅恢复后再跑（不花钱，晚一到几天）。
+
+Zack 批了才跑；没批之前便宜检查每天照常报 FAIL（rc=1），不会漏。
+
+本机实测（10-20 21:18，iMac，没为这个新起 claude 调用）：闸 A 在 iMac 上通过（4 个变量名都不存在，`settings.json` 没有相关键）；设一个空的 `ANTHROPIC_API_KEY` 演练，闸 A 报 STOP、rc=1。闸 B 读的是 PER-83 10-20 19:10 在 iMac 写的 `init-check.jsonl`（box `/workspace/ops/reports/handover-item5-1020/imac/compat-88d4751/`，本地副本），输出 `apiKeySource=none 5h=0.14（10-20 21:50 重置） 7d=0.45（10-23 00:00 重置） overage=rejected/False`，闸 B 通过；阈值改成 5h 0.10 时报不通过；去掉 init 和 rate_limit_event 两行后报「读不到」不通过。原始输出：box `/workspace/ops/reports/parallel-1020/PER-94-apikey-gate-run.txt`。
+
+### 5.2 成本（估算，wake-tla-verify 按全量 36 项）
 
 | 场景 | 模型调用 | 机器时间 | 现金 |
 |---|---|---|---|
 | 没出新版的日子 | 0 | 一次 ops-verify 里多 1–25 秒（实测：box 1 秒，iMac 7–23 秒，大头是网络） | 0 |
-| 出新版那天 | Haiku 约 30 次（2.1、2.2、冒烟）；Sonnet 会话 3 个（verify-dv-site 两组 + wake-tla-verify 一次）+ 兼容 agent 本身 1 个 | 兼容检查约 1.5–2.5 小时（verify-dv-site 两组各 25–55 分钟是大头）；升级三台约 15 分钟 | 0：claude 走三台登录的 Claude Max 订阅（init 里 `apiKeySource: none`），不走 API 计费 |
+| 出新版那天，闸过了 | Haiku 约 30 次（闸 B / 2.1、2.2、冒烟）；Sonnet 会话 4 个（兼容 agent 本身、verify-dv-site 两组、wake-tla-verify 全量一次）；wake-tla-verify 候选不过时，再直接跑一次 `check.sh` 全量（不调模型） | 兼容检查约 2–3.5 小时：2.1–2.2 约 10 分钟，verify-dv-site 两组 50–110 分钟，wake-tla-verify 全量 25–45 分钟（要跑对照再加 25–45 分钟），bootstrap 沙箱约 5 分钟；升级三台约 15 分钟 | 0：走 Claude Max 订阅（`apiKeySource: none`，`overageStatus: rejected`） |
+| 出新版那天，闸没过 | 闸 B 那 1 次 Haiku | 几秒 | 0；按量跑要等 Zack 批花钱卡，批了按下面估算 |
 
-- 按 API 价格折算（只是估算，用来看订阅额度占用）：Haiku 部分约 US$0.15（PER-83 同类演示每次 US$0.004–0.006）；Sonnet 部分约 US$5–15 一次。
+- 按 API 价格折算（只是估算，用来看订阅额度占用，或闸没过时写进花钱卡）：Haiku 部分约 US$0.15（PER-83 同类演示每次 US$0.004–0.006）；Sonnet 部分约 US$7–20 一次。比上一版（US$5–15）高，是因为 wake-tla-verify 改成全量后，那个 Sonnet 会话要守着 `check.sh` 跑 25–45 分钟，中间会多次读输出。
 - pstack 近期约 1–2 天一个版本，最坏一周 3–4 次完整兼容检查。嫌多的话，可以规定「两次兼容检查至少隔 3 天」，中间出的版本合到下一次评估最新版；本文先不加这条。
 - GitHub 请求：没变化时 1 次 `ls-remote`（不占 API 配额）；有变化时再加 1 次 `gh api compare`、1 次读钉版（各占 1 次配额，5000 次/小时）和 2 次 raw 下载。
 
@@ -479,3 +594,4 @@ git -C <ops 工作区> revert <改 PSTACK_SHA 的那个提交>   # 开 draft PR�
 | 3 | iMac 装 Java 17 + tla2tools.jar v1.7.4 到 `~/.local/opt/`（按 `wake/tla/README.md`「安装」，不用 sudo） | Zack 卡（装东西） | 不装就跑不了 2.4；本 PR 不装 |
 | 4 | #48 合并：便宜检查默认读 main 上的 `PSTACK_SHA`，合并前 `PIN_BRANCH=main` 会返回 rc=2 | Zack | #48 是另一个 agent 的 PR |
 | 5 | 兼容检查 agent 的 brief 模板（本文 2.0–2.6 填版本号即可） | ops 系统第一次用时生成 | 没有新版之前用不到 |
+| 6 | wake-tla-verify 缩减版：只跑 `check.sh --out <目录> w0 h0`，即 P2（notify-run / orca-wake / stuck-check 非 2xx 不记成功）、P3（卡住检查停了一定告警）、P4 共 17 项（含改坏变体）。省下：TLC 时间 1471 秒 → 161 秒（box 实测数据），每次少约 20 分钟机器时间，那个 Sonnet 会话的额度也少一截（没实测，估算少一半以上）。漏检：P1（派活 bot 一直坏也最终有人收到）、P1h（webhook 恢复后每个停下都有人收到）、P5（一个 bot 坏了只挡它自己）、P6（agent 没起来也叫醒）共 19 项不跑。这 19 项只依赖 `wake/**` 和 `stuck-check.sh` 的代码，pstack 本身改不了它们；真正的风险是新版 pstack 改变了 agent 执行 skill 的方式（例如去改 cfg 或期望表），而这只会在被跳过的那几项里表现出来 | Zack 定：默认全量（现在的写法），还是改成缩减版 | 缩减会降低覆盖面，要 Zack 决定 |
