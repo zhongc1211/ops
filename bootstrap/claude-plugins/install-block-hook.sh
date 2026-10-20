@@ -11,6 +11,7 @@ cmd='bash "$HOME/.claude/hooks/block-disabled-skills.sh"'
 ups=d.setdefault("hooks",{}).setdefault("UserPromptSubmit",[])
 if not any(h.get("command")==cmd for e in ups for h in e.get("hooks",[])):
     ups.append({"hooks":[{"type":"command","command":cmd,"timeout":5}]})
-json.dump(d,open(f+".tmp","w"),indent=2,ensure_ascii=False); os.replace(f+".tmp",f)
+with open(f+".tmp","w") as o: json.dump(d,o,indent=2,ensure_ascii=False); o.write("\n")
+os.replace(f+".tmp",f)
 print("hook entry ok")
 PY

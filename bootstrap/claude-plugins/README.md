@@ -31,9 +31,9 @@ bootstrap/claude-plugins/pin-claude-plugins.sh --home /tmp/sandbox   # 装进别
 3. `~/.claude/plugins/known_marketplaces.json` 同步成目录源、`autoUpdate: false`。
 4. `~/.claude/CLAUDE.md` 没有 PER-67 那条插件授权规矩就补上。
 5. 跑 `install-block-hook.sh`：把 `block-disabled-skills.sh` 装到 `~/.claude/hooks/`，在 `settings.json` 的 `UserPromptSubmit` 加一条（已有就不加）。
-6. `claude plugin marketplace update` 两个市场，再 `claude plugin install/update` 两个插件。
+6. `claude plugin marketplace update` 两个市场，再 `claude plugin install/update` 两个插件。检出没切 commit、已装版本也对时跳过这一步（它每次都会改 `known_marketplaces.json` 的 `lastUpdated`）。
 
-原有的其他设置不动；重复跑结果一样。
+原有的其他设置不动；重复跑不改任何文件。
 
 ## 为什么用本地目录源 + detached + autoUpdate false
 

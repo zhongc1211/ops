@@ -88,13 +88,21 @@ PY
 fi
 
 mkdir -p "$P"
+changed=0   # 检出切了 commit，或已装插件版本不是钉的版本，才需要跑 claude plugin（它每次都会改 lastUpdated）
 for it in "${PINS[@]}"; do
   IFS='|' read -r name url sha manifest id <<<"$it"
   d="$P/$name"
   [ -d "$d/.git" ] || git clone --quiet "$url" "$d"
   git -C "$d" cat-file -e "$sha^{commit}" 2>/dev/null || git -C "$d" fetch --quiet origin
+  [ "$(git -C "$d" rev-parse HEAD 2>/dev/null)" = "$sha" ] || changed=1
   git -C "$d" -c advice.detachedHead=false checkout --quiet --detach "$sha"
   echo "$name $(git -C "$d" rev-parse HEAD)"
+  python3 - "$C/plugins/installed_plugins.json" "$id" "$(git -C "$d" show "$sha:$manifest")" <<'PY' || changed=1
+import json, sys
+try: got = [x.get("version") for x in json.load(open(sys.argv[1]))["plugins"][sys.argv[2]]]
+except Exception: got = None
+sys.exit(got != [json.loads(sys.argv[3])["version"]])
+PY
 done
 python3 - "$C" "$P" <<'PY'
 import json,sys,os,datetime
@@ -109,16 +117,19 @@ for n in ["cursor-plugins","compound-engineering-plugin"]:
     ekm[n]={"source":{"source":"directory","path":os.path.join(P,n)},"autoUpdate":False}
 ep=d.setdefault("enabledPlugins",{})
 ep["pstack@cursor-plugins"]=True; ep["compound-engineering@compound-engineering-plugin"]=True
-json.dump(d,open(f+".tmp","w"),indent=2,ensure_ascii=False); os.replace(f+".tmp",f)
+with open(f+".tmp","w") as o: json.dump(d,o,indent=2,ensure_ascii=False); o.write("\n")
+os.replace(f+".tmp",f)
 k=os.path.join(C,"plugins","known_marketplaces.json"); os.makedirs(os.path.dirname(k),exist_ok=True)
 km=json.load(open(k)) if os.path.exists(k) else {}
 for n in ["cursor-plugins","compound-engineering-plugin"]:
     e=km.get(n,{}); e.update({"source":{"source":"directory","path":os.path.join(P,n)},"installLocation":os.path.join(P,n),"autoUpdate":False}); e.setdefault("lastUpdated",datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")); km[n]=e
-json.dump(km,open(k+".tmp","w"),indent=2); os.replace(k+".tmp",k)
+with open(k+".tmp","w") as o: json.dump(km,o,indent=2); o.write("\n")
+os.replace(k+".tmp",k)
 print("settings ok")
 PY
 grep -qF "$RULE_KEY" "$C/CLAUDE.md" 2>/dev/null || printf '\n%s\n' "$RULE" >> "$C/CLAUDE.md"
 bash "$HERE/install-block-hook.sh" "$HERE/block-disabled-skills.sh"
+if [ $changed = 0 ]; then echo "插件已是钉的版本，跳过 claude plugin update"; exit 0; fi
 cd /tmp
 t 180 claude plugin marketplace update cursor-plugins || true
 t 180 claude plugin marketplace update compound-engineering-plugin || true
