@@ -21,7 +21,7 @@
 #                  先交给 orca-wake（~/.local/bin/orca-wake recheck --agent-pid，box 上走临时终端）：派活时用
 #                  notify-run --tty 起的会话由它补叫醒一次，和它的 hook 叫醒共用 wake.log 和去重键，同一次停顿只叫一次；
 #                  派活 bot 不在 enabled-bots 里时它只写 wake.log（影子模式，不算叫醒过）：这时转报 coding-assistant（经复核），
-#                  不再当成已处理（10-16～10-17 影子模式漏了 58 次）。orca-wake 真发了的，stuck-check 自己不再发 agent_idle。
+#                  不再当成已处理（10-16～10-17 影子模式漏了 58 次）。交给 orca-wake 发的只记「已交出」，下次扫描再 recheck，它说 already_woken（送达过）才算叫醒过（PER-67 F1）。
 #                  orca-wake 没有这个进程的记录（no_state_for_pid，比如不是经 notify-run --tty 起的）或 agent 已不是
 #                  notify-run 的直接子进程（parent_changed）时，才按下面的老办法写进 pending 发出去。
 #                  orca-wake 说刚有动静（recent_activity）或调用失败时这次不报，下次再查。
@@ -878,8 +878,8 @@ def check_agents(host, known, track):
         rec = known.get(key)
         if rec:
             newer = agent_t if rec.get("kind") != SILENT else max(agent_t, out_t)
-            if newer <= rec.get("marker", 0) + 60:
-                continue  # 报过或排除过，之后没有新活动
+            if newer <= rec.get("marker", 0) + 60 and not rec.get("handed"):
+                continue  # 报过或排除过，之后没有新活动；只交给了 orca-wake 的（handed）每次再 recheck，见 wake_recheck 之后
             del known[key]
         cands.append({"w": w, "key": key, "agents": agents, "hook": hook, "scr": scr, "agent_t": agent_t,
                       "out_t": out_t, "out": out, "handles": handles, "act": (w.get("lastActivityAt") or 0) / 1000.0,
@@ -1047,9 +1047,9 @@ def check_agents(host, known, track):
                 shadow = not ("*" in rr["enabled"] or bot in rr["enabled"])
                 log("agent_idle | %s | %sorca-wake 补叫醒（%s；派活 bot：%s，%s）" % (
                     key, (r["note"] + "；needs_input，") if r.get("waiting") else "", desc, bot, "dry-run，不发" if DRY else "不在 enabled-bots 里，影子模式只写 wake.log" if shadow
-                    else "已交给 orca-wake 发送，结果见 wake.log"))
-                known[key] = {"kind": IDLE, "marker": marker, "notified": NOW, "to": bot, "via": "orca-wake",
-                              "shadow": shadow}
+                    else "已交给 orca-wake 发送；下次扫描再 recheck，already_woken 才算送达（发送失败它会重发同一个去重键）"))
+                # 不写 notified：发送是 detached 的，这时还不知道送没送到（PER-67 F1，以前这里记 notified，失败后永远不再补）
+                known[key] = {"kind": IDLE, "marker": marker, "handed": NOW, "to": bot, "via": "orca-wake", "shadow": shadow}
             elif "already_woken" in res.values():
                 log("agent_idle | %s | orca-wake 已经叫醒过这次停顿，不再发（%s）" % (key, desc))
                 known[key] = {"kind": IDLE, "marker": marker, "dismissed": NOW, "reason": "orca-wake 已叫醒过这次停顿"}

@@ -234,9 +234,11 @@ EscCand(t) == "ca_escalate" \in Fixes /\ agent[t] # "running" /\ age[t] >= 3 /\ 
 (*   woken 有这次停顿 → already_woken → stuck-check 记 dismissed（:1053-1055）；  *)
 (*   去重键 inflight → skip (inflight)（:1009-1012）→ 下次再查（:1068-1069）；      *)
 (*   否则打印 "send idle" 并 gate_and_send（:1013-1014）→ 新的 detached 发送任务。   *)
-(* stuck-check 看到 "send" 就写 known[key] = {notified: NOW, via: orca-wake}         *)
-(* （:1045-1052），不等发送结果；之后 agent 没有新动作就一直跳过这个 key（:879-883）。*)
-(* Fix "sc_wait"：只在 woken 已写（送达）后才记，否则下次扫描再 recheck。          *)
+(* stuck-check 看到 "send" 只记 known[key] = {handed: NOW, via: orca-wake}（:1045-1052），*)
+(* 不算叫醒过；带 handed 的 key 下次扫描不跳过（:879-883），再 recheck：送达过就是     *)
+(* already_woken → dismissed，发送失败就重新认领同一个去重键再发（PER-67 F1）。        *)
+(* 模型里 known 保持 none 即「下次再 recheck」。                                      *)
+(* Mutant "sc_handoff"：修之前的代码，看到 send 就记 notified，之后一直跳过。          *)
 RecheckOW(t) ==
     IF ~IdleCand(t) THEN ow[t]
     ELSE IF woken[t] \/ ow[t].ph = "inflight" THEN ow[t]
@@ -245,7 +247,7 @@ RecheckKnown(t) ==
     IF ~IdleCand(t) THEN known[t]
     ELSE IF woken[t] THEN "dismissed"
     ELSE IF ow[t].ph = "inflight" THEN known[t]
-    ELSE IF "sc_wait" \in Fixes THEN known[t]
+    ELSE IF Mutant # "sc_handoff" THEN known[t]
     ELSE "notified_ow"
 
 (* send_all（stuck-check.sh:1418-1477）：先 direct（第二类合并的一条、以前没发出去的），*)
