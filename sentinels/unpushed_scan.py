@@ -4,8 +4,8 @@
 对本机 `orca worktree list` 里的每个工作区（只读，GIT_OPTIONAL_LOCKS=0，不 fetch、不提交、不推、不 stash、不 reset）：
   unpushed — HEAD 上有不在任何远程分支里的提交（git rev-list HEAD --not --remotes），最早的一个超过 2 小时
   dirty    — 有未提交的改动（含未跟踪文件，不含未跟踪的 node_modules 软链接），其中最早的一处改动超过 2 小时；
-             未跟踪条目正好是本仓库另一个已注册 worktree 的根目录（Orca 把 ops 工作区建在 ops 主检出里面）不算，
-             那个工作区自己会单独扫；git worktree list 失败或超时就照旧算
+             未跟踪条目正好是本仓库另一个已注册 worktree 的根目录、并且这次也在扫的工作区里（Orca 把 ops 工作区
+             建在 ops 主检出里面）不算，那个工作区自己会单独扫；git worktree list 失败或超时就照旧算
 发现了就用 notify-run 叫醒该项目的 bot（按 git remote 认项目），同一个 bot 一次运行只叫一次，消息里列出全部发现。
 限流（状态在 ~/.orca-state/unpushed-scan/state.json）：
   - 同一个工作区 4 小时内只叫一次（项目 bot 和 coding-assistant 都算），不管是哪种发现、内容变没变；
@@ -115,8 +115,8 @@ def bot_for(path):
     return "coding-assistant", url or "(没有 origin)"
 
 
-def scan_one(path):
-    """返回这个工作区的发现列表 [(kind, 指纹, 说明)]。"""
+def scan_one(path, scanned=frozenset()):
+    """返回这个工作区的发现列表 [(kind, 指纹, 说明)]。scanned：这次运行要扫的工作区（realpath）。"""
     found = []
     rc, head = git(path, "rev-parse", "HEAD")
     if rc != 0:
@@ -153,9 +153,9 @@ def scan_one(path):
                 continue  # 指向共享依赖的 node_modules 软链接：gitignore 的 node_modules/ 匹配不到软链接，不算改动
             if st == "??" and name.endswith("/"):
                 if nested is None:
-                    nested = other_worktrees(path)
+                    nested = other_worktrees(path) & scanned
                 if os.path.realpath(os.path.join(path, name)) in nested:
-                    continue  # 嵌在主检出里的另一个工作区，它自己单独扫
+                    continue  # 嵌在主检出里、这次也在扫的另一个工作区，它自己单独扫
             entries.append(st + " " + name)
             try:
                 m = os.lstat(os.path.join(path, name)).st_mtime
@@ -212,13 +212,14 @@ def main():
     for k, v in state.items():
         pth = k.rsplit("::", 1)[0]
         path_last[pth] = max(path_last.get(pth, 0), v.get("last", 0), v.get("esc", 0))
+    scanned = frozenset(os.path.realpath(w["path"]) for w in wts if os.path.isdir(w["path"]))
     for w in wts:
         path = w["path"]
         if not os.path.isdir(path):
             skipped += 1
             continue
         try:
-            found = scan_one(path)
+            found = scan_one(path, scanned)
         except Exception as e:
             log("%s 扫描出错：%s" % (path, type(e).__name__))
             continue
