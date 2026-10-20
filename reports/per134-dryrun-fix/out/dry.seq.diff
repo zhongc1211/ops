@@ -1,0 +1,12 @@
+6a7,17
+> ["/Applications/Orca.app/Contents/Resources/bin/orca", "worktree", "ps"] -> 1 
+> ["/Applications/Orca.app/Contents/Resources/bin/orca", "worktree", "ps"] -> 1 
+> ["/Applications/Orca.app/Contents/Resources/bin/orca", "worktree", "ps"] -> 1 
+> ["/Applications/Orca.app/Contents/Resources/bin/orca", "worktree", "ps"] -> 1 
+> ["/Applications/Orca.app/Contents/Resources/bin/orca", "worktree", "ps"] -> 1 
+> ["/Applications/Orca.app/Contents/Resources/bin/orca", "worktree", "ps"] -> 1 
+> ["/Applications/Orca.app/Contents/Resources/bin/orca", "worktree", "ps"] -> 0 
+> ["/Applications/Orca.app/Contents/Resources/bin/orca", "terminal", "list"] -> 0 
+> ["/Applications/Orca.app/Contents/Resources/bin/orca", "terminal", "create"] -> 0 
+> ["/Applications/Orca.app/Contents/Resources/bin/orca", "terminal", "read"] -> 0 
+> ["/Applications/Orca.app/Contents/Resources/bin/orca", "terminal", "close"] -> 0 

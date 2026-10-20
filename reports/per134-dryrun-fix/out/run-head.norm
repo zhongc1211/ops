@@ -1,0 +1,1180 @@
+== stdout ==
+开始（orca=orca，等输入/无输出阈值 30 分钟）
+agent_idle | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c | orca-wake 补叫醒（pid <变> send；派活 bot：e2e-down，已交给 orca-wake 发送；下次扫描再 recheck，already_woken 才算送达（发送失败它会重发同一个去重键））
+iMac：in-progress 任务工作区和主目录 agent 10 个，新嫌疑 0 个，断了的 0 个
+iMac：没包 notify-run 的 agent 新报 0 条
+box（--environment __no_box__）第一轮 3 次都没连上（{"code": "invalid_argument", "message": "Unknown Orca server in --environment __no_box__: no paired Orca server is named），等 <n> 秒再查一轮
+box（--environment __no_box__）重试 3 次仍查询失败，这次跳过（连续第 1 次）：{"code": "invalid_argument", "message": "Unknown Orca server in --environment __no_box__: no paired Orca server is named or has id __no_box__.", "data": {"known
+MBA：in-progress 任务工作区和主目录 agent 1 个，新嫌疑 0 个，断了的 0 个
+MBA：没包 notify-run 的 agent 新报 0 条
+box 这次没查到，不对 due date
+结束：0 条嫌疑，0 条直发，0 条发送失败
+@@HB {"ts": <变>, "mode": "--run", "rc": 0, "last_scan": <变>, "last_duration_s": <变>}
+== 状态文件 ==
+-- agents.json
+{
+ "box:/home/box/orca/workspaces/ops/ops-PER-67-SYSTEM_MAP-与-ops-verify": {
+  "kind": "ws_broken",
+  "marker": 1792367107.168,
+  "notified": 1792510210.8607428,
+  "to": "coding-assistant"
+ },
+ "box:/home/box/orca/workspaces/ops/ops-PER-67-第1步前置清理": {
+  "kind": "ws_broken",
+  "marker": 1792367109.616,
+  "notified": 1792510210.8607428,
+  "to": "coding-assistant"
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c": {
+  "handed": 1792517491.251204,
+  "handed_since": 1792517112.520459,
+  "kind": "agent_idle",
+  "marker": 1792514812.45,
+  "shadow": false,
+  "to": "e2e-down",
+  "via": "orca-wake"
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-box-disk-1020": {
+  "kind": "ws_broken",
+  "marker": 1792506944.682,
+  "notified": 1792510210.8607428,
+  "to": "ops-system"
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/auto-run-1-20261013T1530": {
+  "dismissed": 1792312095.7256892,
+  "kind": "ws_broken",
+  "marker": 1791905411.908,
+  "reason": "自动任务「心月夜审」建的工作区"
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/auto-run-2-20261013T1725": {
+  "dismissed": 1792312095.7256892,
+  "kind": "ws_broken",
+  "marker": 1791912920.458,
+  "reason": "自动任务「心月夜审」建的工作区"
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/per-115-free-games": {
+  "kind": "ws_broken",
+  "marker": 1792506886.575,
+  "notified": 1792510210.8607428,
+  "to": "xinyue"
+ }
+}
+-- gate.json
+{
+ "MBA": "pid:None|rt:db1f347b-5676-45a4-bc3e-3d45bee50aaf",
+ "box": "pid:None|rt:3b1838b4-2107-4357-86ca-418825bb2e7f",
+ "done": 1792517491,
+ "iMac": "pid:659|rt:cb0f5509-687d-409f-bf36-d841efc78dcf",
+ "last": 1792517112.520459,
+ "why": "到点"
+}
+-- heartbeat.json
+{
+ "last_duration_s": "<变>",
+ "last_scan": 1792517491,
+ "mode": "--run",
+ "rc": 0,
+ "ts": "<变>"
+}
+-- notified.json
+{
+ "MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/dv官网-FDV-70-Ryze对照图|reported_not_accepted": {
+  "last_seen": 1792515312.3726652,
+  "notified": 1792351874.622869
+ },
+ "MBA:/Users/jiawenwang/orca/workspaces/vllm-omni/vllm-PER-56-4090-A100-MBA|reported_not_accepted": {
+  "last_seen": 1792515312.3726652,
+  "notified": 1792351874.622869
+ },
+ "MBA:/Users/jiawenwang/orca/workspaces/xinyue-site/per-62-mba-runner-2|reported_not_accepted": {
+  "last_seen": 1792497787.363959,
+  "notified": 1792497787.363959
+ },
+ "MBA:/Users/jiawenwang/orca/workspaces/xinyue-site/per-70-colorfigures-integrate-mba|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792400235.706301
+ },
+ "box:/home/box/orca/workspaces/deepvision-ads/dvads-backup-unpushed|reported_not_accepted": {
+  "last_seen": 1792484237.830344,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-ads/dv广告-FDV-36-栈修复|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-ads/dv广告-FDV-38-PR-3-修复|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-ads/dv广告-FDV-39-PR-4-修复|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-ads/dv广告-FDV-67-接入EverOS|reported_not_accepted": {
+  "last_seen": 1792484237.830344,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-ads/fdv-81-ads-nightreview-everos|reported_not_accepted": {
+  "last_seen": 1792484237.830344,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-ads/release-1|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-site/dv官网-FDV-70-Ryze对照图|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-site/dv运维-FDV-78-夜审切新脚本|reported_not_accepted": {
+  "last_seen": 1792484237.830344,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/ops/ops-tunnel-flaps-1019|reported_not_accepted": {
+  "last_seen": 1792484237.830344,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/xinyue-site/ops-everos-mcp-v2|reported_not_accepted": {
+  "last_seen": 1792484237.830344,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/xinyue-site/ops-everos-wireup|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/xinyue-site/per-70-colorfigures-integrate|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/xinyue-site/心月-EverOS-MCP-v2-G5验证|reported_not_accepted": {
+  "last_seen": 1792484237.830344,
+  "notified": 1792484237.830344
+ },
+ "iMac:/Users/jiawenwang/orca/r2-F|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792313893.748288
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dv广告-FDV-72-开AI-key|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792250287.04128
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-117-linear-sync-move|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792514412.2584589
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-89-deny|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792514412.2584589
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER86-merge|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792514412.2584589
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-everos-backfill-1019-addendum|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792514412.2584589
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-orca-projects-1020|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792510210.8607428
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-serve-display-1020|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792514412.2584589
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/xinyue-everos-recheck|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792250287.04128
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/repository/PER-56-h3-merge-three|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1791983002.431201
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/repository/PER-56-n7-rootcause|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792313893.748288
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/repository/PER-8-hunyuan-imac-omni|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792045125.0360608
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/repository/per-8714-schedule-400|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792250287.04128
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/repository/per56-n10-rootcause-opus|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792134237.2226639
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计|reported_not_accepted": {
+  "last_seen": 1792491618.853417,
+  "notified": 1792101836.5569332
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/per-75-oss-games|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792382235.192108
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/心月-EverOS-启动器-v2.1|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792250287.04128
+ }
+}
+-- pending.json
+{
+ "created": "<变>",
+ "direct": [],
+ "suspects": []
+}
+-- scan-history.json
+[
+ {
+  "budget_s": null,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "killed": true,
+  "mode": "--run",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "due",
+   "二类 iMac"
+  ],
+  "skipped_calls": [
+   {
+    "call": "environment list",
+    "secs": "<变>",
+    "what": "iMac:（environment list）"
+   },
+   {
+    "call": "terminal read",
+    "secs": "<变>",
+    "what": "iMac:term_79be8949-bb9d-482e-816b-1f6dd0d2e7c1"
+   }
+  ],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "failed"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [],
+  "rc": 0,
+  "skipped_calls": [
+   {
+    "call": "status",
+    "secs": "<变>",
+    "what": "iMac:（整台）"
+   },
+   {
+    "call": "environment list",
+    "secs": "<变>",
+    "what": "iMac:（environment list）"
+   },
+   {
+    "call": "worktree ps",
+    "secs": "<变>",
+    "what": "iMac:（整台）"
+   }
+  ],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "failed"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [],
+  "rc": 0,
+  "skipped_calls": [
+   {
+    "call": "status",
+    "secs": "<变>",
+    "what": "grok-bot:（整台）"
+   },
+   {
+    "call": "worktree ps",
+    "secs": "<变>",
+    "what": "iMac:（整台）"
+   }
+  ],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "failed"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [],
+  "rc": 0,
+  "skipped_calls": [
+   {
+    "call": "status",
+    "secs": "<变>",
+    "what": "grok-bot:（整台）"
+   },
+   {
+    "call": "status",
+    "secs": "<变>",
+    "what": "mba:（整台）"
+   },
+   {
+    "call": "automations show",
+    "secs": "<变>",
+    "what": "iMac:439cd438-cffe-44dd-bd2b-23b07bfa3d61"
+   },
+   {
+    "call": "worktree ps",
+    "secs": "<变>",
+    "what": "iMac:（整台）"
+   }
+  ],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 box",
+    "s": "<变>",
+    "status": "partial"
+   },
+   {
+    "name": "二类 MBA",
+    "s": "<变>",
+    "status": "skipped"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due",
+   "二类 iMac",
+   "二类 box",
+   "二类 MBA"
+  ],
+  "rc": 0,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": true,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "partial"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "skipped"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "二类 box",
+   "二类 MBA",
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due"
+  ],
+  "rc": 1,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": true,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 MBA",
+   "due",
+   "一类 iMac",
+   "一类 box"
+  ],
+  "rc": 1,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due"
+  ],
+  "rc": 1,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due"
+  ],
+  "rc": 1,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 MBA",
+    "s": "<变>",
+    "status": "partial"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due",
+   "二类 iMac",
+   "二类 box",
+   "二类 MBA"
+  ],
+  "rc": 1,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": true,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "二类 MBA",
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due"
+  ],
+  "rc": 1,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due"
+  ],
+  "rc": 0,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due"
+  ],
+  "rc": 1,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": null,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--run",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "unreachable"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "unreachable"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due"
+  ],
+  "rc": 0,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ }
+]
+-- stuck-check.log
+开始（orca=orca，等输入/无输出阈值 30 分钟）
+agent_idle | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c | orca-wake 补叫醒（pid <变> send；派活 bot：e2e-down，已交给 orca-wake 发送；下次扫描再 recheck，already_woken 才算送达（发送失败它会重发同一个去重键））
+iMac：in-progress 任务工作区和主目录 agent 10 个，新嫌疑 0 个，断了的 0 个
+iMac：没包 notify-run 的 agent 新报 0 条
+box（--environment __no_box__）第一轮 3 次都没连上（{"code": "invalid_argument", "message": "Unknown Orca server in --environment __no_box__: no paired Orca server is named），等 <n> 秒再查一轮
+box（--environment __no_box__）重试 3 次仍查询失败，这次跳过（连续第 1 次）：{"code": "invalid_argument", "message": "Unknown Orca server in --environment __no_box__: no paired Orca server is named or has id __no_box__.", "data": {"known
+MBA：in-progress 任务工作区和主目录 agent 1 个，新嫌疑 0 个，断了的 0 个
+MBA：没包 notify-run 的 agent 新报 0 条
+box 这次没查到，不对 due date
+结束：0 条嫌疑，0 条直发，0 条发送失败
+-- track.json
+{
+ "box_alerted": false,
+ "box_fail": 1,
+ "due": {
+  "due:due_no_agent:PER-112:2026-10-21:1792508427": {
+   "sent": 1792511711.9297578
+  },
+  "due:due_no_agent:PER-70:2026-10-21:1792510407": {
+   "sent": 1792512611.942453
+  },
+  "due:due_no_agent:PER-71:2026-10-21:1792463176": {
+   "sent": 1792511711.9297578
+  },
+  "due:due_no_agent:PER-72:2026-10-21:1792463185": {
+   "sent": 1792509921.827273
+  },
+  "due:due_no_agent:PER-73:2026-10-21:1792463195": {
+   "sent": 1792486217.899345
+  },
+  "due:due_no_agent:PER-74:2026-10-21:1792463204": {
+   "sent": 1792487117.958008
+  },
+  "due:due_no_agent:PER-89:2026-10-21:1792502239": {
+   "sent": 1792509921.827273
+  }
+ },
+ "last_full": 1792515312.3726652,
+ "main_seen": {},
+ "markers": {},
+ "mba_alerted": false,
+ "mba_fail": 0,
+ "post_fail": {},
+ "precheck_timeout": {
+  "ts": "<变>",
+  "v": 300.0
+ },
+ "screens": {
+  "term_045e1d16-4f92-4d0c-a230-a04c95ea1843": {
+   "hash": "2d53e3dcc89c2a1b8d4d25ba710237fe91a8923d",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_08530c43-7064-4864-9782-03d3ba5b3608": {
+   "hash": "679587d33c2a96b2bb2bef4369513617739af10a",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_244e06e3-564b-422a-8717-47cfe34d0f10": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792509921.827273,
+   "since": 1792508428.744
+  },
+  "term_2945869c-ad1c-4c61-ae54-d5af2cca0561": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792497787.363959,
+   "since": 1792497181.726
+  },
+  "term_2c78c29c-47e7-4d63-b423-cc3ed4165375": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792500563.8621,
+   "since": 1792494048.232
+  },
+  "term_32e07ae5-67f6-4983-a895-ac16868b769e": {
+   "hash": "9e757dae80f50101fd3d3d99067624ddeb65ab99",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_3e2356c7-a5f4-4617-9de9-33a59b811d0c": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_45b07008-51c3-4bf6-b2fe-923c0662add1": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_6827dbee-02cb-460a-9134-8009e9a3c48e": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_79be8949-bb9d-482e-816b-1f6dd0d2e7c1": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792352599.232
+  },
+  "term_7b625fe0-781d-4c67-995d-e3bfbc651f64": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_804188c0-0498-44cd-920f-559d88ecb06a": {
+   "hash": "8965e179719040eb21629e650eef45ceddfc84e6",
+   "seen": 1792509921.827273,
+   "since": 1792509969.681
+  },
+  "term_9ff423e5-660f-46d5-80de-5a481618499d": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_b58c0137-3233-4c99-b37c-7b1fbdfb0d88": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792509921.827273,
+   "since": 1792509948.492
+  },
+  "term_ddb45c6e-9d8b-4516-a817-7181788a8e85": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_fd8ed590-3a7c-4adf-aae0-ff38b5984701": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  }
+ },
+ "undelivered": {},
+ "unwrapped": {
+  "box:2117862": {
+   "automation": true,
+   "start": "<变>"
+  },
+  "box:2216497": {
+   "automation": true,
+   "start": "<变>"
+  },
+  "box:2216736": {
+   "automation": true,
+   "start": "<变>"
+  },
+  "box:2246912": {
+   "automation": true,
+   "start": "<变>"
+  }
+ }
+}

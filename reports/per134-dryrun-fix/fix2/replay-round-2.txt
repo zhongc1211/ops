@@ -1,0 +1,10 @@
+dry           base rc=4 head rc=0  判定和状态：不一致（diff 15 行）  调用序列：不一致（base 6 条 / head 17 条）  head 未命中磁带 0 条，截住 curl 0 次、box 0 次
+dryfull       base rc=4 head rc=0  判定和状态：不一致（diff 174 行）  调用序列：不一致（base 6 条 / head 156 条）  head 未命中磁带 0 条，截住 curl 0 次、box 0 次
+run           base rc=0 head rc=0  判定和状态：一致（diff 0 行）  调用序列：一致（base 17 条 / head 17 条）  head 未命中磁带 0 条，截住 curl 0 次、box 0 次
+runfull       base rc=0 head rc=0  判定和状态：一致（diff 0 行）  调用序列：一致（base 154 条 / head 154 条）  head 未命中磁带 0 条，截住 curl 0 次、box 0 次
+scan          base rc=0 head rc=0  判定和状态：一致（diff 0 行）  调用序列：一致（base 20 条 / head 20 条）  head 未命中磁带 0 条，截住 curl 0 次、box 0 次
+runformal     base rc=0 head rc=0  判定和状态：一致（diff 0 行）  调用序列：一致（base 17 条 / head 17 条）  head 未命中磁带 1 条，截住 curl 0 次、box 0 次
+runfullformal base rc=0 head rc=0  判定和状态：一致（diff 0 行）  调用序列：一致（base 153 条 / head 153 条）  head 未命中磁带 1 条，截住 curl 0 次、box 0 次
+回放可信度：base run 录制（真跑）vs 回放：判定和状态 不一致，调用序列 一致
+回放可信度：base runfull 录制（真跑）vs 回放：判定和状态 不一致，调用序列 一致
+回放可信度：base scan 录制（真跑）vs 回放：判定和状态 不一致，调用序列 一致
