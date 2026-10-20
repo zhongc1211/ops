@@ -90,3 +90,14 @@
 | B34 | HEAD 已推送到远端分支，但没进主分支、也没有已合并的 PR，状态 completed 就删 | c_head_unmerged | SKIP W17 |
 | B35 | Linear 已 Done、状态 completed，但 HEAD 不在已合并的分支 / PR 上，照样删 | c_linear_done_unmerged | SKIP W17 |
 | B36 | HEAD 就是已合并 PR 的 head（没进主分支的本地 ref）被误挡 | c_head_pr_merged | RM W14，merged_via 写「PR #… 的 head」 |
+
+补充（Zack 10-21 03:37 / 03:39 / 03:40，代码开始写之后收到）：
+- 03:37：每次真删之前都实时查 Linear，不沿用 dry-run 的结果；查询失败、超时、找不到 issue 都不删。
+- 03:39：W10 不改，保持严格（挂在总 issue 下、工作区已 completed 的也不放宽）。
+- 03:40：R1 验收前允许在专门建的演练仓库上真跑 `--execute`，只删演练工作区；`--execute` 前硬校验每个候选都在 `--repo` 白名单下，有一个不在就整轮中止。
+
+| # | 失败方式 | 用例 | 期望 |
+|---|---|---|---|
+| L37a | 删除前 Linear 查询失败，沿用 dry-run 的「已关」照样删 | x_lin_fail（等待点期间让 YYY 这个 team 查不到） | 跳过，W10「Linear 查不到」 |
+| L37b | 删除前 issue 找不到了，照样删 | x_lin_gone（等待点期间 XXX-2 从列表里消失） | 跳过，W10 |
+| W40 | `--repo` 白名单外的候选混进名单，照样处理其余的 | 名单里多一行 r-proj 的 id | 退出码 2，一个都不删 |
