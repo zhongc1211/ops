@@ -51,10 +51,35 @@
 
 | # | 风险 | 处理 |
 |---|---|---|
-| C1 | 叫醒用的是假 webhook，不是真 bot | 是。用 `HOME=<临时目录>` 让 notify-run 和预检读临时的 `ops-system.env` / `coding-assistant.env`，地址指向本机 `wake/tests/mock_webhook.py`。所以这份结果叫「dry-run 演练」，不叫线上 E2E |
-| C2 | 「MBA 离线」「box」是替身 | 离线用一个真连不上的 ssh 主机名（ssh 真的失败）；「box 摘要目录」用本地临时目录；清单同步 M1 用真 box（只读 rsync） |
+| C1 | 叫醒用的是假 webhook，不是真 bot | 是。用 `HOME=<临时目录>` 让 notify-run 和预检读临时的 `ops-system.env` / `coding-assistant.env`，地址指向本机的 `e2e/mock_webhook.py`（MBA 和 iMac 各起一个，只听 127.0.0.1，900 秒后自己退出）。所以这份结果叫「dry-run 演练」，不叫线上 E2E |
+| C2 | 「MBA 离线」「box」是替身 | 离线用一个真连不上的 ssh 主机名（ssh 真的失败）；「box 摘要目录」用本地临时目录；清单同步 M1 用真 box（只读；box 没有 rsync，实际用 tar over ssh，见下面 F10） |
 | C3 | 合盖、用电池是替身 | 是。`NR_PMSET_BATT` / `NR_PMSET_G` / `NR_IOREG` 指向文件，文件内容取自本机真实命令输出再改一行；默认不设时读真命令 |
 | C4 | 锁「超过 40 分钟」是改 owner 文件里的时间戳 | 是，写明。并发场景（L2）用真进程并发 |
 | C5 | 清理预检的数据不是当晚的 | 用 2026-10-20 从 box 只读拉的 `orca worktree list --json` / `orca terminal list --json` 快照；「多一个工作区」「空快照」是在快照上改出来的 |
 | C6 | 断言为了修后通过而放宽 | 断言先写在本表，代码照抄；跑出来不符就记 FAIL 并保留，不改界值重跑 |
-| C7 | 8c40fa83 的「有没有超阈值进程」在 MBA 上没法真测（box-cleanup.sh 读 Linux /proc，MBA 上 docker 没开） | `box-cleanup.sh --count` 没跑演练，写「没跑」；首次线上运行前在 box 上手动跑一次 `--count` 作为证据（见 README） |
+| C7 | 8c40fa83 的「有没有超阈值进程」在 MBA 上没法真测（box-cleanup.sh 读 Linux /proc，MBA 上 docker 没开） | 写代码时改了做法：C2b 把本分支的 `box-cleanup.sh` 经 stdin 喂给 box 上的 `bash -s -- --count`（不落盘，`--count` 在发信号之前就退出），只在修后跑；修前不跑，因为 origin/main 的版本不认 `--count`，会照常清理。`--count` 大于 0 时真的放行这条路没在 box 上跑到（当时是 0），用 `CLEANUP_COUNT` 演练（C2a） |
+
+## 写代码时新发现的（2026-10-20 18:30–19:10；和对应代码一起写的，不是在代码之前，上面 F3、F6、F7 里的「rsync」按 F10 实际是 tar）
+
+| # | 事实 | 怎么查到的 | 影响 |
+|---|---|---|---|
+| F10 | box 没有 rsync；MBA 到 box 走 DERP 中转，约 80–100 KB/s（deepvision-site 10-19 的 mba/ imac/ 有 199 MB），MBA 到 iMac 局域网直连约 630 KB/s；两台 Mac 的采集器在 `~/.orca-state/everos-ingest/<p>/<D>/<side>/` 留着同样的文件（iMac 那份和 box 上 imac/ 的 sha256 一致） | `ssh box command -v rsync`、计时拷贝、sha256 比对 | 同步改用 tar over ssh；自己那份读本地，另一台 Mac 的从它那里直接拉，只有 box 自己的会话和对方没有的才从 box 拉 |
+| F11 | iMac → box、box → iMac 第一次 ssh 在冷的 DERP 路径上会超时，`tailscale ping` 之后再连就通 | 18:42 两个方向都超时，第二次都通 | 同步和闸门脚本里 ssh 返回 255 时等 5 秒重试一次 |
+| F12 | MBA 主任务和 */10 补跑任务可能同一分钟触发，iMac 备用 */10 也可能在 MBA 开跑之前就触发 | 排时间表时 | 见 A22–A24 |
+
+| # | 失败方式 | 场景 | 修后期望 |
+|---|---|---|---|
+| A22 | 补跑和主任务撞车：后到的那个拿不到锁，把当晚记成 lock_busy，看守据此让 iMac 再跑一遍 | W8a | 当晚已 started（3 小时内）时主预检退出 1，不改状态；补跑分钟错开（5,15,…）；锁是自己这晚的名字时也不记 lock_busy |
+| A23 | MBA 晚了很久才醒，补跑在 iMac 已接手之后又跑一遍 | W8c | 补跑只在 MBA 时间到 +25 分钟之间起 |
+| A24 | iMac 备用在 MBA 还没开跑（或还在同步清单）时把当晚当成错过 | W8b、W8d、W2d | 备用只在 MBA 时间 +30 到 +240 分钟之间动；主预检一开始就记 state=checking，看守把它当「在跑」；MBA 能连上但没有状态才算 asleep |
+| A25 | box 看守在 iMac 接替正在跑时把 box 旧任务叫起来，同一晚跑三遍 | W7a | iMac 记的 started 不到 2 小时就不发 |
+| A26 | 收尾失败被当成完成：摘要没写「状态：完成」或拷不回 box 时照样记 done、锁不放 | F1、F2 | 分别退出 3 / 4，记 failed，锁放掉 |
+| A27 | 提示词里算 D 的命令在 macOS 上实跑不出日期 | D3a、D3b | MBA 和 iMac 上实跑 4 个夜审提示词的 `D=$(...)`，都得到 YYYY-MM-DD |
+| A28 | iMac 跑不了同步（box 只读拉取、对等 Mac 拉取） | M1i | iMac 上的副本实跑同步成功 |
+
+## 场景编号和 run-e2e.sh 里的检查
+
+A1 L1 · A2 L2 · A3 L3a L3b · A4 L4a L4b · A5 L5 · A6 D1a–D1d D2 · A7 M2a M2b · A8 M3a M3b · A9 M1a M1b ·
+A10 C1a–C1d C2a C2b · A11 C1a C1e · A12 W1a–W1c · A13 W2a–W2d · A14 W3a W3b · A15 W4 W7b W7c · A16 W5 W6 ·
+A17 E1 P1d · A18 W2e · A19 K1a–K1c · A20 R1a–R1c · A21 P1a–P1c · A22 W8a · A23 W8c · A24 W8b W8d W2d ·
+A25 W7a · A26 F1 F2 · A27 D3a D3b · A28 M1i · 另有 S1（主预检先同步再拿锁，F6 的推论）。
