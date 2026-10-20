@@ -17,9 +17,10 @@ A = 假 orca-ide（记录收到的环境后退出 1），任何机器都能跑�
 | E2 | own 模式下 Orca 没有真的自起 Xvfb（没装 xvfb、`env -i` 的 PATH 里找不到 Xvfb） | B1、B-loop | 有 Xvfb :99 子进程，ready | — |
 | E3 | serve 退出后自起的 Xvfb 留下来（:99 锁残留），下一次 serve 起不来或越积越多 | B1 停掉后查；B-loop 杀掉 serve，等 serve-loop 自己重启 | 停掉后 Xvfb 退出；重启后再次 ready，且只有 1 个 Xvfb | — |
 | E4 | serve-loop 仍把调用方的 DISPLAY 传给 serve | A own（调用方 DISPLAY=:77） | 假 orca-ide 收不到 DISPLAY | 收到 :77 |
-| E5 | 回滚开关失效：`ORCA_SERVE_DISPLAY=:4` 不再恢复旧行为 | A rollback | 传入 DISPLAY=:77 | — |
+| E5 | 回滚开关失效：`ORCA_SERVE_DISPLAY=:4` 或 `$STATE/serve-display` 里的 `:4` 不再恢复旧行为 | A rollback、A rollback file | 传入 DISPLAY=:77 | — |
 | E6 | 快崩时刷屏重启（旧版每 5 秒一次） | A own 退避 | 40 秒内 ≤ 5 次启动，间隔涨过 5 秒 | 约 7 次 |
 | E7 | `ORCA_SERVE_RUNTIME=electron` 没传，或私有 XDG_RUNTIME_DIR 没给 | A own | 都有 | — |
+| E8 | 回滚开关只在手动那一次有效：watchdog 用自己的环境 `orca-remote restart`/`start`，`ORCA_SERVE_DISPLAY=:4` 丢失，serve 悄悄回到 own（代码审查发现） | B-start：真 `orca-remote start`/`restart`（tmux），开关写在 `$STATE/serve-display` 或环境变量里 | 文件 `:77` → `display=:77`；环境变量优先于文件；两者都没有 → `display=own`；stop 后不留 Xvfb | 没有 `display=`（FAIL） |
 
 已知取舍（不是失败，写明）：own 模式下 serve 不再连 :4 桌面的 D-Bus，Orca 的 Computer Use 看到的是自起的空白 Xvfb :99，
 不再是 :4 桌面。要 Computer Use 用那个桌面时设 `ORCA_SERVE_DISPLAY=:4`，代价是回到 10-20 的风险。
@@ -33,6 +34,8 @@ box 上的只读前提检查（2026-10-20 17:10）：`/usr/bin/Xvfb` 存在；`/
 - own 模式：上一次 `orca_server_ready` 之后出现过显示错误（serve-loop 正在自愈，新的一次 serve 还在起）。
 - 非 own 模式：最后一次 `starting orca-ide serve` 之后出现过显示错误（这一次 serve 就是死在显示上）。
 - 模式取最后一行 `starting orca-ide serve ... display=<mode>`；没有 `display=` 的旧格式行按非 own（旧版钉 :4）处理。
+- serve.log 超过 WATCHDOG_SLOG_STALE 秒（默认 180）没写入，说明 serve-loop 不在了，不算显示类失败。
+- 离开 display_dead 后的第 1 轮不健康不计 strike（显示回来后 serve 还在起）。
 
 | # | 失败方式 | 场景 | 修前（origin/main 的 watchdog）预期 | 修后预期 |
 |---|---|---|---|---|
@@ -43,6 +46,9 @@ box 上的只读前提检查（2026-10-20 17:10）：`/usr/bin/Xvfb` 存在；`/
 | W5 | 旧版 orca-remote 的 serve.log 行没有 `display=`，被当成 own 模式多给一轮或照常重启 | X3b：同 X3，starting 行是旧格式 | 重启（FAIL） | 按非 own：不重启，display_dead |
 | W6 | 判据看得太宽：serve.log 里以前的显示错误，让现在跟显示无关的故障（Orca 挂住）不再重启 | X4（own）：显示错误之后已经 ready 过，现在 Orca 挂住；X5（非 own）：较早一次 serve 死于显示，最后一次 serve 没有显示错误但挂住 | 照常重启 | 照常重启（2 次 strike） |
 | W7 | serve.log 不存在或读不到时判据出错，影响原有场景 | S1–S6b 不设 serve.log | 原样通过 | 原样通过 |
+| W8 | 非 own 模式显示恢复后，serve-loop 新起的 serve 要 60–75 秒才 ready；离开 display_dead 后马上照常计 strike，2 轮就整套重启，打断正在起的 serve（代码审查发现） | X6：display_dead 之后显示回来，写入新的 starting 行，serve 再过 2 轮才 ready | 显示死的时候就重启（FAIL） | 离开 display_dead 的第 1 轮不计 strike；serve ready，不重启 |
+| W9 | serve.log 停止更新（serve-loop 窗口没了，但 tmux 会话还在），最后一段永远是显示错误，watchdog 永远停在 display_dead 不重启（代码审查发现） | X7：显示错误之后 serve.log 不再写入 | 照常重启 | serve.log 超过 WATCHDOG_SLOG_STALE（默认 180 秒，演练 20 秒）没更新就不算显示类失败，照常 strike、重启 |
+| W2b | own 模式多给的不是一轮而是多轮 | X2 加查：第一次整套重启前只有 1 条「display failure in own mode」 | — | 恰好 1 条 |
 
 演练本身的限制（沿用 FAILURE-MODES.md 的 C 节）：X 场景里的 serve.log、6768、orca-remote 都是本地替身，serve.log 的
 行由场景脚本按 box 上真实日志的格式写入，所以这部分只能叫「scratch 演练（本地替身）」。真实 serve 的行为由

@@ -22,12 +22,20 @@ SERVE_MATCH="out/cli/index.js serve --port $PORT"
 # down and recreates; each time it went away serve died ("X connection error") and crash-looped on "DISPLAY=:4 is not
 # verifiably live" until that desktop came back (10-20: 10:54-12:32, 13:12-16:15, 16:32-16:48 SGT). Default now is
 # ORCA_SERVE_DISPLAY=own: DISPLAY is unset, so `orca-ide serve` starts and owns its own Xvfb (:99, -terminate) per run.
-# Rollback without editing: ORCA_SERVE_DISPLAY=:4 (old behaviour). ORCA_SERVE_RUNTIME defaults to electron: 1.4.224's
+# Rollback without editing this script: `echo :4 >$STATE/serve-display; orca-remote restart` (old behaviour; kept across the
+# watchdog's restarts, which run with the watchdog's own environment). ORCA_SERVE_DISPLAY=:4 in the environment also works
+# and wins over the file, but only for starts that inherit it. ORCA_SERVE_RUNTIME defaults to electron: 1.4.224's
 # orcad probe entry (app.asar.unpacked/out/main/orcad/...) is only packed inside app.asar, so the probe always failed
 # with MODULE_NOT_FOUND and fell back to Electron anyway. Fast crash loops back off 5s..60s instead of flooding serve.log.
 # ORCA_IDE / ORCA_REMOTE_STATE / ORCA_REMOTE_PORT / ORCA_REMOTE_HOME are for the e2e test only; defaults are production.
 ORCA_IDE=${ORCA_IDE:-/workspace/ops/orca-app/Orca/resources/bin/orca-ide}
 
+serve_display() { # own or :N, from ORCA_SERVE_DISPLAY, else $STATE/serve-display, else own
+  local m=${ORCA_SERVE_DISPLAY:-}
+  [ -n "$m" ] || m=$(head -n 1 "$STATE/serve-display" 2>/dev/null | tr -d '[:space:]')
+  if [ -z "$m" ]; then echo own; elif [[ $m =~ ^(own|:[0-9]+)$ ]]; then echo "$m"
+  else echo "warning: display '$m' is not own or :N; using own" >&2; echo own; fi
+}
 read_env_var() { tr '\0' '\n' 2>/dev/null <"/proc/$1/environ" | sed -n "s/^$2=//p" | head -n1; }
 desktop_env() { # prints XDG_RUNTIME_DIR, DBUS_SESSION_BUS_ADDRESS of the desktop on $DISPLAY (for Computer Use)
   local pid x d p best=""
@@ -71,7 +79,8 @@ PY
 
 serve_loop() {
   mkdir -p "$STATE"
-  local mode=${ORCA_SERVE_DISPLAY:-own} fast=0 delay=5 t0 rc
+  local mode fast=0 delay=5 t0 rc
+  mode=$(serve_display)
   while true; do
     local x="" d="" de dispvar=()
     if [ "$mode" = own ]; then
@@ -121,7 +130,7 @@ case "${1:-status}" in
         || sudo -n $t -I INPUT 1 -p tcp --dport "$PORT" ! -i lo -m comment --comment orca-remote-localhost-only -j DROP 2>/dev/null \
         || echo "warning: could not add $t loopback-only rule for port $PORT" >&2
     done
-    tmux new-session -d -s "$SESSION" -n serve "ORCA_SERVE_DISPLAY=${ORCA_SERVE_DISPLAY:-own} $0 serve-loop"
+    tmux new-session -d -s "$SESSION" -n serve "ORCA_SERVE_DISPLAY=$(serve_display) $0 serve-loop"
     tmux new-window -d -t "$SESSION" -n tunnel "$0 tunnel-loop"
     echo "started tmux session $SESSION (windows: serve, tunnel)";;
   stop)

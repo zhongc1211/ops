@@ -35,10 +35,14 @@
 #   such unhealthy round is not counted (one more round), then the normal strikes apply.
 # - other modes (ORCA_SERVE_DISPLAY=:N, or an old serve.log line without display=), last serve run died of the display: a full
 #   restart cannot bring that display back -> no restart, log it, state display_dead (serve-loop keeps retrying by itself).
+# - leaving display_dead (the last serve run has no display error any more, the display is back): serve-loop just started a
+#   serve that needs ~60-75s -> the first unhealthy round after display_dead is not counted either.
+# - serve.log not written for WATCHDOG_SLOG_STALE s (default 180; serve-loop logs every retry, at most 60s apart): serve-loop
+#   is gone, so its last display error says nothing about now -> not a display failure, normal strikes.
 # WATCHDOG_* env vars below are for the scratch drill (orca-remote/drill); defaults are production.
 LOG=${WATCHDOG_LOG:-/workspace/ops/orca-remote/watchdog.log}; R=${ORCA_REMOTE_BIN:-/workspace/ops/orca-remote/orca-remote}
 STATE=${WATCHDOG_STATE:-/workspace/ops/orca-remote/watchdog.state}; TLOG=${WATCHDOG_TUNNEL_LOG:-/home/box/.local/state/orca-remote/tunnel.log}
-SLOG=${WATCHDOG_SERVE_LOG:-/home/box/.local/state/orca-remote/serve.log}
+SLOG=${WATCHDOG_SERVE_LOG:-/home/box/.local/state/orca-remote/serve.log}; SLOG_STALE=${WATCHDOG_SLOG_STALE:-180}
 UPF=${WATCHDOG_UPTIME_FILE:-/proc/uptime}; PSIF=${WATCHDOG_PSI_MEM:-/proc/pressure/memory}; SESSION=${WATCHDOG_SESSION:-orca-remote}
 # No DISPLAY here: orca-remote picks the display from ORCA_SERVE_DISPLAY (default own); serve never gets a caller's DISPLAY.
 export PATH=/home/box/.local/bin:/usr/local/bin:/usr/bin:/bin
@@ -106,9 +110,11 @@ tunnel_fix(){ local a old i t0 ok c; a=$(cf_fresh); if [ -n "$a" ]; then log "cl
   log "tunnel-only restart NOT verified within 60s (last public=$c)"; return 1; }
 # display_fail: if Orca's serve is down because of its display, print "MODE: ERROR" (MODE own, :N or legacy = old orca-remote
 # line without display=, which pinned :4). own: a display error since the last orca_server_ready (serve-loop is mid self-heal);
-# other modes: a display error in the last serve run (after the last "starting orca-ide serve" line). Missing log -> nothing.
+# other modes: a display error in the last serve run (after the last "starting orca-ide serve" line). Missing or stale
+# (not written for SLOG_STALE s) log -> nothing.
 DISP_ERR='not verifiably live|X connection error'
 display_fail(){ local t m e
+  [ $(( $(date +%s) - $(stat -c %Y "$SLOG" 2>/dev/null || echo 0) )) -le $SLOG_STALE ] || return 1
   t=$(tail -n 300 "$SLOG" 2>/dev/null) || return 1
   m=$(printf '%s\n' "$t" | grep 'starting orca-ide serve' | tail -n 1); [ -n "$m" ] || return 1
   case $m in *display=*) m=${m##*display=}; m=${m%%)*};; *) m=legacy;; esac
@@ -159,7 +165,9 @@ while true; do
       if [ $dround = 0 ]; then dround=1; ts=0; log "unhealthy local=$l public=$p: display failure in own mode ($df) -> serve-loop restarts serve on its own Xvfb; one more round, not counted"; setst unhealthy "display failure (own), waiting one round"
       else unhealthy " after display failure ($df)"; fi
     else f=0; ts=0; log "unhealthy local=$l public=$p: display dead ($df) -> no full restart (it cannot bring the display back); serve-loop keeps retrying"; setst display_dead "$df"; fi
-  elif [ "$l" = 000 ] || [ "$p" != 200 ]; then unhealthy ""
+  elif [ "$l" = 000 ] || [ "$p" != 200 ]; then
+    if [ "$wst" = display_dead ]; then log "unhealthy local=$l public=$p: no display error in the last serve run any more (display back, serve starting) -> one more round, not counted"; setst unhealthy "after display_dead, waiting one round"
+    else unhealthy ""; fi
   else f=0; ts=0; dround=0; defer_since=0; setst ok ""
     [ $last_restart -gt 0 ] && [ $rgap -gt $MINGAP ] && [ $((now-last_restart)) -ge $MAXGAP ] && { rgap=$MINGAP; log "healthy ${MAXGAP}s after last restart -> restart gap back to ${MINGAP}s"; }
   fi
