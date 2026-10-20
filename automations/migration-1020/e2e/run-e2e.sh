@@ -291,7 +291,7 @@ assert c[\"ALREADY\"]>0 and c[\"FAIL\"]==0 and not c[\"OK\"]" $T/e1/log.json'
 
 # ---- K1: the caffeinate started by the precheck ends by itself ----
 sleep 6
-ck K1c "主预检和防睡任务起的 caffeinate 到时自己退出" '! ps -p ${cpid:-999999} >/dev/null && ! ps -p ${kp:-999999} >/dev/null'
+ck K1c "主预检和防睡任务起的 caffeinate 到时自己退出" '[ -n "$cpid" ] && [ -n "$kp" ] && ! ps -p $cpid >/dev/null && ! ps -p $kp >/dev/null'
 
 # cleanup: mocks, iMac copy
 kill $MOCK 2>/dev/null; wait $MOCK 2>/dev/null; ssh -o BatchMode=yes imac "pkill -f '$RT/mock_webhook.py'; cat $RT/hooks.jsonl 2>/dev/null" > "$T/imac-hooks.jsonl" 2>>"$T/log"
