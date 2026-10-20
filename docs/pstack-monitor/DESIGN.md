@@ -39,7 +39,7 @@
 set -uo pipefail
 PIN_BRANCH=${PIN_BRANCH:-main}
 REPORTS=${REPORTS:-box:/workspace/ops/briefs}
-MANIFEST=harness/pstack/claude-code/.claude-plugin/plugin.json
+MANIFEST=harness/pstack/claude-code/plugin.json
 P=${PIN_SHA:-$(gh api -H 'Accept: application/vnd.github.raw' "repos/zhongc1211/ops/contents/bootstrap/claude-plugins/pin-claude-plugins.sh?ref=$PIN_BRANCH" 2>/dev/null | sed -n 's/^PSTACK_SHA=\([0-9a-f]\{40\}\).*/\1/p')}
 M=$(git ls-remote https://github.com/cursor/plugins.git refs/heads/main 2>/dev/null | cut -f1)
 [ -n "$P" ] && [ -n "$M" ] || { echo "ERR pinned=${P:-?} main=${M:-?}（取不到钉版或 ls-remote 失败）"; exit 2; }
@@ -67,7 +67,7 @@ esac
 - 先比 commit（一次 `git ls-remote`，不要 token）。相同就当场结束，不发别的请求。
 - commit 不同才取两边 `plugin.json` 的版本号（raw.githubusercontent.com，两次 curl）和 compare 摘要（一次 `gh api`，只当证据，不参与判断）。
 - 「已经评估过」不另存状态文件，以 box `/workspace/ops/briefs/pstack-<版本>-compat-REPORT.md` 里有没有 `总判定：` 开头的行为准。同一版本只评估一次；上游当天又出新版，第二天的检查会看到新版本号、没有报告，再起一次。
-- 版本号文件取 `.claude-plugin/plugin.json`。88d4751 里 `harness/pstack/claude-code/plugin.json` 和 `.claude-plugin/plugin.json` 都在（10-20 20:17 核对，两个都 HTTP 200）；#48 的 `--check` 读的是前者。哪天上游删掉其中一个，第 2 节的 bootstrap 检查会报出来。
+- 版本号文件取 `harness/pstack/claude-code/plugin.json`，和 #48 `pin-claude-plugins.sh` 的 `--check` 读同一个文件（脚本插件表第 28 行），两边版本号来源一致。88d4751 里同目录下的 `.claude-plugin/plugin.json` 也在，但不用它。上游删掉或挪走 `plugin.json` 时，`curl -f` 取不到，第 1 步走 `ERR 取不到 plugin.json 版本`（exit 2），ops-verify 记 SKIP，连续 3 天 SKIP 开 Linear（见「出错」一条），不会被当成没出新版。
 - 报告命名从这次起按版本号。现有的 `pstack-88d4751-compat-REPORT.md` 不改名；88d4751 已经钉进 #48，便宜检查会走 `SAME` 分支，不去找它的报告。
 
 ### 1.2 本次实跑（只读，2026-10-20 iMac 和 box）
