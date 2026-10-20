@@ -1,4 +1,4 @@
-# deepvision-ads LESSONS → EverOS agent_skill（16 条，待 eggbot 在 site 导入）
+# deepvision-ads LESSONS → EverOS agent_skill（16 条，由 ops 系统在 site 导入）
 
 - 整理：2026-10-16 SGT，FDV-67 会话（box）。**本会话没有写入 EverOS**
 - 源：仓库 `futuredeepvision/deepvision-ads` commit `645f2bf`（= origin/main = origin/staging）的 `AGENTS.md`、`docs/deploy.md`、`status.md`；#15、#16 来自 box 上本项目的 Claude auto-memory（`~/.claude/projects/-workspace-repos-deepvision-ads/memory/`，不在仓库里）
@@ -16,7 +16,7 @@
 
 SKILL.md 落盘位置（和心月的形态一致）：`/var/lib/everos/deepvision/deepvision-ads/agents/coding-deepvision-ads/skills/skill_<slug>/SKILL.md`
 
-## 导入说明（给 eggbot，在 site 上执行）
+## 导入说明（给 ops 系统，在 site 上执行）
 
 方法和心月的 `import/import_lessons.py`、`vllm-omni-import/write_one_skill.py` 相同：`AgentSkillWriter.write_main` 直接写 SKILL.md，frontmatter 字段也一样。
 

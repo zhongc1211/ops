@@ -1,11 +1,11 @@
-# deepvision-ads LESSONS → EverOS（等 eggbot 在 site 导入）
+# deepvision-ads LESSONS → EverOS（由 ops 系统在 site 导入）
 
 - 准备：2026-10-16 SGT，FDV-67 会话（box）。**box 没有写入 EverOS**
 - ID（Zack 13:07）：app_id=`deepvision`，project_id=`deepvision-ads`，agent_id=`coding-deepvision-ads`，user_id=`zack`
 - `source/`：16 条原文，一条一个文件；frontmatter 格式与 `../import/import_lessons.py` 读的相同。哈希见 `source.sha256`
 - `LESSONS-dv-ads.md`：同样 16 条，合成一个文件，带出处；`split_lessons.py` 用它生成 `source/`
 
-## eggbot：在 site 上导入
+## ops 系统：在 site 上导入
 
 ```bash
 # 把 ads-import/ 拷到 site，例如 /tmp/ads-import/

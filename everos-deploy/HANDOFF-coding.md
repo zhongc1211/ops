@@ -2,7 +2,7 @@
 
 - 日期：2026-10-16
 - 状态：**health 已绿** + **LESSONS 已导入**（15 skills，2026-10-16）；base URL **已锁定**；LLM→magpie 已通 → Coding助手可改 `75b324a4`
-- owner=dr eggbot；证据：`EVIDENCE.md` + `IMPORT-EVIDENCE.md`
+- owner=ops 系统（EverOS 服务端、部署、教训导入、写入的唯一写入方）；dr eggbot 只读，只做查询/核对；证据：`EVIDENCE.md` + `IMPORT-EVIDENCE.md`
 
 ## 1. 身份分区
 
