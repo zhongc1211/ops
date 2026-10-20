@@ -107,8 +107,13 @@ done
 python3 - "$C" "$P" <<'PY'
 import json,sys,os,datetime
 C,P=sys.argv[1],sys.argv[2]
+def load(f): return json.load(open(f)) if os.path.exists(f) else {}
+def save(f,d,old):  # 内容没变就不写，重复运行不动文件
+    if d==old: return
+    with open(f+".tmp","w") as o: json.dump(d,o,indent=2,ensure_ascii=False); o.write("\n")
+    os.replace(f+".tmp",f)
 DENY=[f"Skill({s}{x})" for s in ["pstack:poteto-mode","pstack:tdd","pstack:reflect","pstack:setup-pstack","compound-engineering:lfg"] for x in ["", " *"]]
-f=os.path.join(C,"settings.json"); d=json.load(open(f)) if os.path.exists(f) else {}
+f=os.path.join(C,"settings.json"); d=load(f); old=json.loads(json.dumps(d))
 perm=d.setdefault("permissions",{}); deny=perm.setdefault("deny",[])
 for r in DENY:
     if r not in deny: deny.append(r)
@@ -117,14 +122,12 @@ for n in ["cursor-plugins","compound-engineering-plugin"]:
     ekm[n]={"source":{"source":"directory","path":os.path.join(P,n)},"autoUpdate":False}
 ep=d.setdefault("enabledPlugins",{})
 ep["pstack@cursor-plugins"]=True; ep["compound-engineering@compound-engineering-plugin"]=True
-with open(f+".tmp","w") as o: json.dump(d,o,indent=2,ensure_ascii=False); o.write("\n")
-os.replace(f+".tmp",f)
+save(f,d,old)
 k=os.path.join(C,"plugins","known_marketplaces.json"); os.makedirs(os.path.dirname(k),exist_ok=True)
-km=json.load(open(k)) if os.path.exists(k) else {}
+km=load(k); old=json.loads(json.dumps(km))
 for n in ["cursor-plugins","compound-engineering-plugin"]:
     e=km.get(n,{}); e.update({"source":{"source":"directory","path":os.path.join(P,n)},"installLocation":os.path.join(P,n),"autoUpdate":False}); e.setdefault("lastUpdated",datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")); km[n]=e
-with open(k+".tmp","w") as o: json.dump(km,o,indent=2); o.write("\n")
-os.replace(k+".tmp",k)
+save(k,km,old)
 print("settings ok")
 PY
 grep -qF "$RULE_KEY" "$C/CLAUDE.md" 2>/dev/null || printf '\n%s\n' "$RULE" >> "$C/CLAUDE.md"
