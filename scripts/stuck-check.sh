@@ -1184,7 +1184,8 @@ def check_agents(host, known, track):
             main_seen[key]["wrapped"] = any(p.get("notify_anc") for p in aprocs)
         linear = w.get("linkedLinearIssue")
         repo_slug = MAP_ID.get(w.get("repoId"), {}).get("slug")
-        bot = bot_for(w.get("repoId"), w.get("repo"), repo_slug, linear, w.get("displayName"))
+        # 主目录 pane 的显示名是拼出来的「<repo> 主目录 · <prompt 开头>」，不能按「<bot> · <编号>」认（和 main_seen 一样传 None）
+        bot = bot_for(w.get("repoId"), w.get("repo"), repo_slug, linear, None if c.get("pane") else w.get("displayName"))
         disp = [p.get("dispatch_bot") for p in aprocs if p.get("dispatch_bot")]
         if disp:  # agent 是 notify-run --bot X 派出来的：直接用 X
             bot = disp[0]
