@@ -16,7 +16,7 @@ CF_CONFIG=$U_HOME/.cloudflared/config.yml
 STATE=${ORCA_REMOTE_STATE:-$U_HOME/.local/state/orca-remote}
 SECRET_DIR=$U_HOME/.config/orca/remote-pairing
 BASE_PATH=$U_HOME/.local/bin:/usr/local/bin:/usr/bin:/bin
-SERVE_MATCH='out/cli/index.js serve --port 6768'
+SERVE_MATCH="out/cli/index.js serve --port $PORT"
 # rev 2026-10-20 (ops reports/orca-serve-1020): serve no longer borrows a host-managed agent desktop.
 # DISPLAY :4 is a per-agent Grok Bot desktop (start-desktop.sh under pod-daemon, SAND_DESKTOP_UNIT=:4) that the host tears
 # down and recreates; each time it went away serve died ("X connection error") and crash-looped on "DISPLAY=:4 is not
