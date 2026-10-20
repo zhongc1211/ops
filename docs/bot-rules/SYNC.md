@@ -23,6 +23,9 @@
 
 ### iMac（主机名 iMac）
 
+10-21 00:00 SGT 复查（ops 系统，`ssh imac` 只读）：`~/agent-data` 不存在；`find ~ -maxdepth 6 -iname '*dev-bot-rules*'`（跳过 `~/Library`、`~/orca/workspaces`、`node_modules`、`.git`、`projects/`）：0 个。`~/orca/workspaces/ops/` 下只有 ops 仓库工作区自带的 `docs/bot-rules/dev-bot-rules/`（git 检出，跟分支走，不是副本）。结论不变：没有实体副本，targets.tsv 不加 iMac 行。
+
+
 | 落点 | 类型 | 怎么查的 / 查到什么 |
 |---|---|---|
 | 无实体副本 | — | `find ~/.pi/agent ~/.claude -maxdepth 6 -iname '*dev-bot-rules*'`（跳过 projects/）：0 个。`grep -rIl dev-bot-rules` 查 `~/.agents`、`~/.local/bin`、`~/.orca-state/bin`、`~/.claude/{CLAUDE.md,agents,hooks,skills,settings.json,statusline-command.sh,plugins}`、`~/.pi/agent/{AGENTS.md,agents,bin,extensions,install,missions}`：0 条。`~/orca/workspaces/*/*/{AGENTS,CLAUDE}.md` 共 57 个：0 条。整棵 `~/.pi/agent`、`~/.claude` 的 grep 在 90 秒内没跑完（会话记录太多），所以改成上面这些配置目录；会话记录（`*.jsonl`、`projects/`）和 `auth.json` 没查。 |
@@ -31,12 +34,25 @@
 
 ### MBA（主机名 mba）
 
+10-21 00:00 SGT 复查（ops 系统，`ssh mba` 只读），结论变了：**有实体副本，已加进 targets.tsv**（主机名通配 `mba`）。
+
+| 落点 | 类型 | 怎么查的 / 查到什么 |
+|---|---|---|
+| `/Users/jiawenwang/agent-data/workflows/dev-bot-rules/SKILL.md` | 实体副本（同步） | `ls -la` + `shasum -a 256`：ops 系统 10-20 晚上从 box 手工拷来（目录时间 23:04，SKILL.md 文件时间 22:36，`SOURCE.txt` 写的是 23:15 同步），只读权限 `-r--r--r--`，sha256 `c517c576…0c430d2f`，是 #67 合并前的旧版，和 main（`b4610e94…7c94918b`）不一致。只要 MBA 上有人读它，就得跟 main 一致（dr eggbot 10-20 23:59）。 |
+| 同目录 `SOURCE.txt`、`SHA256SUMS.txt` | 手工拷贝时留的说明和校验和（git 里没有） | `--check` 会报 `extra`，脚本只报不删。要不要留、要不要进 git 由 dr eggbot 定。`SOURCE.txt` 里写的「改规矩只改 box 原文」已经过时（现在以 ops main 为准）。 |
+| `~/orca/workspaces/ops/*/docs/bot-rules/dev-bot-rules/` | git 检出（不同步） | ops 仓库工作区自带的，跟各自分支走，不是副本。 |
+
+以下是 10-20 的查询记录（当时 `~/agent-data` 还不存在）：
+
+
 | 落点 | 类型 | 怎么查的 / 查到什么 |
 |---|---|---|
 | 无实体副本 | — | `ssh mba` 只读：`grep -rIl dev-bot-rules` 查 `~/.pi/agent/{AGENTS.md,bin,extensions}`、`~/.claude/{CLAUDE.md,hooks,skills,settings.json}`、`~/.agents`、`~/.local/bin`、`~/.orca-state/bin`：0 条（`~/.pi/agent/agents`、`~/.claude/agents` 不存在）。`find ~/.pi ~/.claude ~/.agents -maxdepth 6 -iname '*dev-bot-rules*'`：0 个。`~/orca/workspaces/*/*/{AGENTS,CLAUDE}.md` 共 20 个：0 条。 |
 | Orca 自动任务 8 个 | 无引用 | 同 iMac 的查法：0 个提到。 |
 
-所以 `targets.tsv` 现在只有 box 一行。iMac、MBA 上跑 `sync-bot-rules --check` 会打印「本机在 targets.tsv 里没有目标」并退出 0。
+所以 `targets.tsv` 现在有 box 和 MBA 两行（10-21 加 MBA）。iMac 上跑 `sync-bot-rules --check` 会打印「本机在 targets.tsv 里没有目标」并退出 0；以后 iMac 上有了实体副本，就在 targets.tsv 加一行。
+
+MBA 和 iMac 上的 `--apply` 只在本 PR 合并、Zack 在卡上批了以后才跑；合并前只跑 `--check`。
 
 ## 怎么同步
 
