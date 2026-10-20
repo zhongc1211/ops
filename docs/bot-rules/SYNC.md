@@ -17,7 +17,7 @@
 | 落点 | 类型 | 怎么查的 / 查到什么 |
 |---|---|---|
 | `/home/box/agent-data/workflows/dev-bot-rules/SKILL.md` | 实体副本（同步） | `ls -la` + `sha256sum`：目录里只有这一个 SKILL.md 和 8 个 `SKILL.md.bak-*`。当前 sha256 `f12040ef…71e9ae`，和仓库 `docs/bot-rules/dev-bot-rules/SKILL.md` 一致，最后修改 10-20 19:38。所有 Grok Bot 读这一份。 |
-| 7 个 `/home/box/agent-data/agents/<id>/profile.json` | 引用（不同步） | `grep -rIl dev-bot-rules /home/box/agent-data`，再逐个 `grep -c`：description 写了这个路径的是 deepvision 运维（59e92ab1）、deepvision 营销（8e369af7）、心月网站 运维（30408a29）、vllm-omni 开发（b005297a）、deepvision 广告产品（39255575）、Coding助手（c683435e）、ops 系统（a1dd2aef）。dr eggbot、Firstmate、车载助手、杂务助手 4 个没有。19:45 排查记的是 8 个，复核是 7 个。 |
+| 7 个 `/home/box/agent-data/agents/<id>/profile.json` | 引用（不同步） | `grep -rIl dev-bot-rules /home/box/agent-data`，再逐个 `grep -c`：description 写了这个路径的是 deepvision 运维（59e92ab1）、deepvision 营销（8e369af7）、心月网站 运维（30408a29）、vllm-omni 开发（b005297a）、deepvision 广告产品（39255575）、Coding助手（c683435e）、ops 系统（a1dd2aef）。其余 4 个不是开发 bot，没有。19:45 排查记的是 8 个，复核是 7 个。 |
 | `/home/box/agent-data/agents/03c3ce4a…/attachments/` 下 2 个文件（.md、.html） | 引用（不同步） | 同一次 grep 命中。这是会话附件（历史消息里的文件），不是规矩副本。 |
 | Orca 自动任务 bc9ee42b「ops · 12 Linear 状态对齐」 | 引用（不同步，要人工核） | `~/.local/bin/orca automations list --json` 共 22 个任务，只有它的配置里出现 dev-bot-rules。按 19:45 的排查，它的提示词里抄了一段状态定义，不是读文件（本次只确认了命中，没逐字核那段）。**dev-bot-rules 里的状态定义改了，要人工核这段提示词。** |
 
