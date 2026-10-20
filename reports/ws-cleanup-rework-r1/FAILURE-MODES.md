@@ -65,3 +65,10 @@
 | E17 | 不是 iMac（hostname 不是精确的 `iMac`、或者只靠 `WS_HOST`）也能 `--execute` | x_host | 退出码 2 |
 | E18 | 设了 `WS_ORCA` 但文件不存在，回落到真的 orca | x_badorca | 退出码 2 |
 | E19 | `--execute` 默认把终端也关了 | x_* 全部 | 不带 `--close-terminals` 时假 orca 日志里没有 terminal close |
+
+补充（Zack 10-21 03:26 定，代码开始写之后收到，所以单列）：忽略文件默认全部备份，只排除一张构建产物 / 缓存清单，清单写进脚本、可配置；dry-run 报告要列出每个工作区会备份的忽略文件。
+
+| # | 失败方式 | 用例 | 期望 |
+|---|---|---|---|
+| B28 | 可重建清单写死、改不了；或者 build/、.cache/、.venv/ 这类产物被整份备份 | c_build（build/、.cache/、.venv/）；`WS_REBUILD_DIRS=node_modules` 重跑 c_cache_only | c_build RM W14；换清单后 c_cache_only 的 dist 要备份 → BACKUP_RM |
+| B29 | 报告只列被忽略的顶层条目，看不出到底会备份哪些文件 | c_mixed_dir | `backup-files.tsv` 里逐个列出 scratch/ 下的每个文件 |
