@@ -44,10 +44,12 @@ done
 [ "$connected" = 1 ] || { echo "cannot reach box over ssh; nothing pushed" >&2; exit 2; }
 # catch-up: push again, from the local copy, recent days whose list box does not have (same sha256).
 # box's own sha256 decides; a day box already has only gets its .pushed marker (re)written.
-# A day is only started while SECONDS < CATCHUP_BUDGET (420 of the 600 s precheck timeout): today's
-# push alone took ~6 min for 49 MB in the E2E, and xinyue pushes are not resumable.
+# xinyue pushes are not resumable, and in the E2E today's 49 MB alone took 6-7 min over DERP. So a day is
+# only started if, at today's measured push rate (PUSH_RATE bytes/s; 50 KB/s when nothing was pushed
+# yet), its transcripts should be on box by second CATCHUP_BUDGET (560 of the 600 s precheck timeout).
+PUSH_RATE=${PUSH_RATE:-51200}
 catch_up() {   # $1 = first day before D to check (0 = D itself)
-  local i day days="" want have rc
+  local i day days="" want have rc need
   for i in $(seq "$1" "${CATCHUP_DAYS:-3}"); do
     day=$(date -j -v-"${i}"d -f %F "$D" +%F)
     [ -f "$LBASE/$day/sessions-imac.jsonl" ] && days="$days $day"
@@ -62,7 +64,9 @@ catch_up() {   # $1 = first day before D to check (0 = D itself)
       echo "catch-up $day: on box, sha ok"
       continue
     fi
-    [ "$SECONDS" -lt "${CATCHUP_BUDGET:-420}" ] || { echo "catch-up $day: time budget used up; left for the next run" >&2; return 1; }
+    need=$(( $(du -sk "$LBASE/$day" | cut -f1) * 1024 / PUSH_RATE + 30 ))
+    [ $((SECONDS + need)) -lt "${CATCHUP_BUDGET:-560}" ] \
+      || { echo "catch-up $day: needs ~${need}s at ${PUSH_RATE} B/s, only $(( ${CATCHUP_BUDGET:-560} - SECONDS ))s left; left for the next run" >&2; return 1; }
     echo "catch-up $day: box $(echo "$have" | awk -v d="$day" '$1 == d {print "sha=" substr($2, 1, 12)}' | grep . || echo missing), local sha=${want:0:12}; pushing the local copy"
     rc=0
     PUSH_ONLY=1 CATCHUP_ONLY=0 D=$day bash "$0" || rc=$?
@@ -88,6 +92,7 @@ retry3() {
   exit 3
 }
 # 1) transcripts: upload to a temp dir, then swap in (no stale or half-copied files on box)
+T_PUSH=$SECONDS
 retry3 ssh "${SSH_OPTS[@]}" "$BOX" "mkdir -p '$REMOTE' && rm -rf '$REMOTE/imac.incoming' && mkdir -m 700 '$REMOTE/imac.incoming'"
 if ls "$LOCAL/imac/"*.jsonl >/dev/null 2>&1; then
   retry3 scp "${SSH_OPTS[@]}" -q -p "$LOCAL/imac/"*.jsonl "$BOX:$REMOTE/imac.incoming/"
@@ -96,6 +101,8 @@ retry3 ssh "${SSH_OPTS[@]}" "$BOX" "chmod 600 '$REMOTE/imac.incoming/'* 2>/dev/n
 # 2) manifest last, so the night review never sees paths that are not there yet
 retry3 scp "${SSH_OPTS[@]}" -q "$LOCAL/sessions-imac.excluded.jsonl" "$BOX:$REMOTE/sessions-imac.excluded.jsonl"
 retry3 scp "${SSH_OPTS[@]}" -q "$LOCAL/sessions-imac.jsonl" "$BOX:$REMOTE/sessions-imac.jsonl"
+pushed_kb=$(du -sk "$LOCAL" | cut -f1)
+[ "$pushed_kb" -lt 1024 ] || PUSH_RATE=$(( pushed_kb * 1024 / (SECONDS - T_PUSH + 1) ))
 shasum -a 256 < "$LOCAL/sessions-imac.jsonl" | cut -d' ' -f1 > "$LOCAL/.pushed"
 # no transcripts: ls fails, and with pipefail set -e used to end the script here (exit 1) before catch-up
 n_tx=$({ ls "$LOCAL/imac/"*.jsonl 2>/dev/null || true; } | wc -l | tr -d ' ')
