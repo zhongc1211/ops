@@ -1,4 +1,4 @@
-# Orca 项目与工作区（iMac，2026-10-12 02:45 SGT 核对，共 27 个工作区）
+# Orca 项目与工作区（iMac，2026-10-12 02:45 SGT 核对，共 27 个工作区；第 2 节 2026-10-20 三台重写）
 
 规则：项目按 repo 分，不按 bot 分；每个 Linear 任务一个工作区；显示名「<bot 简称> · <Linear编号> 中文简述」。详见 dev-bot-rules。
 来源：`orca-ide --environment iMac repo list / worktree list`。
@@ -9,7 +9,7 @@
 |---|---|---|---|
 | zhongc1211/xinyue-site | xinyue-site | 099c800e-c50c-4cf1-91c6-5d6196a4d298 | ~/pi/remote/xinyue-site |
 | zhongc1211/xinyue-site（**box** Orca，orca-ide 不带 --environment） | xinyue-site | 2ce7debc-6211-416a-b5a0-81127a67f518 | /workspace/repos/xinyue-site |
-| zhongc1211/deepvision-site | site | f1681260-cc5c-456d-9b97-e9cd21e07e94 | ~/claude/site |
+| zhongc1211/deepvision-site（现 futuredeepvision/deepvision-site，已转仓，旧地址 GitHub 自动跳转；iMac 主目录 remote 仍是旧地址） | site | f1681260-cc5c-456d-9b97-e9cd21e07e94 | ~/claude/site |
 | vllm-project/vllm-omni | vllm-omni · H3/C1 | b8e788b7-0343-44e2-862e-147ea20adf8f | ~/pi/remote/h3-c1-lab/repository.git |
 | deepvision-ads（本地 git） | deepvision-ads | 4e597f43-7d06-4c29-867e-0252425bbbed | ~/orca/workspaces/deepvision-ads |
 | ops（本地 git，定时任务） | ops | e9b33f9c-7218-4f6c-b03a-3b85fd8933ac | ~/orca/workspaces/ops |
@@ -21,31 +21,27 @@
 
 ## 2. Bot → 当前打开的工作区（不含主目录和已归档）
 
+2026-10-20 20:0x SGT 重写（ops 系统；三台 `orca worktree list` 实查，只列没 completed 的；bot 名用 `/home/box/agent-data/agents/*/profile.json` 的 name）。
+**stuck-check 机读本表**（`scripts/stuck-check.sh` load_mapping）：每行必须 4 列；第 1 列是 bot（BOT_SLUG 里的中文名或 webhook 文件名）；第 3 列项目名「第一行定归属」，所以项目列只写本 bot 自己的项目；第 2、4 列出现的 Linear 编号都归本行 bot（只写本 bot 的编号）。第 1 列以「（」开头的行不参与映射。
+
 | Bot | 工作区 | 项目 | Linear |
 |---|---|---|---|
-| 心月网站 运维 | 心月 · PER-37 涨水爬楼（per-37-flood-climb-v2，099c800e::~/orca/workspaces/xinyue-site/per-37-flood-climb-v2；in-progress，Claude Code 在 term_8e82a2b9） | xinyue-site | PER-37 |
-| （建错，保留不用） | per-37-flood-climb（原在重复项目 0de4e55d 下，该项目已从 Orca 移除；磁盘 ~/orca/workspaces/xinyue-site/per-37-flood-climb 保留，无提交） | — | PER-37 |
-| 心月网站 运维 | **box** 心月 · PER-38 摇摇荡荡（2ce7debc::/home/box/orca/workspaces/xinyue-site/心月-PER-38-摇摇荡荡；in-progress，Claude Code 在 box term_ea25260e） | xinyue-site(box) | PER-38 |
-| （停用，保留） | iMac 旧 per-38-swing-swing（099c800e::~/orca/workspaces/xinyue-site/per-38-swing-swing；无提交，2026-10-12 迁到 box） | xinyue-site | PER-38 |
-| 心月网站 运维 | **box** 心月 · PER-39 大嘴洞洞（2ce7debc::/home/box/orca/workspaces/xinyue-site/心月-PER-39-大嘴洞洞；in-progress，Claude Code 在 box term_83a12bdf） | xinyue-site(box) | PER-39 |
-| （停用，保留） | iMac 旧 per-39-gobble-hole（099c800e::~/orca/workspaces/xinyue-site/per-39-gobble-hole；无提交，2026-10-12 迁到 box） | xinyue-site | PER-39 |
-| 心月网站 运维 | 心月 · PER-42 摇摇荡荡 3D（心月-PER-42-摇摇荡荡-3D，**box** 2ce7debc::/home/box/orca/workspaces/xinyue-site/心月-PER-42-摇摇荡荡-3D；Claude term_b9778321；in-progress） | xinyue-site | PER-42 |
-| 心月网站 运维 | 心月 · PER-43 大嘴洞洞 3D（心月-PER-43-大嘴洞洞-3D，**box** 2ce7debc::/home/box/orca/workspaces/xinyue-site/心月-PER-43-大嘴洞洞-3D；Claude term_e66dc20c；in-progress） | xinyue-site | PER-43 |
-| 心月网站 运维 | 心月 · PER-41 涨水逃生 3D（心月-PER-41-涨水逃生-3D，**box 排队** 2ce7debc::/home/box/orca/workspaces/xinyue-site/心月-PER-41-涨水逃生-3D；flood-3d-queue.sh 等 42/43 done；iMac load≈11.5 未用 iMac） | xinyue-site | PER-41 |
-| deepvision 运维 | （site 项目无打开的工作区，只剩主目录 ~/claude/site；见 3c） | site | — |
-| deepvision 广告产品 | deepvision-ads · 主目录 | deepvision-ads | （FDV-35 未关联） |
-| vllm-omni 开发 | vllm · PER-7/8/9/10/11 C1 栈 1–5（c1-1…c1-5） | vllm-omni | PER-7 / 8 / 9 / 10 / 11（in-progress） |
-| vllm-omni 开发 | vllm · PER-12 C2 sigma 窗口策略（c2-1-sigma-policy）、vllm · PER-12 C2-1 mypy 修复（c2-1-r3-mypy） | vllm-omni | PER-12（in-progress） |
-| vllm-omni 开发 | vllm · PER-13 C2-2 sigma CUDA graph（c2-2-sigma-graphs，跟进见 PER-18） | vllm-omni | PER-13（in-progress） |
-| vllm-omni 开发 | vllm · PER-40 调度开销分析（b8e788b7::~/orca/workspaces/repository/vllm-PER-40-调度开销分析；base #8746 head 48f7dac47；in-progress，Claude Code Opus max 在 term_a9e6a444；2026-10-12 19:4x 建） | vllm-omni | PER-40（in-progress） |
-| vllm-omni 开发 | vllm · PER-22 C2-1 性能优化（per-22-direct-register） | vllm-omni | PER-22（in-progress） |
-| vllm-omni 开发 | 已标 completed（未删）：PER-14 trim（stack-trim）、PER-1/PER-2 rebased ×2、PER-2 H3/C1 原开发目录（h3-c1-lab/worktree） | vllm-omni | PER-14 / 1 / 2 |
+| 心月网站 运维 | iMac：心月 · PER-46 泡泡砰砰核心玩法、PER-48 上生产、PER-51 quality 恢复、PER-75 开源游戏候选调研、EverOS 启动器 v2.1、CI/CD 第一阶段（in-review）；PER-62 游戏配图换真实截图、LESSONS 迁 EverOS、生产 Builds 接入（Sleep）；心月夜审 run 1/2（自动任务） | xinyue-site | PER-46 / 48 / 51 / 62 / 75 |
+| 心月网站 运维 | MBA：心月 · PER-62 MBA 自托管 runner、PER-71 Colorfigures 框架与总入口、PER-76 反复超时测试排查、PER-93 verify skill（in-progress）；PER-70 Colorfigures 整合、PER-72 第1批8个（in-review） | xinyue-site | PER-62 / 70 / 71 / 72 / 76 / 93 |
+| 心月网站 运维 | box：心月 · PER-42 摇摇荡荡 3D、PER-43 大嘴洞洞 3D、PER-73 第2批8个、PER-74 第3批8个、LESSONS 迁 EverOS、EverOS 接入冒烟（in-review）；心月 · 路由演练（todo） | xinyue-site(box) | PER-42 / 43 / 73 / 74；历史 PER-37 / 38 / 39 / 41 |
+| deepvision 运维 | iMac site 项目：dv官网 · FDV-70 iMac 关于我们、iMac 博客、全站素材配色GEO、整版合 staging（上线准备）、去AI味 r2 + logo4，FDV-60 round2 platforms，dv运维 · FDV-94 删 ports 单测（in-review）；FDV-65 首页交互e2e（Sleep） | site | FDV-70 / 60 / 94 / 65 |
+| deepvision 运维 | MBA：dv官网 · FDV-70 G Ryze几何对照、PR6 其余页面、Ryze复刻重做、示例行业整改，dv运维 · FDV-88 夜审读MBA会话修、FDV-93 verify 支持 macOS（in-review）；dv运维 · FDV-70 日历说法更正、G6/G7/G9 r1（in-progress）。仓库已转到 futuredeepvision/deepvision-site | deepvision-site | FDV-70 / 88 / 93 |
+| deepvision 运维 | box：dv官网 · FDV-65 首页交互e2e（in-review）、dv运维 · FDV-70 testing 审稿修正（in-progress） | deepvision-site(box) | FDV-65 / 70 |
+| deepvision 广告产品 | **暂停**（Zack 10-18 22:19）。iMac：dv广告 · FDV-66 生产登录邮件、FDV-72 开AI key（in-review），FDV-39 Meta沙盒入Business（Sleep）；MBA：FDV-89 A+B、FDV-89 C（in-review）；box：FDV-36 栈修复 / Ryze 复刻总装、FDV-37–52 各页、release-1-r2-e2e（in-review），FDV-53 逐页对比（todo），FDV-39、FDV-64 上生产、FDV-89 合staging和testing E2E（Sleep） | deepvision-ads | FDV-36 / 37 / 38 / 39 / 40 / 41 / 42 / 43 / 44 / 45 / 46 / 47 / 48 / 49 / 50 / 51 / 52 / 53 / 64 / 66 / 72 / 77 / 89 |
+| deepvision 营销 | 没有自己的仓库；工作区用「dv营销 · 」显示名前缀，stuck-check 按前缀认（box ops 项目：dv营销 · FDV-35 路由演练，todo） | — | FDV-35 |
+| vllm-omni 开发 | 无打开的工作区（PER-56 的 iMac / MBA / box 工作区都已 completed）；box「vllm · 路由演练」todo | vllm-omni | PER-56；历史 PER-1 / 2 / 7 / 8 / 9 / 10 / 11 / 12 / 13 / 14 / 18 / 22 / 40 |
 | ops-system | ops 主目录（显示名 main）和 ops 项目下所有工作区（iMac e9b33f9c / box 5aaefe84 / MBA；原写「定时任务」→ 映射到不存在的 ops.env 落到 coding-assistant，2026-10-20 改归 ops 系统） | ops | — |
-| coding-assistant | ops · PER-67 F 组（box，Coding助手 派，Coding助手 续做；按 Linear 编号仍报给它） | ops | PER-67 |
+| ops-system | iMac：PER-78 卡住检查路由修正（#45）、PER-80 缺口补跑（含 [演练 PER-67 缺口7/8/9]）、PER-83 pstack 钉版（另有 site 项目里的「dv官网 · PER-83 pstack兼容只读验证」，也归 ops 系统）、PER-86 夜审瓶颈复盘、PER-88 叫醒前预过滤、PER-89 禁用命令 deny、PER-92 SYSTEM_MAP、PER-94 pstack 监测设计、PER-95 交接单收进仓库、PER-106 Git 唯一来源、serve 自带显示；MBA：PER-79 box 重活迁移、PER-67 采集补推、PER-90 ops-system webhook；box：PER-67 各收尾工作区、[演练 PER-67 缺口4]、路由演练 | ops | PER-65 / 66 / 67 / 77 / 78 / 79 / 80 / 81 / 82 / 83 / 84 / 85 / 86 / 87 / 88 / 89 / 90 / 91 / 92 / 94 / 95 / 106 |
 
+PER-67（含原「ops · PER-67 F 组」）交接后归 ops 系统（ops-system-HANDOFF.md 附，Coding助手 10-20 19:40 核对），不再报给 coding-assistant。
+没有开发工作区的 bot：Coding助手（coding-assistant，只派活验收）、dr eggbot、Firstmate、杂务助手、车载助手。
 仍在的已归档工作区：H3/C1·Git 数据库（vllm-omni 项目的 bare repo，不能删）、vllm·主目录（Orca 拒绝删除受保护路径）。
-不属于任何 bot：adrunner「ui 校正」、rf / worker / mingsheng 主目录。
-vllm-omni 工作区已于 2026-10-12 改成新格式（orca CLI）；其他仓库显示名仍不符合新格式「<bot 简称> · <Linear编号> 中文简述」。
+不属于任何 bot：adrunner、rf、worker、mingsheng 主目录。
 
 ## 3. 2026-10-12 已清理（Zack 已批准）
 - 从 Orca 移除了重复的 xinyue-site repo 0de4e55d（setup-delete，磁盘 ~/claude/firstmate/projects/xinyue-site 未动）。移除前确认过：旧 per-37-flood-climb 的 HEAD = d6e9d6d，已经在 origin/feat/xinyue-site 上，没有自己的提交，只有未跟踪的 node_modules。
@@ -140,9 +136,6 @@ Box 与 iMac 是两套独立 Orca runtime；同名仓库在 box 上另有项目 
 
 ## 3c. 2026-10-12 14:5x deepvision 运维 收尾（Coding助手 派，Zack 已定）
 - 删除 iMac ~/cutover-20261008/build-fdv54（生产构建目录，git worktree remove）。~/cutover-20261008/build-testing 已不存在（3b 已删）。fdv-16-preview（FDV-25）此前已不在列表。
-| 心月网站 运维 | 心月 · EverOS 启动器 v2.1（iMac 099c800e::~/orca/workspaces/xinyue-site/心月-EverOS-启动器-v2.1；Claude term_4be9a6d2；in-review，2026-10-17） | xinyue-site | — |
-| 心月 | PER-71 | MBA ~/orca/workspaces/xinyue-site/per-71-colorfigures-a | 心月 · PER-71 Colorfigures 框架与总入口 | 2026-10-19 |
-| 心月 | PER-75 | iMac ~/orca/workspaces/xinyue-site/per-75-oss-games | 心月 · PER-75 开源游戏候选调研 | 2026-10-19 |
 
 ## 7. MBA（MacBook Air）Orca 项目（2026-10-18 16:00 SGT 建，box 上的 Claude Code 经 iMac `ssh mba` 做）
 
