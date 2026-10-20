@@ -13,7 +13,7 @@
 # 关之前：对 cwd 跑 git status，有没提交的改动就把这些文件打包到 ~/archive/<工作区>/<日期>/，不删任何文件；
 #   打包失败就不关。先发 SIGTERM，30 秒后还在就发 SIGKILL。只按确认过的 PID 操作。
 # Chrome：只报告运行超过 24 小时、CPU 超过 50% 的 helper 进程，不杀。
-# 报告：每次运行在 ~/orca/workspaces/ops/reports/cleanup-<日期>.md 追加一节。
+# 报告：每次运行在 ~/.orca-state/mem-cpu-cleanup/reports/cleanup-<日期>.md 追加一节（不写进 ops 主检出，免得被未推送扫描当成改动）。
 # webhook：只有关不掉的进程或 Chrome 异常才 POST 给 ops-system（~/.config/grokbot/webhooks/ops-system.env；没有这个文件时
 #   用 ~/.config/grokbot/stuck-webhook.env，即 coding-assistant，报告里写明），多条合并成一条
 #   {bot,task,worktree,status,note}；同一个 Chrome 进程只报一次。URL 和 KEY 不会出现在输出和报告里。
@@ -46,7 +46,7 @@ OPS_ENV = os.path.join(HOME, ".config/grokbot/webhooks/ops-system.env")
 ENV_FILE = os.environ.get("CLEANUP_ENV_FILE") or (
     OPS_ENV if os.path.isfile(OPS_ENV) else os.path.join(HOME, ".config/grokbot/stuck-webhook.env"))
 STATE_DIR = os.environ.get("CLEANUP_STATE_DIR") or os.path.join(HOME, ".orca-state/mem-cpu-cleanup")  # 这几个覆盖项只给测试用
-REPORT_DIR = os.environ.get("CLEANUP_REPORT_DIR") or os.path.join(HOME, "orca/workspaces/ops/reports")
+REPORT_DIR = os.environ.get("CLEANUP_REPORT_DIR") or os.path.join(HOME, ".orca-state/mem-cpu-cleanup/reports")
 ARCHIVE_ROOT = os.environ.get("CLEANUP_ARCHIVE_ROOT") or os.path.join(HOME, "archive")
 CLAUDE_DIR = os.environ.get("CLEANUP_CLAUDE_DIR") or os.path.join(HOME, ".claude")
 ONLY_PIDS = {int(x) for x in os.environ.get("CLEANUP_ONLY_PIDS", "").split(",") if x.strip().isdigit()}  # 测试时只处理这些 PID
