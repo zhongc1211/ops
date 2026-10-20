@@ -7,6 +7,10 @@
 #   （git 工作区，非主目录、非归档、不在 /tmp 下、不是 agent 临时建的 <工作区>/.orca-task/ 子 worktree）；
 #   todo / in-review / completed / sleeping 一律跳过。
 #   要歇着的工作区标看板状态 Sleep（sleep），不查。
+#   演练工作区不查（PER-119）：显示名以「[演练]」开头，或工作区根目录有 .orca-drill 文件（只认跑卡住检查的这台机器，
+#   box / MBA 上的演练工作区要靠显示名）。这类工作区和里面的 agent 什么都不报（含 agent_unwrapped、ws_broken、第二类），
+#   日志记一行「skip drill <机器>:<路径>」。不按名字里有没有 drill / 演练 认（ops-PER80-drill-gap9 等是真工作区）。
+#   建演练工作区必须打标记：10-20 20:25 #45 的演练工作区没打，清场漏了，线上报了一次 agent_gone。
 #   例外：STUCK_MAIN_REPOS（默认 ops）的主目录也查——brief agent 都在 ops 主目录里跑（10-19 前被跳过）。主目录里同时有很多
 #   agent，按 agent 终端（paneKey）逐个查，key 是「机器:路径#paneKey」，进程靠 agent-probe 读到的 ORCA_PANE_KEY 对上；
 #   不看 workspaceStatus，没有 ws_broken；Orca 自动任务起的、agent 状态超过 STUCK_MAIN_MAX_AGE_H（默认 24）小时没变的不查。
@@ -149,6 +153,7 @@ GATE_FILE = os.path.join(STATE_DIR, "gate.json")      # --scan 闸门：上次�
 INTERVAL_MIN = float(os.environ.get("STUCK_INTERVAL_MIN", "15"))     # 屏幕指纹、box 连不上的次数、上次全量检查时间、标记告警
 MARKERS = {"cf-usage": "CF usage watch", "seo-weekly": "SEO weekly check", "mem-cpu-cleanup": "内存与 CPU 日常清理"}
 FALLBACK_BOT = "coding-assistant"
+DRILL_MARK, DRILL_PREFIX = ".orca-drill", "[演练]"  # 演练工作区的两种标记，见 drill_reason
 SGT = datetime.timezone(datetime.timedelta(hours=8))
 NOW = time.time()
 os.makedirs(STATE_DIR, exist_ok=True)
@@ -495,19 +500,41 @@ def is_task_ws(w):
     return not (ONLY and not ONLY.search(path))
 
 
+def drill_reason(w, local):
+    """演练工作区（PER-119）：显示名以「[演练]」开头，或（只认本机）工作区根目录有 .orca-drill 文件。是的话返回原因。
+    不按名字里有没有 drill / 演练 认：ops-PER80-drill-gap9 这类真工作区名字里就带 drill。主目录不算。"""
+    if w.get("isMainWorktree"):
+        return None
+    if (w.get("displayName") or "").lstrip().startswith(DRILL_PREFIX):
+        return "显示名以「%s」开头" % DRILL_PREFIX
+    if local and w.get("path") and os.path.isfile(os.path.join(w["path"], DRILL_MARK)):
+        return "有 %s 标记文件" % DRILL_MARK
+    return None
+
+
 def load_host(label, env):
-    """返回 ({"label","env","worktrees","terms","repos"}, None) 或 (None, 错误)。"""
+    """返回 ({"label","env","worktrees","terms","repos","drills"}, None) 或 (None, 错误)。
+    演练工作区（drill_reason）不放进 worktrees，各类检查都不报；路径记在 drills，里面的 agent 也不算没包 notify-run。"""
     ps, err = orca_json(["worktree", "ps", "--limit", "500"], env, tries=3)
     if ps is None:
         return None, err
+    wts, drills = [], []
+    for w in ps.get("worktrees", []):
+        why = drill_reason(w, env is None)
+        if not why:
+            wts.append(w)
+            continue
+        drills.append(w["path"])
+        if not (ONLY and not ONLY.search(w["path"])):
+            log("skip drill %s:%s（%s）" % (label, w["path"], why))
     tl, _ = orca_json(["terminal", "list", "--limit", "500"], env, tries=2)
     terms = {}
     for t in (tl or {}).get("terminals") or []:
         if t.get("connected") is False:
             continue  # 工作区 Sleep 或终端进程停掉后留下的记录，不是活的终端
         terms.setdefault(t.get("worktreePath"), []).append(t)
-    return {"label": label, "env": env, "worktrees": ps.get("worktrees", []), "terms": terms,
-            "terms_ok": tl is not None}, None
+    return {"label": label, "env": env, "worktrees": wts, "terms": terms, "terms_ok": tl is not None,
+            "drills": drills}, None
 
 
 def decode_probe(text):
@@ -806,6 +833,8 @@ def check_unwrapped(host, track, pend=()):
     seen = track.setdefault("unwrapped", {})
     ws_paths = [w["path"] for w in host["worktrees"] if w.get("path") and not sub_task(w["path"])]
     wmap = {w["path"]: w for w in host["worktrees"] if w.get("path")}
+    drill_panes = {"%s:%s" % (t["tabId"], t.get("leafId")) for d in host["drills"] for t in host["terms"].get(d) or []
+                   if t.get("tabId")}
     per_bot = {}
     # 报过的记录只在进程真的没了才删（ONLY 过滤掉的、这次不算的照样留着），同一个进程只报一次（10-19 MBA pid 36142）
     alive = {"%s:%d" % (label, p["pid"]) for p in probe.get("procs", [])}
@@ -815,6 +844,8 @@ def check_unwrapped(host, track, pend=()):
             continue
         if p.get("adopted_by"):
             continue  # 脱离了父进程的子 agent，派它的顶层 agent 包着 notify-run
+        if ws_of(p.get("cwd") or "", host["drills"]) or (p.get("pane") and p["pane"] in drill_panes):
+            continue  # 演练工作区里的 agent，load_host 已记 skip drill
         k = "%s:%d" % (label, p["pid"])
         start = int(probe.get("ts", NOW) - p.get("etime_s", 0))
         if k in pend or (k in seen and abs(seen[k].get("start", 0) - start) < 120):

@@ -31,6 +31,15 @@ Orca 项目和工作区清单见 [orca-projects.md](orca-projects.md)。
 | [`wake/tla/`](wake/tla/) | 叫醒系统的 TLA+ 模型检查（PER-67）：`wake/tla/check.sh` 一条命令复跑；改叫醒 / 卡住检查代码时用 skill `wake-tla-verify` |
 | [`reports/wake-fixes-2026-10-17.md`](reports/wake-fixes-2026-10-17.md) | 叫醒系统 10-17 修复记录 |
 
+### 演练工作区必须打标记
+
+在真 Orca 里建工作区做演练、E2E（起 agent、制造卡住）时，**建好就打标记**，卡住检查才会跳过它（日志记 `skip drill <机器>:<路径>`，什么都不报）：
+
+- 显示名以 `[演练]` 开头：`orca worktree set --worktree path:<路径> --display-name "[演练] …"`。三台机器都认，box / MBA 上只能用这个。
+- 或在工作区根目录放空文件 `.orca-drill`（`: > <路径>/.orca-drill`）。只有跑卡住检查的那台（iMac）认。
+
+两样都打最稳。名字里带 drill / 演练 不算：`ops-PER80-drill-gap9` 这类是真工作区。没打标记的演练工作区会被当成真工作区报出去（10-20 20:25 #45 的演练工作区漏到线上报了一次 agent_gone）。打了标记也照样在两次线上扫描之间建完、跑完、清掉：线上没装这个改动之前不认标记。参考 `wake/tests/stuck-check-skip-drill.sh`。
+
 ## box 运维和定时任务
 
 | 路径 | 内容 |

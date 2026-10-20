@@ -25,6 +25,8 @@
 | `hooks/claude-settings.example.json` | — | hook 条目示例（`orca-wake-hooks install` 写入的就是这些） |
 | `.env.example` | `~/.config/grokbot/webhooks/<bot>.env` | webhook 配置格式（与 notify-run 共用） |
 | `tests/unit.sh`、`tests/mock_webhook.py` | — | 离线测试和本地模拟 webhook |
+| `tests/stuck-check-skip-drill.sh` | — | E2E（iMac 真 Orca）：卡住检查跳过打了演练标记的工作区、照报普通工作区；`--src` 指向旧版代码做回退对照。演练标记见仓库 README「演练工作区必须打标记」 |
+| `tests/stuck-check-drill-table.py` | — | 只读：列出三台机器上全部真实工作区会不会被卡住检查判成演练 |
 | `tests/lint-bash32-utf8.sh` | — | 在仓库根目录跑：查 wake/、scripts/ 的 shell 里 `$name` 紧跟全角字符（/bin/bash 3.2 会报 unbound variable，要写 `${name}`），有命中打印「文件:行」并 exit 1 |
 
 ## 安装
