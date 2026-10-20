@@ -106,11 +106,15 @@ sys.exit(got != [json.loads(sys.argv[3])["version"]])
 PY
 done
 python3 - "$C" "$P" <<'PY'
-import json,sys,os,datetime
+import json,sys,os,datetime,subprocess
 C,P=sys.argv[1],sys.argv[2]
 def load(f): return json.load(open(f)) if os.path.exists(f) else {}
-def save(f,d,old):  # 内容没变就不写，重复运行不动文件
+def save(f,d,old,backup=False):  # 内容没变就不写也不备份，重复运行不动文件
     if d==old: return
+    if backup and os.path.exists(f):
+        # 改前备份成 <文件>.bak-<YYYYmmddHHMMSS>；同一秒已有就不覆盖（留的是更早的原内容）；备份失败就退出、不写
+        b=f+".bak-"+datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        if not os.path.exists(b) and subprocess.run(["cp","-p",f,b]).returncode!=0: sys.exit(f"备份 {f} 失败，没改")
     with open(f+".tmp","w") as o: json.dump(d,o,indent=2,ensure_ascii=False); o.write("\n")
     os.replace(f+".tmp",f)
 DENY=[f"Skill({s}{x})" for s in ["pstack:poteto-mode","pstack:tdd","pstack:reflect","pstack:setup-pstack","compound-engineering:lfg"] for x in ["", " *"]]
@@ -123,7 +127,7 @@ for n in ["cursor-plugins","compound-engineering-plugin"]:
     ekm[n]={"source":{"source":"directory","path":os.path.join(P,n)},"autoUpdate":False}
 ep=d.setdefault("enabledPlugins",{})
 ep["pstack@cursor-plugins"]=True; ep["compound-engineering@compound-engineering-plugin"]=True
-save(f,d,old)
+save(f,d,old,backup=True)
 k=os.path.join(C,"plugins","known_marketplaces.json"); os.makedirs(os.path.dirname(k),exist_ok=True)
 km=load(k); old=json.loads(json.dumps(km))
 for n in ["cursor-plugins","compound-engineering-plugin"]:

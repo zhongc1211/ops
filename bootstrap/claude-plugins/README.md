@@ -24,7 +24,7 @@ bootstrap/claude-plugins/pin-claude-plugins.sh --home /tmp/sandbox   # 装进别
 ## 脚本做什么
 
 1. 把两个插件仓库克隆到 `~/.claude/pinned-marketplaces/<名字>`，`git checkout --detach <commit>`。
-2. 在 `~/.claude/settings.json` 里：
+2. 在 `~/.claude/settings.json` 里（内容有变时先备份成 `settings.json.bak-<YYYYmmddHHMMSS>`）：
    - `extraKnownMarketplaces` 把这两个市场改成本地目录源，`autoUpdate: false`；
    - `enabledPlugins` 打开 `pstack@cursor-plugins` 和 `compound-engineering@compound-engineering-plugin`；
    - `permissions.deny` 加 10 条规则（见下）。
@@ -101,4 +101,4 @@ hook 超时会放行（Claude Code 照常处理这条提示，不挡），所以
 
 - 把顶部常量改回上一版（pstack `0148b78c56c72a1b8412055913c79f767095b217`）重跑脚本，或者 `git revert` 改常量的提交后重跑。脚本会把检出切回旧 commit 并 `claude plugin update`。
 - 只想关 hook：从 `~/.claude/settings.json` 的 `hooks.UserPromptSubmit` 删掉 `block-disabled-skills.sh` 那条，或把 `~/.claude/hooks/block-disabled-skills.sh` 换成只有 `exit 0` 的版本。
-- 脚本改 `settings.json` 前不做备份；要留底先自己 `cp ~/.claude/settings.json ~/.claude/settings.json.bak-$(date +%Y%m%d%H%M)`。
+- 脚本改 `settings.json` 前自动备份成 `settings.json.bak-<YYYYmmddHHMMSS>`（内容没变就不写也不备份；备份失败就退出、不改）。回滚：`cp -p ~/.claude/settings.json.bak-<时间> ~/.claude/settings.json`。
