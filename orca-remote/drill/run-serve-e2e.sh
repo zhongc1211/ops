@@ -21,8 +21,10 @@ cp "$D/e2e-serve-display.sh" "$OUT/"; chmod +x "$OUT"/*-orca-remote "$OUT/e2e-se
   echo "new: orca-remote/orca-remote sha256 $(shasum -a 256 "$OUT/new-orca-remote" | cut -c1-64)"
   echo "old: $OLD_REF ($(git -C "$REPO" rev-parse --short "$OLD_REF")):orca-remote/orca-remote sha256 $(shasum -a 256 "$OUT/old-orca-remote" | cut -c1-64)"
   echo "command: $0 $OUT $WHICH"; } >"$OUT/run-info.txt"
+# seccomp=unconfined: Docker's default seccomp profile blocks the namespaces Chromium's sandbox creates ("Failed to move to
+# new namespace ... Operation not permitted", then the zygote dies and serve exits via SIGTRAP). Not --privileged.
 run(){ mkdir -p "$OUT/$1"; chmod 777 "$OUT/$1"
-  docker run --rm --init --platform linux/amd64 --shm-size=1g -e TZ=SGT-8 --name "serve-e2e-$1-$$" -v "$OUT:/out" $IMG \
+  docker run --rm --init --platform linux/amd64 --shm-size=1g --security-opt seccomp=unconfined -e TZ=SGT-8 --name "serve-e2e-$1-$$" -v "$OUT:/out" $IMG \
     runuser -u box -- env E2E_ARTIFACTS=/out/$1 bash /out/e2e-serve-display.sh /out/$1-orca-remote --real >"$OUT/$1.console.log" 2>&1; }
 rc=0
 for v in new old; do { [ "$WHICH" = both ] || [ "$WHICH" = $v ]; } || continue
