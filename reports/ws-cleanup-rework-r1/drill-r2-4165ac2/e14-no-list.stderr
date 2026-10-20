@@ -1,0 +1,1 @@
+ws-cleanup: --execute 必须带 --only-from <dry-run 的 worktrees.tsv>

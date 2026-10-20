@@ -1,0 +1,4 @@
+OK ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d11-locked/MANIFEST.sha256
+OK ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d12-sha/MANIFEST.sha256
+FAIL ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d12-sha.failed-044306/MANIFEST.sha256
+OK ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d03-backup/MANIFEST.sha256

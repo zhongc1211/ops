@@ -1,0 +1,1 @@
+$ /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-cleanup-rules-draft-1021/0d6bab3a-c6fa-4000-b093-a7521854c0f3/scratchpad/ws-cleanup-d3efbf0.sh --out reports/ws-cleanup-rework-r1/drill/dry-old-d3efbf0
