@@ -63,8 +63,10 @@ if [ "$REAL" = --real ]; then
   [ "$(cat "$W/b1.http")" = 200 ] && ok "B1 fix: local 6799 http 200" || ko "B1 fix: local 6799 http $(cat "$W/b1.http")"
   pkill -TERM -f "out/cli/index.js serve --port 6799" ; sleep 8; pkill -KILL -f "serve-port 6799|serve --port 6799" 2>/dev/null; sleep 2
   if [ -z "$xp" ]; then ko "B1 cleanup: no Xvfb pid to check"
-  elif kill -0 "$xp" 2>/dev/null; then ko "B1 cleanup: Xvfb $xp still alive -> killing"; kill "$xp"
-  else ok "B1 cleanup: own Xvfb exited with serve"; fi
+  else # Xvfb -terminate exits when its last client is gone; Electron helpers can take a while under emulation
+    for i in $(seq 0 30); do kill -0 "$xp" 2>/dev/null || break; sleep 1; done
+    if kill -0 "$xp" 2>/dev/null; then ko "B1 cleanup: Xvfb $xp still alive 40s after serve was stopped -> killing"; kill "$xp"
+    else ok "B1 cleanup: own Xvfb exited with serve (${i}s after the 10s stop window)"; fi; fi
   pgrep -f 'serve --port 6799|serve-port 6799' >/dev/null && ko "B1 cleanup: test serve still running" || ok "B1 cleanup: test serve gone"
   if [ -f /.dockerenv ] || [ -n "${E2E_THROWAWAY:-}" ]; then
     SL=/home/box/.local/state/orca-remote/serve.log; rm -f "$SL"; [ -e /tmp/.X11-unix/X4 ] && echo "note: an X server is on :4"
