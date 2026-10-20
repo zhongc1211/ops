@@ -1,0 +1,57 @@
+ok   1 G1 dry-run exits 0
+ok   2 A1 proj -> SKIP/W1 (got SKIP/W1)
+ok   3 A2 c_self -> SKIP/W2 (got SKIP/W2)
+ok   4 A3 c_remote_host -> LIST/W3 (got LIST/W3)
+ok   5 A4 c_agent -> SKIP/W5 (got SKIP/W5)
+ok   6 A4 c_agent_noid -> SKIP/W5 (got SKIP/W5)
+ok   7 A5 c_proc -> SKIP/W6 (got SKIP/W6)
+ok   8 A6 c_diag_missing -> SKIP/W6 (got SKIP/W6)
+ok   9 A7 c_dirty -> SKIP/W7 (got SKIP/W7)
+ok   10 A7 c_untracked -> SKIP/W7 (got SKIP/W7)
+ok   11 A8 c_unpushed -> SKIP/W8 (got SKIP/W8)
+ok   12 A9 c_open_pr -> SKIP/W9 (got SKIP/W9)
+ok   13 A9 c_linked_open_pr -> SKIP/W9 (got SKIP/W9)
+ok   14 A10 c_gh_fail -> SKIP/W9 (got SKIP/W9)
+ok   15 A11 c_linear_open -> SKIP/W10 (got SKIP/W10)
+ok   16 A12 c_linear_fail -> SKIP/W10 (got SKIP/W10)
+ok   17 A13 c_not_done -> SKIP/W11 (got SKIP/W11)
+ok   18 A13 c_merged_inreview -> RM/W14 (got RM/W14)
+ok   19 A14 c_recent -> SKIP/W12 (got SKIP/W12)
+ok   20 A14 c_zero_recent_commit -> SKIP/W12 (got SKIP/W12)
+ok   21 A15 c_backup -> BACKUP_RM/W13 (got BACKUP_RM/W13)
+ok   22 A15 c_backup_evidence -> BACKUP_RM/W13 (got BACKUP_RM/W13)
+ok   23 A15 c_nested -> BACKUP_RM/W13 (got BACKUP_RM/W13)
+ok   24 A16 c_cache_only -> RM/W14 (got RM/W14)
+ok   25 A17 c_ops_common -> RM/W14 (got RM/W14)
+ok   26 A18 c_中文 空格 -> RM/W14 (got RM/W14)
+ok   27 A19 c_not_git -> SKIP/W7 (got SKIP/W7)
+ok   28 A20 c_missing -> RM/W4 (got RM/W4)
+ok   29 A21 git_only -> LIST/W16 (got LIST/W16)
+ok   30 A15 c_backup lists .dev.vars and .orca-task
+ok   31 A15 c_nested finds scratch/deep/TASK.md
+ok   32 A18 every TSV row has the header's column count
+ok   33 A20 planned rm has no --force
+ok   34 A22 t_agent -> SKIP/T1 (got SKIP/T1)
+ok   35 A22 t_agent_noid -> SKIP/T1 (got SKIP/T1)
+ok   36 A22 t_resume -> SKIP/T2 (got SKIP/T2)
+ok   37 A22 t_self -> SKIP/T3 (got SKIP/T3)
+ok   38 A22 t_proc -> SKIP/T6 (got SKIP/T6)
+ok   39 A22 t_sib_proc -> SKIP/T6 (got SKIP/T6)
+ok   40 A23 t_read_fail -> SKIP/T2 (got SKIP/T2)
+ok   41 A6 t_diag_missing -> SKIP/T6 (got SKIP/T6)
+ok   42 A25 t_empty -> CLOSE/T4 (got CLOSE/T4)
+ok   43 A25 t_dead -> CLOSE/T5 (got CLOSE/T5)
+ok   44 A24 t_sib_empty -> CLOSE/T4 (got CLOSE/T4)
+ok   45 A24 sibling of a live pane closes without --tab
+ok   46 A24 sole pane in its tab closes with --tab
+ok   47 A26 fake orca saw no rm / close / set / send
+ok   48 A26 no backup root created
+ok   49 A26 git state and .dev.vars mode unchanged
+ok   50 A30 fake secrets not in output or stdout
+ok   51 A28 two runs give the same TSVs (minus idle_h)
+ok   52 A27 --list-only: every action is LIST
+ok   53 A29 worktree list fails -> exit 4, no result files
+ok   54 A29 terminal list fails -> exit 4, no result files
+ok   55 A6 diagnostics fails -> worktrees with terminals are SKIP W6, nothing to CLOSE
+not run: E1-E4 (--execute paths; --execute is banned this round, see RESULT.md)
+55/55 passed
