@@ -1,0 +1,77 @@
+{
+ "_doc": "回退测试用的现网版 defs（wake/tests/heartbeat-watch-ssh-rollback.sh 生成）：create 的 precheck 是现网 box 94e4b0bc 的原文，5c2d0575 各阶段的 set 都是它的现网原文。",
+ "create": [
+  {
+   "key": "mba-hb-watch",
+   "machine": "mba",
+   "name": "ops · 29 心跳互查 MBA（盯 iMac ops · 01）",
+   "rrule": "*/5 * * * *",
+   "timezone": "Asia/Singapore",
+   "provider": "claude",
+   "extraAgentArgs": "--model haiku --effort low",
+   "precheck": "$HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target \"iMac ops · 01 卡住工作检查|iMac|439cd438-cffe-44dd-bd2b-23b07bfa3d61|20\"",
+   "precheckTimeout": 240,
+   "prompt": "prompts/noop.prompt.md",
+   "workspace": "path:$HOME/orca/workspaces/ops",
+   "grace": 720,
+   "why": "replaces box 94e4b0bc (same rrule, precheck timeout and grace); MBA's Orca has no environment for the iMac, so heartbeat-watch reads the iMac's run records through scripts/orca-via-ssh, installed next to heartbeat-watch.sh in ~/.orca-state/bin (README step 1); empty environment = the Orca that HB_ORCA reaches. Worst case 226 s: 3 tries x the wrapper's 70 s ssh cap + 2 x 8 s"
+  }
+ ],
+ "edit": [
+  {
+   "key": "imac-5c2d-parallel",
+   "stage": "parallel",
+   "machine": "imac",
+   "id": "5c2d0575-dddc-4d5c-8f73-e47b26ea9a11",
+   "before": {
+    "name": "ops · 29 心跳互查（盯 box ops · 29）",
+    "precheck": "$HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target \"box ops · 29 卡住检查心跳|grok-bot|94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80|20\"",
+    "precheckTimeout": 240
+   },
+   "set": {
+    "precheck": "$HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target \"box ops · 29 卡住检查心跳|grok-bot|94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80|20\"",
+    "precheckTimeout": 240
+   },
+   "why": "one night with both watchers: keep the box target as it is (checked first, unchanged) and add the MBA task; two targets read through Orca environments (no ssh cap): worst 2 x 286 s = 572 s, so 600 (Orca's maximum)"
+  },
+  {
+   "key": "imac-5c2d-final",
+   "stage": "final",
+   "machine": "imac",
+   "id": "5c2d0575-dddc-4d5c-8f73-e47b26ea9a11",
+   "set": {
+    "name": "ops · 29 心跳互查（盯 box ops · 29）",
+    "precheck": "$HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target \"box ops · 29 卡住检查心跳|grok-bot|94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80|20\"",
+    "precheckTimeout": 240
+   },
+   "why": "after the parallel night: drop the box target before box 94e4b0bc is disabled; one target, worst 286 s, so 300; the rename is not in the brief, drop 'name' here if it is not wanted"
+  },
+  {
+   "key": "imac-5c2d-rollback",
+   "stage": "rollback",
+   "machine": "imac",
+   "id": "5c2d0575-dddc-4d5c-8f73-e47b26ea9a11",
+   "set": {
+    "name": "ops · 29 心跳互查（盯 box ops · 29）",
+    "precheck": "$HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target \"box ops · 29 卡住检查心跳|grok-bot|94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80|20\"",
+    "precheckTimeout": 240
+   },
+   "why": "back to the live config of 2026-10-21 (= before, including its 240 s timeout, which is shorter than the 286 s worst case of the box target; that gap predates this change); re-enable box 94e4b0bc first (README 回滚)"
+  }
+ ],
+ "box": {
+  "id": "94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80",
+  "environment_on_imac": "grok-bot",
+  "name": "ops · 29 卡住检查心跳（盯 iMac ops · 01）",
+  "precheck": "$HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target \"iMac ops · 01 卡住工作检查|iMac|439cd438-cffe-44dd-bd2b-23b07bfa3d61|20\"",
+  "precheckTimeout": 240,
+  "enabled": true,
+  "why": "not edited by register.sh; disabled by hand at README step 6 and re-enabled in the rollback"
+ },
+ "watched": {
+  "id": "439cd438-cffe-44dd-bd2b-23b07bfa3d61",
+  "machine": "imac",
+  "name": "ops · 01 卡住工作检查",
+  "precheckTimeout": 600
+ }
+}
