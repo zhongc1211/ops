@@ -6,6 +6,7 @@
 # terminals.tsv、backup-files.tsv（会备份的被忽略文件逐个列出）、summary.md。只有 --execute 才会备份、`orca worktree rm`（不加 --force）；--execute 必须带 --only-from 一份 dry-run
 # 名单，只处理名单里、重新判定后结论和备份清单都没变的工作区；终端默认不关，要再加 --close-terminals（也只关名单里的）。
 #   工作区从上往下判，第一条命中的就是结论：W1 main/bare → W2 本任务所在 → W3 别的机器 → W5 agent 在跑 → W6 终端有活进程 / 还开着
+#   → W18 GIT_LOCKED：这个 worktree 自己的 gitdir 里有 index.lock、没做完的 merge / rebase / am / cherry-pick / revert / bisect，或被 git worktree lock（Zack 10-21 07:34）
 #   → 目录已不在：W4 看 git 记录的 HEAD（不在远端、也没有别的 ref 包含 → SKIP） / 目录在：W7 未提交 → W8 未推送
 #   → W9 open PR → W10 Linear 未关（Zack 03:37：真删前每次实时查，查不到、超时、找不到 issue 都不删）→ W11 Orca 状态不是 completed
 #   → W12 近 IDLE_H 小时有活动 → W17 HEAD 不在已合并的 PR / 远端主分支或合并目标分支上
@@ -17,6 +18,7 @@
 #   → T2 屏幕上有 resume id、最后一行不是提示符 → T4 空 shell / T5 进程已不在 → 关。关之前先存档 scrollback、cwd、终端元数据到
 #   ARCHIVE/terminals/<日期>/<handle>/（README.txt 写怎么找回），存档失败就不关。cwd 用 `lsof -a -d cwd -p <shell pid> -Fn`，只在真的要关时才查。
 #   任何查询失败都算跳过，不算通过。--execute 只在 hostname 为 iMac 的机器上允许，其他机器一律只列出，box 不跑。
+# 输出（TSV、summary、journal、stdout）里的邮箱一律打码成「首字母***@域名」（Zack 10-21 07:34）。
 # 进程只用 `ps -A -o pid,ppid,comm`；git 忽略的文件只看名字、类型和大小，不读内容；终端屏幕只用来找 resume id 和提示符，不写进输出。
 # 退出码：0 正常；1 --precheck（总是 1）；2 用法 / 主机 / 命令路径不对；3 --execute 有没做成的；4 查不到 Orca 数据（不写结果文件）；
 #   5 环境不对（gh、diagnostics、ps、worktree ps 有查不到的，--execute 什么都不做）；6 另一个 --execute 正在跑。
@@ -320,6 +322,23 @@ def git_record(d, main, path):
     recs = d["gitwt"][main]
     return recs.get(path) or next((v for k, v in recs.items() if os.path.realpath(k) == os.path.realpath(path)), None)
 
+GIT_LOCKS = (("index.lock", "index.lock"), ("MERGE_HEAD", "merge 没做完"), ("rebase-merge", "rebase 没做完"), ("rebase-apply", "rebase / am 没做完"),
+             ("CHERRY_PICK_HEAD", "cherry-pick 没做完"), ("REVERT_HEAD", "revert 没做完"), ("BISECT_LOG", "bisect 没做完"), ("locked", "git worktree lock"))
+def wt_gitdir(path, main):
+    """这个 worktree 自己的 gitdir（linked worktree 是 main 的 .git/worktrees/<名>）；目录已不在时按 gitdir 文件反查。找不到返回 None。"""
+    if os.path.exists(path):
+        if toplevel(path) != os.path.realpath(path): return None
+        try: return git(path, "rev-parse", "--absolute-git-dir").strip()
+        except QueryFail: return None
+    if not main or not os.path.exists(main): return None
+    try: base = os.path.join(main, git(main, "rev-parse", "--git-common-dir").strip(), "worktrees")
+    except QueryFail: return None
+    for n in sorted(os.listdir(base)) if os.path.isdir(base) else []:
+        try: gd = open(os.path.join(base, n, "gitdir")).read().strip()
+        except OSError: continue
+        if os.path.realpath(os.path.dirname(gd)) == os.path.realpath(path): return os.path.join(base, n)
+    return None
+
 # ---------- 判定 ----------
 def evaluate(w, d, ctx):
     """返回 (结论, 规则, 原因, 证据 dict)。"""
@@ -337,6 +356,9 @@ def evaluate(w, d, ctx):
     if "busy" in states: return "SKIP", "W6", "终端里有活进程", ev
     if "unknown" in states: return "SKIP", "W6", "查不到终端进程（当作有）", ev
     if "idle" in states: return "SKIP", "W6", "还有打开的终端（rm 会把它停掉）", ev
+    gd = wt_gitdir(path, ctx["main"])
+    locks = [why for f, why in GIT_LOCKS if gd and os.path.lexists(os.path.join(gd, f))]
+    if locks: return "SKIP", "W18", "GIT_LOCKED：" + "；".join(locks), ev
     gone = not os.path.exists(path)
     gitdir = path
     if gone:
@@ -435,8 +457,13 @@ def safe_eval(w, d):
     except Exception as e:                    # 判定本身出错：这一行跳过，其余照常
         return ("SKIP", "ERR", "判定出错：%s" % type(e).__name__, {"_backup": []}, ctx)
 
+EMAIL = re.compile(r"([A-Za-z0-9_%+\-])[A-Za-z0-9._%+\-]*@((?:[A-Za-z0-9\-]+\.)+([A-Za-z]{2,}))\b")
+FILE_EXT = {"webm", "mp4", "mov", "png", "jpg", "jpeg", "gif", "webp", "svg", "zip", "tgz", "gz", "json", "txt", "log", "md", "html", "js",
+            "ts", "css", "map", "pdf", "csv", "tsv", "yaml", "yml", "lock", "py", "sh", "trace"}   # page@<hash>.webm 这类是文件名，不是邮箱
+def mask_email(s): return EMAIL.sub(lambda m: m.group(0) if m.group(3).lower() in FILE_EXT else m.group(1) + "***@" + m.group(2), s)
 def mask(s):
-    s = re.sub(r"https?://\S+", "<url>", s or "")
+    s = mask_email(s or "")
+    s = re.sub(r"https?://\S+", "<url>", s)
     s = re.sub(r"[A-Za-z0-9_\-]{24,}", "<长串>", s)
     return s.replace("\n", " ")[:60]
 
@@ -652,9 +679,9 @@ def execute(rows, trows, journal):
         if bad: die("--repo %s 白名单外有 %d 个候选（例如 %s），整轮中止，什么都没做" % (REPO, len(bad), bad[0]), 2)
     tlisted = load_list(os.path.join(os.path.dirname(ONLY_FROM) or ".", "terminals.tsv"), "handle", ("CLOSE",)) if CLOSE_TERMS else {}
     pause_point()
-    for k in sorted(set(listed) - {r["id"] for r in rows}): journal("not-found", k, "", "名单里有，Orca 里已经没有，不动")
+    for k in sorted(set(listed) - {clean(r["id"]) for r in rows}): journal("not-found", k, "", "名单里有，Orca 里已经没有，不动")
     for r in rows:
-        old = listed.get(r["id"])
+        old = listed.get(clean(r["id"]))         # 名单是打过码的，两边过同一个 clean 再对
         if r["verdict"] not in ("RM", "BACKUP_RM") or not r["_w"]:
             if old: r["result"] = "跳过：名单里是 %s，这次判定 %s %s（%s）" % (old["verdict"], r["verdict"], r["rule"], r["reason"])
             continue
@@ -666,7 +693,7 @@ def execute(rows, trows, journal):
             if w.get("lastActivityAt") != r["_w"].get("lastActivityAt") or fmt_ms(w.get("lastActivityAt")) != old.get("last_activity"):
                 r["result"] = "跳过：lastActivityAt 变了"; continue
             v2, rule2, why2, ev2, _ = safe_eval(w, fresh)
-            if v2 != old["verdict"] or ev2.get("backup", "") != old.get("backup", ""):
+            if v2 != old["verdict"] or clean(ev2.get("backup", "")) != old.get("backup", ""):
                 r["result"] = "跳过：重新判定变成 %s %s（%s）" % (v2, rule2, why2) if v2 != old["verdict"] else "跳过：备份清单和名单里的不一样"
                 continue
             r["_w"], r["_backup"] = w, ev2["_backup"]
@@ -736,7 +763,7 @@ def take_lock():
 WCOLS = ["host", "id", "repo", "name", "path", "action", "verdict", "rule", "reason", "status", "pr", "head_vs_pr", "merged_via", "linear", "dirty",
          "unpushed", "head", "terms", "idle_h", "last_activity", "unread", "comment", "mb", "backup", "backup_size", "rebuild", "planned"]
 TCOLS = ["host", "handle", "worktree", "tab", "action", "verdict", "rule", "reason", "agent", "connected", "pid", "idle_h", "procs", "archive", "planned"]
-def clean(v): return str(v).replace("\t", " ").replace("\n", " ")
+def clean(v): return mask_email(str(v)).replace("\t", " ").replace("\n", " ")
 def write_tsv(path, cols, rows):
     with open(path, "w", newline="") as f:
         wr = csv.writer(f, delimiter="\t", lineterminator="\n", quoting=csv.QUOTE_NONE, escapechar="\\")
@@ -779,6 +806,8 @@ def summary(rows, trows, fails, probs, note):
           "| 规则 | 个数 |", "|---|---|"] + ["| %s | %d |" % (k, rc[k]) for k in sorted(rc, key=lambda x: (x[0] != "W", int(x[1:]) if x[1:].isdigit() else 99))]
     conflict = [r for r in rows if r["rule"] == "W11" and "状态冲突" in r["reason"]]
     if conflict: L += ["", "状态冲突、这次不删、等 Zack 定的：%d 个（worktrees.tsv 里 W11 且原因写「状态冲突」）" % len(conflict)]
+    locked = [r for r in rows if r["rule"] == "W18"]
+    if locked: L += ["", "GIT_LOCKED（W18）：%d 个（gitdir 里有锁或没做完的 git 操作，这次不删）" % len(locked)]
     lin_fail = [r for r in rows if r["rule"] == "W10" and "查不到" in r["reason"]]
     if lin_fail: L += ["", "Linear 查不到的：%d 个（都当作没关）" % len(lin_fail)]
     tc = Counter(r["action"] for r in trows); trc = Counter(r["rule"] for r in trows)
@@ -789,7 +818,7 @@ def summary(rows, trows, fails, probs, note):
     ex = expired_backups()
     L += ["", "超过 30 天的备份（只列出，删除另外批准）：" + ("、".join(ex) if ex else "无")]
     if EXECUTE: L += ["", "没做成的：%d 个（见 worktrees.tsv / terminals.tsv 的 result 列，逐条动作见 journal.tsv）" % fails]
-    return "\n".join(L) + "\n"
+    return mask_email("\n".join(L) + "\n")
 
 def main():
     d = collect()

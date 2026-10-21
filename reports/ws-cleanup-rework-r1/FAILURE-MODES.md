@@ -109,3 +109,25 @@
 | D1 | 名单里是 RM / BACKUP_RM，`--execute` 开始时已经变成 SKIP，result 列空着，看不出它为什么没删；名单里有、Orca 里已经没有的，哪里都不记 | d09、d10 在 dry-run 之后改了，execute-1 的 result 是空的；execute-2 里 d02 等已删的没有任何记录 | 同一天第二次跑（xe2）：x_late 现在是 W7，x_ok 已经删了 | x_late 的 result 写「跳过：名单里是 RM，这次判定 SKIP W7」；journal 有 x_ok 的 not-found 行 |
 | D2 | `orca worktree rm --json` 失败时 result 只记了输出的最后一行（`}`） | d11-locked 的 result 是「rm 失败…：}」 | 只在真演练里测（假 orca 失败时输出的不是 JSON） | result 写 Orca 的 error.message（例如「Worktree is locked by Git」） |
 | D3 | 备份失败（sha 对不上、读不了）以后，拷了一半的目录留在原处，里面还有 MANIFEST，看起来像一份备份，而且第二天再跑会被「备份目录已存在」挡住，永远备份不成 | d12-sha 留下了 MANIFEST 校验不过的目录；d13-noperm 留下了半个目录；execute-2 对两个都报「备份目录已存在」 | x_sha、x_e8a_noperm，再加同一天第二次跑 | 拷了一半的目录改名成 `<目录>.failed-<时分秒>`，原名下没有东西；第二次跑不会报「备份目录已存在」 |
+
+补充（R2，Zack 10-21 07:34）：git 锁在 dry-run 就判 SKIP；报告和 TSV 里的邮箱打码。先写失败方式，再改代码。
+
+| # | 失败方式 | 用例 | 期望 |
+|---|---|---|---|
+| G1 | 工作区 gitdir 里有 index.lock（别的 git 命令在跑或异常退出），dry-run 照样判 RM | c_lk_index | SKIP W18，reason 以 GIT_LOCKED 开头 |
+| G2 | merge 没做完（MERGE_HEAD），照样删 | c_lk_merge | SKIP W18 GIT_LOCKED |
+| G3 | rebase 没做完（rebase-merge/ 或 rebase-apply/），照样删 | c_lk_rebase、c_lk_am | SKIP W18 GIT_LOCKED |
+| G4 | cherry-pick 没做完（CHERRY_PICK_HEAD），照样删 | c_lk_cherry | SKIP W18 GIT_LOCKED |
+| G5 | bisect 没做完（BISECT_LOG），照样删 | c_lk_bisect | SKIP W18 GIT_LOCKED |
+| G6 | `git worktree lock` 过的（gitdir 里有 locked），dry-run 判 RM，到 rm 才被 Orca 拒绝，而且之前先做了一次备份（R1 演练 d11） | c_lk_wtlock | SKIP W18 GIT_LOCKED |
+| G7 | 目录已不在、git 记录被 lock 了，按 W4 判 RM | c_lk_gone | SKIP W18 GIT_LOCKED |
+| G8 | 锁检查只认 `<path>/.git` 是目录：linked worktree 的 `.git` 是文件，指向 main 的 `.git/worktrees/<名>`，锁在那里，查不到 | c_lk_index 等都是 linked worktree | 同上 |
+| G9 | 锁判定排在 W7 后面：merge 冲突、index.lock 会先被判成 W7，统计不到 GIT_LOCKED | c_lk_merge（有冲突文件也是未提交改动） | 规则是 W18，不是 W7 |
+| G10 | dry-run 之后才加锁，`--execute` 不复查照样备份再 rm | x_late_lock（等待点期间 touch index.lock） | 跳过：「重新判定变成 SKIP W18」，没有 backup、没有 rm 调用 |
+| G11 | 没有锁的工作区被误判 GIT_LOCKED（例如把 main 的 index.lock 算到每个 linked worktree 头上） | 给 main 仓库造 index.lock，c_ops_common 等照常 | c_ops_common 仍是 RM W14 |
+| M1 | 备注、原因等字段里的邮箱原样写进 worktrees.tsv / summary.md / journal.tsv / stdout | c_email 的 comment 写两个邮箱 | 只出现 a***@example.com 这样的形式，原邮箱一处都没有 |
+| M2 | 先截断到 60 字再打码，截断后半个邮箱（admin@exam…）认不出来，原样留下（R1 实际出现过） | c_email_long：邮箱跨过第 60 个字 | 不出现原用户名 |
+| M3 | 把 `pkg@1.2.3`、`node@20` 这类版本号当邮箱打码 | c_email 的 comment 里带 `pkg@1.2.3` | 原样保留 |
+| M4 | 只给 comment 打码，terminals.tsv、journal.tsv、summary.md 里别处出现的邮箱漏掉 | 终端 title / worktree 名带邮箱；execute 的 journal | 所有输出文件里都没有原邮箱 |
+| M5 | 文件名 `page@<hash>.webm`（Playwright 录像）被当成邮箱打码，backup-files.tsv 里的路径变了，对不上真文件；`--execute` 拿打码后的备份清单去和实时的比，永远「不一样」（R2 第一次真实 dry-run 看到 16 个） | c_testresults 里加 `test-results/page@0a1b2c3d.webm` | backup-files.tsv 原样写这个文件名 |
+| M6 | 名单 TSV 是打过码的，`--execute` 用没打码的 id / 备份清单去对，有邮箱的那行永远对不上 | 只在代码里处理：对比前两边都过同一个打码 | — |

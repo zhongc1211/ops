@@ -1,7 +1,7 @@
 #!/bin/bash
 # ws-cleanup-test.sh: run scripts/ws-cleanup.sh against fake orca / gh / ps data plus real throwaway git repos under mktemp -d.
 # One case per failure mode in reports/ws-cleanup-dryrun-1021/RESULT.md (A1-A34) and reports/ws-cleanup-rework-r1/FAILURE-MODES.md
-# (B1-B29, E1-E19). Uses test doubles, so it is not an E2E test; the E2E is the real dry-run on iMac / MBA.
+# (B1-B29, E1-E19, G1-G11, M1-M4). Uses test doubles, so it is not an E2E test; the E2E is the real dry-run on iMac / MBA.
 # The --execute cases run only against the fake orca in the temp dir: guard_fake() refuses to start one otherwise.
 # WS_CLEANUP=<path> runs another implementation (an older version or an empty stub must fail).
 S=${WS_CLEANUP:-$(cd "$(dirname "$0")/.." && pwd)/ws-cleanup.sh}
@@ -59,7 +59,7 @@ mkdir -p "$T/wt/c_nested/scratch/deep"; printf 'task\n' >"$T/wt/c_nested/scratch
 mkdir -p "$T/wt/c_cache_only/node_modules/pkg" "$T/wt/c_cache_only/dist"
 printf 'm\n' >"$T/wt/c_cache_only/node_modules/pkg/TASK.md"; printf 'b\n' >"$T/wt/c_cache_only/dist/app.js"
 mkdir -p "$T/wt/c_not_git"; printf 'n\n' >"$T/wt/c_not_git/file"
-mkdir -p "$T/wt/c_testresults/test-results/run1"; printf 'trace\n' >"$T/wt/c_testresults/test-results/run1/trace.zip"
+mkdir -p "$T/wt/c_testresults/test-results/run1"; printf 'trace\n' >"$T/wt/c_testresults/test-results/run1/trace.zip"; printf 'v\n' >"$T/wt/c_testresults/test-results/run1/page@0a1b2c3d.webm"
 mkdir -p "$T/wt/c_report/docs/e2e"; printf 'report\n' >"$T/wt/c_report/docs/e2e/report.md"
 printf 'tgz\n' >"$T/wt/c_tgz/lessons-import.tgz"
 mkdir -p "$T/wt/c_mixed_dir/scratch"; printf 't\n' >"$T/wt/c_mixed_dir/scratch/TASK.md"; printf 'notes\n' >"$T/wt/c_mixed_dir/scratch/notes.txt"
@@ -67,6 +67,20 @@ mkdir -p "$T/wt/c_nested_git/.claude/worktrees/x/.git"; printf 'ref: refs/heads/
 mkdir -p "$T/wt/c_fifo/scratch"; mkfifo "$T/wt/c_fifo/scratch/pipe"
 mkdir -p "$T/wt/c_build/build" "$T/wt/c_build/.cache/x" "$T/wt/c_build/.venv/bin"
 printf 'o\n' >"$T/wt/c_build/build/out.js"; printf 'c\n' >"$T/wt/c_build/.cache/x/c"; printf 'p\n' >"$T/wt/c_build/.venv/bin/py"
+# G cases (Zack 10-21 07:34): git locks / unfinished operations in the worktree's own gitdir -> SKIP W18 GIT_LOCKED
+for c in c_lk_index c_lk_merge c_lk_rebase c_lk_am c_lk_cherry c_lk_bisect c_lk_wtlock c_email c_email_long; do add "$c" "br/$c"; done
+gd(){ git -C "$T/wt/$1" rev-parse --absolute-git-dir; }
+blob=$(printf 'other\n' | git -C "$P" hash-object -w --stdin)
+tree=$({ git -C "$P" ls-tree main | grep -v '	README$'; printf '100644 blob %s\tREADME\n' "$blob"; } | git -C "$P" mktree)
+git -C "$P" branch lkother "$(git -C "$P" commit-tree "$tree" -p main -m other)"
+for c in c_lk_merge c_lk_rebase c_lk_cherry; do printf 'mine\n' >"$T/wt/$c/README"; git -C "$T/wt/$c" commit -qam mine; done
+git -C "$T/wt/c_lk_merge" merge -q lkother >/dev/null 2>&1
+git -C "$T/wt/c_lk_rebase" rebase lkother >/dev/null 2>&1
+git -C "$T/wt/c_lk_cherry" cherry-pick lkother >/dev/null 2>&1
+touch "$(gd c_lk_index)/index.lock"; mkdir "$(gd c_lk_am)/rebase-apply"
+git -C "$T/wt/c_lk_bisect" bisect start >/dev/null 2>&1
+git -C "$P" worktree lock "$T/wt/c_lk_wtlock"
+git -C "$P" worktree add -q --detach "$T/wt/c_lk_gone" main 2>/dev/null; git -C "$P" worktree lock "$T/wt/c_lk_gone"; rm -rf "$T/wt/c_lk_gone"
 # W4 cases: directory gone, git record kept (pushed / local-only detached / only in its own branch) or never there (c_missing)
 git -C "$P" worktree add -q --detach "$T/wt/c_gone_pushed" main 2>/dev/null
 git -C "$P" worktree add -q --detach "$T/wt/c_gone_local" main 2>/dev/null
@@ -76,7 +90,7 @@ printf 'o\n' >"$T/wt/c_gone_ownbranch/o"; git -C "$T/wt/c_gone_ownbranch" add o;
 rm -rf "$T/wt/c_gone_pushed" "$T/wt/c_gone_local" "$T/wt/c_gone_ownbranch"
 # execute project x: one worktree per --execute case
 for c in x_ok x_bk x_sha x_rmfail x_e8a_noperm x_e8b_after x_late x_late2 x_late3 x_late4 x_late5 x_notlisted x_listchanged x_lin_fail x_lin_gone \
-         x_q01 x_q02 x_q03 x_q04 x_q05 x_q06 x_q07 x_q08 x_q09 x_q10 x_term x_term2 x_term3; do
+         x_late_lock x_q01 x_q02 x_q03 x_q04 x_q05 x_q06 x_q07 x_q08 x_q09 x_q10 x_term x_term2 x_term3; do
   git -C "$X" worktree add -q -b "br/$c" "$T/wt/$c" origin/main 2>/dev/null; done
 mkdir -p "$T/wt/x_bk/.orca-task"; printf 'brief\n' >"$T/wt/x_bk/.orca-task/BRIEF.md"
 printf 'API_TOKEN=%s\n' "$SECRET" >"$T/wt/x_bk/.dev.vars"
@@ -92,13 +106,14 @@ import json, os, sys
 T, F, NOW, SCR, MERGED_SHA = sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5]
 old, recent = (NOW - 200000) * 1000, (NOW - 7200) * 1000
 R1, R2, R3, RX = "r-proj", "r-ops", "r-nogh", "r-x"
-def w(path, repo=R1, status="completed", act=old, br=None, main=False, host="local", pr=None, lin=None, proj=None):
+def w(path, repo=R1, status="completed", act=old, br=None, main=False, host="local", pr=None, lin=None, proj=None, name=None,
+      comment="note https://example.invalid/hook/abc"):
     br = br if br is not None else "br/" + os.path.basename(path)
     proj = proj or {R1: "github:up/proj", R2: "github:zz/ops", R3: "github:zz/nogh", RX: "github:zz/x"}[repo]
-    return {"id": f"{repo}::{path}", "repoId": repo, "projectId": proj, "path": path, "displayName": os.path.basename(path),
+    return {"id": f"{repo}::{path}", "repoId": repo, "projectId": proj, "path": path, "displayName": name or os.path.basename(path),
             "branch": "refs/heads/" + br if br else "", "workspaceStatus": status, "lastActivityAt": act, "hostId": host,
             "isMainWorktree": main, "isBare": False, "isArchived": False, "linkedPR": pr, "linkedLinearIssue": lin,
-            "isUnread": False, "comment": "note https://example.invalid/hook/abc"}
+            "isUnread": False, "comment": comment}
 wt = lambda c: f"{T}/wt/{c}"
 W = [w(f"{T}/repos/proj", br="main", main=True, status="in-progress"),
      w(f"{T}/repos/ops", repo=R2, br="main", main=True, status="in-progress"),
@@ -116,8 +131,12 @@ W = [w(f"{T}/repos/proj", br="main", main=True, status="in-progress"),
      w(wt("c_sleep_cap"), status="Sleep", lin="PER-2"), w(wt("c_ps_agent")), w(wt("c_build")),
      w(wt("c_gone_pushed"), br=""), w(wt("c_gone_local"), br=""), w(wt("c_gone_ownbranch")),
      w(wt("c_head_unmerged")), w(wt("c_linear_done_unmerged"), lin="PER-2"), w(wt("c_head_pr_merged"))]
+W += [w(wt(c)) for c in ("c_lk_index", "c_lk_merge", "c_lk_rebase", "c_lk_am", "c_lk_cherry", "c_lk_bisect", "c_lk_wtlock")]
+W += [w(wt("c_lk_gone"), br=""),
+      w(wt("c_email"), name="bob.smith@example.com", comment="Bob.Smith@example.com ops-admin@corp.example.org pkg@1.2.3 node@20"),
+      w(wt("c_email_long"), comment="x" * 50 + " admin.person@example.com")]
 XS = ["x_ok", "x_bk", "x_sha", "x_rmfail", "x_e8a_noperm", "x_e8b_after", "x_late", "x_late2", "x_late3", "x_late4", "x_late5",
-      "x_notlisted", "x_listchanged", "x_lin_fail", "x_lin_gone"] + ["x_q%02d" % i for i in range(1, 11)] + ["x_term", "x_term2", "x_term3"]
+      "x_notlisted", "x_listchanged", "x_lin_fail", "x_lin_gone", "x_late_lock"] + ["x_q%02d" % i for i in range(1, 11)] + ["x_term", "x_term2", "x_term3"]
 W += [w(wt(c), repo=RX, lin={"x_late5": "XXX-1", "x_lin_fail": "YYY-1", "x_lin_gone": "XXX-2"}.get(c)) for c in XS]
 json.dump({"result": {"worktrees": W}}, open(F + "/wt.json", "w"), ensure_ascii=False)
 # terminals: (handle, case, pid or None, connected, orphaned, agent, tab, children comm list, screen or None, lastOutputAt)
@@ -146,7 +165,8 @@ TS = [("t_agent", "c_agent", 1001, True, False, "claude", "tab-a", ["claude"], P
       ("t_late_tab", "x_term2", 1221, True, False, None, "tab-L", [], P_, old),
       ("t_x_arcfail", "x_term", 1231, True, False, None, "tab-xa", [], P_, old),
       ("t_x_agent", "x_term3", 1241, True, False, "claude", "tab-xg", ["claude"], P_, old),
-      ("t_x_agent_sib", "x_term3", 1251, True, False, None, "tab-xs", [], P_, old)]
+      ("t_x_agent_sib", "x_term3", 1251, True, False, None, "tab-xs", [], P_, old),
+      ("t_email", "c_email", 1301, True, False, None, "tab-em", [], P_, old)]
 terms, sess, ps = [], {}, ["  PID  PPID COMM", "    1     0 /sbin/launchd"]
 for h, c, pid, con, orph, ag, tab, kids, scr, last in TS:
     path = f"{T}/repos/proj" if c == "MAIN" else wt(c) if c else f"{T}/folder"
@@ -205,7 +225,7 @@ print(json.dumps({"result":{"terminal":t[0]}})) if t else sys.exit(1)' "$WS_FIX/
 "worktree rm") sel=; while [ $# -gt 0 ]; do [ "$1" = --worktree ] && sel=$2; shift; done
   [ -x "$WS_FIX/on-rm.sh" ] && "$WS_FIX/on-rm.sh"
   if [ -f "$WS_FIX/fail-rm" ] && grep -qxF -- "$sel" "$WS_FIX/fail-rm"; then echo "error: worktree is locked" >&2; exit 1; fi
-  echo '{"result":{"removed":true}}';;
+  echo '{"result":{"removed":true,"by":"ops.admin@example.com"}}';;
 *) echo '{"result":{}}';;
 esac
 SH
@@ -257,6 +277,7 @@ m = [r for r in rows if r.get("path", "").endswith("/" + key) or r.get("handle")
 print(m[0].get(field, "<nocol>") if m else "<none>")
 PY
 }
+touch "$T/repos/ops/.git/index.lock"   # G11
 gitsnap >"$T/git-before"
 
 rc=$(run "$T/out1")
@@ -298,6 +319,17 @@ expect c_report B6 BACKUP_RM/W13
 expect c_tgz B6 BACKUP_RM/W13
 expect c_mixed_dir B7 BACKUP_RM/W13
 expect c_nested_git B9 SKIP/W13
+for c in c_lk_index c_lk_merge c_lk_rebase c_lk_am c_lk_cherry c_lk_bisect c_lk_wtlock c_lk_gone; do expect $c G1-G9 SKIP/W18; done
+check "G1 GIT_LOCKED reasons name the lock" 'col "$WT" c_lk_index reason | grep -q "^GIT_LOCKED：index.lock" && col "$WT" c_lk_merge reason | grep -q "^GIT_LOCKED：merge" && col "$WT" c_lk_rebase reason | grep -q "^GIT_LOCKED：rebase" && col "$WT" c_lk_am reason | grep -q "^GIT_LOCKED：rebase" && col "$WT" c_lk_cherry reason | grep -q "^GIT_LOCKED：cherry-pick" && col "$WT" c_lk_bisect reason | grep -q "^GIT_LOCKED：bisect" && col "$WT" c_lk_wtlock reason | grep -q "^GIT_LOCKED：git worktree lock" && col "$WT" c_lk_gone reason | grep -q "^GIT_LOCKED：git worktree lock"'
+check "G11 index.lock in the ops main repo does not lock c_ops_common / c_gh_fail" '[ "$(col "$WT" c_ops_common rule)" = W14 ] && [ "$(col "$WT" c_gh_fail rule)" = W9 ]'
+check "G1 summary counts GIT_LOCKED" 'grep -q "GIT_LOCKED（W18）：8 个" "$T/out1/summary.md"'
+EM='bob\.smith|Bob\.Smith|ops-admin@|admin\.person|ops\.admin@'
+check "M1 no raw email anywhere in dry-run output or stdout" '! grep -rqE "$EM" "$T/out1" "$T/log"'
+check "M1 c_email comment / name masked as first char + domain" 'col "$WT" c_email comment | grep -qF "B***@example.com" && col "$WT" c_email comment | grep -qF "o***@corp.example.org" && [ "$(col "$WT" c_email name)" = "b***@example.com" ]'
+check "M2 email cut by the 60-char limit is still masked" 'col "$WT" c_email_long comment | grep -qF "a***@"'
+check "M3 version strings pkg@1.2.3 / node@20 left alone" 'col "$WT" c_email comment | grep -qF "pkg@1.2.3 node@20"'
+check "M5 file name page@<hash>.webm is not taken for an email" 'grep -qF "test-results/run1/page@0a1b2c3d.webm" "$T/out1/backup-files.tsv"'
+check "M4 terminals.tsv worktree column masked" 'grep -qF "b***@example.com" "$TM" && ! grep -qE "$EM" "$TM"'
 expect c_fifo B10 SKIP/W13
 expect c_moved_open B11 SKIP/W9
 expect c_old_open_pr B12 SKIP/W9
@@ -406,6 +438,7 @@ XPID=$!
 for _ in $(seq 1 600); do [ -f "$T/go.ready" ] && break; sleep 0.1; done
 check "E4 execute stops at the pause point" '[ -f "$T/go.ready" ]'
 printf 'n\n' >"$T/wt/x_late/new.txt"                                                     # E4a
+touch "$(git -C "$T/wt/x_late_lock" rev-parse --absolute-git-dir)/index.lock"            # G10
 printf 'c\n' >"$T/wt/x_late2/c"; git -C "$T/wt/x_late2" add c; git -C "$T/wt/x_late2" commit -qm late     # E4b
 python3 -I - "$F" "$T" <<'PY'
 import json, os, sys
@@ -445,6 +478,8 @@ check "E4d x_late5 skipped (W10, Linear reopened)" 'res x_late5 | grep -q "跳�
 check "L37 x_lin_fail: Linear query fails at delete time -> not removed" 'res x_lin_fail | grep -q "跳过：重新判定变成 SKIP W10（Linear 查不到" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_lin_fail'
 check "L37 x_lin_gone: issue missing at delete time -> not removed" 'res x_lin_gone | grep -q "跳过：重新判定变成 SKIP W10（Linear 查不到" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_lin_gone'
 check "E5 x_q10 skipped after an agent showed up mid-run; x_q01-x_q09 removed" 'res x_q10 | grep -q "SKIP W5" && [ "$(for i in 01 02 03 04 05 06 07 08 09; do res x_q$i; done | sort -u)" = "已 rm" ]'
+check "G10 x_late_lock locked after the dry-run: skipped as W18, no backup, no rm" 'res x_late_lock | grep -q "跳过：重新判定变成 SKIP W18（GIT_LOCKED" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_late_lock && ! grep -q "x_late_lock" "$XE/journal.tsv"'
+check "M4 journal / execute output: orca's email masked" '! grep -rqE "$EM" "$XE" "$T/xlog" && grep -qF "o***@example.com" "$XE/journal.tsv"'
 check "E14 x_notlisted (not in --only-from) untouched" '[ "$(res x_notlisted)" = "没动：不在 --only-from 名单里" ] && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_notlisted'
 check "E15 x_listchanged: backup list changed -> skipped" 'res x_listchanged | grep -q "^跳过：" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_listchanged'
 check "E6 t_late got a process -> not closed" 'col "$XT" t_late result | grep -q "^跳过：重新判定变成 SKIP T6" && ! grep -q "terminal close --terminal t_late " "$F/orca-calls.log"'
