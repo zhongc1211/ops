@@ -225,3 +225,38 @@ precheck，都没有 lockf。新加的 9 项：
 - S12.old 照样过：超时取 7ac1220 那版 defs 的 240，和以前一样。
 
 共 56 项。新代码上 56 项都该过。
+
+### 第五轮回退测试以后补的（2026-10-22 01:0x，改演练之前）
+
+`17116ce` 上的回退测试（`reports/heartbeat-mba-imac-1021-rollback-f828d45-17116ce/`）56 项里 55 项和期望一致。逐项核对挂的原因时发现，
+S13 和 S14.MBA.timeout 在 base 上没测到要测的情况：挂是挂了，原因不是上面写的那条。上面几张表不改，补的写在这里，写完再改演练。
+
+| # | 事实 | 怎么查到的 | 影响 |
+|---|---|---|---|
+| F30 | base 上 MBA 那条 precheck（现网 box `94e4b0bc` 的原文）没有 `HB_ORCA`，heartbeat-watch 直接调本机的 orca：先在 PATH 里找 `orca-ide`、`orca`，都找不到就用 `/Applications/Orca.app/Contents/Resources/bin/orca`（第 39–40 行，和 base 一样）。演练在 MBA 上用最少环境，PATH 是 `替身目录:/usr/bin:/bin:/usr/sbin:/sbin`；MBA 的 `orca` 在 `/usr/local/bin`（链接到上面那个路径），不在 PATH 里，所以用的是那个路径。S13、S14 在 MBA 上只替了 ssh，base 上这些替身一次都没被调用 | 回退测试的 `raw/mba/S13-A.ssh-calls`、`S13-B.ssh-calls`、`raw/mba/S14/timeout.stub-calls` 都是空的；`raw/mba/S13-*.orca.json` 的起止时间；`scripts/heartbeat-watch.sh` 第 39–40 行；在 MBA 上 `ls -l` 看了这两个路径 | S13：A 没被拖慢，18.3 秒就结束了，B 在 A 结束 3.3 秒后才开始，两轮没有同时跑。B 照常跑完、退出 1，S13 因此挂了，但证明不了「两轮同时跑时，没有锁 B 就会进到 heartbeat-watch」。S14.MBA.timeout：第一轮调的是真 orca，替身没起来；演练等满 10 秒、又等 3 秒才探锁，第一轮 12.0 秒时已经被杀，探锁退出 0 证明不了「第一轮跑的时候拿得到锁」。S14.MBA.held、nodir 在 base 上调的也是真 orca（只读），它们挂的原因（目录被建出来、退出不是 75 / 73）不受影响。iMac 上 base 的 heartbeat-watch 在 PATH 里找到了 orca-ide 替身，S14.iMac.timeout 的替身起来了（`raw/S14-imac/timeout.stub-calls` 有一行），探锁在替身起来 3 秒后 |
+
+### 演练本身可能骗人的地方（补）
+
+| # | 风险 | 处理 |
+|---|---|---|
+| C15 | 替身只替 ssh：base 上 MBA 那条 precheck 不经 ssh（F30），替身没起作用，项目照样挂。只看「过 / 挂」看不出来 | MBA 上 S13、S14 的替身同时替 ssh 和 orca，每次调用记一行：pid、时间、替身名。S13 A 那轮每次调用先等 30 秒，再 exec 真的 `/usr/bin/ssh` 或 `/Applications/Orca.app/Contents/Resources/bin/orca`（PATH 里找不到 orca 时 heartbeat-watch 用的就是它）。S14.timeout 探锁前后各记一次时间（精确到毫秒），和第一轮的起止时间比。回退测试对第五轮新加的 7 项该挂的，除了核对挂没挂，还按下面「回退测试的期望（第五轮补）」核对演练「实际」一栏里挂的原因，对不上算不一致 |
+| C16 | S6b.box 读的是 iMac 经 environment `grok-bot` 连 box 的运行记录，box 连不上时会挂。`17116ce` 的回退测试就是这样：00:46:22–00:47:03 三次都是 `remote_runtime_unavailable`，现网 `5c2d0575` 00:50 那一轮也一样（回退测试目录里手写的 `NOTE.md`） | 期望不改。挂了照实写报错原文和同一时间现网 `5c2d0575` 读 box 的结果，不为这个原因重跑 |
+
+### 新代码上的期望（第五轮补）
+
+A30–A35 之外：
+
+- S13：A、B、C 各自的 ssh、orca 调用分开数。B 的 ssh、orca 都是 0 次。「实际」一栏写明 B 在不在 A 跑的期间。
+- S14.MBA.held、S14.MBA.nodir：替身 0 次，ssh、orca 都算。
+- S14.MBA.timeout、S14.iMac.timeout：探锁在第一轮开始以后、结束以前（第一轮还在跑），「实际」一栏写明；替身各起了几次分开写。
+
+共 56 项，新代码上 56 项都该过。
+
+### 回退测试的期望（第五轮补）
+
+该挂 27 项、该过 29 项不变。第五轮新加的 7 项该挂的，演练「实际」一栏要对得上下面的原因，对不上算不一致：
+
+- S13：B 在 A 跑的期间开始和结束，没超时，退出 1（照常跑完一轮），B 调了 orca（至少 1 次），B 前后状态目录不一样。
+- S14.MBA.held、S14.iMac.held：退出不是 75，那个目录被建出来了。
+- S14.MBA.nodir、S14.iMac.nodir：退出不是 73，那个目录被建出来了。
+- S14.MBA.timeout、S14.iMac.timeout：第一轮还在跑的时候探锁，退出 0；替身起了至少 1 次；第一轮到 12 秒被杀。
