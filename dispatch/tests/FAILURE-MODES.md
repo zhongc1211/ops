@@ -15,17 +15,20 @@
 | F7 | `orca` 挂住超过 10 秒 | 10 秒内被杀（连同子进程组），`orca_ok=false`，不留子进程 | orca_timeout |
 | F8 | `orca` 输出不是 JSON / JSON 截断 | `orca_ok=false`，错误写 `bad_json` | orca_bad_json |
 | F9 | `orca` 返回 `ok:false` 或缺 `result.host` | `orca_ok=false` | orca_not_ok |
-| F10 | `orca worktree ps` / `terminal list` 失败 | 会话照记，`terminal=null`，`errors` 记下，`orca_ok` 仍为 true | orca_enrich_fail |
-| F11 | 会话 pid 在 ps 里找不到 | 该会话 `proc.found=false`，其他会话照常 | session_no_proc |
+| F10 | `orca worktree ps` / `terminal list` 失败 | 会话照记，字典里 handle 等为 null，`errors` 记下，`orca_ok` 仍为 true | orca_enrich_fail |
+| F11 | 会话 pid 在 ps 里找不到 | 该会话 `found=false`，其他会话照常 | normal（会话 C） |
 | F12 | `ps`/`sysctl`/`df` 失败或输出怪 | 对应字段为 null，`errors` 记下，不崩 | fallback_tools_fail |
 | F13 | 整轮超过 30 秒 | 写已采到的部分并标 `round_timeout`，进程退出 | （由 F7 的单步限时间接保证，另有 ROUND_TIMEOUT 覆盖用例 round_timeout） |
-| F14 | 当天文件之外的旧文件超过保留天数 | 删掉超期的 `YYYY-MM-DD.jsonl`，不碰别的文件名 | rotate_old |
-| F15 | 自己目录 `*.jsonl` 总大小超上限 | 从最旧开始删，不删当天文件；当天文件单独超上限就停止追加并记日志 | size_cap |
-| F16 | 别的主机目录、非 `*.jsonl` 文件 | 永远不删 | rotate_old / size_cap 里一并断言 |
-| F17 | 自身日志无限增长 | 超过 `LOG_MAX_KB` 时轮转为 `.log.1`，最多两份 | log_cap |
+| F14 | 已有的天数到 `MAX_DAYS`（今天还没文件） | 不写今天，日志 ERROR，状态文件 `full`，`install.sh --check` 报警；ops 挪走旧文件后自动恢复 | max_days |
+| F14b | 到上限时任何数据文件被删 | 采样器不删任何文件（代码里没有删除调用） | max_days、size_cap 断言文件个数不变 |
+| F15 | 本机目录总大小加上本次要写的超过 `MAX_TOTAL_MB` | 同 F14：停写不删，当天文件不截断 | size_cap |
+| F16 | 别的主机目录、非 `*.jsonl` 文件 | 永远不动 | max_days 里一并断言 |
+| F17 | 自身日志、launchd 日志超过 `LOG_MAX_KB` | 挪到 `log-archive/<名>.<时间>`，不覆盖已有归档 | log_cap |
+| F17b | `log-archive` 里同名归档已满 `LOG_ARCHIVE_MAX` 份 | 不再挪也不再写日志（数据照写），不删归档 | log_cap |
 | F18 | 会话正文（prompt、preview、lastAssistantMessage）被写进 samples | 只存白名单字段；断言输出里没有桩里埋的正文标记 | normal（断言） |
 | F19 | launchd 的极简 PATH 找不到 orca | 脚本自己补 PATH（含 Orca.app 的 bin） | normal（用 `env -i` 跑） |
-| F20 | 写盘失败（目录不可写） | 退出码非 0，日志写原因，不影响别的进程 | （手工：不单测） |
+| F20 | 写盘失败（目录不可写） | 退出码非 0，日志写原因，状态文件 `write_error` | （手工：不单测） |
+| F21 | 每分钟重复写静态字段，一天的数据过大 | 静态字段只在变化时写进 `YYYY-MM-DD.sessions.jsonl` 字典，每分钟只写会变的字段 | dict_dedup |
 
 ## 回放 ops-v5-sample-replay
 
@@ -36,3 +39,14 @@
 | R3 | 连续 61 分钟不可起 | 门槛 1 报出该窗口，`max_blocked_min=61` | replay_gate1 |
 | R4 | 放行后 30 分钟内 free% 跌破 X | 门槛 2 报违规次数和最低 free% | replay_gate2 |
 | R5 | ssh 拉取失败 | 报错退出码非 0，说明是哪台 | （手工） |
+| R6 | 不同 agent 类型的内存差别大，单一 R 不准 | 按 agent 类型分别给 tree_rss p90/p99 | replay_gate2 |
+
+## install.sh
+
+| # | 失败方式 | 期望行为 | 用例 |
+|---|---|---|---|
+| F22 | 装之前没有快照，没法回滚 | `--install` 先跑 `~/ops-archive/per126-v5-backup-1021/<机器>/tools/backup.sh --label p2-sampler`，核对 install-log.tsv 多一行、label 对，打印快照目录和 MANIFEST sha256；装完追加已装文件和 sha256 的记录 | install |
+| F23 | backup.sh 不在、失败、没写 install-log、写的 label 不对 | 退出非 0，什么都不装 | install_backup_fail |
+| F24 | 卸载时误删文件 | `--uninstall` 先 bootout，再把 plist、脚本、配置挪到 `removed-<时间>/`，不删；数据目录默认保留，`--move-data` 才挪 | uninstall |
+| F25 | 不在 macOS 或没有 dscl | 退出 2 并说明原因，不静默退出 127 | install_not_macos |
+| F26 | 重装时 `.bak` 留在 LaunchAgents 或 `.local/bin` 被 launchd/PATH 读到 | 旧文件挪进 `~/ops-archive/.../p2-sampler-bak-<时间>/` | install |

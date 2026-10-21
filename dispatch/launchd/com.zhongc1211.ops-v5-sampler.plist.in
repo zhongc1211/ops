@@ -21,10 +21,10 @@
   <key>Nice</key>
   <integer>10</integer>
   <key>WorkingDirectory</key>
-  <string>@HOME@/.local/state/dispatch</string>
+  <string>@HOME@/.local/state/ops-v5</string>
   <key>StandardOutPath</key>
-  <string>@HOME@/.local/state/dispatch/ops-v5-sampler.launchd.log</string>
+  <string>@HOME@/.local/state/ops-v5/ops-v5-sampler.launchd.log</string>
   <key>StandardErrorPath</key>
-  <string>@HOME@/.local/state/dispatch/ops-v5-sampler.launchd.log</string>
+  <string>@HOME@/.local/state/ops-v5/ops-v5-sampler.launchd.log</string>
 </dict>
 </plist>

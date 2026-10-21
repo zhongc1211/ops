@@ -23,7 +23,7 @@
 用法：
   ops-v5-sample-replay [--dir PATH]... [--ssh HOST]... [参数] [--json FILE|-]
   --dir PATH         本地 samples 根目录、某台的目录或单个 .jsonl，可重复
-  --ssh HOST         经 ssh 只读拉取 HOST 上 ~/.local/state/dispatch/samples 下全部 .jsonl，可重复
+  --ssh HOST         经 ssh 只读拉取 HOST 上 ~/.local/state/ops-v5/samples 下全部 YYYY-MM-DD.jsonl，可重复
   --since YYYY-MM-DD / --until YYYY-MM-DD   只用这个日期范围（按记录的 minute）
   --reserve-gb 1,1.5,2   预扣额 R 的候选
   --floor-gb 0.5,1,1.5   下限 F 的候选
@@ -44,8 +44,10 @@ import subprocess
 import sys
 
 GB = 1024.0 ** 3
-SCHEMA = "ops-v5-sample/1"
-REMOTE_CMD = 'find "$HOME/.local/state/dispatch/samples" -type f -name "*.jsonl" -exec cat {} +'
+SCHEMA = "ops-v5-sample/2"
+DICT_SCHEMA = "ops-v5-session-dict/1"
+# 只拉每分钟的记录；会话字典（YYYY-MM-DD.sessions.jsonl）回放用不到
+REMOTE_CMD = 'find "$HOME/.local/state/ops-v5/samples" -type f -name "????-??-??.jsonl" -exec cat {} +'
 
 
 def floats(s):
@@ -141,6 +143,8 @@ def load(opts):
                 continue
             try:
                 r = json.loads(line.decode("utf-8") if isinstance(line, bytes) else line)
+                if r.get("schema") == DICT_SCHEMA:
+                    continue
                 if r.get("schema") != SCHEMA:
                     raise ValueError
                 k = minute_key(r)
@@ -199,7 +203,7 @@ def dist(vals, scale=1.0, nd=2):
 
 
 def host_stats(recs):
-    avail, load, smem, srss, agents = [], [], [], [], []
+    avail, load, smem, srss, agents, by_type = [], [], [], [], [], {}
     for r in recs.values():
         o = (r.get("machine") or {}).get("orca") or {}
         if r.get("orca_ok"):
@@ -207,15 +211,18 @@ def host_stats(recs):
             load.append(o.get("loadAverage1m"))
         for s in r.get("sessions") or []:
             smem.append(s.get("memory"))
-            p = s.get("proc") or {}
-            if p.get("found"):
-                srss.append(p.get("tree_rss_kb", 0) * 1024)
+            if s.get("found"):
+                rss = s.get("tree_rss_kb", 0) * 1024
+                srss.append(rss)
+                if s.get("agent_type"):
+                    by_type.setdefault(s["agent_type"], []).append(rss)
         ac = r.get("agent_count") or {}
         if isinstance(ac.get("total"), int):
             agents.append(ac["total"])
     return {"availableMemory_gb": dist(avail, GB), "loadAverage1m": dist(load),
             "session_memory_gb": dist(smem, GB, 3), "session_tree_rss_gb": dist(srss, GB, 3),
-            "agent_count": dist(agents, 1.0, 0)}
+            "agent_count": dist(agents, 1.0, 0),
+            "session_tree_rss_gb_by_agent": dict((t, dist(v, GB, 3)) for t, v in sorted(by_type.items()))}
 
 
 # ---------------------------------------------------------------- 门槛
@@ -346,8 +353,15 @@ def recommend(res, opts):
             out[xp] = None
     rss = [h["stats"]["session_tree_rss_gb"].get("p90") for h in res["hosts"].values()]
     rss = [x for x in rss if x is not None]
+    by_agent = {}
+    for h in res["hosts"].values():
+        for t, d in h["stats"]["session_tree_rss_gb_by_agent"].items():
+            if d.get("n"):
+                cur = by_agent.setdefault(t, {"p90": d["p90"], "p99": d["p99"]})
+                cur["p90"], cur["p99"] = max(cur["p90"], d["p90"]), max(cur["p99"], d["p99"])
     return {"by_free_pct": out,
             "reserve_hint_gb": max(rss) if rss else None,
+            "reserve_hint_gb_by_agent": by_agent,
             "rule": "两台都过门槛 1、2 的组合里取下限最大、R 最大、负载上限最小的一组；"
                     "R 不应低于 reserve_hint_gb（各台会话进程树 rss 的 p90 取大）。被动采样只定初值。"}
 
@@ -370,6 +384,9 @@ def summary(res):
                     k, d["n"], d["p50"], d["p90"], d["p99"], d["max"]))
             else:
                 out.append("  %-22s 无数据" % k)
+        for t, d in s["session_tree_rss_gb_by_agent"].items():
+            out.append("  %-22s n=%-6d p50=%-8s p90=%-8s p99=%-8s max=%s" % (
+                "tree_rss_gb[%s]" % t, d["n"], d["p50"], d["p90"], d["p99"], d["max"]))
     out.append("")
     xs = list(res["params"]["free_pct"])
     head = "R(GB) F(GB) L     " + "".join(
@@ -396,6 +413,8 @@ def summary(res):
         else:
             out.append("  X=%s%%：没有组合两条门槛都过" % xp)
     out.append("  R 参考：会话进程树 rss p90 = %s GB" % rec["reserve_hint_gb"])
+    for t, d in sorted(rec["reserve_hint_gb_by_agent"].items()):
+        out.append("    %s：p90 %s GB，p99 %s GB（两台取大）" % (t, d["p90"], d["p99"]))
     return "\n".join(out)
 
 

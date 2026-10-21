@@ -4,14 +4,21 @@
 
 每次运行采一次本机读数，追加一行 JSON 到
   <state>/samples/<host>/YYYY-MM-DD.jsonl
+会话的静态字段（worktreeName、repoName、长 id、handle 等）不每分钟重复写，
+只在当天第一次出现或有变化时追加到同目录的 YYYY-MM-DD.sessions.jsonl（按 sid 关联）。
 由 LaunchAgent（StartInterval 60）每分钟拉起一次。
+
+不删数据：自己目录下的天数超过 MAX_DAYS、或总大小超过 MAX_TOTAL_MB 时停写，
+记 ERROR，并把状态写进 <state>/ops-v5-sampler.status（install.sh --check 会报警），由 ops 挪走。
+日志超过 LOG_MAX_KB 时挪到 <state>/log-archive/<名字>.<时间>，不覆盖旧的；
+归档份数到 LOG_ARCHIVE_MAX 后不再写日志（状态文件照写），所以日志最多占 (LOG_ARCHIVE_MAX+1)×LOG_MAX_KB。
 
 用法：
   ops-v5-sampler [--once] [--state-dir DIR] [--config FILE] [--print]
   ops-v5-sampler --version
 
   --once       采一次就退出（默认就是这样，写上是为了让调用处看得清）
-  --state-dir  默认 ~/.local/state/dispatch
+  --state-dir  默认 ~/.local/state/ops-v5
   --config     默认 ~/.config/dispatch/sampler.env（必须有 SAMPLER_CONFIG_VERSION=1）
   --print      把这次的记录也打印到 stdout
 
@@ -31,6 +38,7 @@ from __future__ import print_function
 import datetime
 import errno
 import fcntl
+import hashlib
 import json
 import os
 import re
@@ -41,8 +49,9 @@ import subprocess
 import sys
 import time
 
-SAMPLER_VERSION = "1.0.0"
-SCHEMA = "ops-v5-sample/1"
+SAMPLER_VERSION = "2.0.0"
+SCHEMA = "ops-v5-sample/2"
+DICT_SCHEMA = "ops-v5-session-dict/1"
 CONFIG_VERSION = "1"
 
 # launchd 和非交互 ssh 的 PATH 只有系统目录；追加在后面，测试放在前面的桩仍然优先。
@@ -59,9 +68,10 @@ CONFIG_SPEC = {
     "SAMPLER_CONFIG_VERSION": (str, None),
     "SAMPLER_HOST": (str, ""),
     "ORCA_BIN": (str, "orca"),
-    "RETENTION_DAYS": (int, 14),
-    "MAX_TOTAL_MB": (float, 200.0),
+    "MAX_DAYS": (int, 9),
+    "MAX_TOTAL_MB": (float, 350.0),
     "LOG_MAX_KB": (int, 512),
+    "LOG_ARCHIVE_MAX": (int, 20),
     "ORCA_TIMEOUT_SEC": (float, 10.0),
     "CMD_TIMEOUT_SEC": (float, 5.0),
     "ROUND_TIMEOUT_SEC": (float, 30.0),
@@ -87,20 +97,42 @@ class CmdError(Exception):
 # ---------------------------------------------------------------- 日志
 
 class Log(object):
-    def __init__(self, path, max_kb):
+    def __init__(self, path, max_kb, archive_max=20):
         self.path = path
         self.max_bytes = max(16, max_kb) * 1024
+        self.archive_max = archive_max
+        self.full = False
 
     def cap(self, path=None):
-        """超过上限就轮转成 .1（覆盖旧的 .1），所以最多占两份上限。"""
+        """超过上限就挪到 log-archive/<名字>.<时间>，不覆盖、不删。
+        归档已满时不挪：主日志停写（full=True），launchd 日志原样留着。"""
         path = path or self.path
         try:
-            if os.path.getsize(path) > self.max_bytes:
-                os.rename(path, path + ".1")
+            if os.path.getsize(path) <= self.max_bytes:
+                return
+        except OSError:
+            return
+        name = os.path.basename(path)
+        arch = os.path.join(os.path.dirname(path), "log-archive")
+        try:
+            have = [n for n in os.listdir(arch) if n.startswith(name + ".")] if os.path.isdir(arch) else []
+            if len(have) >= self.archive_max:
+                if path == self.path:
+                    self.full = True
+                return
+            if not os.path.isdir(arch):
+                os.makedirs(arch)
+            base = os.path.join(arch, "%s.%s" % (name, datetime.datetime.now().strftime("%Y%m%dT%H%M%S")))
+            dst, n = base, 1
+            while os.path.exists(dst):
+                dst, n = "%s-%d" % (base, n), n + 1
+            os.rename(path, dst)
         except OSError:
             pass
 
     def write(self, level, msg):
+        if self.full:
+            return
         line = "%s %s %s\n" % (
             datetime.datetime.now().astimezone().isoformat(timespec="seconds"), level, msg)
         try:
@@ -272,6 +304,12 @@ def proc_tree(procs, children, root, agent_comms):
     return total, count, agents, seen
 
 
+def sid_of(pane_key, session_id):
+    """会话短 id：paneKey（没有就用 sessionId）的 sha1 前 10 位，字典里有完整值。"""
+    key = pane_key or session_id or ""
+    return hashlib.sha1(key.encode("utf-8")).hexdigest()[:10]
+
+
 def pick_agent_type(agents):
     non_node = [a for a in agents if a != "node"]
     if non_node:
@@ -311,10 +349,12 @@ def collect(cfg, budget, rec):
                 if not isinstance(s, dict):
                     continue
                 sessions.append({
-                    "worktreeId": w.get("worktreeId"), "worktreeName": w.get("worktreeName"),
-                    "repoName": w.get("repoName"), "sessionId": s.get("sessionId"),
-                    "paneKey": s.get("paneKey"), "pid": s.get("pid"),
-                    "memory": s.get("memory"), "cpu": s.get("cpu"), "terminal": None,
+                    "sid": sid_of(s.get("paneKey"), s.get("sessionId")), "pid": s.get("pid"),
+                    "memory": s.get("memory"), "cpu": s.get("cpu"),
+                    "_static": {"paneKey": s.get("paneKey"), "sessionId": s.get("sessionId"),
+                                "worktreeId": w.get("worktreeId"),
+                                "worktreeName": w.get("worktreeName"),
+                                "repoName": w.get("repoName")},
                 })
 
     rec["sessions"] = sessions
@@ -344,12 +384,18 @@ def collect(cfg, budget, rec):
         except CmdError as e:
             errors.append({"step": "orca_worktree_ps", "error": str(e)})
         for s in sessions:
-            pk = s["paneKey"]
-            if pk in handles or pk in agent_info:
-                t = {"handle": handles.get(pk)}
-                t.update(agent_info.get(pk, {}))
-                t["linkedLinearIssue"] = wt_issue.get(s["worktreeId"])
-                s["terminal"] = t
+            st = s["_static"]
+            pk = st["paneKey"]
+            a = agent_info.get(pk, {})
+            # 静态（进字典）：handle、agentType、workingMode、linkedLinearIssue
+            st["handle"] = handles.get(pk)
+            st["agentType"] = a.get("agentType")
+            st["workingMode"] = a.get("workingMode")
+            st["linkedLinearIssue"] = wt_issue.get(st["worktreeId"])
+            # 每分钟变的：state、stateStartedAt
+            if "state" in a:
+                s["state"] = a["state"]
+                s["since"] = a.get("stateStartedAt")
 
     # 3. 进程树
     procs = collect_ps(cfg, budget, errors)
@@ -362,28 +408,33 @@ def collect(cfg, budget, rec):
         for s in sessions:
             pid = s["pid"]
             if not isinstance(pid, int) or pid not in procs:
-                s["proc"] = {"found": False}
+                s["found"] = False
                 continue
             total, count, agents, seen = proc_tree(procs, children, pid, comms)
             covered |= seen
-            s["proc"] = {"found": True, "tree_rss_kb": total, "n_procs": count,
-                         "agents": agents, "agent_type": pick_agent_type(agents)}
-        for p in sorted(procs.values(), key=lambda x: x["pid"]):
+            s.update({"found": True, "tree_rss_kb": total, "n_procs": count,
+                      "n_agents": len(agents), "agent_type": pick_agent_type(agents)})
+        # 会话外的顶层 agent 只记个数、rss 合计和按 comm 的个数
+        orphan = {"n": 0, "rss_kb": 0, "by_comm": {}}
+        for p in procs.values():
             if p["pid"] in covered or p["comm"] not in comms:
                 continue
             parent = procs.get(p["ppid"])
             if parent is not None and parent["comm"] in comms:
                 continue
-            rec["orphan_agents"].append(dict(p))
-    sess_agents = sum(len(s.get("proc", {}).get("agents") or []) for s in sessions)
-    rec["agent_count"] = {"in_sessions": sess_agents, "orphan": len(rec["orphan_agents"]),
-                          "total": sess_agents + len(rec["orphan_agents"])} if procs is not None else None
+            orphan["n"] += 1
+            orphan["rss_kb"] += p["rss_kb"]
+            orphan["by_comm"][p["comm"]] = orphan["by_comm"].get(p["comm"], 0) + 1
+        rec["orphan_agents"] = orphan
+        sess_agents = sum(s.get("n_agents", 0) for s in sessions)
+        rec["agent_count"] = {"in_sessions": sess_agents, "orphan": orphan["n"],
+                              "total": sess_agents + orphan["n"]}
     return rec
 
 
 # ---------------------------------------------------------------- 存储
 
-DAY_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})\.jsonl$")
+DAY_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})(\.sessions)?\.jsonl$")
 
 
 def last_minute(path):
@@ -407,6 +458,7 @@ def last_minute(path):
 
 
 def day_files(host_dir):
+    """host_dir 下名字是 YYYY-MM-DD.jsonl 或 YYYY-MM-DD.sessions.jsonl 的普通文件：[(日期, 路径, 大小)]。"""
     out = []
     try:
         names = os.listdir(host_dir)
@@ -421,35 +473,60 @@ def day_files(host_dir):
     return out
 
 
-def rotate(host_dir, today, cfg, incoming, log):
-    """只动 host_dir 下名字是 YYYY-MM-DD.jsonl 的文件。返回能否追加 incoming 字节。"""
-    cutoff = (datetime.date.fromisoformat(today)
-              - datetime.timedelta(days=max(1, cfg["RETENTION_DAYS"]) - 1)).isoformat()
-    for day, path, _ in day_files(host_dir):
-        if day < cutoff:
-            os.remove(path)
-            log.write("INFO", "超过保留天数，删除 %s" % path)
-    cap = int(cfg["MAX_TOTAL_MB"] * 1024 * 1024)
+def check_caps(host_dir, today, cfg, incoming):
+    """不删任何文件。能写返回 None，到上限返回原因。"""
     files = day_files(host_dir)
+    days = set(d for d, _, _ in files)
+    if today not in days and len(days) >= cfg["MAX_DAYS"]:
+        return "已有 %d 天的数据，到 MAX_DAYS=%d" % (len(days), cfg["MAX_DAYS"])
     total = sum(sz for _, _, sz in files) + incoming
-    for day, path, sz in files:
-        if total <= cap:
-            break
-        if day >= today:
-            continue
-        os.remove(path)
-        total -= sz
-        log.write("INFO", "超过总大小上限 %.1fMB，删除 %s" % (cfg["MAX_TOTAL_MB"], path))
+    cap = int(cfg["MAX_TOTAL_MB"] * 1024 * 1024)
     if total > cap:
-        log.write("ERROR", "当天文件已到总大小上限 %.1fMB，本次不追加" % cfg["MAX_TOTAL_MB"])
-        return False
-    return True
+        return "总大小 %.1fMB 超过 MAX_TOTAL_MB=%g" % (total / 1048576.0, cfg["MAX_TOTAL_MB"])
+    return None
+
+
+def load_dict(path):
+    """读当天的会话字典，返回 sid -> 最后一条静态字段。"""
+    seen = {}
+    try:
+        with open(path, "rb") as f:
+            for line in f:
+                try:
+                    d = json.loads(line.decode("utf-8"))
+                    seen[d["sid"]] = d.get("static")
+                except (ValueError, KeyError, TypeError, UnicodeDecodeError):
+                    continue
+    except OSError:
+        pass
+    return seen
+
+
+def write_status(state, status):
+    """覆盖写自己的状态文件（不是数据）：最后一次运行的结果，给 install.sh --check 看。"""
+    path = os.path.join(state, "ops-v5-sampler.status")
+    try:
+        tmp = path + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(status, f, ensure_ascii=False)
+            f.write("\n")
+        os.rename(tmp, path)
+    except OSError:
+        pass
+
+
+def append(path, data):
+    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+    try:
+        os.write(fd, data)
+    finally:
+        os.close(fd)
 
 
 # ---------------------------------------------------------------- 主流程
 
 def parse_args(argv):
-    opts = {"state_dir": os.path.expanduser("~/.local/state/dispatch"),
+    opts = {"state_dir": os.path.expanduser("~/.local/state/ops-v5"),
             "config": os.path.expanduser("~/.config/dispatch/sampler.env"),
             "print": False}
     i = 0
@@ -484,13 +561,19 @@ def main(argv):
     opts = parse_args(argv)
     state = opts["state_dir"]
     log = Log(os.path.join(state, "ops-v5-sampler.log"), CONFIG_SPEC["LOG_MAX_KB"][1])
+    now = datetime.datetime.now().astimezone()
+    status = {"ts": now.isoformat(timespec="seconds"), "version": SAMPLER_VERSION}
     try:
         cfg = load_config(opts["config"])
     except (ConfigError, OSError) as e:
         log.write("ERROR", str(e))
         sys.stderr.write("ops-v5-sampler: %s\n" % e)
+        if os.path.isdir(state):
+            status.update(state="config_error", reason=str(e))
+            write_status(state, status)
         return 3
     log.max_bytes = max(16, cfg["LOG_MAX_KB"]) * 1024
+    log.archive_max = cfg["LOG_ARCHIVE_MAX"]
     log.cap()
     log.cap(os.path.join(state, "ops-v5-sampler.launchd.log"))
     if cfg["_unknown"]:
@@ -511,10 +594,10 @@ def main(argv):
         log.write("INFO", "锁被占，跳过本次")
         return 0
 
-    now = datetime.datetime.now().astimezone()
     today = now.date().isoformat()
     minute = now.strftime("%Y-%m-%dT%H:%M")
     day_path = os.path.join(host_dir, today + ".jsonl")
+    dict_path = os.path.join(host_dir, today + ".sessions.jsonl")
     if last_minute(day_path) == minute:
         log.write("INFO", "本分钟 %s 已有记录，跳过" % minute)
         return 0
@@ -522,7 +605,7 @@ def main(argv):
     budget = Budget(cfg["ROUND_TIMEOUT_SEC"])
     signal.signal(signal.SIGALRM, _alarm)
     signal.setitimer(signal.ITIMER_REAL, cfg["ROUND_TIMEOUT_SEC"] + 2)
-    body = {"machine": {}, "sessions": [], "orphan_agents": [], "orca_ok": False,
+    body = {"machine": {}, "sessions": [], "orphan_agents": None, "orca_ok": False,
             "agent_count": None, "errors": []}
     try:
         collect(cfg, budget, body)
@@ -530,6 +613,15 @@ def main(argv):
         body["errors"].append({"step": "round", "error": "round_timeout"})
     finally:
         signal.setitimer(signal.ITIMER_REAL, 0)
+
+    # 静态字段进当天字典：当天第一次出现或有变化才写
+    known = load_dict(dict_path)
+    dict_lines = []
+    for sess in body["sessions"]:
+        st = sess.pop("_static", None)
+        if st is not None and known.get(sess["sid"]) != st:
+            dict_lines.append({"schema": DICT_SCHEMA, "ts": now.isoformat(timespec="seconds"),
+                               "host": host, "sid": sess["sid"], "static": st})
 
     ru_self = resource.getrusage(resource.RUSAGE_SELF)
     ru_kids = resource.getrusage(resource.RUSAGE_CHILDREN)
@@ -546,19 +638,28 @@ def main(argv):
         "children_maxrss_kb": ru_kids.ru_maxrss // 1024,
         "cpu_ms": int((ru_self.ru_utime + ru_self.ru_stime + ru_kids.ru_utime + ru_kids.ru_stime) * 1000),
     }
-    line = (json.dumps(rec, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
+    dumps = lambda o: (json.dumps(o, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
+    line = dumps(rec)
+    dict_data = b"".join(dumps(d) for d in dict_lines)
+    full = check_caps(host_dir, today, cfg, len(line) + len(dict_data))
+    if full:
+        log.write("ERROR", "到上限，停写（不删数据，请 ops 挪走旧文件）：%s" % full)
+        status.update(state="full", reason=full, minute=minute)
+        write_status(state, status)
+        return 0
     try:
-        if rotate(host_dir, today, cfg, len(line), log):
-            fd = os.open(day_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
-            try:
-                os.write(fd, line)
-            finally:
-                os.close(fd)
+        if dict_data:
+            append(dict_path, dict_data)
+        append(day_path, line)
     except OSError as e:
         log.write("ERROR", "写 samples 失败：%s" % e)
+        status.update(state="write_error", reason=str(e))
+        write_status(state, status)
         return 4
-    log.write("INFO" if rec["ok"] else "WARN", "采样 %s orca_ok=%s sessions=%d errors=%s %dms" % (
-        minute, rec["orca_ok"], len(rec["sessions"]),
+    status.update(state="ok", minute=minute, orca_ok=rec["orca_ok"], errors=len(rec["errors"]))
+    write_status(state, status)
+    log.write("INFO" if rec["ok"] else "WARN", "采样 %s orca_ok=%s sessions=%d dict+%d errors=%s %dms" % (
+        minute, rec["orca_ok"], len(rec["sessions"]), len(dict_lines),
         ",".join("%s=%s" % (e["step"], e["error"]) for e in rec["errors"]) or "-",
         rec["self"]["duration_ms"]))
     if opts["print"]:
