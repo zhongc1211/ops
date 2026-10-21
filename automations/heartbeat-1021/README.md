@@ -28,13 +28,14 @@ MBA 的 Orca 没有任何 environment，读不到 iMac 的运行记录；MBA 能
 | `defs.json` | MBA 新任务的定义；iMac `5c2d0575` 三个阶段（parallel、final、rollback）的预检和超时；`before` 是 10-21 只读核对的现网配置；box `94e4b0bc` 和 ops · 01 的现网配置（只做记录） |
 | `register.sh mba\|imac [--stage parallel\|final\|rollback] [--mba-id <id>] [--apply]` | 把 defs.json 变成 `orca automations create/edit` 命令。默认只打印（dry-run），不调用 orca；create 一律 `--disabled`。`--apply` 在对应机器上执行，主机名不对、或者这一步的备份文件不存在就拒绝。本 PR 没有带 `--apply` 跑过 |
 | `prompts/noop.prompt.md` | MBA 新任务的提示词：预检永远非 0 退出，模型不会起；万一起了什么都不做 |
-| `FAILURE-MODES.md` | 写代码前先写的失败方式清单，对应演练的场景编号；审查 7ac1220 以后的第二轮写在最后一节 |
+| `FAILURE-MODES.md` | 写代码前先写的失败方式清单，对应演练的场景编号；审查 7ac1220 以后的第二轮、复审 99358b0 以后的第三轮写在最后两节 |
 | [`scripts/orca-via-ssh`](../../scripts/orca-via-ssh) | 给 `HB_ORCA` 用的 ssh 包装，MBA 上装到 `~/.orca-state/bin/orca-via-ssh` |
 | [`wake/tests/heartbeat-watch-ssh.sh`](../../wake/tests/heartbeat-watch-ssh.sh) | 演练；[`wake/tests/heartbeat-watch-ssh-rollback.sh`](../../wake/tests/heartbeat-watch-ssh-rollback.sh) 是回退测试。产物在 `reports/heartbeat-mba-imac-1021*/` |
 
-MBA 新任务和 box `94e4b0bc` 一样：每 5 分钟、预检超时 240 秒、grace 720、`--fresh-session`。另外加了
+MBA 新任务和 box `94e4b0bc` 一样：每 5 分钟、grace 720、`--fresh-session`；预检超时是 330 秒（box 是 240）。另外加了
 `--extra-agent-args=--model haiku --effort low`（MBA 现有任务的写法）：万一预检被改坏、模型被起来，用最便宜的模型。
-240 秒放得下：ssh 每次最多 70 秒，查一次运行记录最多 3 次、中间等 2 × 8 秒，共 226 秒（少见情况见「已知限制」）。
+330 秒按最坏情况定：ssh 每次最多 70 秒，查一次运行记录最多 3 次、中间等 2 × 8 秒，共 226 秒；少见情况再查一次 list，共 296 秒，
+加起动约 4 秒（见「已知限制」）。
 
 ## 上线顺序
 
@@ -113,7 +114,7 @@ bash automations/heartbeat-1021/register.sh mba            # 看打印的命令
 bash automations/heartbeat-1021/register.sh mba --apply
 ```
 核对：`orca automations list --json` 里按名字「ops · 29 心跳互查 MBA（盯 iMac ops · 01）」找到 `$MBA_ID`；
-`orca automations show --id $MBA_ID --json`：`enabled` 为 false，precheck、超时 240、rrule `*/5 * * * *` 和 defs.json 一致。
+`orca automations show --id $MBA_ID --json`：`enabled` 为 false，precheck、超时 330、rrule `*/5 * * * *` 和 defs.json 一致。
 
 **3. 启用（MBA）。**
 ```bash
@@ -196,11 +197,15 @@ python3 -c 'import json,sys; a=json.load(open(sys.argv[1]))["result"]["automatio
 
 ## 已知限制
 
-- **超时**：MBA 新任务的预检超时 240 秒。ssh 每次最多 70 秒（包装里 perl 的 `alarm`），heartbeat-watch 查一次运行记录最多 3 次、
-  中间等 2 × 8 秒，最坏 226 秒。没有这个上限时要等 heartbeat-watch 自己的 90 秒超时，最坏 286 秒：ssh 连上了、iMac 的 Orca 卡住时，
-  每轮都被 Orca 杀掉，不写 fail_since、不打 `@@HB`，永远不报。演练 S12、S12.old 用真时间各跑了一轮，见 PR 描述。
+- **超时**：MBA 新任务的预检超时 330 秒（复审的条件，原来是 240）。ssh 每次最多 70 秒（包装里 perl 的 `alarm`），
+  heartbeat-watch 查一次运行记录最多 3 次、中间等 2 × 8 秒，最坏 226 秒。
   - 少见情况：还没见过目标的心跳、心跳又没有或过期时，heartbeat-watch 还要查一次 list（建好时间），也经 ssh。runs 前两次各卡满 70 秒、
-    第三次才成功，再加 list 70 秒，共 296 秒，超过 240，这一轮被杀。上线后见过一次心跳，就不走这条路了。
+    第三次才成功，再加 list 70 秒，共 296 秒，加起动约 4 秒，在 330 以内。上线后见过一次心跳，就不走这条路了。
+  - 没有 70 秒上限时要等 heartbeat-watch 自己的 90 秒超时：查运行记录最坏 286 秒，在 330 以内；少见情况最坏 376 秒，超过 330，
+    这一轮被 Orca 杀掉，不写 fail_since、不打 `@@HB`。演练 S12、S12.old 用真时间跑过，见 PR 描述。
+  - 330 比 5 分钟的间隔长：一轮预检超过 300 秒时，下一轮的预检会和它同时跑一小段。Orca 建运行只按计划时间去重，没看到
+    「上一轮没完就不起下一轮」（读的是 iMac 上 Orca 1.4.224 的代码，MBA 的 1.4.229 没核对）；heartbeat-watch 写 state 不加锁，
+    最坏是同一时刻发两条告警。只有预检超过 300 秒才会这样，常见最坏 226 秒碰不到。`5c2d0575` 并行版（超时 600）也一样。
   - ssh 连不上时每次 10 秒就失败，3 次约 46 秒，走「运行记录查不到」，连续 45 分钟才报。
   - `5c2d0575` 的目标经 iMac 本机 orca 的 environment 读，不经包装，每个目标最坏还是 286 秒。并行版两个目标最坏 572 秒，超时改成 600
     （Orca 的上限）；最终版一个目标，改成 300；回滚版还原成现网的 240，和今天一样，单个目标卡满时也放不下。
@@ -208,7 +213,7 @@ python3 -c 'import json,sys; a=json.load(open(sys.argv[1]))["result"]["automatio
   查不到时写「连不上 本机 的 Orca」。这里的「本机」指 HB_ORCA 连到的那台，也就是经 ssh 的 iMac；目标名里写了 iMac。
   任务书要求 heartbeat-watch 逻辑不动；在包装里改写参数，又会把只读转发变成改参数，所以这次没改。收到这条告警时，「本机」是 iMac，不是 MBA。
 - **`5c2d0575` 本身没人盯**：MBA 那条只盯 iMac ops · 01。让 MBA 顺便盯 `5c2d0575` 要多一个经 ssh 的目标，最坏 452 秒，
-  超过 240 秒的超时和 5 分钟的间隔，留给后续 PR。
+  超过 330 秒的超时和 5 分钟的间隔，留给后续 PR。
 - **iMac 和 MBA 同时停**：没人报。
 - **只看时间，不看 rc**：被盯的那条 `@@HB` 里 rc 不是 0（比如告警发不出去）也判正常。本 PR 之前就是这样，留给后续。
 - **MBA 睡着**：box 一直开着，MBA 是笔记本。MBA 睡着超过 20 分钟，`5c2d0575` 会报「MBA ops · 29 心跳互查」中断（醒了报一次已恢复），

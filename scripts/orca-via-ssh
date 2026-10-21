@@ -6,9 +6,9 @@
 # 只放行 automations runs 和 automations list（只读）；别的子命令、ORCA_SSH_HOST 没设或以 - 开头，都退出 2，不连 ssh。
 # 远端用 `zsh -lc` 跑 orca（登录 shell 才有 orca 的 PATH）。ssh 把参数拼成一串交给远端登录 shell，zsh -lc 再解析一次，
 # 所以每个参数加单引号、转义两层：参数里的空格、引号、$、; 原样到 orca，不会被展开或执行。
-# 每次 ssh 最多 70 秒。heartbeat-watch 一次查询试 3 次、中间等 2 × 8 秒：有上限最坏 226 秒，放得进 240 秒的预检超时；
-# 没有上限要等它自己的 90 秒超时，最坏 286 秒，ssh 连上了、iMac 的 Orca 卡住时每轮都被 Orca 杀掉，fail_since 记不上，
-# 永远不报（automations/heartbeat-1021/FAILURE-MODES.md F15、A18）。ServerAlive 15 秒 × 2：连接半路断了约 30 秒退出。
+# 每次 ssh 最多 70 秒。heartbeat-watch 一次查询试 3 次、中间等 2 × 8 秒，有上限最坏 226 秒；还没见过心跳、心跳又过期时再查一次 list，
+# 最坏 296 秒，放得进 330 秒的预检超时。没有上限要等它自己的 90 秒超时，后一种情况最坏 376 秒，ssh 连上了、iMac 的 Orca 卡住时
+# 这一轮被 Orca 杀掉，fail_since 记不上（automations/heartbeat-1021/FAILURE-MODES.md F15、F19、F22）。ServerAlive 15 秒 × 2：连接半路断了约 30 秒退出。
 # stdout、stderr、退出码都是 ssh 的（exec 两次，pid 不变，70 秒上限和 heartbeat-watch 的超时杀的都是 ssh）。连不上时 ssh 退出 255，
 # 到上限时 ssh 被 SIGALRM 杀掉，两种 stdout 都是空的；heartbeat-watch 解析不了 JSON，走它已有的「运行记录查不到」分支。
 # 不打印任何环境变量。

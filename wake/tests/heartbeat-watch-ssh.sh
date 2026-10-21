@@ -607,9 +607,9 @@ s8 unknown-flag 2 imac --force
 PC_MBA="'HB_ORCA=\$HOME/.orca-state/bin/orca-via-ssh ORCA_SSH_HOST=imac \$HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target \"iMac ops · 01 卡住工作检查||${WATCHED}|20\"'"
 TB="--target \"box ops · 29 卡住检查心跳|grok-bot|${BOX}|20\""
 TM="--target \"MBA ops · 29 心跳互查|mba|${FAKEID}|20\""
-expect S8.mba "mba：create 带 --disabled、--fresh-session、每 5 分钟、超时 240、grace 720，precheck 是 defs 原文" "$T/s8-mba.cmdline" 0 "$OUT/raw/S8/mba.rc" \
+expect S8.mba "mba：create 带 --disabled、--fresh-session、每 5 分钟、超时 330、grace 720，precheck 是 defs 原文" "$T/s8-mba.cmdline" 0 "$OUT/raw/S8/mba.rc" \
     "orca automations create --name 'ops · 29 心跳互查 MBA（盯 iMac ops · 01）'" "--trigger '*/5 * * * *'" "--precheck $PC_MBA" \
-    "--precheck-timeout 240" "--missed-run-grace-minutes 720" "--fresh-session" "--disabled"
+    "--precheck-timeout 330" "--missed-run-grace-minutes 720" "--fresh-session" "--disabled"
 cat "$OUT/raw/S8/imac.out" >"$T/s8-imac.all"
 expect S8.imac-noid "imac 没给 --mba-id：命令里是占位，并提示不能照抄" "$T/s8-imac.all" 0 "$OUT/raw/S8/imac.rc" "没给 --mba-id" "|mba|<MBA 新任务 id>|20"
 expect S8.parallel "parallel：保留 box 目标在前、加 MBA 目标，不改名，超时 600（两个目标最坏 572 秒）" "$T/s8-imac-parallel.cmdline" 0 "$OUT/raw/S8/imac-parallel.rc" \
@@ -967,7 +967,7 @@ L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "真 orca 可能自己 60 秒超时、先回一个报错，那样不用等 70 秒上限。",
      "- Orca 自己起这条预检：要到上线卡 ② 才有。S12 的预检进程是演练脚本照 Orca 的做法起的（`/bin/sh -c`、新进程组、到时先 TERM 后 KILL）。",
      "- ssh 连接半路断了（ServerAlive 起作用）：没演练。",
-     "- MBA 那条的少见情况：还没见过心跳、心跳又过期，而且 runs 前两次各卡满 70 秒，再加一次 list，最坏 296 秒，超过 240。没演练。",
+     "- MBA 那条的少见情况：还没见过心跳、心跳又过期，而且 runs 前两次各卡满 70 秒，再加一次 list，最坏 296 秒，加起动约 4 秒，在 330 秒的超时以内。没演练。",
      "", "## 文件", "",
      "- `results.tsv`：每项一行（编号、结果、期望、实际），`README.md` 由它生成。",
      "- `env.txt`：时间、commit、两台机器的系统和工具版本。",
