@@ -8,7 +8,7 @@
 #   工作区从上往下判，第一条命中的就是结论：W1 main/bare → W2 本任务所在 → W3 别的机器 → W5 agent 在跑 → W6 终端有活进程 / 还开着
 #   → W18 GIT_LOCKED：这个 worktree 自己的 gitdir 里有 index.lock、没做完的 merge / rebase / am / cherry-pick / revert / bisect，或被 git worktree lock（Zack 10-21 07:34）
 #   → 目录已不在：W4 看 git 记录的 HEAD（不在远端、也没有别的 ref 包含 → SKIP） / 目录在：W7 未提交 → W8 未推送
-#   → W9 open PR → W19 NO_LINEAR_ISSUE 没挂 Linear issue（Zack 10-21 08:44：PR 已合并、HEAD 在主分支都不能代替；
+#   → W9 open PR（按工作区分支名和 linkedPR 查；HEAD 不在远端主分支上时，再按包含它的远端分支名、HEAD sha 查，R5：fork 上换了分支名的 PR；查不到当作开着）→ W19 NO_LINEAR_ISSUE 没挂 Linear issue（Zack 10-21 08:44：PR 已合并、HEAD 在主分支都不能代替；
 #     10-21 09:18：带 --no-issue-reviews DIR 时，DIR/<repo>/<工作区目录名>.md 里 PATH 是它、VERDICT: DELETE_OK、HEAD 和现在一致才放行，
 #     放行的照样走后面每一条规则，最后一律 BACKUP_RM，备份里带上这份记录）→ W10 Linear 未关（Zack 03:37：真删前每次实时查，查不到、超时、找不到 issue 都不删）→ W11 Orca 状态不是 completed
 #   → W12 近 IDLE_H 小时有活动 → W17 HEAD 不在已合并的 PR / 远端主分支或合并目标分支上
@@ -237,8 +237,22 @@ def remotes(main_path):
         except QueryFail: REMOTES[main_path] = None
     return REMOTES[main_path]
 
+FETCH = {}
+def remote_repos(main_path):
+    """remote 名 → 它 fetch URL 的 GitHub 仓库；不是 GitHub 的 remote 不在里面。"""
+    if main_path not in FETCH:
+        m = {}
+        for l in git(main_path, "remote", "-v").splitlines():
+            f = l.split()
+            if len(f) > 2 and f[2] == "(fetch)" and gh_repo_of(f[1]): m[f[0]] = gh_repo_of(f[1])
+        FETCH[main_path] = m
+    return FETCH[main_path]
+
 def prs_for(w, ctx, head):
-    """这个工作区的 PR：[pr dict]。按分支逐个仓库查（不受列表条数限制），owner 用新旧两个名字；查不到抛 QueryFail。"""
+    """这个工作区的 PR：[pr dict]。按分支逐个仓库查（不受列表条数限制），owner 用新旧两个名字；查不到抛 QueryFail。
+    HEAD 不在远端主分支上时，再按包含 HEAD 的每个远端分支名查（PR 的 headRepositoryOwner 要是那个 remote 的 owner），
+    并按 HEAD sha 搜 PR；这两路查到的 open PR，目标分支已经包含 HEAD 的不算（GitHub 按 sha 搜会搜到这种）。
+    这两路查到的 PR 带 _extra：只用来挡（W9），不当作 W17 的已合并证据。"""
     if ctx["remotes"] is None: raise QueryFail("git remote")
     repos = list(ctx["remotes"])
     pj = w.get("projectId") or ""
@@ -271,6 +285,34 @@ def prs_for(w, ctx, head):
             if len(hits) != 1: raise QueryFail("linkedPR #%s 在两个仓库都有、对不上分支" % n)
         if not hits: raise QueryFail("linkedPR #%s" % n)
         found[(hits[0][0], n)] = hits[0][1]
+    if head:                                  # R5：fork 上换了分支名开的 PR（per-8714-schedule-400 / 上游 #8714）
+        try:
+            refs = [x[len("refs/remotes/"):].split("/", 1) for x in
+                    git(ctx["main"], "for-each-ref", "--contains", head, "--format=%(refname)", "refs/remotes").split()]
+            rmap = remote_repos(ctx["main"])
+        except QueryFail: raise QueryFail("git for-each-ref --contains " + head[:7])
+        refs = sorted({(r[0], r[1]) for r in refs if len(r) == 2 and r[1] != "HEAD"})
+        def carries(c, p):                    # open PR 的目标分支（本地有它的远端分支时）已经包含 HEAD：这个 PR 不再带着它
+            if p.get("state") != "OPEN": return True
+            for rem in [r for r in rmap if canon(rmap[r]) == c]:
+                ref = "refs/remotes/%s/%s" % (rem, p.get("baseRefName") or "")
+                if run(["git", "-C", ctx["main"], "merge-base", "--is-ancestor", head, ref]).returncode == 0: return False
+            return True
+        if not any(b in ctx["main_branches"] for _, b in refs):   # 已在远端主分支上的不查：后来基于 main 的分支都包含它
+            for rem, b in refs:
+                if rem not in rmap or b == br: continue           # 不是 GitHub 的 remote；和工作区同名的分支上面查过了
+                owner = canon(rmap[rem]).split("/")[0].lower()
+                for c in names:
+                    l, err = gh_json(["pr", "list", "-R", c, "--head", b, "--state", "all", "--limit", "100", "--json", PR_FIELDS], "gh pr list " + c)
+                    if l is None: raise QueryFail("gh pr list %s --head %s" % (c, b))
+                    for p in l:
+                        if p.get("headRefName") == b and ((p.get("headRepositoryOwner") or {}).get("login") or "").lower() == owner and carries(c, p):
+                            found.setdefault((c, p["number"]), dict(p, _extra=True))
+            for c in names:                   # PR 里有这个提交的（不管分支名和 owner）；rebase 掉的旧提交搜不到，靠上面按分支名查
+                l, err = gh_json(["pr", "list", "-R", c, "--search", head, "--state", "all", "--limit", "100", "--json", PR_FIELDS], "gh pr list " + c)
+                if l is None: raise QueryFail("gh pr list %s --search %s" % (c, head[:7]))
+                for p in l:
+                    if carries(c, p): found.setdefault((c, p["number"]), dict(p, _extra=True))
     out = {}
     for (_, num), p in sorted(found.items(), key=lambda kv: kv[0][1]): out.setdefault((num, p["state"]), p)  # 同号同状态只算一次
     return list(out.values())
@@ -460,7 +502,7 @@ def evaluate(w, d, ctx):
 def head_merged(gitdir, head, prs, ctx):
     """HEAD 已经进了哪里：已合并 PR 的 head（或它的祖先），或者远端的主分支 / 已合并 PR 的目标分支。都不在返回 None。"""
     anc = lambda ref: run(["git", "-C", gitdir, "merge-base", "--is-ancestor", head, ref]).returncode == 0
-    merged = [p for p in prs if p["state"] == "MERGED"]
+    merged = [p for p in prs if p["state"] == "MERGED" and not p.get("_extra")]   # R5 新查法查到的只用来挡，不用来放行
     for p in merged:
         if p.get("headRefOid") == head: return "PR #%s 的 head" % p["number"]
         if p.get("headRefOid") and anc(p["headRefOid"]): return "PR #%s 的 head 包含" % p["number"]

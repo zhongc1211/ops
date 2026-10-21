@@ -1,7 +1,7 @@
 #!/bin/bash
 # ws-cleanup-test.sh: run scripts/ws-cleanup.sh against fake orca / gh / ps data plus real throwaway git repos under mktemp -d.
 # One case per failure mode in reports/ws-cleanup-dryrun-1021/RESULT.md (A1-A34) and reports/ws-cleanup-rework-r1/FAILURE-MODES.md
-# (B1-B29, E1-E19, G1-G11, M1-M5, N1-N8, R1-R13). Uses test doubles, so it is not an E2E test; the E2E is the real dry-run on iMac / MBA.
+# (B1-B29, E1-E19, G1-G11, M1-M5, N1-N8, R1-R13, P1-P10). Uses test doubles, so it is not an E2E test; the E2E is the real dry-run on iMac / MBA.
 # The --execute cases run only against the fake orca in the temp dir: guard_fake() refuses to start one otherwise.
 # WS_CLEANUP=<path> runs another implementation (an older version or an empty stub must fail).
 S=${WS_CLEANUP:-$(cd "$(dirname "$0")/.." && pwd)/ws-cleanup.sh}
@@ -86,6 +86,17 @@ for c in c_nolin c_nolin_pr c_nolin_backup c_nolin_blank c_rev_inreview c_rev_ba
 printf 'API_TOKEN=%s\n' "$SECRET" >"$T/wt/c_nolin_backup/.dev.vars"
 NOLIN_SHA=$(git -C "$T/wt/c_nolin_pr" rev-parse HEAD)
 git -C "$P" worktree add -q --detach "$T/wt/c_nolin_gone" main 2>/dev/null; rm -rf "$T/wt/c_nolin_gone"
+# P cases (R5): HEAD only on a fork branch under another name (per-8714-schedule-400 / upstream #8714); refs stand in for a fetch
+git -C "$P" remote add fork https://github.com/me/proj.git; git -C "$P" remote add local "$T/origin.git"
+fork(){ printf '%s\n' "$1" >"$T/wt/$1/f"; git -C "$T/wt/$1" add f; git -C "$T/wt/$1" commit -qm "$1"
+  git -C "$P" update-ref "refs/remotes/$2" "$(git -C "$T/wt/$1" rev-parse HEAD)"; }
+for c in c_fork_open c_fork_merged c_fork_fail c_sha_fail c_sha_open c_fork_owner c_local_only c_sha_base; do add "$c" "br/$c"; done
+fork c_fork_open fork/feat-open; fork c_fork_merged fork/feat-merged; fork c_fork_fail fork/feat-fail; fork c_sha_fail fork/feat-shafail
+fork c_sha_open fork/feat-sha; fork c_fork_owner fork/feat-own; fork c_local_only local/feat-loc
+fork c_sha_base upstream/staging   # P10: already in upstream's staging, which an open PR targets
+git -C "$P" update-ref refs/remotes/local/feat-open "$(git -C "$T/wt/c_fork_open" rev-parse HEAD)"
+git -C "$P" worktree add -q --detach "$T/wt/c_fork_gone" main 2>/dev/null; fork c_fork_gone fork/feat-gone; rm -rf "$T/wt/c_fork_gone"
+MAIN_SHA=$(git -C "$P" rev-parse main); git -C "$P" update-ref refs/remotes/fork/later "$(git -C "$P" commit-tree -p main -m later "main^{tree}")"
 # W4 cases: directory gone, git record kept (pushed / local-only detached / only in its own branch) or never there (c_missing)
 git -C "$P" worktree add -q --detach "$T/wt/c_gone_pushed" main 2>/dev/null
 git -C "$P" worktree add -q --detach "$T/wt/c_gone_local" main 2>/dev/null
@@ -147,6 +158,8 @@ W += [w(wt(c), repo=RX, lin={"x_late5": "XXX-1", "x_lin_fail": "YYY-1", "x_lin_g
 W += [w(wt("c_rev_inreview"), lin=None, status="in-review"), w(wt("c_rev_bad"), lin=None), w(wt("c_rev_wrongpath"), lin=None)]
 W += [w(wt("c_nolin"), lin=None), w(wt("c_nolin_pr"), lin=None), w(wt("c_nolin_backup"), lin=None), w(wt("c_nolin_blank"), lin="  "),
       w(wt("c_nolin_gone"), br="", lin=None)]
+W += [w(wt(c)) for c in ("c_fork_open", "c_fork_merged", "c_fork_fail", "c_sha_fail", "c_sha_open", "c_fork_owner", "c_local_only", "c_sha_base")]
+W += [w(wt("c_fork_gone"), br="")]
 json.dump({"result": {"worktrees": W}}, open(F + "/wt.json", "w"), ensure_ascii=False)
 # terminals: (handle, case, pid or None, connected, orphaned, agent, tab, children comm list, screen or None, lastOutputAt)
 P_ = "$ "
@@ -210,6 +223,24 @@ json.dump([pr(8, "OPEN", "br/c_moved_open", owner="newowner")], open(F + "/pr-ne
 json.dump([], open(F + "/pr-zz__x.json", "w"))
 json.dump({"zz/moved": "newowner/moved"}, open(F + "/renames.json", "w"))
 PY
+hd(){ git -C "$T/wt/$1" rev-parse HEAD; }
+python3 -I - "$F" "$(hd c_fork_open)" "$(hd c_fork_merged)" "$(hd c_sha_open)" "$MAIN_SHA" "$(git -C "$P" rev-parse refs/remotes/fork/feat-gone)" "$(hd c_sha_base)" <<'PY'
+import json, sys
+F, OPEN, MERGED, SHA, MAIN, GONE, BASE = sys.argv[1:]
+pr = lambda num, s, br, oid, owner="me", **k: dict({"number": num, "state": s, "headRefName": br, "headRepositoryOwner": {"login": owner},
+                                                   "headRefOid": oid, "baseRefName": "main"}, **k)
+up = json.load(open(F + "/pr-up__proj.json"))
+up += [pr(70, "OPEN", "feat-open", "1" * 40),                # P1: rebased since, so its head is not HEAD any more
+       pr(71, "MERGED", "feat-merged", MERGED),              # P2
+       pr(72, "OPEN", "renamed", "2" * 40, commits=[SHA]),   # P5: only the sha search finds it
+       pr(73, "OPEN", "later", "3" * 40, commits=[MAIN]),    # P6: built on main; must not hold back workspaces on main
+       pr(74, "OPEN", "feat-own", "4" * 40, owner="stranger"),  # P7
+       pr(75, "OPEN", "feat-gone", GONE),                    # P8
+       pr(76, "OPEN", "other-work", "5" * 40, baseRefName="staging", commits=[BASE])]   # P10
+json.dump(up, open(F + "/pr-up__proj.json", "w"))
+json.dump([], open(F + "/pr-me__proj.json", "w"))
+PY
+touch "$F/fail-gh-head-feat-fail" "$F/fail-gh-search-$(hd c_sha_fail)"
 json_repos='{"result":{"repos":[{"id":"r-proj","displayName":"proj","path":"'"$P"'","kind":"git"},{"id":"r-ops","displayName":"ops","path":"'"$T"'/repos/ops","kind":"git"},{"id":"r-nogh","displayName":"nogh","path":"'"$T"'/repos/ops","kind":"git"},{"id":"r-x","displayName":"x/proj","path":"'"$X"'","kind":"git"}]}}'
 printf '%s' "$json_repos" >"$F/repos.json"
 
@@ -241,7 +272,8 @@ esac
 SH
 cat >"$T/bin/gh" <<'PYGH'
 #!/usr/bin/env python3
-# fake gh: repo view (renames.json), pr list (--head filters; without --head only the newest PR), pr view, auth status
+# fake gh: repo view (renames.json), pr list (--head filters; --search matches headRefOid / commits; without either only the newest PR),
+# pr view, auth status; fail-gh-head-<branch> / fail-gh-search-<sha> make that list call fail
 import json, os, sys
 F = os.environ["WS_FIX"]; a = sys.argv[1:]
 open(F + "/gh-calls.log", "a").write(" ".join(a) + "\n")
@@ -254,7 +286,10 @@ r = ren.get(opt("-R"), opt("-R")); f = "%s/pr-%s.json" % (F, r.replace("/", "__"
 if not os.path.exists(f): print("HTTP 404", file=sys.stderr); sys.exit(1)
 prs = json.load(open(f))
 if a[:2] == ["pr", "list"]:
-    h = opt("--head"); print(json.dumps([p for p in prs if p["headRefName"] == h] if h else prs[:1])); sys.exit(0)
+    h, q = opt("--head"), opt("--search")
+    if os.path.exists("%s/fail-gh-%s" % (F, "head-" + h if h else "search-" + str(q))): print("HTTP 502", file=sys.stderr); sys.exit(1)
+    if q: print(json.dumps([p for p in prs if p["headRefOid"] == q or q in p.get("commits", [])])); sys.exit(0)
+    print(json.dumps([p for p in prs if p["headRefName"] == h] if h else prs[:1])); sys.exit(0)
 if a[:2] == ["pr", "view"]:
     hit = [p for p in prs if str(p["number"]) == a[2]]
     if not hit: print("GraphQL: Could not resolve to a PullRequest with the number of %s." % a[2], file=sys.stderr); sys.exit(1)
@@ -290,7 +325,6 @@ PY
 # R cases (Zack 10-21 09:18): review records for W19 workspaces
 RV=$T/reviews; mkdir -p "$RV/proj" "$RV/x_proj"
 rec(){ printf '# review\nPATH: %s\nHEAD: %s\n\nVERDICT: %s\nreason text\n' "$2" "$3" "$4" >"$RV/$1.md"; }
-hd(){ git -C "$T/wt/$1" rev-parse HEAD; }
 MAIN_SHA=$(git -C "$P" rev-parse main)
 rec proj/c_nolin_pr "$T/wt/c_nolin_pr" "$(hd c_nolin_pr)" KEEP                  # R2
 rec proj/c_nolin_backup "$T/wt/c_nolin_backup" "$(hd c_nolin_backup)" DELETE_OK  # R3
@@ -383,6 +417,22 @@ expect c_ps_agent B16 SKIP/W5
 expect c_termhost B17 SKIP/W6
 expect c_build B28 RM/W14
 expect c_head_unmerged B34 SKIP/W17
+# P cases (R5): PRs opened from a fork branch under another name
+pv(){ v=$(col "$WT" "$1" action)/$(col "$WT" "$1" rule); r=$(col "$WT" "$1" reason); p=$(col "$WT" "$1" pr); want=$3; pat=$4; check "$2 $1 -> $3 ($4) (got $v: $r; pr=$p)" '[ "$v" = "$want" ] && printf "%s|%s" "$r" "$p" | grep -q "$pat"'; }
+pv c_fork_open P1 SKIP/W9 "^PR 还开着|.*#70 OPEN"
+pv c_fork_merged P2 SKIP/W17 "#71 MERGED"
+check "P2 c_fork_merged: #71 found by the fork-branch lookup is not used as W17 merge evidence" '[ -z "$(col "$WT" c_fork_merged merged_via)" ]'
+pv c_fork_fail P3 SKIP/W9 "^PR 查不到（gh pr list .* --head feat-fail）"
+pv c_sha_fail P4 SKIP/W9 "^PR 查不到（gh pr list .* --search "
+pv c_sha_open P5 SKIP/W9 "^PR 还开着|.*#72 OPEN"
+check "P6 HEAD on origin/main: c_cache_only still RM/W14, #73 not on it, no --search for the main sha" '[ "$(col "$WT" c_cache_only action)/$(col "$WT" c_cache_only rule)" = RM/W14 ] && ! col "$WT" c_cache_only pr | grep -q "#73" && ! grep -q -- "--search $MAIN_SHA" "$F/gh-calls.log"'
+pv c_fork_owner P7 SKIP/W17 "不在已合并"
+check "P7 c_fork_owner: stranger's #74 on the same branch name is not counted" '! col "$WT" c_fork_owner pr | grep -q "#74"'
+pv c_fork_gone P8 SKIP/W9 "^PR 还开着|.*#75 OPEN"
+pv c_local_only P9 SKIP/W17 "不在已合并"
+pv c_sha_base P10 SKIP/W17 "不在已合并"
+check "P10 c_sha_base: open #76 targets staging, which already has HEAD, so it is not counted" '! col "$WT" c_sha_base pr | grep -q "#76" && grep -q -- "--search $(hd c_sha_base)" "$F/gh-calls.log"'
+check "P9 branches of a non-GitHub remote are not looked up by name" '! grep -q -- "--head feat-loc" "$F/gh-calls.log"'
 expect c_linear_done_unmerged B35 SKIP/W17
 expect c_head_pr_merged B36 RM/W14
 check "B36 c_head_pr_merged merged_via names PR #61" 'col "$WT" c_head_pr_merged merged_via | grep -q "PR #61 的 head"' 

@@ -163,3 +163,24 @@
 | R11 | `--execute` 放行的工作区，备份里没有审查记录，事后查不到为什么删 | x_rev_ok | 已备份再 rm；备份目录里有 NO-ISSUE-REVIEW.md（不叫 REVIEW.md，免得和被忽略的同名文件撞），MANIFEST 里有它 |
 | R12 | 不带 --no-issue-reviews 时也去读记录目录（例如默认路径），行为悄悄变了 | out1（不带参数） | N1–N8 结果不变 |
 | R13 | `--no-issue-reviews` 目录不存在，静默当作全都没有记录，看不出参数写错了 | 带一个不存在的目录 | 退出码 2 |
+
+补充（R5，ops bot 派活）：fork 上换了分支名开的 PR，W9 看不到。实例是 per-8714-schedule-400：工作区分支叫 `zhongc1211/per-8714-schedule-400`，上游 PR #8714 从 fork 的 `diffusion-attention-schedule-config` 开，还开着。R4 只按工作区分支名和 linkedPR 查，所以没查到，是审查记录的 KEEP 挡住的。
+- 在真 GitHub 上核对过（10-21）：按 sha 搜 c92d061，上游和 fork 都返回空，因为 PR rebase 过，这个提交已经不在 PR 里了；按 fork 分支名 `--head diffusion-attention-schedule-config` 能查到 #8714 OPEN、owner zhongc1211。按 sha 搜 PR 现在的 head 0b35e03，返回 #8714 和两个叠在它上面的 open PR。
+- 所以分两路查：远端分支名和 HEAD sha。HEAD 已经在远端主分支上的不做这两路，因为后来基于 main 的分支都包含它，查下去会把无关的 open PR 算到它头上。
+
+| # | 失败方式 | 用例 | 期望 |
+|---|---|---|---|
+| P1 | HEAD 只在 fork 的另一个分支名上，那个分支有 open PR（PR 已 rebase，head 不是 HEAD），W9 看不到 | c_fork_open（refs/remotes/fork/feat-open，up/proj 有 #70 OPEN、owner me、head 是别的 sha） | SKIP W9「PR 还开着」，pr 列有 #70 OPEN |
+| P2 | fork 另一个分支名上的 PR 已合并，被当成 open 挡住；或者新查法查到的已合并 PR 被拿去给 W17 放行，安全修复反而多放行了工作区 | c_fork_merged（#71 MERGED，head 就是 HEAD） | 不是 W9；pr 列有 #71 MERGED；merged_via 为空，SKIP W17（新查法只用来挡） |
+| P3 | 按分支名查 PR 失败（gh 出错、网络断），当作没有 PR 放过去 | c_fork_fail（`--head feat-fail` 失败） | SKIP W9「PR 查不到」 |
+| P4 | 按 sha 搜 PR 失败，当作没有 PR 放过去 | c_sha_fail（`--search <sha>` 失败） | SKIP W9「PR 查不到」 |
+| P5 | 远端分支名上没有 PR，但 HEAD 在另一个分支名（本地没有它的 ref）开的 open PR 里 | c_sha_open（#72 OPEN，headRefName renamed，commits 里有 HEAD） | SKIP W9 |
+| P6 | HEAD 已在 origin/main，又被后来基于 main 的 fork 分支包含，那个分支的 open PR 把它挡住 | c_cache_only（fork/later 包含 main，有 #73 OPEN） | 结论不变（RM W14），pr 列没有 #73，没有多出 `--search` 调用 |
+| P7 | 同名分支、但 PR 的 headRepositoryOwner 是别人，被算成这个工作区的 PR | c_fork_owner（fork/feat-own，#74 OPEN、owner stranger） | 不算这个 PR：往下判到 SKIP W17 |
+| P8 | 目录已不在的工作区没走新查法 | c_fork_gone（detached，HEAD 只在 fork/feat-gone，#75 OPEN） | SKIP W9 |
+| P9 | remote URL 不是 GitHub 的分支（本地路径、别的托管），拿去 gh 查，查不到就整行 SKIP | P 的 origin push 是本地路径；c_fork_* 都还有本地 bare 仓库的 ref | 这类 remote 的 ref 跳过，不报「PR 查不到」 |
+| P10 | 按 sha 搜会搜到目标分支早已包含 HEAD 的 open PR（第一次真实 dry-run 发现：xinyue-site 的 #99、#101–#106 指向 staging，aa526b5 早在 origin/staging 上），无关的 open PR 把已合并的工作区挡在 W9 | c_sha_base（HEAD 在 upstream/staging，#76 OPEN 指向 staging、commits 里有 HEAD） | 不算 #76；往下判到 SKIP W17 |
+
+P10 的处理：分支名和 sha 两路查到的 open PR，如果本地有它目标分支的远端分支、而且那个分支已经包含 HEAD，就不算。本地没有目标分支的照样算。
+
+P2 改过一次：第二次真实 dry-run 时，心月-CI-CD-第二阶段 因为 sha 搜索查到了已合并、目标分支是 staging 的 PR #88（它的 head 包含 aa526b5），W17 通过，从 SKIP W17 变成了 BACKUP_RM。这次派活是安全修复，不该多放行，所以改成：分支名和 sha 两路查到的 PR 只用来挡（W9），不当作 W17 的已合并证据。要不要放开，等 Zack 定。
