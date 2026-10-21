@@ -6,9 +6,9 @@
 #   调度   $HOME/Library/LaunchAgents/com.zhongc1211.ops-v5-sampler.plist（StartInterval 60）
 #   归档   $HOME/ops-archive/per126-v5-backup-1021/<机器>/（快照、安装记录、覆盖前的旧文件、卸载挪走的文件）
 # 用法：dispatch/install.sh --check | --dry-run | --install | --uninstall [--move-data]
-#   --check      只读核对：脚本、版本、配置版本、plist、LaunchAgent 是否已加载、采样器状态、
+#   --check      只读核对（launchctl 只调 print）：脚本、版本、配置版本、plist、LaunchAgent 是否已加载、采样器状态、
 #                最近一次采样年龄、数据目录大小。全部正常退出 0，否则退出 1。
-#   --dry-run    只打印会做什么，不写文件，不调 launchctl、不跑 backup.sh
+#   --dry-run    只打印会做什么，不写文件、不跑 backup.sh；launchctl 只调只读的 print 看是否已加载
 #   --install    v5 上线约定：先跑本机 <归档>/tools/backup.sh --label p2-sampler，失败就退出、什么都不装；
 #                核对 install-log.tsv 多了一行并打印快照目录和 MANIFEST sha256；再安装；
 #                装完写 <归档>/p2-sampler-installed-<时间>.tsv（路径和 sha256）并在 install-log.tsv 追加一行。
