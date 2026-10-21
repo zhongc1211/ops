@@ -260,3 +260,65 @@ A30–A35 之外：
 - S14.MBA.held、S14.iMac.held：退出不是 75，那个目录被建出来了。
 - S14.MBA.nodir、S14.iMac.nodir：退出不是 73，那个目录被建出来了。
 - S14.MBA.timeout、S14.iMac.timeout：第一轮还在跑的时候探锁，退出 0；替身起了至少 1 次；第一轮到 12 秒被杀。
+
+## 第五轮补充：锁一直被占着（dr eggbot，2026-10-22 01:4x，写代码之前）
+
+dr eggbot 补的要求：锁一直被占着时，每一轮都退出 75 跳过，这本身就是漏报。要 (a) 连续跳过超过 45 分钟（约 9 轮）就告警或写一条心跳行，
+状态记在锁目录旁边；(b) 在两台机器上实测 `-k` 的锁在持锁进程崩溃或被 kill 以后不会残留；再加一条「锁一直被占着」的演练：外部持锁超过阈值时
+必须看到告警，锁放开以后要能恢复。两样都做。heartbeat-watch.sh 还是不改（和 base 比只差第 13 行），所以 (a) 放在一个新脚本
+`scripts/lock-held-alert` 里，precheck 里写在 lockf 前面。「状态记在锁目录旁边」理解成状态文件和锁文件放在同一个目录。
+上面几张表不改，新的写在这里。
+
+### 新查到的事实
+
+| # | 事实 | 怎么查到的 | 影响 |
+|---|---|---|---|
+| F31 | 现在锁一直被占着时谁会发现：MBA 新任务每轮退出 75、没有 `@@HB`，卡 ③ 以后 iMac `5c2d0575` 盯着它，20 分钟后报「MBA ops · 29 心跳互查」中断；卡 ③ 之前没人盯它（这时 box 还在盯 ops · 01）。`5c2d0575` 并行版没人盯（README 已知限制「`5c2d0575` 本身没人盯」），它每轮跳过时 box、MBA 两个目标都没人查，也没人报 | README「谁盯谁」；defs.json | (a) 主要补的是 `5c2d0575` 并行版。MBA 新任务从卡 ③ 起会被报两次（A53） |
+| F32 | 锁能一直被占着的情况：lockf 拿着锁，直到它起的命令结束。heartbeat-watch 一轮有上限（MBA 新任务最坏约 296 秒，并行版最坏 572 秒），Orca 到超时会杀整个进程组（F14）。所以要么有人手动拿着锁（README 卡 ② 后面的可选验证就是 `lockf … sleep 360`），要么持锁的进程卡住了、又不在 Orca 会杀的那个进程组里。Orca 退出、崩溃或升级时正在跑的那一轮会怎样，没查 | F14、F23、F26；README | 平时碰不到；碰到了就是 A41 |
+| F33 | 持锁的 lockf 被信号杀掉时，锁马上放开，`-k` 留下的锁文件不挡下一次拿锁。iMac 上在临时目录里手测（10-22 01:3x）：SIGTERM 退出 143，SIGSEGV 退出 139；信号发出后马上探锁，都退出 0；锁文件还在；它起的 sleep ppid 变成 1，自己结束；`~/Library/Logs/DiagnosticReports/` 没有多出 lockf 的崩溃报告。SIGKILL（退出 137）见 S14.kill | 手测；F23 | (b) 放进演练，两台各做 SIGKILL、SIGTERM、SIGSEGV 三项。崩溃用 `kill -SEGV` 模拟 |
+| F34 | 对面的 heartbeat-watch 读 `@@HB` 时只看 `ts` 和 `last_scan`，不看 `rc`（第 117–125、220–228 行）。跳过的那一轮如果打一行 `@@HB`，`ts` 是新的，对面就当这边还活着；`last_scan` 沿用旧值时，要过 N + 15 = 35 分钟才报「扫描每次超时被杀或每次出错」。不打 `@@HB`，对面 20 分钟就报「已 N 分钟没有新的」 | `scripts/heartbeat-watch.sh` | (a) 选告警，不写 `@@HB`。跳过时只在 stdout 打一行普通文字（进 Orca 的运行记录，对面不读）。告警的发法照抄 heartbeat-watch 的 `post`：同一个 bot、同样的 webhook 文件和环境变量 |
+| F35 | MBA 的 Orca 自己升级了：10-22 00:37 的演练记的是 1.4.229，01:11 的记的是 1.4.237，MBA 上 Orca 进程约 00:55 起来，不是本 PR 动的。重读 1.4.237：调度起的运行，有预检就先跑预检，结果不算通过就记 `skipped_precheck`（和 iMac 1.4.235 那段代码一样，只是压缩后的名字不同）；预检进程正常退出时把数字退出码交上去。判断通过的 `didAutomationPrecheckPass`（有结果、没超时、没出错、退出码 0）在 `app.asar.unpacked/out/shared/automation-precheck.js`，两台这个文件逐字节一样（sha256 `957c4853…`）。主进程里调用处压缩成了 `f.vw`，它是不是就是这个函数，没追到。另外，只有调度起的运行（`trigger` 是 `scheduled`）才跑预检，手动 `orca automations run` 不跑 | 两台 `app.asar` 和 `automation-precheck.js` 的只读查看 | F25 的结论对 1.4.237 也成立，同样没在真机上验证；手动 run 也验证不了 75 |
+
+### 要防的失败方式
+
+| # | 失败方式 | 场景 | 期望 |
+|---|---|---|---|
+| A41 | 锁一直被占着，每轮都退出 75，没人知道 | S15.MBA、S15.iMac | `scripts/lock-held-alert`（装到 `~/.orca-state/bin/`）。两个 precheck 写成 `… $HOME/.orca-state/bin/lock-held-alert /usr/bin/lockf -k -t 0 <锁文件> $HOME/.orca-state/bin/heartbeat-watch.sh …`。它照原样跑后面的 lockf 命令；lockf 退出 75 时，在锁文件旁边的 `<锁文件>.skips.json` 记下这一串跳过的第一次时间和次数，从第一次跳过起满 45 分钟（环境变量 `HB_LOCK_ALERT_MIN`，默认 45）的那一轮发一条告警：发给 heartbeat-watch 发的那个 bot（`coding-assistant`；`STUCK_FORCE_BOT`、`STUCK_WEBHOOK_DIR` 照样生效），`kind` `heartbeat_stale`，`status` `stuck`，`source` `lock-held-alert`；写明主机、锁文件、第一次跳过的时间、跳过了几轮、这段时间没在查的目标（取后面命令里 `--target` 的名字）。按 5 分钟一轮，是第 10 或第 11 次跳过。演练：外部用 `lockf -k -t 0 <锁> sleep 32` 拿住锁，阈值用环境变量改成 0.25 分钟（15 秒），照 Orca 的做法起 4 轮（第 1 轮开始后约 0、6、18、24 秒），加 `--dry-run`。4 轮都退出 75，stderr 有 `already locked`，stdout 只有一行「…已连续跳过 N 轮…」（N 依次是 1–4），`HB_STATE_DIR` 没被建出来；第 1、2 轮假 curl 0 次；第 3 轮假 curl 1 次，请求体 `kind` `heartbeat_stale`、`status` `stuck`、`source` `lock-held-alert`、`bot` `ops-system`，`note` 里有主机名、锁文件名和目标名（MBA「iMac ops · 01 卡住工作检查」；iMac「box ops · 29 卡住检查心跳」「MBA ops · 29 心跳互查」）；状态文件里记了报过的时间 |
+| A42 | 锁放开以后不恢复：状态一直留着，或者恢复了没人知道 | S15.MBA、S15.iMac | 持锁的 sleep 结束以后起第 5 轮（真的 ssh / orca，加 `--dry-run`）：退出 1，没有 `already locked`，有第一个目标的「正常」，stdout 有一行「…锁拿到了，之前连续跳过 4 轮…」；假 curl 变成 2 次，第 2 次 `kind` `heartbeat_recovered`、`status` `recovered`；状态文件没了。第 6 轮：退出 1，假 curl 还是 2 次，stdout 没有 lock-held-alert 的行 |
+| A43 | 跳过的每一轮都告警 | S15.MBA、S15.iMac | 第 4 轮还是跳过，假 curl 还是 1 次，stdout 那一行写「已报过」 |
+| A44 | 偶尔一轮重叠（上一轮跑过 300 秒）就报 | S13、S15（第 1、2 轮） | 没到阈值不发；拿到锁的一轮把这一串清掉。S13：B 跳过一次，锁文件旁边的状态文件记 1 次、没有报过；C 拿到锁，stdout 有「之前连续跳过 1 轮」，C 之后状态文件没了；假 curl 0 次 |
+| A45 | 默认阈值不是 45 分钟 | S15.MBA.45、S15.iMac.45 | 不设 `HB_LOCK_ALERT_MIN`，外部拿住锁。先把状态文件写成「第一次跳过在 44 分钟前、已跳过 9 轮」，跑一轮：退出 75，「已连续跳过 10 轮」，假 curl 0 次；再写成「46 分钟前」，跑一轮：退出 75，假 curl 1 次，`kind` `heartbeat_stale` |
+| A46 | 加了这一层以后，正常的一轮变了（输出、退出码） | S2、S6b、S12、S13（A）、S15（第 6 轮） | 锁空着、旁边没有状态文件时，lock-held-alert 什么都不打，退出码就是 lockf 的。S2、S6b、S12 和 S13 的 A 期望不变 |
+| A47 | 退出码被改了：非 0 变成 0（Orca 会起模型），或者 75 变成别的 | S13、S14、S15、S15.MBA.bad、S15.iMac.bad | 退出码一律照 lockf 的：75、73、1 原样交出去；lockf 被信号杀掉时是 128 + 信号；lock-held-alert 自己出错（状态文件读写失败、发告警出错）时在 stderr 写一行，退出码还是 lockf 的；起不了 lockf 时退出 71。S15.*.bad：状态文件内容是乱码时当成没有状态，这一轮算第 1 次跳过，退出 75；状态文件的路径是个目录、写不进去时，退出还是 75，stderr 有 lock-held-alert 的报错，假 curl 0 次 |
+| A48 | lock-held-alert 没装或者路径写错：每轮退出 127（sh 找不到命令），并行版两个目标都没人查，也没人报 | S8；上线核对 | defs 里两个 precheck 都用 `$HOME/.orca-state/bin/lock-held-alert`（S8 核对）。README 卡 ② 第 1 步在 MBA 装它；卡 ③ 第 4 步先在 iMac 装它、比 sha256、照 precheck 原文经它跑一次 `--dry-run`，再 `register.sh --apply`；改完看下一次运行退出 1、两个目标都有结论行。演练不了，靠上线时核对 |
+| A49 | 演练在真目录里留下状态文件，或者把 lock-held-alert 装进了 `~/.orca-state/bin/` | S10 | 两台都多查三个真路径：`~/.orca-state/bin/lock-held-alert`、`~/.orca-state/heartbeat-watch/mba-hb-watch.lock.skips.json`、`~/.orca-state/heartbeat-watch/5c2d0575.lock.skips.json`，演练前后都没有 |
+| A50 | 两个 lock-held-alert 同时写状态文件：拿着锁的那一轮结束时清掉，同时有一轮跳过、记一次 | 不演练 | 临时文件按进程取名，再用 `os.replace` 换上去，文件不会写坏；谁后写算谁的。清掉的被盖回成「跳过 1 次」：下一轮拿到锁就清掉；跳过的一次被清掉：告警晚一轮。写进已知限制 |
+| A51 | 告警发不出去（没有 webhook 配置、POST 失败） | 不演练 | 和 heartbeat-watch 一样：stdout 写「没发」，不记报过，下一轮跳过时再发；「已恢复」发不出去时留着报过的记录，下一次拿到锁再发。演练只走了发成功的路（假 curl 回 200）。写进已知限制 |
+| A52 | (b) 持锁的进程崩溃或被杀以后，锁还在 | S14.MBA.kill、S14.MBA.term、S14.MBA.crash、S14.iMac.kill、S14.iMac.term、S14.iMac.crash | 做法同 A33，只用 lockf：`lockf -k -t 0 <锁> sleep 8` 拿住锁，探一次，退出 75；核对 pid、ppid、命令名以后，只给这个 lockf 发信号：kill 发 SIGKILL（退出 137），term 发 SIGTERM（退出 143），crash 发 SIGSEGV 模拟崩溃（退出 139）；马上再探，退出 0；锁文件还在（`-k`）；它起的 sleep ppid 1，自己结束。crash 前后各数一次 `~/Library/Logs/DiagnosticReports/` 里 lockf 开头的文件，记下来 |
+| A53 | 从卡 ③ 起，MBA 的锁一直被占着时报两次 | 不演练 | iMac `5c2d0575` 20 分钟时报「MBA ops · 29 心跳互查」中断（没有 `@@HB`），MBA 上 lock-held-alert 45 分钟时再报一次锁被占着；恢复时也是两条。两条说的不是一回事（对面看到的现象、这边的原因），不合并。写进已知限制 |
+| A54 | 每轮退出 73（锁文件的目录没了）不算跳过 | S14.MBA.nodir、S14.iMac.nodir | 73 时目录不在，状态文件也写不了：lock-held-alert 不计数、不告警、不打字，stdout 空（A35 不变）。MBA 上从卡 ③ 起 iMac 会报（F24）；iMac 上这个目录一直有。写进已知限制 |
+
+另外，A30、A31 跟着改：S13 的 B 和 S14 的 held，stdout 不再是空的，只有 lock-held-alert 的一行「…已连续跳过 1 轮…」，没有 `@@HB`；
+锁文件旁边多一个状态文件，记 1 次、没有报过。A38（S8）里 MBA 新任务和并行版的 precheck 前面多 `$HOME/.orca-state/bin/lock-held-alert `。其他不变。
+
+### 演练本身可能骗人的地方
+
+| # | 风险 | 处理 |
+|---|---|---|
+| C17 | S15 的阈值用环境变量 `HB_LOCK_ALERT_MIN` 改成 0.25 分钟；precheck 原文不设它，默认 45 | 默认值由 S15.*.45 看：状态文件是演练写的，假装第一次跳过在 44、46 分钟前，不是真等 45 分钟。用了伪造的状态，不叫 E2E |
+| C18 | S15 的告警发给假 webhook 配置（`127.0.0.1:9`）和 PATH 里的假 curl：假 curl 记下请求体、回 200 | 真的 webhook 和收消息的 Coding助手 都没碰；收件方怎么处理 `source` 是 `lock-held-alert` 的 `heartbeat_stale`，没验证。用了替身，不叫 E2E |
+| C19 | S15 外部持锁用的是 `lockf … sleep 32`，不是一轮卡住的 heartbeat-watch | 要看的是「锁一直被占着」本身，谁拿着都一样（F32） |
+| C20 | S14.crash 用 `kill -SEGV` 从外面发信号模拟崩溃，不是 lockf 自己出错 | 真的段错误也是进程收到 SIGSEGV 后终止；演练只能从外面发这个信号。照实写成模拟 |
+
+### 回退测试的期望（第五轮补充）
+
+base 还是 `f828d452`，回退的做法不变。base 的 precheck 没有 lockf，也没有 lock-held-alert。新加 10 项：
+
+- 该挂的 6 项（该挂的从 27 项变成 33 项）：
+  - S15.MBA、S15.iMac：外部拿着的锁没人用，第 1 轮照常起 heartbeat-watch，退出不是 75，状态目录被建出来；4 轮都没跳过，假 curl 0 次（没有告警，也没有恢复）。
+  - S15.MBA.45、S15.iMac.45：两轮都照常跑，退出不是 75，假 curl 0 次。
+  - S15.MBA.bad、S15.iMac.bad：照常跑，退出不是 75。
+- 照样过的 4 项（该过的从 29 项变成 33 项）：S14.MBA.term、S14.MBA.crash、S14.iMac.term、S14.iMac.crash，只用 lockf 本身。
+- 已有的 56 项期望不变。S13 B 的 stdout 现在有 lock-held-alert 的一行，base 上没有这一层，S13 照样按「回退测试的期望（第五轮补）」挂。
+
+共 66 项，新代码上 66 项都该过。新加的 6 项该挂的，演练「实际」一栏要对得上上面的原因，对不上算不一致。
