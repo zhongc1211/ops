@@ -3,28 +3,30 @@
 # (PER-79, automations/migration-1020/README.md). project: xinyue | deepvision-site | deepvision-ads | vllm-omni.
 # Who runs what (all prechecks are bounded, none starts a model by itself):
 #   primary <p>         MBA night review precheck (also the MBA */10 retry task, which only acts until MBA time +25 min). exit 0 = start the review. Skips (exit 1) when the night is already
-#                       done on box, MBA is on battery or would sleep with the lid closed (missed, reason=asleep), or
+#                       done in the store, MBA is on battery or would sleep with the lid closed (missed, reason=asleep), or
 #                       heavy-lock is busy (missed, reason=lock_busy), or tonight's review already started here (< 3 h ago). Otherwise pulls the session lists
 #                       (sync-manifests-from-box.sh; a failure is left in SYNC-STATUS for the review to alarm on),
 #                       checks gh, starts a self-ending caffeinate and records state=started.
 #   watch <p>           iMac watcher, MBA time +30 min, no model (always exit 1). Reads MBA's state over ssh; a missed
 #                       night (offline / asleep / lock_busy / stalled / rsync_failed) gets a takeover file on the iMac.
 #   backup <p>          iMac backup review precheck (*/10, acts from MBA time +30 to +240 min). exit 0 = the iMac runs the review: takeover file
-#                       there (or the watcher's check says missed now), night not done on box, iMac heavy-lock taken.
+#                       there (or the watcher's check says missed now), night not done in the store, iMac heavy-lock taken.
 #                       Lock busy for more than 60 min after the takeover -> one status=stuck to ops-system
-#                       (machine=box): ops-system starts the disabled box task by hand.
-#   box-watch <p>       box, MBA time +150 min, no model (always exit 1): night not done on box -> one status=stuck to
-#                       ops-system (machine=box reason=imac_missed), unless the iMac reports its takeover started < 2 h ago. Covers the iMac
-#                       being offline too.
+#                       (machine=imac): free the iMac lock and the backup takes the night, or run the iMac backup task by hand.
+#   box-watch <p>       kept, but no task uses it since B2a (PER-146: box runs no night-review task). On the store host, MBA time
+#                       +150 min, no model (always exit 1): night not done in the store -> one status=stuck to ops-system
+#                       (machine=imac reason=imac_missed), unless the iMac reports its takeover started < 2 h ago.
 #   finish <p> <D> <machine> <reason>   last step of the review (wrapped in notify-run --bot ops-system): needs
-#                       「状态：完成」 in the summary, copies summary + ledger + logs back to box, records state=done,
-#                       releases heavy-lock. exit 0 = all done; 3 = no 状态：完成; 4 = copy back failed (lock released).
+#                       「状态：完成」 in the summary, copies summary + ledger + logs to the store, records state=done,
+#                       releases heavy-lock. exit 0 = all done; 3 = no 状态：完成; 4 = copy to the store failed (lock released).
 #   reason <p> <D>      prints why this machine runs the night (ok on the MBA, the takeover reason on the iMac).
 #   keepawake           MBA 21:40 task precheck: starts caffeinate -i -t 15000 (to 01:50) in the background, exit 1.
 # Wakes go to ops-system only (~/.config/grokbot/webhooks/ops-system.env, read by path; never coding-assistant).
 # State: ~/.orca-state/night-review/<p>/<D>.status (key=value lines, last one wins) and <D>.takeover on the iMac.
-# Overrides (drills): NR_MBA_HOST (mba), NR_BOX_HOST (box), NR_BOX_DIR (box ~/xinyue-deploy/nightly-review; a local path when
-# NR_BOX_HOST=local), NR_IMAC_HOST (imac), NR_DIR (~/xinyue-deploy/nightly-review), NR_NOW (epoch), NR_PMSET_BATT / NR_PMSET_G / NR_IOREG
+# Store (where finished nights are kept and looked up): NR_STORE_HOST (default box; local, or this machine's own short
+# hostname, = a folder here, no ssh) and NR_STORE_DIR (default ~/xinyue-deploy/nightly-review, the ~ expands on the store host).
+# The old names NR_BOX_HOST / NR_BOX_DIR still work when the new ones are not set.
+# Overrides (drills): NR_MBA_HOST (mba), NR_IMAC_HOST (imac), NR_DIR (~/xinyue-deploy/nightly-review), NR_NOW (epoch), NR_PMSET_BATT / NR_PMSET_G / NR_IOREG
 # (files with pmset -g batt / pmset -g / ioreg output), NR_DISPLAYS (system_profiler SPDisplaysDataType output),
 # NR_CAFFEINATE_T (seconds), NR_SYNC (sync script), NR_STATE (this machine's state root), NR_MBA_STATE / NR_IMAC_STATE
 # (the state root read over ssh on the MBA / iMac; all three default to ~/.orca-state/night-review).
@@ -45,7 +47,12 @@ case "$p" in xinyue) back=6; files="-xinyue.md -xinyue-ledger.jsonl -addflush.js
 D=${NR_D:-$(REVIEW_NOW=$now bash "$S/review-date.sh" ago $back)}
 case "$role" in finish|reason) D=${3:?night-review-gate: $role needs D};; esac
 ST=${NR_STATE:-$HOME/.orca-state/night-review}/$p; mkdir -p "$ST"; SF=$ST/$D.status; TF=$ST/$D.takeover
-NRD=${NR_DIR:-$HOME/xinyue-deploy/nightly-review}; BOXH=${NR_BOX_HOST:-box}; BOXD=${NR_BOX_DIR:-~/xinyue-deploy/nightly-review}
+NRD=${NR_DIR:-$HOME/xinyue-deploy/nightly-review}
+# quoted: an unquoted ~ in ${..:-~/..} expands here (/Users/...), which box (/home/box) does not have
+STOREH=${NR_STORE_HOST:-${NR_BOX_HOST:-box}}; STORED=${NR_STORE_DIR:-${NR_BOX_DIR:-"~/xinyue-deploy/nightly-review"}}
+[ "$role" = box-watch ] && STOREH=local          # box-watch runs on the store host
+[ "$(echo "$STOREH" | tr 'A-Z' 'a-z')" = "$(hostname -s | tr 'A-Z' 'a-z')" ] && STOREH=local   # no ssh to itself (fails on the iMac)
+[ "$STOREH" = local ] && case "$STORED" in "~/"*) STORED=$HOME/${STORED#"~/"};; esac
 SSH="ssh -o BatchMode=yes -o ConnectTimeout=15"
 # warm the relay path first: the first ssh over a cold DERP path can time out (sync-manifests-from-box.sh)
 sshr(){ $SSH "$@"; local rc=$?; [ $rc -eq 255 ] && { sleep 5; $SSH "$@"; rc=$?; }; return $rc; }
@@ -53,8 +60,8 @@ summary=$D$(echo "$files" | cut -d' ' -f1)
 put(){ echo "$* ts=$now" >> "$SF"; echo "night-review-gate $role $p $D: $*"; }
 get(){ sed -nE "s/(^|.* )$1=([^ ]*).*/\2/p" "${2:-$SF}" 2>/dev/null | tail -1; }
 done_line='^状态(：|:)[[:space:]]*完成'
-box_done(){ if [ "$BOXH" = local ]; then grep -Eq "$done_line" "$BOXD/$summary" 2>/dev/null
-  else sshr "$BOXH" "grep -Eq '$done_line' $BOXD/$summary" 2>/dev/null; fi; }
+store_done(){ if [ "$STOREH" = local ]; then grep -Eq "$done_line" "$STORED/$summary" 2>/dev/null
+  else sshr "$STOREH" "grep -Eq '$done_line' $STORED/$summary" 2>/dev/null; fi; }
 wake_stuck(){ # <machine> <reason> <note>: one status=stuck POST to ops-system; KEY goes to curl on stdin only
   local env=$HOME/.config/grokbot/webhooks/ops-system.env body
   body=$(python3 -I -c 'import json,sys; m,r,n,p,d=sys.argv[1:6]; print(json.dumps({"bot":"ops-system","task":"%s 夜审 %s"%(p,d),"status":"stuck","machine":m,"reason":r,"note":"machine=%s reason=%s %s"%(m,r,n),"source":"night-review-gate"},ensure_ascii=False))' "$1" "$2" "$3" "$p" "$D")
@@ -69,7 +76,7 @@ mba_state(){
   local st r ts; st=$(echo "$s" | tail -1 | sed -n 's/.*state=\([^ ]*\).*/\1/p'); r=$(echo "$s" | tail -1 | sed -n 's/.*reason=\([^ ]*\).*/\1/p')
   ts=$(echo "$s" | tail -1 | sed -n 's/.*ts=\([0-9]*\).*/\1/p')
   case "$st" in
-    done) box_done && echo ok || echo rsync_failed;;
+    done) store_done && echo ok || echo rsync_failed;;
     missed) echo "${r:-asleep}";;
     started|checking) [ $(( now - ${ts:-0} )) -gt 3600 ] && echo stalled || echo running;;
     *) echo asleep;;
@@ -77,7 +84,7 @@ mba_state(){
 
 case "$role" in
 primary)
-  box_done && { put "state=skipped reason=already_done"; exit 1; }
+  store_done && { put "state=skipped reason=already_done"; exit 1; }
   t=$(get ts); age=$(( now - ${t:-0} ))                      # a precheck killed by its 900 s timeout leaves 'checking'
   case "$(get state)" in started|done) [ $age -lt 10800 ];; checking) [ $age -lt 1200 ];; *) false;; esac \
     && { echo "night-review-gate primary $p $D: already $(get state) here, skip"; exit 1; }
@@ -106,14 +113,14 @@ primary)
   nohup caffeinate -i -t "${NR_CAFFEINATE_T:-3600}" >/dev/null 2>&1 &   # ends by itself; the review adds caffeinate -w for its own pid
   put "state=started machine=mba reason=ok gh=$gh_ok caffeinate=$!"; exit 0;;
 watch)
-  box_done && { put "state=seen_done"; exit 1; }
+  store_done && { put "state=seen_done"; exit 1; }
   r=$(mba_state)
   case "$r" in ok) put "state=seen_done";; running) put "state=seen_running";;
     *) [ -f "$TF" ] || echo "reason=$r since=$now" > "$TF"; put "state=takeover reason=$r";; esac
   exit 1;;
 backup)
   [ $mins -ge $(( at + 30 )) ] && [ $mins -le $(( at + 240 )) ] || exit 1   # before the watcher's time MBA may still be starting
-  box_done && exit 1
+  store_done && exit 1
   if [ ! -f "$TF" ]; then r=$(mba_state); case "$r" in ok|running) exit 1;; esac; echo "reason=$r since=$now" > "$TF"; fi
   [ "$(get state)" = started ] && exit 1                           # this machine already took the night
   r=$(get reason "$TF"); since=$(get since "$TF")
@@ -125,27 +132,26 @@ backup)
     put "state=started machine=imac reason=$r"; exit 0
   fi
   if [ $(( now - ${since:-$now} )) -gt 3600 ] && [ -z "$(get escalated)" ]; then
-    wake_stuck box lock_busy "MBA missed ($r), iMac heavy-lock busy > 60 min; run the disabled box task by hand (README §回滚)" && put "escalated=box reason=lock_busy"
+    wake_stuck imac lock_busy "MBA missed ($r), iMac heavy-lock busy > 60 min; the iMac backup takes the night once the lock is free (it retries every 10 min until MBA time +240 min): check what holds the iMac lock, or run the iMac backup task by hand" && put "escalated=imac reason=lock_busy"
   fi
   exit 1;;
 box-watch)
-  BOXH=local; BOXD=${NR_BOX_DIR:-$HOME/xinyue-deploy/nightly-review}
-  box_done && exit 1
+  store_done && exit 1
   [ -n "$(get escalated)" ] && exit 1
   s=$(sshr "${NR_IMAC_HOST:-imac}" "cat ${NR_IMAC_STATE:-~/.orca-state/night-review}/$p/$D.status" 2>/dev/null | grep 'state=started' | tail -1)
   t=$(echo "$s" | sed -n 's/.*ts=\([0-9]*\).*/\1/p')
   [ -n "$t" ] && [ $(( now - t )) -lt 7200 ] && { put "state=seen_imac_running"; exit 1; }
-  wake_stuck box imac_missed "neither MBA nor iMac finished by +150 min; run the disabled box task by hand" && put "escalated=box reason=imac_missed"
+  wake_stuck imac imac_missed "neither MBA nor iMac finished by +150 min; check the iMac backup (night-review-gate.sh backup) and run the iMac backup task by hand" && put "escalated=imac reason=imac_missed"
   exit 1;;
 finish)
   m=${4:?machine}; r=${5:?reason}
   grep -Eq "$done_line" "$NRD/$summary" 2>/dev/null || { put "state=failed machine=$m reason=$r detail=no_done_line"; bash "$S/heavy-lock.sh" release "night-review-$p"; exit 3; }
   set --; for f in $files; do [ -e "$NRD/$D$f" ] && set -- "$@" "$D$f"; done
-  if [ "$BOXH" = local ]; then mkdir -p "$BOXD" && tar -C "$NRD" -cf - "$@" | tar -xf - -C "$BOXD"; rc=$?
-  else tar -C "$NRD" -czf - "$@" | $SSH "$BOXH" "mkdir -p $BOXD && tar -xzf - -C $BOXD"; rc=$?; fi
-  [ $rc -eq 0 ] && box_done || { put "state=failed machine=$m reason=$r detail=rsync_failed"; bash "$S/heavy-lock.sh" release "night-review-$p"; exit 4; }
+  if [ "$STOREH" = local ]; then mkdir -p "$STORED" && tar -C "$NRD" -cf - "$@" | tar -xf - -C "$STORED"; rc=$?
+  else tar -C "$NRD" -czf - "$@" | $SSH "$STOREH" "mkdir -p $STORED && tar -xzf - -C $STORED"; rc=$?; fi
+  [ $rc -eq 0 ] && store_done || { put "state=failed machine=$m reason=$r detail=rsync_failed"; bash "$S/heavy-lock.sh" release "night-review-$p"; exit 4; }
   put "state=done machine=$m reason=$r files=$#"; bash "$S/heavy-lock.sh" release "night-review-$p"
-  echo "machine=$m reason=$r: $p $D done, $# file(s) copied to box";;
+  echo "machine=$m reason=$r: $p $D done, $# file(s) copied to $STOREH:$STORED";;
 reason)
   [ -f "$TF" ] && get reason "$TF" || echo ok;;
 keepawake)

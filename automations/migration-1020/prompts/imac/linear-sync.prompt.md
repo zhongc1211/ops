@@ -19,7 +19,7 @@ Linear sync（v2，2026-10-18 Zack 批）：把 Linear team personal（PER）和
 - status.md：先找 iMac 仓库里的，没有再 `ssh box cat` box 仓库里的；找不到就以 PR 和 Linear 评论为准。
 
 ## 怎么改
-- Linear 读写一律用 本机 `orca linear ...`；本机连不上 Linear 时改用 `ssh box 'PATH=$HOME/.local/bin:$PATH orca linear ...'`。
+- Linear 读写一律用 本机 `orca linear ...`；本机连不上 Linear 时不改用 box：停下，在最后一条消息里写明（预检已经用 `orca linear team list` 查过一次）。
 - 证据清楚的直接改：`linear status set <ID> --to "<新状态>"`，紧接着 `linear comment add <ID> --body "Linear sync：<旧>→<新>｜<依据>｜<链接>"`。包括把不满足新 Done 定义的 Done 重开为 In Progress（例如只合进 staging、生产没验收、key 没到位）。
 - 带「等 Zack」标签的 issue：不改状态、不加评论，只在本次记录里记一笔。
 - 拿不准的不改，叫醒负责的项目 bot 核实（每个 bot 每次运行最多叫一次，把它负责的待核实 issue 合并到一条里）：

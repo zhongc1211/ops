@@ -137,6 +137,20 @@ G1a、G1b 比的就是修前和修后，只在修后跑。
 | H5 | box-watch 在 MBA 上代替 box 跑 | 它已经没有任务用，这里只证明子命令还能跑、提示改了 |
 | H6 | 「全放 iMac」配置只在演练里设，没有启用 | 是。W0 证明这套配置在两台 Mac 之间走得通；要不要切由 Zack 定，步骤写在 README |
 
+### 写代码时新发现的（B2a；和代码一起写的，不是在代码之前）
+
+| # | 发现 | 改了什么 |
+|---|---|---|
+| J1 | PER-79 的 K1a 用 `ps -o command=` 看 `-t`；任务书只许 `pgrep -l` 或 `ps -o pid,ppid,rss,etime,comm` | K1a 只看进程名；`-t` 由 K1c 证明（caffeinate 到时自己退出） |
+| J2 | N4、N9、W0 只设新变量时，修前的脚本不认它们，会按默认值去连 box | 这三项同时设 `NR_BOX_HOST=nosuchhost.invalid`：修前连不上、直接挂，碰不到 box；修后新变量优先，不受影响。每项跑完放掉两台机器的锁，修前的失败不带进后面的保留项 |
+| J3 | M2b 原来用 box 上没有的日期 | 改成 `SYNC_SRC_HOST=mba`（MBA 上没有 `/var/lib/everos-ingest`），同样退出 3 |
+| J4 | N8 原计划看 watch / primary 发的 grep | 改成跑 `finish`：一次调用里 mkdir / tar 和 grep 两种命令都有 |
+| J5 | PER-79 演练在 MBA 上跑；B2a 要在 iMac 上本机跑看守、备用和 N9 | run-e2e.sh 重写：iMac 本机跑，MBA 从 `/tmp/b2a-e2e-*` 的副本经 ssh 跑，跑完删除 |
+| J6 | X2 扫「演练文件里没有结束进程的命令」，扫描规则自己也在演练文件里 | 规则里的词拆开拼；假 webhook 说明里的同一个词换了说法 |
+| J7 | W4、W7a、W7b 原来查 `machine=box`，修前修后结果会不同 | 这几项只查条数和 reason（两边都应过）；machine 和提示文字归 N5、N7 |
+| J8 | 第一次试跑（未提交的工作区，2026-10-22 00:40）的回退测试抓到演练自己的两处错：N3 的检查取的是 `cat` 的退出码，修前也过；K1a 的 caffeinate 只给 5 秒，修前那次三次 ssh 往返以后它已经到时退出 | N3 改成取比对脚本的退出码；W2e 这一步给 30 秒，K1c 等它到时以后再查 |
+| J9 | G1a 里新旧发给 box 的路径不同（修前是本机展开的 `/Users/…`，修后是字面 `~/…`） | 这是 B6 的有意改动：对照报告单列，不计入差异 |
+
 ### 去掉的场景
 
 M1a、M1b、M3a、M3b、M1i（真 box 拉清单）、C1a–C1e、C2a、C2b（box 清理预检；本方案不再给 box 加预检）、

@@ -3,14 +3,14 @@ iMac 版通用规则（PER-79 从 box 迁来，先读这一段；和下文冲突
 - 开始前：export PATH=/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH；`command -v gh && gh auth status` 失败 → 失败项「gh 不可用」；`orca linear team list >/dev/null` 失败 → 失败项「Linear 未登录」（都按下文的失败告警处理）。
 - 防睡：先跑 `nohup caffeinate -dimsu -w $PPID >/dev/null 2>&1 &`（跟着本会话的 agent 进程，会话结束它就退出）。
 - 锁：预检已经拿了 heavy-lock（名字 night-review-xinyue）。每做完一步跑一次 `bash ~/orca/workspaces/ops/scripts/heavy-lock.sh refresh night-review-xinyue`，不要自己 release，最后一步会放。
-- 会话清单：预检已把 box 的清单同步到 ~/everos-ingest/xinyue/${D}/（transcript_path 已改成本机路径）。先读 ~/everos-ingest/xinyue/${D}/SYNC-STATUS：不是 ok 开头 → 按「清单缺失」处理（失败告警，note 写 SYNC-STATUS 的内容）。
-- box 上的 status.md 等文件用 `ssh box cat <路径>` 只读；不在 box 上改任何东西（最后一步的拷回除外）。
+- 会话清单：预检已把当晚的会话清单同步到 ~/everos-ingest/xinyue/${D}/（transcript_path 已改成本机路径）。先读 ~/everos-ingest/xinyue/${D}/SYNC-STATUS：不是 ok 开头 → 按「清单缺失」处理（失败告警，note 写 SYNC-STATUS 的内容）。
+- box 上的 status.md 等文件用 `ssh box cat <路径>` 只读；不在 box 上改任何东西（存放位置在 box 时，最后一步的拷贝除外）。
 - 这是接替运行（MBA 错过了这一晚，原因见 `bash ~/orca/workspaces/ops/scripts/night-review-gate.sh reason xinyue "$D"`）：同一晚只写一次 EverOS。会话写入已带 --skip-existing（已有 episode 的会话 result=ALREADY，不再写，摘要计数）；lesson / skill 脚本对已有的 session 或同名 skill 本来就不重写。
-- 最后一步（摘要写完、摘要里有一行行首是「状态：完成」之后）：`R=$(bash ~/orca/workspaces/ops/scripts/night-review-gate.sh reason xinyue "$D"); notify-run --bot ops-system --no-tty --task "心月夜审 ${D} machine=imac reason=$R" -- bash ~/orca/workspaces/ops/scripts/night-review-gate.sh finish xinyue "$D" imac "$R"`。它把摘要、台账、日志拷回 box 的 ~/xinyue-deploy/nightly-review/（box 没有 rsync，用 tar over ssh），记 done，放锁，并叫醒 ops-system。退出码 3 = 摘要里没有「状态：完成」，4 = 没拷回 box（第二天兜底会报警，这是对的）：在本机摘要的失败项补一行，不要重试超过 2 次。
+- 最后一步（摘要写完、摘要里有一行行首是「状态：完成」之后）：`R=$(bash ~/orca/workspaces/ops/scripts/night-review-gate.sh reason xinyue "$D"); notify-run --bot ops-system --no-tty --task "心月夜审 ${D} machine=imac reason=$R" -- bash ~/orca/workspaces/ops/scripts/night-review-gate.sh finish xinyue "$D" imac "$R"`。它把摘要、台账、日志拷到夜审结果的存放位置（`night-review-gate.sh` 里的 NR_STORE_HOST / NR_STORE_DIR，用 tar），记 done，放锁，并叫醒 ops-system。退出码 3 = 摘要里没有「状态：完成」，4 = 没拷到存放位置（notify-run 会把非 0 退出码报给 ops-system）：在本机摘要的失败项补一行，不要重试超过 2 次。
 
 心月夜审（xinyue-site，每晚一次，EverOS 版，按 box:/workspace/ops/everos-lessons-plan/HANDOFF-coding.md（`ssh box cat`，只读） §4）。只记录，不改业务代码、不部署、不碰生产；不打印、不提交、不写日志任何密钥。
 
-准备：D=$(bash ~/orca/workspaces/ops/scripts/review-date.sh ago 6)（23:40 定时；减 6 小时，接替或补跑拖到次日 05:59 前都还是这一天）。摘要目录 ~/xinyue-deploy/nightly-review/ 不存在先 mkdir -p。在做任何其他事之前，先写摘要骨架 ~/xinyue-deploy/nightly-review/${D}-xinyue.md（已存在就覆盖），内容如下，各行行首格式不变，box 上 01:00 的兜底检查（27383c07，读拷回 box 的摘要）按「状态：」和「当前步骤：」这两行判断：
+准备：D=$(bash ~/orca/workspaces/ops/scripts/review-date.sh ago 6)（23:40 定时；减 6 小时，接替或补跑拖到次日 05:59 前都还是这一天）。摘要目录 ~/xinyue-deploy/nightly-review/ 不存在先 mkdir -p。在做任何其他事之前，先写摘要骨架 ~/xinyue-deploy/nightly-review/${D}-xinyue.md（已存在就覆盖），内容如下，各行行首格式不变，00:30 的兜底检查按「状态：」和「当前步骤：」这两行判断：
 
 ```
 # 心月夜审 ${D}

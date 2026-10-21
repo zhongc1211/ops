@@ -50,13 +50,13 @@ def common_block(p, m, name):
         f"`orca linear team list >/dev/null` 失败 → 失败项「Linear 未登录」（都按下文的失败告警处理）。\n"
         f"- 防睡：先跑 `nohup caffeinate -dimsu -w $PPID >/dev/null 2>&1 &`（跟着本会话的 agent 进程，会话结束它就退出）。\n"
         f"- 锁：预检已经拿了 heavy-lock（名字 night-review-{p}）。每做完一步跑一次 `{LOCK} refresh night-review-{p}`，不要自己 release，最后一步会放。\n"
-        f"- 会话清单：预检已把 box 的清单同步到 ~/everos-ingest/{p}/${{D}}/（transcript_path 已改成本机路径）。先读 ~/everos-ingest/{p}/${{D}}/SYNC-STATUS：不是 ok 开头 → 按「清单缺失」处理（失败告警，note 写 SYNC-STATUS 的内容）。\n"
-        f"- box 上的 status.md 等文件用 `ssh box cat <路径>` 只读；不在 box 上改任何东西（最后一步的拷回除外）。\n"
+        f"- 会话清单：预检已把当晚的会话清单同步到 ~/everos-ingest/{p}/${{D}}/（transcript_path 已改成本机路径）。先读 ~/everos-ingest/{p}/${{D}}/SYNC-STATUS：不是 ok 开头 → 按「清单缺失」处理（失败告警，note 写 SYNC-STATUS 的内容）。\n"
+        f"- box 上的 status.md 等文件用 `ssh box cat <路径>` 只读；不在 box 上改任何东西（存放位置在 box 时，最后一步的拷贝除外）。\n"
         + take +
         f"- 最后一步（摘要写完、摘要里有一行行首是「状态：完成」之后）：`R=$({GATE} reason {p} \"$D\"); "
         f"notify-run --bot ops-system --no-tty --task \"{name}夜审 ${{D}} machine={m} reason=$R\" -- {GATE} finish {p} \"$D\" {m} \"$R\"`。"
-        f"它把摘要、台账、日志拷回 box 的 ~/xinyue-deploy/nightly-review/（box 没有 rsync，用 tar over ssh），记 done，放锁，并叫醒 ops-system。"
-        f"退出码 3 = 摘要里没有「状态：完成」，4 = 没拷回 box（第二天兜底会报警，这是对的）：在本机摘要的失败项补一行，不要重试超过 2 次。\n\n")
+        f"它把摘要、台账、日志拷到夜审结果的存放位置（`night-review-gate.sh` 里的 NR_STORE_HOST / NR_STORE_DIR，用 tar），记 done，放锁，并叫醒 ops-system。"
+        f"退出码 3 = 摘要里没有「状态：完成」，4 = 没拷到存放位置（notify-run 会把非 0 退出码报给 ops-system）：在本机摘要的失败项补一行，不要重试超过 2 次。\n\n")
 
 
 def review(p, m):
@@ -90,7 +90,6 @@ def review(p, m):
     # writers read the synced lists; takeover-safe on both machines
     if p == "xinyue":
         s = sub(s, 'python3 -I "$S" --date "$D" --log', f'python3 -I "$S" --date "$D" --sessions-dir ~/everos-ingest/xinyue/"$D" --skip-existing --log')
-        s = sub(s, "00:30 的兜底检查", "box 上 01:00 的兜底检查（27383c07，读拷回 box 的摘要）")
     elif p == "deepvision-site":
         s = sub(s, "dv_addflush.py --date \"$D\" --log", "dv_addflush.py --date \"$D\" --sessions-root ~/everos-ingest/deepvision-site --log")
     else:
@@ -111,7 +110,7 @@ def linear_sync(m):
     s = ("【运行环境：iMac（macOS），ops 主工作区 ~/orca/workspaces/ops；box 原版 bc9ee42b（PER-79 迁来）。】"
          "开始前 export PATH=/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH。box 上的文件一律 `ssh box` 只读，下面写明的 changes.log 追加除外。\n" + s)
     s = sub(s, "`orca-ide --environment iMac linear ...`；iMac 不在线（命令连不上）时改用 box 的 `orca linear ...`",
-            "本机 `orca linear ...`；本机连不上 Linear 时改用 `ssh box 'PATH=$HOME/.local/bin:$PATH orca linear ...'`")
+            "本机 `orca linear ...`；本机连不上 Linear 时不改用 box：停下，在最后一条消息里写明（预检已经用 `orca linear team list` 查过一次）")
     s = sub(s, "orca-ide --environment iMac linear", "orca linear")
     for r, path in MACHINES["imac"]["repos"].items():
         s = s.replace(f"box /workspace/repos/{r}", f"iMac {path}")
