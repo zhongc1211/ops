@@ -1,5 +1,5 @@
 #!/bin/bash
-# ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID]
+# ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--no-issue-reviews DIR]
 #               [--execute --only-from DRYRUN/worktrees.tsv [--close-terminals]]
 # Orca 工作区 / 终端夜间清理（纯脚本，不起模型）。规则：reports/ws-cleanup-dryrun-1021/RESULT.md、.orca-task/RULES-DRAFT.md
 # （Zack 10-21 01:43 定），按独立评审 PER-139 返工（reports/ws-cleanup-rework-r1/）。**默认 dry-run**：只读，写出 worktrees.tsv、
@@ -8,7 +8,9 @@
 #   工作区从上往下判，第一条命中的就是结论：W1 main/bare → W2 本任务所在 → W3 别的机器 → W5 agent 在跑 → W6 终端有活进程 / 还开着
 #   → W18 GIT_LOCKED：这个 worktree 自己的 gitdir 里有 index.lock、没做完的 merge / rebase / am / cherry-pick / revert / bisect，或被 git worktree lock（Zack 10-21 07:34）
 #   → 目录已不在：W4 看 git 记录的 HEAD（不在远端、也没有别的 ref 包含 → SKIP） / 目录在：W7 未提交 → W8 未推送
-#   → W9 open PR → W19 NO_LINEAR_ISSUE 没挂 Linear issue（Zack 10-21 08:44：PR 已合并、HEAD 在主分支都不能代替）→ W10 Linear 未关（Zack 03:37：真删前每次实时查，查不到、超时、找不到 issue 都不删）→ W11 Orca 状态不是 completed
+#   → W9 open PR → W19 NO_LINEAR_ISSUE 没挂 Linear issue（Zack 10-21 08:44：PR 已合并、HEAD 在主分支都不能代替；
+#     10-21 09:18：带 --no-issue-reviews DIR 时，DIR/<repo>/<工作区目录名>.md 里 PATH 是它、VERDICT: DELETE_OK、HEAD 和现在一致才放行，
+#     放行的照样走后面每一条规则，最后一律 BACKUP_RM，备份里带上这份记录）→ W10 Linear 未关（Zack 03:37：真删前每次实时查，查不到、超时、找不到 issue 都不删）→ W11 Orca 状态不是 completed
 #   → W12 近 IDLE_H 小时有活动 → W17 HEAD 不在已合并的 PR / 远端主分支或合并目标分支上
 #   （Zack 10-21 03:33：Linear Done、状态 completed 都只是前提，安全核对一项不过就不删）
 #   → W13 被忽略的文件：可重建的以外一律先备份（有嵌套 .git、非普通文件 → SKIP） → W14 rm（目录已不在的是 W4 rm）。
@@ -34,8 +36,8 @@ ENV = os.environ
 HOME = os.path.expanduser("~")
 ARGS = sys.argv[1:]
 EXECUTE = LIST_ONLY = PRECHECK = CLOSE_TERMS = False
-OUT = ONLY_FROM = REPO = None
-USAGE = "用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]"
+OUT = ONLY_FROM = REPO = REVIEWS = None
+USAGE = "用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--no-issue-reviews DIR] [--execute --only-from TSV [--close-terminals]]"
 def die(msg, code):
     print("ws-cleanup: " + msg, file=sys.stderr); sys.exit(1 if PRECHECK else code)
 i = 0
@@ -46,16 +48,18 @@ while i < len(ARGS):
     elif a == "--dry-run": pass                  # 默认就是 dry-run；文档里写了这个参数，照收
     elif a == "--precheck": PRECHECK = True
     elif a == "--close-terminals": CLOSE_TERMS = True
-    elif a in ("--out", "--only-from", "--repo") and i + 1 < len(ARGS):
+    elif a in ("--out", "--only-from", "--repo", "--no-issue-reviews") and i + 1 < len(ARGS):
         if a == "--out": OUT = ARGS[i + 1]
         elif a == "--only-from": ONLY_FROM = ARGS[i + 1]
-        else: REPO = ARGS[i + 1]
+        elif a == "--repo": REPO = ARGS[i + 1]
+        else: REVIEWS = os.path.abspath(ARGS[i + 1])
         i += 1
     else: die(USAGE, 2)
     i += 1
 if EXECUTE and (LIST_ONLY or PRECHECK): die("--execute 不能和 --list-only / --precheck 一起用", 2)
 if EXECUTE and not ONLY_FROM: die("--execute 必须带 --only-from <dry-run 的 worktrees.tsv>", 2)
 if (ONLY_FROM or CLOSE_TERMS) and not EXECUTE: die("--only-from / --close-terminals 只和 --execute 一起用", 2)
+if REVIEWS and not os.path.isdir(REVIEWS): die("--no-issue-reviews %s 不是目录" % REVIEWS, 2)
 
 TEST = bool(ENV.get("WS_ORCA"))
 def find_orca():
@@ -339,11 +343,28 @@ def wt_gitdir(path, main):
         if os.path.realpath(os.path.dirname(gd)) == os.path.realpath(path): return os.path.join(base, n)
     return None
 
+def no_issue_review(w, d, head):
+    """W19 的审查记录：放行返回 (记录路径, None)，不放行返回 (None, 原因)。"""
+    if not REVIEWS: return None, "Orca 里没挂 Linear issue"
+    rp = d["repos"].get(w["repoId"]) or {}
+    f = os.path.join(REVIEWS, safe_name(rp.get("displayName") or w["repoId"]), safe_name(os.path.basename(w["path"])) + ".md")
+    rel = os.path.relpath(f, REVIEWS)
+    try: lines = open(f).read().splitlines()
+    except OSError: return None, "没有审查记录 %s" % rel
+    get = lambda k: [l[len(k) + 2:].strip() for l in lines if l.startswith(k + ": ")]
+    path, sha, verdict = get("PATH"), get("HEAD"), get("VERDICT")
+    if len(path) != 1 or len(sha) != 1 or verdict not in (["DELETE_OK"], ["KEEP"]) or not re.fullmatch(r"[0-9a-f]{40}", sha[0]):
+        return None, "审查记录格式不对（%s）" % rel
+    if os.path.realpath(path[0]) != os.path.realpath(w["path"]): return None, "记录里的 PATH 不是这个工作区（%s）" % rel
+    if verdict == ["KEEP"]: return None, "审查结论是 KEEP（%s）" % rel
+    if sha[0] != head: return None, "记录里的 HEAD %s 和现在的 %s 不一样（%s）" % (sha[0][:7], head[:7], rel)
+    return f, None
+
 # ---------- 判定 ----------
 def evaluate(w, d, ctx):
     """返回 (结论, 规则, 原因, 证据 dict)。"""
     ev = {"status": w.get("workspaceStatus") or "", "pr": "", "head_vs_pr": "", "merged_via": "", "linear": (w.get("linkedLinearIssue") or "").strip(),
-          "dirty": "", "unpushed": "", "head": "", "backup": "", "backup_size": "", "rebuild": "", "_backup": [], "_files": []}
+          "dirty": "", "unpushed": "", "head": "", "backup": "", "backup_size": "", "rebuild": "", "review": "", "_review": "", "_backup": [], "_files": []}
     path = w["path"]
     real = os.path.realpath(path)
     if w.get("isMainWorktree") or w.get("isBare"): return "SKIP", "W1", "main 工作区 / bare 仓库", ev
@@ -396,12 +417,17 @@ def evaluate(w, d, ctx):
         ev["head_vs_pr"] = ",".join("#%s%s" % (p["number"], "=" if p.get("headRefOid") == head else "≠") for p in prs)
         if any(p["state"] == "OPEN" for p in prs): return "SKIP", "W9", "PR 还开着", ev
     except QueryFail as e: return "SKIP", "W9", "PR 查不到（%s）" % e, ev
-    if not ev["linear"]: return "SKIP", "W19", "NO_LINEAR_ISSUE：Orca 里没挂 Linear issue", ev
-    try:
-        typ = linear_state(ev["linear"], d); ev["linear"] += " " + typ
-        lin_closed = typ in ("completed", "canceled", "duplicate")
-        if not lin_closed: return "SKIP", "W10", "Linear 还没关", ev
-    except QueryFail: return "SKIP", "W10", "Linear 查不到（当作没关）", ev
+    lin_closed = None
+    if not ev["linear"]:
+        rec, why = no_issue_review(w, d, head)
+        if not rec: return "SKIP", "W19", "NO_LINEAR_ISSUE：" + why, ev
+        ev["review"], ev["_review"] = os.path.relpath(rec, REVIEWS), rec
+    else:
+        try:
+            typ = linear_state(ev["linear"], d); ev["linear"] += " " + typ
+            lin_closed = typ in ("completed", "canceled", "duplicate")
+            if not lin_closed: return "SKIP", "W10", "Linear 还没关", ev
+        except QueryFail: return "SKIP", "W10", "Linear 查不到（当作没关）", ev
     if ev["status"].lower() != "completed":   # 评审 M1：先保守，状态不是 completed 一律不删，等 Zack 定
         old = any(p["state"] in ("MERGED", "CLOSED") for p in prs) or lin_closed
         return "SKIP", "W11", "Orca 状态是 %s，不是 completed%s" % (ev["status"] or "空",
@@ -417,6 +443,7 @@ def evaluate(w, d, ctx):
     ev["merged_via"] = how
     if gone:
         how = "HEAD %s 已在远端" % head[:7] if ev["unpushed"] == "0" else "HEAD %s 被 %s 包含" % (head[:7], ev["_refs"][0])
+        if ev["_review"]: return "BACKUP_RM", "W19", "没挂 Linear，审查记录 DELETE_OK（%s）；目录已不在（%s），备份里只有这份记录" % (ev["review"], how), ev
         return "RM", "W4", "目录已不在；rm 会删 Orca 记录和 git worktree 记录（%s）" % how, ev
     try: ig = ignored(path)
     except (QueryFail, OSError): return "SKIP", "W13", "git 忽略文件查不到", ev
@@ -426,6 +453,7 @@ def evaluate(w, d, ctx):
     ev["rebuild"] = ("%d 项：" % len(ig["rebuild"]) + ";".join(ig["rebuild"][:5]) + ("…" if len(ig["rebuild"]) > 5 else "")) if ig["rebuild"] else ""
     if ig["nested"]: return "SKIP", "W13", "被忽略的东西里有嵌套 git 仓库：%s" % ";".join(ig["nested"][:3]), ev
     if ig["odd"]: return "SKIP", "W13", "被忽略的东西里有不是普通文件的：%s" % ";".join(ig["odd"][:3]), ev
+    if ev["_review"]: return "BACKUP_RM", "W19", "没挂 Linear，审查记录 DELETE_OK（%s）；先备份被忽略的文件和这份记录" % ev["review"], ev
     if ig["backup"]: return "BACKUP_RM", "W13", "有被忽略、不能重建的文件（先整份备份）", ev
     return "RM", "W14", "条件全部满足", ev
 
@@ -484,7 +512,7 @@ def build(d):
                      "last_activity": fmt_ms(w.get("lastActivityAt")), "unread": str(bool(w.get("isUnread"))).lower(),
                      "comment": mask(w.get("comment")),
                      "mb": du_mb(w["path"]) if verdict in ("RM", "BACKUP_RM") or LIST_ONLY else "", "planned": planned,
-                     "_w": w, "_backup": ev.get("_backup") or [], "_files": ev.get("_files") or []})
+                     "_w": w, "_backup": ev.get("_backup") or [], "_files": ev.get("_files") or [], "_review": ev.get("_review") or ""})
     # W16：git 里登记、Orca 里没有的 worktree
     known = {os.path.realpath(w["path"]) for w in d["wt"]}
     for repo_id, mp in sorted(d["mains"].items()):
@@ -606,6 +634,10 @@ def do_backup(r, rp):
             os.chmod(dst, 0o600)
             sums[f] = before
             if sha256(dst) != before or sha256(src) != before: bad.append(f)
+        if r.get("_review"):                  # W19 放行的：审查记录跟着备份走，事后查得到为什么删
+            fd = os.open(os.path.join(dest, "NO-ISSUE-REVIEW.md"), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "wb") as f, open(r["_review"], "rb") as src: f.write(src.read())
+            sums["NO-ISSUE-REVIEW.md"] = sha256(os.path.join(dest, "NO-ISSUE-REVIEW.md"))
         with open(os.path.join(dest, "MANIFEST.sha256"), "w") as m:
             for f in sorted(sums): m.write("%s  %s\n" % (sums[f], f))
     except Exception:
@@ -695,7 +727,7 @@ def execute(rows, trows, journal):
             if v2 != old["verdict"] or clean(ev2.get("backup", "")) != old.get("backup", ""):
                 r["result"] = "跳过：重新判定变成 %s %s（%s）" % (v2, rule2, why2) if v2 != old["verdict"] else "跳过：备份清单和名单里的不一样"
                 continue
-            r["_w"], r["_backup"] = w, ev2["_backup"]
+            r["_w"], r["_backup"], r["_review"] = w, ev2["_backup"], ev2.get("_review") or ""
             if v2 == "BACKUP_RM":
                 ok, msg = do_backup(r, fresh["repos"].get(w["repoId"]) or {})
                 journal("backup", r["id"], "0" if ok else "1", msg)
@@ -759,7 +791,7 @@ def take_lock():
     die("拿不到锁 %s" % LOCK, 6)
 
 # ---------- 输出 ----------
-WCOLS = ["host", "id", "repo", "name", "path", "action", "verdict", "rule", "reason", "status", "pr", "head_vs_pr", "merged_via", "linear", "dirty",
+WCOLS = ["host", "id", "repo", "name", "path", "action", "verdict", "rule", "reason", "status", "pr", "head_vs_pr", "merged_via", "linear", "review", "dirty",
          "unpushed", "head", "terms", "idle_h", "last_activity", "unread", "comment", "mb", "backup", "backup_size", "rebuild", "planned"]
 TCOLS = ["host", "handle", "worktree", "tab", "action", "verdict", "rule", "reason", "agent", "connected", "pid", "idle_h", "procs", "archive", "planned"]
 def clean(v): return mask_email(str(v)).replace("\t", " ").replace("\n", " ")
@@ -805,8 +837,10 @@ def summary(rows, trows, fails, probs, note):
           "| 规则 | 个数 |", "|---|---|"] + ["| %s | %d |" % (k, rc[k]) for k in sorted(rc, key=lambda x: (x[0] != "W", int(x[1:]) if x[1:].isdigit() else 99))]
     conflict = [r for r in rows if r["rule"] == "W11" and "状态冲突" in r["reason"]]
     if conflict: L += ["", "状态冲突、这次不删、等 Zack 定的：%d 个（worktrees.tsv 里 W11 且原因写「状态冲突」）" % len(conflict)]
-    nolin = [r for r in rows if r["rule"] == "W19"]
+    nolin = [r for r in rows if r["rule"] == "W19" and r["verdict"] == "SKIP"]
     if nolin: L += ["", "NO_LINEAR_ISSUE（W19）：%d 个（没挂 Linear issue，这次不删）" % len(nolin)]
+    reviewed = [r for r in rows if r["rule"] == "W19" and r["verdict"] != "SKIP"]
+    if REVIEWS: L += ["", "没挂 Linear、审查记录 DELETE_OK 且 HEAD 对得上、走 BACKUP_RM 的：%d 个（记录目录 `%s`）" % (len(reviewed), REVIEWS)]
     locked = [r for r in rows if r["rule"] == "W18"]
     if locked: L += ["", "GIT_LOCKED（W18）：%d 个（gitdir 里有锁或没做完的 git 操作，这次不删）" % len(locked)]
     lin_fail = [r for r in rows if r["rule"] == "W10" and "查不到" in r["reason"]]

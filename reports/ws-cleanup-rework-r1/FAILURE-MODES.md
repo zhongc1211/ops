@@ -144,3 +144,22 @@
 | N6 | dry-run 时挂着 Linear（名单里是 RM），动手前 Orca 里把 issue 摘掉了，`--execute` 复查不看，照样删 | x_late_nolin（等待点期间清掉 linkedLinearIssue） | 跳过：「重新判定变成 SKIP W19」，没有 rm 调用 |
 | N7 | 挂了 Linear 且已关的工作区被新规则误挡 | 现有 RM / BACKUP_RM 用例都挂上已关的 issue（PER-2、OKX-1） | 结论不变 |
 | N8 | summary 里看不出有多少个是因为没挂 Linear 才没删 | out1 | summary 有「NO_LINEAR_ISSUE（W19）：n 个」 |
+
+补充（R4，Zack 10-21 09:18）：W19 默认仍 SKIP；`--no-issue-reviews <目录>` 下有模型逐个审过、写了 `VERDICT: DELETE_OK`、HEAD 和现在一致的记录，才放行，而且走 BACKUP_RM。先写失败方式，再改代码。
+记录路径：`<目录>/<repo 名>/<工作区目录名>.md`（名字里不是字母数字 . - 的换成 _）；记录里必须各有一行 `PATH: <路径>`、`HEAD: <40 位 sha>`、`VERDICT: DELETE_OK` 或 `VERDICT: KEEP`。
+
+| # | 失败方式 | 用例 | 期望 |
+|---|---|---|---|
+| R1 | 没有记录也放行 | c_nolin（带 --no-issue-reviews，但没写它的记录） | SKIP W19「没有审查记录」 |
+| R2 | 记录写 KEEP 也放行 | c_nolin_pr | SKIP W19「审查结论是 KEEP」 |
+| R3 | 记录写 DELETE_OK、HEAD 对得上，却还是 SKIP，或者走了不备份的 RM | c_nolin_backup（有 .dev.vars） | BACKUP_RM W19，planned 写备份 |
+| R4 | 记录里的 HEAD 是旧的（审完之后工作区又动过），照样放行 | c_nolin_blank（记录写别的 sha） | SKIP W19「记录里的 HEAD … 和现在的 … 不一样」 |
+| R5 | 放行之后跳过了后面的规则（状态不是 completed、最近有活动、HEAD 不在已合并的地方） | c_rev_inreview（DELETE_OK、状态 in-review） | SKIP W11 |
+| R6 | 目录已不在的工作区，放行后走 W4 的纯 RM，审查记录没留底 | c_nolin_gone（DELETE_OK） | BACKUP_RM W19 |
+| R7 | 记录格式不对（两行 VERDICT、没有 HEAD 行、VERDICT 写成别的词）被宽松地当成 DELETE_OK | c_rev_bad（VERDICT 两行，一行 DELETE_OK 一行 KEEP） | SKIP W19「审查记录格式不对」 |
+| R8 | 记录是别的工作区的（复制粘贴改错了名），照样放行 | c_rev_wrongpath（PATH 写别的路径） | SKIP W19「记录里的 PATH 不是这个工作区」 |
+| R9 | dry-run 时对得上，动手前工作区 HEAD 换了（换到另一个已推送的提交），`--execute` 复查不看 | x_rev_moved（等待点期间 checkout 到别的远端提交） | 跳过：「重新判定变成 SKIP W19」，不备份、不 rm |
+| R10 | dry-run 后记录被改（改成 KEEP、改了 HEAD），`--execute` 沿用 dry-run 的结论 | x_rev_stale_rec（等待点期间把记录的 HEAD 改掉） | 跳过：「重新判定变成 SKIP W19」 |
+| R11 | `--execute` 放行的工作区，备份里没有审查记录，事后查不到为什么删 | x_rev_ok | 已备份再 rm；备份目录里有 NO-ISSUE-REVIEW.md（不叫 REVIEW.md，免得和被忽略的同名文件撞），MANIFEST 里有它 |
+| R12 | 不带 --no-issue-reviews 时也去读记录目录（例如默认路径），行为悄悄变了 | out1（不带参数） | N1–N8 结果不变 |
+| R13 | `--no-issue-reviews` 目录不存在，静默当作全都没有记录，看不出参数写错了 | 带一个不存在的目录 | 退出码 2 |

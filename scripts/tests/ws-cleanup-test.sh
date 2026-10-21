@@ -1,7 +1,7 @@
 #!/bin/bash
 # ws-cleanup-test.sh: run scripts/ws-cleanup.sh against fake orca / gh / ps data plus real throwaway git repos under mktemp -d.
 # One case per failure mode in reports/ws-cleanup-dryrun-1021/RESULT.md (A1-A34) and reports/ws-cleanup-rework-r1/FAILURE-MODES.md
-# (B1-B29, E1-E19, G1-G11, M1-M5, N1-N8). Uses test doubles, so it is not an E2E test; the E2E is the real dry-run on iMac / MBA.
+# (B1-B29, E1-E19, G1-G11, M1-M5, N1-N8, R1-R13). Uses test doubles, so it is not an E2E test; the E2E is the real dry-run on iMac / MBA.
 # The --execute cases run only against the fake orca in the temp dir: guard_fake() refuses to start one otherwise.
 # WS_CLEANUP=<path> runs another implementation (an older version or an empty stub must fail).
 S=${WS_CLEANUP:-$(cd "$(dirname "$0")/.." && pwd)/ws-cleanup.sh}
@@ -82,7 +82,7 @@ git -C "$T/wt/c_lk_bisect" bisect start >/dev/null 2>&1
 git -C "$P" worktree lock "$T/wt/c_lk_wtlock"
 git -C "$P" worktree add -q --detach "$T/wt/c_lk_gone" main 2>/dev/null; git -C "$P" worktree lock "$T/wt/c_lk_gone"; rm -rf "$T/wt/c_lk_gone"
 # N cases (Zack 10-21 08:44): no linked Linear issue -> SKIP W19 NO_LINEAR_ISSUE, even with a merged PR / HEAD on main
-for c in c_nolin c_nolin_pr c_nolin_backup c_nolin_blank; do add "$c" "br/$c"; done
+for c in c_nolin c_nolin_pr c_nolin_backup c_nolin_blank c_rev_inreview c_rev_bad c_rev_wrongpath; do add "$c" "br/$c"; done
 printf 'API_TOKEN=%s\n' "$SECRET" >"$T/wt/c_nolin_backup/.dev.vars"
 NOLIN_SHA=$(git -C "$T/wt/c_nolin_pr" rev-parse HEAD)
 git -C "$P" worktree add -q --detach "$T/wt/c_nolin_gone" main 2>/dev/null; rm -rf "$T/wt/c_nolin_gone"
@@ -95,7 +95,7 @@ printf 'o\n' >"$T/wt/c_gone_ownbranch/o"; git -C "$T/wt/c_gone_ownbranch" add o;
 rm -rf "$T/wt/c_gone_pushed" "$T/wt/c_gone_local" "$T/wt/c_gone_ownbranch"
 # execute project x: one worktree per --execute case
 for c in x_ok x_bk x_sha x_rmfail x_e8a_noperm x_e8b_after x_late x_late2 x_late3 x_late4 x_late5 x_notlisted x_listchanged x_lin_fail x_lin_gone \
-         x_late_lock x_late_nolin x_q01 x_q02 x_q03 x_q04 x_q05 x_q06 x_q07 x_q08 x_q09 x_q10 x_term x_term2 x_term3; do
+         x_late_lock x_late_nolin x_rev_ok x_rev_moved x_rev_stale_rec x_q01 x_q02 x_q03 x_q04 x_q05 x_q06 x_q07 x_q08 x_q09 x_q10 x_term x_term2 x_term3; do
   git -C "$X" worktree add -q -b "br/$c" "$T/wt/$c" origin/main 2>/dev/null; done
 mkdir -p "$T/wt/x_bk/.orca-task"; printf 'brief\n' >"$T/wt/x_bk/.orca-task/BRIEF.md"
 printf 'API_TOKEN=%s\n' "$SECRET" >"$T/wt/x_bk/.dev.vars"
@@ -142,8 +142,9 @@ W += [w(wt("c_lk_gone"), br=""),
       w(wt("c_email"), name="bob.smith@example.com", comment="Bob.Smith@example.com ops-admin@corp.example.org pkg@1.2.3 node@20"),
       w(wt("c_email_long"), comment="x" * 50 + " admin.person@example.com")]
 XS = ["x_ok", "x_bk", "x_sha", "x_rmfail", "x_e8a_noperm", "x_e8b_after", "x_late", "x_late2", "x_late3", "x_late4", "x_late5",
-      "x_notlisted", "x_listchanged", "x_lin_fail", "x_lin_gone", "x_late_lock", "x_late_nolin"] + ["x_q%02d" % i for i in range(1, 11)] + ["x_term", "x_term2", "x_term3"]
-W += [w(wt(c), repo=RX, lin={"x_late5": "XXX-1", "x_lin_fail": "YYY-1", "x_lin_gone": "XXX-2"}.get(c, "")) for c in XS]
+      "x_notlisted", "x_listchanged", "x_lin_fail", "x_lin_gone", "x_late_lock", "x_late_nolin", "x_rev_ok", "x_rev_moved", "x_rev_stale_rec"] + ["x_q%02d" % i for i in range(1, 11)] + ["x_term", "x_term2", "x_term3"]
+W += [w(wt(c), repo=RX, lin={"x_late5": "XXX-1", "x_lin_fail": "YYY-1", "x_lin_gone": "XXX-2"}.get(c, None if c.startswith("x_rev_") else "")) for c in XS]
+W += [w(wt("c_rev_inreview"), lin=None, status="in-review"), w(wt("c_rev_bad"), lin=None), w(wt("c_rev_wrongpath"), lin=None)]
 W += [w(wt("c_nolin"), lin=None), w(wt("c_nolin_pr"), lin=None), w(wt("c_nolin_backup"), lin=None), w(wt("c_nolin_blank"), lin="  "),
       w(wt("c_nolin_gone"), br="", lin=None)]
 json.dump({"result": {"worktrees": W}}, open(F + "/wt.json", "w"), ensure_ascii=False)
@@ -286,6 +287,19 @@ m = [r for r in rows if r.get("path", "").endswith("/" + key) or r.get("handle")
 print(m[0].get(field, "<nocol>") if m else "<none>")
 PY
 }
+# R cases (Zack 10-21 09:18): review records for W19 workspaces
+RV=$T/reviews; mkdir -p "$RV/proj" "$RV/x_proj"
+rec(){ printf '# review\nPATH: %s\nHEAD: %s\n\nVERDICT: %s\nreason text\n' "$2" "$3" "$4" >"$RV/$1.md"; }
+hd(){ git -C "$T/wt/$1" rev-parse HEAD; }
+MAIN_SHA=$(git -C "$P" rev-parse main)
+rec proj/c_nolin_pr "$T/wt/c_nolin_pr" "$(hd c_nolin_pr)" KEEP                  # R2
+rec proj/c_nolin_backup "$T/wt/c_nolin_backup" "$(hd c_nolin_backup)" DELETE_OK  # R3
+rec proj/c_nolin_blank "$T/wt/c_nolin_blank" "$MERGED_SHA" DELETE_OK             # R4: stale sha
+rec proj/c_rev_inreview "$T/wt/c_rev_inreview" "$(hd c_rev_inreview)" DELETE_OK  # R5
+rec proj/c_nolin_gone "$T/wt/c_nolin_gone" "$MAIN_SHA" DELETE_OK                 # R6
+rec proj/c_rev_bad "$T/wt/c_rev_bad" "$(hd c_rev_bad)" DELETE_OK; echo "VERDICT: KEEP" >>"$RV/proj/c_rev_bad.md"   # R7
+rec proj/c_rev_wrongpath "$T/wt/c_nolin_backup" "$(hd c_rev_wrongpath)" DELETE_OK  # R8
+for c in x_rev_ok x_rev_moved x_rev_stale_rec; do rec "x_proj/$c" "$T/wt/$c" "$(hd $c)" DELETE_OK; done
 touch "$T/repos/ops/.git/index.lock"   # G11
 gitsnap >"$T/git-before"
 
@@ -333,7 +347,23 @@ check "G1 GIT_LOCKED reasons name the lock" 'col "$WT" c_lk_index reason | grep 
 for c in c_nolin c_nolin_pr c_nolin_gone c_nolin_backup c_nolin_blank; do expect $c N1-N5 SKIP/W19; done
 check "N1 NO_LINEAR_ISSUE reason, nothing planned" '[ -z "$(for c in c_nolin c_nolin_pr c_nolin_gone c_nolin_backup c_nolin_blank; do col "$WT" $c reason | grep -v "^NO_LINEAR_ISSUE"; col "$WT" $c planned; done)" ]'
 check "N2 c_nolin_pr: the merged PR is seen but does not override" 'col "$WT" c_nolin_pr pr | grep -q "#62 MERGED"'
-check "N8 summary counts NO_LINEAR_ISSUE" 'grep -q "NO_LINEAR_ISSUE（W19）：5 个" "$T/out1/summary.md"'
+check "N8 summary counts NO_LINEAR_ISSUE" 'grep -q "NO_LINEAR_ISSUE（W19）：11 个" "$T/out1/summary.md"'
+check "R12 without --no-issue-reviews the reviewed ones stay SKIP W19" '[ "$(col "$WT" c_nolin_backup action)/$(col "$WT" c_nolin_gone rule)" = SKIP/W19 ] && ! grep -q "审查记录" "$WT"'
+rc=$(run "$T/out11" --no-issue-reviews "$RV"); RW=$T/out11/worktrees.tsv
+check "R0 dry-run with --no-issue-reviews exits 0" '[ "$rc" = 0 ]'
+rv(){ v=$(col "$RW" "$1" verdict)/$(col "$RW" "$1" rule); r=$(col "$RW" "$1" reason); want=$3; pat=$4; check "$2 $1 -> $3 ($pat) (got $v: $r)" '[ "$v" = "$want" ] && printf "%s" "$r" | grep -q "$pat"'; }
+rv c_nolin R1 SKIP/W19 "^NO_LINEAR_ISSUE：没有审查记录 proj/c_nolin.md"
+rv c_nolin_pr R2 SKIP/W19 "审查结论是 KEEP"
+rv c_nolin_backup R3 BACKUP_RM/W19 "审查记录 DELETE_OK（proj/c_nolin_backup.md）"
+rv c_nolin_blank R4 SKIP/W19 "记录里的 HEAD ${MERGED_SHA:0:7} 和现在的 .* 不一样"
+rv c_rev_inreview R5 SKIP/W11 "in-review"
+rv c_nolin_gone R6 BACKUP_RM/W19 "目录已不在"
+rv c_rev_bad R7 SKIP/W19 "审查记录格式不对"
+rv c_rev_wrongpath R8 SKIP/W19 "记录里的 PATH 不是这个工作区"
+check "R3 c_nolin_backup planned backup + rm, review column set" 'col "$RW" c_nolin_backup planned | grep -q "^备份到 .* orca worktree rm" && [ "$(col "$RW" c_nolin_backup review)" = proj/c_nolin_backup.md ]'
+check "R3 summary counts the reviewed BACKUP_RM ones" 'grep -q "审查记录 DELETE_OK 且 HEAD 对得上、走 BACKUP_RM 的：5 个" "$T/out11/summary.md"'
+rc=$(run "$T/out12" --no-issue-reviews "$T/no-such-dir")
+check "R13 --no-issue-reviews with a missing dir -> exit 2" '[ "$rc" = 2 ]'
 check "G11 index.lock in the ops main repo does not lock c_ops_common / c_gh_fail" '[ "$(col "$WT" c_ops_common rule)" = W14 ] && [ "$(col "$WT" c_gh_fail rule)" = W9 ]'
 check "G1 summary counts GIT_LOCKED" 'grep -q "GIT_LOCKED（W18）：8 个" "$T/out1/summary.md"'
 EM='bob\.smith|Bob\.Smith|ops-admin@|admin\.person|ops\.admin@'
@@ -425,9 +455,10 @@ check "B26 default output goes under the archive root, not the ops workspace" '[
 
 # ---------------- --execute against the fake orca (project x only) ----------------
 guard_fake
-XD=$T/xd; rc=$(run "$XD" --repo r-x)
+XD=$T/xd; rc=$(run "$XD" --repo r-x --no-issue-reviews "$RV")
 check "E0 scoped dry-run of project x lists only x worktrees" '[ "$rc" = 0 ] && ! grep -q "/wt/c_" "$XD/worktrees.tsv" && [ "$(col "$XD/worktrees.tsv" x_ok verdict)" = RM ]'
 check "B30 t_x_agent (agent itself) SKIP T1; t_x_agent_sib CLOSE" '[ "$(col "$XD/terminals.tsv" t_x_agent rule)" = T1 ] && [ "$(col "$XD/terminals.tsv" t_x_agent_sib verdict)" = CLOSE ]'
+check "R11 x_rev_ok / x_rev_moved / x_rev_stale_rec are BACKUP_RM W19 in the dry-run" '[ "$(for c in x_rev_ok x_rev_moved x_rev_stale_rec; do col "$XD/worktrees.tsv" $c verdict; col "$XD/worktrees.tsv" $c rule; done | tr "\n" ,)" = "BACKUP_RM,W19,BACKUP_RM,W19,BACKUP_RM,W19," ]'
 check "E0 x_bk / x_rmfail / x_sha are BACKUP_RM, terminals t_x_close / t_late / t_late_tab are CLOSE" '[ "$(col "$XD/worktrees.tsv" x_bk verdict)$(col "$XD/worktrees.tsv" x_rmfail verdict)$(col "$XD/worktrees.tsv" x_sha verdict)" = BACKUP_RMBACKUP_RMBACKUP_RM ] && [ "$(col "$XD/terminals.tsv" t_x_close verdict)$(col "$XD/terminals.tsv" t_late verdict)$(col "$XD/terminals.tsv" t_late_tab verdict)" = CLOSECLOSECLOSE ]'
 python3 -I -c 'import sys; L=open(sys.argv[1]).read().splitlines(); open(sys.argv[1],"w").write("\n".join(l for l in L if "/x_notlisted\t" not in l)+"\n")' "$XD/worktrees.tsv"
 mkdir -p "$T/wt/x_listchanged/.orca-task"; printf 'late\n' >"$T/wt/x_listchanged/.orca-task/new.md"
@@ -446,13 +477,16 @@ chmod +x "$F/on-rm.sh"
 touch "$F/fail-stream-t_x_arcfail"
 ( while :; do echo grow >>"$T/wt/x_sha/.orca-task/grow.log"; sleep 0.01; done ) & APPENDER=$!
 : >"$F/orca-calls.log"
-XE=$T/xe; ( WS_PAUSE_FILE=$T/go "$B" "$S" --execute --only-from "$XD/worktrees.tsv" --close-terminals --repo r-x --out "$XE" >"$T/xlog" 2>&1; echo $? >"$T/xrc" ) &
+XE=$T/xe; ( WS_PAUSE_FILE=$T/go "$B" "$S" --execute --only-from "$XD/worktrees.tsv" --close-terminals --repo r-x --no-issue-reviews "$RV" --out "$XE" >"$T/xlog" 2>&1; echo $? >"$T/xrc" ) &
 XPID=$!
 for _ in $(seq 1 600); do [ -f "$T/go.ready" ] && break; sleep 0.1; done
 check "E4 execute stops at the pause point" '[ -f "$T/go.ready" ]'
 printf 'n\n' >"$T/wt/x_late/new.txt"                                                     # E4a
 touch "$(git -C "$T/wt/x_late_lock" rev-parse --absolute-git-dir)/index.lock"            # G10
 python3 -I -c 'import json,sys; d=json.load(open(sys.argv[1])); next(x for x in d["result"]["worktrees"] if x["path"].endswith("/x_late_nolin"))["linkedLinearIssue"]=None; json.dump(d,open(sys.argv[1],"w"))' "$F/wt.json"   # N6
+git -C "$X" fetch -q "$T/origin.git" "+refs/heads/br/c_head_unmerged:refs/remotes/origin/br/c_head_unmerged"           # R9
+git -C "$T/wt/x_rev_moved" checkout -q --detach origin/br/c_head_unmerged
+rec x_proj/x_rev_stale_rec "$T/wt/x_rev_stale_rec" "$MERGED_SHA" DELETE_OK                                               # R10
 printf 'c\n' >"$T/wt/x_late2/c"; git -C "$T/wt/x_late2" add c; git -C "$T/wt/x_late2" commit -qm late     # E4b
 python3 -I - "$F" "$T" <<'PY'
 import json, os, sys
@@ -494,13 +528,17 @@ check "L37 x_lin_gone: issue missing at delete time -> not removed" 'res x_lin_g
 check "E5 x_q10 skipped after an agent showed up mid-run; x_q01-x_q09 removed" 'res x_q10 | grep -q "SKIP W5" && [ "$(for i in 01 02 03 04 05 06 07 08 09; do res x_q$i; done | sort -u)" = "已 rm" ]'
 check "G10 x_late_lock locked after the dry-run: skipped as W18, no backup, no rm" 'res x_late_lock | grep -q "跳过：重新判定变成 SKIP W18（GIT_LOCKED" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_late_lock && ! grep -q "x_late_lock" "$XE/journal.tsv"'
 check "N6 x_late_nolin: Linear unlinked after the dry-run -> skipped as W19, no rm" '[ "$(col "$XD/worktrees.tsv" x_late_nolin verdict)" = RM ] && res x_late_nolin | grep -q "跳过：重新判定变成 SKIP W19（NO_LINEAR_ISSUE" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_late_nolin'
+check "R9 x_rev_moved: HEAD moved after the dry-run -> skipped as W19, no backup, no rm" 'res x_rev_moved | grep -q "^跳过：重新判定变成 SKIP W19（NO_LINEAR_ISSUE：记录里的 HEAD" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_rev_moved && ! grep -q "x_rev_moved" "$XE/journal.tsv"'
+check "R10 x_rev_stale_rec: record changed after the dry-run -> skipped as W19, no rm" 'res x_rev_stale_rec | grep -q "^跳过：重新判定变成 SKIP W19（NO_LINEAR_ISSUE：记录里的 HEAD ${MERGED_SHA:0:7}" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_rev_stale_rec'
+mode(){ stat -f %Lp "$1" 2>/dev/null || stat -c %a "$1"; }
+RB=$(ls -d "$T/archive"/*/x_proj/x_rev_ok 2>/dev/null | head -1)
+check "R11 x_rev_ok backed up with NO-ISSUE-REVIEW.md (600, in MANIFEST, same bytes) and removed" 'res x_rev_ok | grep -q "^已备份到 .*；已 rm$" && [ -n "$RB" ] && [ "$(mode "$RB/NO-ISSUE-REVIEW.md")" = 600 ] && grep -q "  NO-ISSUE-REVIEW.md$" "$RB/MANIFEST.sha256" && cmp -s "$RB/NO-ISSUE-REVIEW.md" "$RV/x_proj/x_rev_ok.md"'
 check "M4 journal / execute output: orca's email masked" '! grep -rqE "$EM" "$XE" "$T/xlog" && grep -qF "o***@example.com" "$XE/journal.tsv"'
 check "E14 x_notlisted (not in --only-from) untouched" '[ "$(res x_notlisted)" = "没动：不在 --only-from 名单里" ] && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_notlisted'
 check "E15 x_listchanged: backup list changed -> skipped" 'res x_listchanged | grep -q "^跳过：" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_listchanged'
 check "E6 t_late got a process -> not closed" 'col "$XT" t_late result | grep -q "^跳过：重新判定变成 SKIP T6" && ! grep -q "terminal close --terminal t_late " "$F/orca-calls.log"'
 check "E7 only t_late_tab, t_x_agent_sib, t_x_close closed, never --tab, t_newpane untouched" '[ "$(grep "^terminal close" "$F/orca-calls.log" | sed "s/ --json//" | sort | tr "\n" ,)" = "terminal close --terminal t_late_tab,terminal close --terminal t_x_agent_sib,terminal close --terminal t_x_close," ]'
 TA=$(ls -d "$T/archive/terminals"/*/t_x_close 2>/dev/null | head -1)
-mode(){ stat -f %Lp "$1" 2>/dev/null || stat -c %a "$1"; }
 check "B31 t_x_close archived before close: dir 700, scrollback / meta (with cwd) / README 600" '[ -n "$TA" ] && [ "$(mode "$TA")" = 700 ] && (for f in scrollback.txt meta.json README.txt; do [ "$(mode "$TA/$f")" = 600 ] || exit 1; done) && grep -q "/fake/cwd/" "$TA/meta.json" && col "$XT" t_x_close result | grep -q "^已存档到 .*t_x_close；已关$"'
 check "B31 t_x_agent_sib (companion shell) archived and closed" 'col "$XT" t_x_agent_sib result | grep -q "^已存档到 .*；已关$"'
 check "B32 t_x_arcfail: archive failed -> not closed, counted as a failure" 'col "$XT" t_x_arcfail result | grep -q "^没关：存档失败" && ! grep -q "terminal close --terminal t_x_arcfail" "$F/orca-calls.log"'
