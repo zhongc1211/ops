@@ -1,0 +1,1 @@
+2026-10-22 02:32:26 SGT lock-held-alert：锁被占着，这一轮没起 new.sh；已连续跳过 3 轮（从 10-22 02:32:08 起 0.3 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-drill.oRXQ5D4SGK/s15/main/lock/5c2d0575.lock）；到了 0.25 分钟，报警：POST heartbeat_stale → ops-system → 200
