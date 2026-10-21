@@ -1,0 +1,32 @@
+# ws-cleanup dry-run（iMac，2026-10-21 02:07:05 SGT）
+
+orca：`/Applications/Orca.app/Contents/Resources/bin/orca`；空闲门槛 24 小时；备份根目录 `/Users/jiawenwang/ops-archive/ws-cleanup`。
+
+| 动作 | 工作区 |
+|---|---|
+| RM | 41 |
+| BACKUP_RM | 9 |
+| SKIP | 73 |
+| LIST | 1 |
+
+RM 合计约 10422 MB，BACKUP_RM 合计约 4984 MB（du）。
+
+| 规则 | 个数 |
+|---|---|
+| W1 | 9 |
+| W2 | 1 |
+| W4 | 2 |
+| W5 | 7 |
+| W7 | 2 |
+| W9 | 12 |
+| W10 | 17 |
+| W11 | 6 |
+| W12 | 19 |
+| W13 | 9 |
+| W14 | 39 |
+| W16 | 1 |
+
+终端：CLOSE 5，SKIP 8（T1 7，T3 1，T4 5）
+
+超过 30 天的备份（只列出，删除另外批准）：无
+输出：reports/ws-cleanup-dryrun-1021/imac/run2

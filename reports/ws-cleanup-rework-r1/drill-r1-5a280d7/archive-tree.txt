@@ -1,0 +1,16 @@
+~/ops-drill/archive
+~/ops-drill/archive/2026-10-21
+~/ops-drill/archive/2026-10-21/ws-cleanup-drill
+~/ops-drill/archive/2026-10-21/ws-cleanup-drill/d03-backup
+~/ops-drill/archive/2026-10-21/ws-cleanup-drill/d03-backup/.dev.vars
+~/ops-drill/archive/2026-10-21/ws-cleanup-drill/d03-backup/MANIFEST.sha256
+~/ops-drill/archive/2026-10-21/ws-cleanup-drill/d03-backup/notes.local
+~/ops-drill/archive/2026-10-21/ws-cleanup-drill/d11-locked
+~/ops-drill/archive/2026-10-21/ws-cleanup-drill/d11-locked/.dev.vars
+~/ops-drill/archive/2026-10-21/ws-cleanup-drill/d11-locked/MANIFEST.sha256
+~/ops-drill/archive/2026-10-21/ws-cleanup-drill/d12-sha
+~/ops-drill/archive/2026-10-21/ws-cleanup-drill/d12-sha/.orca-task
+~/ops-drill/archive/2026-10-21/ws-cleanup-drill/d12-sha/.orca-task/log.local
+~/ops-drill/archive/2026-10-21/ws-cleanup-drill/d12-sha/MANIFEST.sha256
+~/ops-drill/archive/2026-10-21/ws-cleanup-drill/d13-noperm
+~/ops-drill/archive/2026-10-21/ws-cleanup-drill/d13-noperm/secret-notes

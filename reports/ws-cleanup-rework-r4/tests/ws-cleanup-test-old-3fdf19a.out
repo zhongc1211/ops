@@ -1,0 +1,385 @@
+ok   1 G1 dry-run exits 0
+ok   2 A1 proj -> SKIP/W1 (got SKIP/W1)
+ok   3 A2 c_self -> SKIP/W2 (got SKIP/W2)
+ok   4 A3 c_remote_host -> LIST/W3 (got LIST/W3)
+ok   5 A4 c_agent -> SKIP/W5 (got SKIP/W5)
+ok   6 A4 c_agent_noid -> SKIP/W5 (got SKIP/W5)
+ok   7 A5 c_proc -> SKIP/W6 (got SKIP/W6)
+ok   8 A6 c_diag_missing -> SKIP/W6 (got SKIP/W6)
+ok   9 A7 c_dirty -> SKIP/W7 (got SKIP/W7)
+ok   10 A7 c_untracked -> SKIP/W7 (got SKIP/W7)
+ok   11 A8 c_unpushed -> SKIP/W8 (got SKIP/W8)
+ok   12 A9 c_open_pr -> SKIP/W9 (got SKIP/W9)
+ok   13 A9 c_linked_open_pr -> SKIP/W9 (got SKIP/W9)
+ok   14 A10/B14 c_gh_fail -> SKIP/W9 (got SKIP/W9)
+ok   15 A11 c_linear_open -> SKIP/W10 (got SKIP/W10)
+ok   16 A12 c_linear_fail -> SKIP/W10 (got SKIP/W10)
+ok   17 A13 c_not_done -> SKIP/W11 (got SKIP/W11)
+ok   18 A14 c_recent -> SKIP/W12 (got SKIP/W12)
+ok   19 A14 c_zero_recent_commit -> SKIP/W12 (got SKIP/W12)
+ok   20 A15 c_backup -> BACKUP_RM/W13 (got BACKUP_RM/W13)
+ok   21 A15 c_backup_evidence -> BACKUP_RM/W13 (got BACKUP_RM/W13)
+ok   22 A15 c_nested -> BACKUP_RM/W13 (got BACKUP_RM/W13)
+ok   23 A16/B8 c_cache_only -> RM/W14 (got RM/W14)
+ok   24 A17 c_ops_common -> RM/W14 (got RM/W14)
+ok   25 A18 c_中文 空格 -> RM/W14 (got RM/W14)
+ok   26 A19 c_not_git -> SKIP/W7 (got SKIP/W7)
+ok   27 A21 git_only -> LIST/W16 (got LIST/W16)
+ok   28 B1 c_gone_local -> SKIP/W4 (got SKIP/W4)
+ok   29 B2 c_missing -> SKIP/W4 (got SKIP/W4)
+ok   30 B3 c_gone_pushed -> RM/W4 (got RM/W4)
+ok   31 B4 c_gone_ownbranch -> SKIP/W4 (got SKIP/W4)
+ok   32 B5 c_testresults -> BACKUP_RM/W13 (got BACKUP_RM/W13)
+ok   33 B6 c_report -> BACKUP_RM/W13 (got BACKUP_RM/W13)
+ok   34 B6 c_tgz -> BACKUP_RM/W13 (got BACKUP_RM/W13)
+ok   35 B7 c_mixed_dir -> BACKUP_RM/W13 (got BACKUP_RM/W13)
+ok   36 B9 c_nested_git -> SKIP/W13 (got SKIP/W13)
+ok   37 G1-G9 c_lk_index -> SKIP/W18 (got SKIP/W18)
+ok   38 G1-G9 c_lk_merge -> SKIP/W18 (got SKIP/W18)
+ok   39 G1-G9 c_lk_rebase -> SKIP/W18 (got SKIP/W18)
+ok   40 G1-G9 c_lk_am -> SKIP/W18 (got SKIP/W18)
+ok   41 G1-G9 c_lk_cherry -> SKIP/W18 (got SKIP/W18)
+ok   42 G1-G9 c_lk_bisect -> SKIP/W18 (got SKIP/W18)
+ok   43 G1-G9 c_lk_wtlock -> SKIP/W18 (got SKIP/W18)
+ok   44 G1-G9 c_lk_gone -> SKIP/W18 (got SKIP/W18)
+ok   45 G1 GIT_LOCKED reasons name the lock
+ok   46 N1-N5 c_nolin -> SKIP/W19 (got SKIP/W19)
+ok   47 N1-N5 c_nolin_pr -> SKIP/W19 (got SKIP/W19)
+ok   48 N1-N5 c_nolin_gone -> SKIP/W19 (got SKIP/W19)
+ok   49 N1-N5 c_nolin_backup -> SKIP/W19 (got SKIP/W19)
+ok   50 N1-N5 c_nolin_blank -> SKIP/W19 (got SKIP/W19)
+ok   51 N1 NO_LINEAR_ISSUE reason, nothing planned
+ok   52 N2 c_nolin_pr: the merged PR is seen but does not override
+ok   53 N8 summary counts NO_LINEAR_ISSUE
+ok   54 R12 without --no-issue-reviews the reviewed ones stay SKIP W19
+FAIL 55 R0 dry-run with --no-issue-reviews exits 0
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 56 R1 c_nolin -> SKIP/W19 (^NO_LINEAR_ISSUE：没有审查记录 proj/c_nolin.md) (got <none>/<none>: <none>)
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 57 R2 c_nolin_pr -> SKIP/W19 (审查结论是 KEEP) (got <none>/<none>: <none>)
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 58 R3 c_nolin_backup -> BACKUP_RM/W19 (审查记录 DELETE_OK（proj/c_nolin_backup.md）) (got <none>/<none>: <none>)
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 59 R4 c_nolin_blank -> SKIP/W19 (记录里的 HEAD bce3b7b 和现在的 .* 不一样) (got <none>/<none>: <none>)
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 60 R5 c_rev_inreview -> SKIP/W11 (in-review) (got <none>/<none>: <none>)
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 61 R6 c_nolin_gone -> BACKUP_RM/W19 (目录已不在) (got <none>/<none>: <none>)
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 62 R7 c_rev_bad -> SKIP/W19 (审查记录格式不对) (got <none>/<none>: <none>)
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 63 R8 c_rev_wrongpath -> SKIP/W19 (记录里的 PATH 不是这个工作区) (got <none>/<none>: <none>)
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 64 R3 c_nolin_backup planned backup + rm, review column set
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/out11/summary.md: No such file or directory
+FAIL 65 R3 summary counts the reviewed BACKUP_RM ones
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+ok   66 R13 --no-issue-reviews with a missing dir -> exit 2
+ok   67 G11 index.lock in the ops main repo does not lock c_ops_common / c_gh_fail
+ok   68 G1 summary counts GIT_LOCKED
+ok   69 M1 no raw email anywhere in dry-run output or stdout
+ok   70 M1 c_email comment / name masked as first char + domain
+ok   71 M2 email cut by the 60-char limit is still masked
+ok   72 M3 version strings pkg@1.2.3 / node@20 left alone
+ok   73 M5 file name page@<hash>.webm is not taken for an email
+ok   74 M4 terminals.tsv worktree column masked
+ok   75 B10 c_fifo -> SKIP/W13 (got SKIP/W13)
+ok   76 B11 c_moved_open -> SKIP/W9 (got SKIP/W9)
+ok   77 B12 c_old_open_pr -> SKIP/W9 (got SKIP/W9)
+ok   78 B13 c_linked_dup -> SKIP/W9 (got SKIP/W9)
+ok   79 B15 c_merged_inreview -> SKIP/W11 (got SKIP/W11)
+ok   80 B15 c_sleep_cap -> SKIP/W11 (got SKIP/W11)
+ok   81 B16 c_ps_agent -> SKIP/W5 (got SKIP/W5)
+ok   82 B17 c_termhost -> SKIP/W6 (got SKIP/W6)
+ok   83 B28 c_build -> RM/W14 (got RM/W14)
+ok   84 B34 c_head_unmerged -> SKIP/W17 (got SKIP/W17)
+ok   85 B35 c_linear_done_unmerged -> SKIP/W17 (got SKIP/W17)
+ok   86 B36 c_head_pr_merged -> RM/W14 (got RM/W14)
+ok   87 B36 c_head_pr_merged merged_via names PR #61
+ok   88 B1 c_gone_local reason names the commit e378474
+ok   89 B3 c_gone_pushed reason says the git worktree record goes too
+ok   90 B5 c_testresults backup lists test-results
+ok   91 B7 c_mixed_dir backup is the whole scratch dir
+ok   92 B29 backup-files.tsv lists scratch/notes.txt and scratch/TASK.md of c_mixed_dir
+ok   93 B8 c_cache_only rebuild column shows both cache entries
+ok   94 B15 c_merged_inreview reason says 状态冲突
+ok   95 B24 reason has no time-derived number (c_recent)
+ok   96 A15 c_backup lists .dev.vars and .orca-task
+ok   97 A18 every TSV row has the header's column count
+ok   98 A20 planned rm has no --force
+ok   99 M7 comment column masks URLs
+ok   100 A22 t_agent -> SKIP/T1 (got SKIP/T1)
+ok   101 A22 t_agent_noid -> SKIP/T1 (got SKIP/T1)
+ok   102 A22 t_resume -> SKIP/T2 (got SKIP/T2)
+ok   103 A22 t_self -> SKIP/T3 (got SKIP/T3)
+ok   104 A22 t_proc -> SKIP/T6 (got SKIP/T6)
+ok   105 A22 t_sib_proc -> SKIP/T6 (got SKIP/T6)
+ok   106 A23 t_read_fail -> SKIP/T2 (got SKIP/T2)
+ok   107 A6 t_diag_missing -> SKIP/T6 (got SKIP/T6)
+ok   108 A25 t_empty -> CLOSE/T4 (got CLOSE/T4)
+ok   109 A25 t_dead -> CLOSE/T5 (got CLOSE/T5)
+ok   110 A24 t_sib_empty -> CLOSE/T4 (got CLOSE/T4)
+ok   111 B18' t_agent_sib -> CLOSE/T4 (got CLOSE/T4)
+ok   112 B18' t_agent_sib_fresh -> SKIP/T7 (got SKIP/T7)
+ok   113 B19 t_self_sib -> SKIP/T3 (got SKIP/T3)
+ok   114 B20 t_folder -> SKIP/T8 (got SKIP/T8)
+ok   115 B20 t_main -> SKIP/T8 (got SKIP/T8)
+ok   116 B21 t_fresh -> SKIP/T7 (got SKIP/T7)
+ok   117 B21 t_nolast -> SKIP/T7 (got SKIP/T7)
+ok   118 B22 t_midoutput -> SKIP/T2 (got SKIP/T2)
+ok   119 B33 every CLOSE row has an archive path
+ok   120 B23 no planned close uses --tab
+ok   121 A26 fake orca saw no rm / close / set / send
+ok   122 A26 no backup root created
+ok   123 A26 git state and .dev.vars mode unchanged
+ok   124 A30 fake secrets not in output or stdout
+ok   125 A28 two runs give the same TSVs (minus idle_h)
+ok   126 A27 --list-only: every action is LIST
+ok   127 A29 worktree list fails -> exit 4, no result files
+ok   128 A29 terminal list fails -> exit 4, no result files
+ok   129 A6 diagnostics fails -> worktrees with terminals are SKIP W6, nothing to CLOSE, exit 5
+ok   130 B16 worktree ps fails -> no RM at all, exit 5
+ok   131 B25 --dry-run is accepted (exit 0)
+ok   132 B27 --precheck writes output and exits 1
+ok   133 B28 WS_REBUILD_DIRS=node_modules -> c_cache_only must back up dist (BACKUP_RM)
+ok   134 B26 default output goes under the archive root, not the ops workspace
+FAIL 135 E0 scoped dry-run of project x lists only x worktrees
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 136 B30 t_x_agent (agent itself) SKIP T1; t_x_agent_sib CLOSE
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 137 R11 x_rev_ok / x_rev_moved / x_rev_stale_rec are BACKUP_RM W19 in the dry-run
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 138 E0 x_bk / x_rmfail / x_sha are BACKUP_RM, terminals t_x_close / t_late / t_late_tab are CLOSE
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import sys; L=open(sys.argv[1]).read().splitlines(); open(sys.argv[1],"w").write("\n".join(l for l in L if "/x_notlisted\t" not in l)+"\n")
+                  ~~~~^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/xd/worktrees.tsv'
+FAIL 139 E4 execute stops at the pause point
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 140 E2 exit code 3 (x_rmfail failed)
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 141 E0 x_ok removed
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 142 E3 x_bk backed up then removed
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 143 E3 backup dir 700, .dev.vars 600, MANIFEST present (L4: repo name x/proj -> x_proj)
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+ok   144 E3/L3 original .dev.vars left in place
+FAIL 145 E1 x_sha: BACKUP_FAIL on sha mismatch and no rm call
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 146 E2 x_rmfail: failure text recorded, rm called exactly once, never --force
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 147 E8 x_e8a_noperm: ERROR, x_e8b_after still removed, outputs written
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 148 E4a x_late skipped (W7)
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 149 E4b x_late2 skipped (W8)
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 150 E4c x_late3 skipped (W5)
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 151 E4d x_late4 skipped (W9, PR opened)
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 152 E4d x_late5 skipped (W10, Linear reopened)
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 153 L37 x_lin_fail: Linear query fails at delete time -> not removed
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 154 L37 x_lin_gone: issue missing at delete time -> not removed
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 155 E5 x_q10 skipped after an agent showed up mid-run; x_q01-x_q09 removed
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 156 G10 x_late_lock locked after the dry-run: skipped as W18, no backup, no rm
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 157 N6 x_late_nolin: Linear unlinked after the dry-run -> skipped as W19, no rm
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 158 R9 x_rev_moved: HEAD moved after the dry-run -> skipped as W19, no backup, no rm
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 159 R10 x_rev_stale_rec: record changed after the dry-run -> skipped as W19, no rm
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 160 R11 x_rev_ok backed up with NO-ISSUE-REVIEW.md (600, in MANIFEST, same bytes) and removed
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/xe: No such file or directory
+grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/xe/journal.tsv: No such file or directory
+FAIL 161 M4 journal / execute output: orca's email masked
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 162 E14 x_notlisted (not in --only-from) untouched
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 163 E15 x_listchanged: backup list changed -> skipped
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 164 E6 t_late got a process -> not closed
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 165 E7 only t_late_tab, t_x_agent_sib, t_x_close closed, never --tab, t_newpane untouched
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 166 B31 t_x_close archived before close: dir 700, scrollback / meta (with cwd) / README 600
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 167 B31 t_x_agent_sib (companion shell) archived and closed
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+FAIL 168 B32 t_x_arcfail: archive failed -> not closed, counted as a failure
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+ok   169 B30 t_x_agent never closed
+grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/fix/lsof-calls.log: No such file or directory
+FAIL 170 B31 dry-run never ran lsof
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/xe/journal.tsv: No such file or directory
+FAIL 171 E16 journal has rm-start / rm-end for x_ok
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/xe: No such file or directory
+ok   172 E3 fake secrets not in execute output or stdout
+FAIL 173 D3 x_sha / x_e8a_noperm: half-copied backup set aside as .failed-*, nothing left under the real name
+     stdout/stderr:
+     | ws-cleanup: 用法：ws-cleanup.sh [--dry-run] [--list-only] [--precheck] [--out DIR] [--repo REPO_ID] [--execute --only-from TSV [--close-terminals]]
+cat: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/xd/worktrees.tsv: No such file or directory
+awk: can't open file /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/xd/worktrees.tsv
+ source line number 1
+FAIL 174 E12 same-day rerun: x_rmfail BACKUP_FAIL 备份目录已存在, no rm for it
+     stdout/stderr:
+     | # ws-cleanup 执行（iMac，2026-10-21 09:27:00 SGT）
+     | 
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/bin/orca`；gh：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/bin/gh`；工作区空闲门槛 24 小时，终端 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/archive`；只看 repo r-x。
+     | 
+     | | 动作 | 工作区 |
+     | |---|---|
+     | | RM | 13 |
+     | | BACKUP_RM | 5 |
+     | | SKIP | 16 |
+     | 
+     | RM 合计约 0 MB，BACKUP_RM 合计约 0 MB（du）。
+     | 
+     | | 规则 | 个数 |
+     | |---|---|
+     | | W1 | 1 |
+     | | W5 | 2 |
+     | | W6 | 2 |
+     | | W7 | 1 |
+     | | W8 | 1 |
+     | | W9 | 1 |
+ok   175 D3 same-day rerun: x_sha not blocked by the failed first attempt
+FAIL 176 D1 listed RM that is SKIP when --execute starts: result says so
+     stdout/stderr:
+     | # ws-cleanup 执行（iMac，2026-10-21 09:27:00 SGT）
+     | 
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/bin/orca`；gh：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/bin/gh`；工作区空闲门槛 24 小时，终端 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/archive`；只看 repo r-x。
+     | 
+     | | 动作 | 工作区 |
+     | |---|---|
+     | | RM | 13 |
+     | | BACKUP_RM | 5 |
+     | | SKIP | 16 |
+     | 
+     | RM 合计约 0 MB，BACKUP_RM 合计约 0 MB（du）。
+     | 
+     | | 规则 | 个数 |
+     | |---|---|
+     | | W1 | 1 |
+     | | W5 | 2 |
+     | | W6 | 2 |
+     | | W7 | 1 |
+     | | W8 | 1 |
+     | | W9 | 1 |
+FAIL 177 D1 listed id no longer in Orca: journal not-found line
+     stdout/stderr:
+     | # ws-cleanup 执行（iMac，2026-10-21 09:27:00 SGT）
+     | 
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/bin/orca`；gh：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/bin/gh`；工作区空闲门槛 24 小时，终端 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/archive`；只看 repo r-x。
+     | 
+     | | 动作 | 工作区 |
+     | |---|---|
+     | | RM | 13 |
+     | | BACKUP_RM | 5 |
+     | | SKIP | 16 |
+     | 
+     | RM 合计约 0 MB，BACKUP_RM 合计约 0 MB（du）。
+     | 
+     | | 规则 | 个数 |
+     | |---|---|
+     | | W1 | 1 |
+     | | W5 | 2 |
+     | | W6 | 2 |
+     | | W7 | 1 |
+     | | W8 | 1 |
+     | | W9 | 1 |
+ok   178 E19 without --close-terminals no terminal is closed
+ok   179 E10 no gh -> exit 5, nothing removed, summary says why
+ok   180 E11 lock held by a live pid -> exit 6, nothing removed
+FAIL 181 E11 stale lock (dead pid) is taken over and the run goes on
+     stdout/stderr:
+     | ws-cleanup: 读不到名单 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/xd/worktrees.tsv：[Errno 2] No such file or directory: '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/xd/worktrees.tsv'
+     | # ws-cleanup 执行（iMac，2026-10-21 09:27:00 SGT）
+     | 
+     | orca：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/bin/orca`；gh：`/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/bin/gh`；工作区空闲门槛 24 小时，终端 24 小时；备份根目录 `/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/archive`；只看 repo r-x。
+     | 
+     | | 动作 | 工作区 |
+     | |---|---|
+     | | RM | 13 |
+     | | BACKUP_RM | 5 |
+     | | SKIP | 16 |
+     | 
+     | RM 合计约 0 MB，BACKUP_RM 合计约 0 MB（du）。
+     | 
+     | | 规则 | 个数 |
+     | |---|---|
+     | | W1 | 1 |
+     | | W5 | 2 |
+     | | W6 | 2 |
+     | | W7 | 1 |
+     | | W8 | 1 |
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import sys; L=open(sys.argv[1]).read().splitlines(); rm=[l for l in L if "\tRM\t" in l][0]; open(sys.argv[2],"w").write("\n".join(L+[rm.replace("r-x::","r-proj::",1)])+"\n")
+                  ~~~~^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/xd/worktrees.tsv'
+cp: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T//ws-cleanup-test.l14A0R/xd/terminals.tsv: No such file or directory
+ok   182 W40 --repo whitelist: one listed candidate outside r-x -> exit 2, nothing removed
+ok   183 E14 --execute without --only-from -> exit 2
+ok   184 E17 --execute refused on MBA and on a host not named exactly iMac (exit 2)
+ok   185 E18 WS_ORCA set but missing -> exit 2, no fallback
+not run: E13 (needs the real Orca; see scripts/tests/ws-cleanup-drill.sh)
+134/185 passed

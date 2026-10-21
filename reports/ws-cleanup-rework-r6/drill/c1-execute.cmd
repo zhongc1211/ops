@@ -1,0 +1,1 @@
+$ env /bin/bash /Users/jiawenwang/orca/workspaces/ops/ops-cleanup-rules-draft-1021/scripts/ws-cleanup.sh --execute --repo 13a60bf6-f713-4397-ba4b-0729dafa93f3 --no-issue-reviews /Users/jiawenwang/ops-drill/reviews-r6 --only-from reports/ws-cleanup-rework-r6/drill/list-h1-review-ok.tsv --out reports/ws-cleanup-rework-r6/drill/c1-execute

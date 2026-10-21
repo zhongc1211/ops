@@ -1,0 +1,20 @@
+worktree ~/ops-drill/ws-cleanup-drill
+HEAD 240f83515f1259106324a3de6d48ac70448d5dee
+branch refs/heads/main
+
+worktree ~/ops-drill/wt-r6/h1-review-ok
+HEAD 240f83515f1259106324a3de6d48ac70448d5dee
+branch refs/heads/drill-r6/h1-review-ok
+
+worktree ~/ops-drill/wt-r6/h2-late-head
+HEAD 240f83515f1259106324a3de6d48ac70448d5dee
+branch refs/heads/drill-r6/h2-late-head
+
+worktree ~/ops-drill/wt-r6/h3-gh-fail
+HEAD 240f83515f1259106324a3de6d48ac70448d5dee
+branch refs/heads/drill-r6/h3-gh-fail
+
+worktree ~/ops-drill/wt-r6/h4-after-backup
+HEAD 240f83515f1259106324a3de6d48ac70448d5dee
+branch refs/heads/drill-r6/h4-after-backup
+

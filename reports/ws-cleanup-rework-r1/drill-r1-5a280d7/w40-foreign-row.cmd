@@ -1,0 +1,1 @@
+$ /bin/bash /Users/jiawenwang/orca/workspaces/ops/ops-cleanup-rules-draft-1021/scripts/ws-cleanup.sh --execute --repo aa123560-8996-445e-9798-58252049e7e5 --only-from reports/ws-cleanup-rework-r1/drill/w40-list.tsv --out reports/ws-cleanup-rework-r1/drill/w40-foreign-row

@@ -1,0 +1,67 @@
+{
+  "id": "33f4b52f-b72a-4dbf-afd0-b1b6029be2ca",
+  "ok": true,
+  "result": {
+    "worktree": {
+      "id": "aa123560-8996-445e-9798-58252049e7e5::/Users/jiawenwang/ops-drill/wt/d16-linear-missing",
+      "identity": {
+        "key": "wt2:local:3e2c974c-3166-4883-b6d2-7f998c163914",
+        "executionHostId": "local",
+        "instanceId": "3e2c974c-3166-4883-b6d2-7f998c163914"
+      },
+      "instanceId": "3e2c974c-3166-4883-b6d2-7f998c163914",
+      "repoId": "aa123560-8996-445e-9798-58252049e7e5",
+      "projectId": "repo:aa123560-8996-445e-9798-58252049e7e5",
+      "hostId": "local",
+      "projectHostSetupId": "aa123560-8996-445e-9798-58252049e7e5",
+      "path": "/Users/jiawenwang/ops-drill/wt/d16-linear-missing",
+      "head": "078c8a2ef09e77e79b95247224e77df408af8a3c",
+      "branch": "refs/heads/drill/d16-linear-missing",
+      "isBare": false,
+      "isMainWorktree": false,
+      "displayName": "drill/d16-linear-missing",
+      "displayNameMode": "automatic",
+      "comment": "",
+      "linkedIssue": null,
+      "linkedPR": null,
+      "linkedLinearIssue": "PER-999999",
+      "linkedLinearIssueWorkspaceId": null,
+      "linkedLinearIssueOrganizationUrlKey": null,
+      "linkedGitLabMR": null,
+      "linkedGitLabIssue": null,
+      "linkedBitbucketPR": null,
+      "linkedAzureDevOpsPR": null,
+      "linkedGiteaPR": null,
+      "linkedWorkItem": null,
+      "linkedItems": [
+        {
+          "provider": "linear",
+          "type": "issue",
+          "number": 0,
+          "identifier": "PER-999999",
+          "linearIdentifier": "PER-999999"
+        }
+      ],
+      "linkedTaskSourceContext": null,
+      "isArchived": false,
+      "isUnread": false,
+      "isPinned": false,
+      "sortOrder": 1792527744633,
+      "lastActivityAt": 0,
+      "workspaceStatus": "completed",
+      "parentWorktreeId": null,
+      "childWorktreeIds": [],
+      "lineage": null,
+      "git": {
+        "path": "/Users/jiawenwang/ops-drill/wt/d16-linear-missing",
+        "head": "078c8a2ef09e77e79b95247224e77df408af8a3c",
+        "branch": "refs/heads/drill/d16-linear-missing",
+        "isBare": false,
+        "isMainWorktree": false
+      }
+    }
+  },
+  "_meta": {
+    "runtimeId": "cb0f5509-687d-409f-bf36-d841efc78dcf"
+  }
+}

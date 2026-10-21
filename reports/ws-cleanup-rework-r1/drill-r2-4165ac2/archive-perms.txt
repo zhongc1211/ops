@@ -1,0 +1,9 @@
+-rw------- 24 ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d03-backup/.dev.vars
+-rw-r--r-- 154 ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d03-backup/MANIFEST.sha256
+-rw------- 29 ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d03-backup/notes.local
+-rw------- 24 ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d11-locked/.dev.vars
+-rw-r--r-- 76 ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d11-locked/MANIFEST.sha256
+-rw------- 37638144 ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d12-sha.failed-044306/.orca-task/log.local
+-rw-r--r-- 87 ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d12-sha.failed-044306/MANIFEST.sha256
+-rw------- 38445056 ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d12-sha/.orca-task/log.local
+-rw-r--r-- 87 ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d12-sha/MANIFEST.sha256

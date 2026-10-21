@@ -1,0 +1,29 @@
+# ws-cleanup list-only（MBA，2026-10-21 04:18:02 SGT）
+
+orca：`/Applications/Orca.app/Contents/Resources/bin/orca`；gh：`/opt/homebrew/bin/gh`；工作区空闲门槛 24 小时，终端 24 小时；备份根目录 `/Users/jiawenwang/ops-archive/ws-cleanup`。
+
+| 动作 | 工作区 |
+|---|---|
+| LIST | 37 |
+
+只列出；如果在这台机器上清理，结论会是：BACKUP_RM 1，SKIP 36
+
+RM 合计约 0 MB，BACKUP_RM 合计约 976 MB（du）。
+
+| 规则 | 个数 |
+|---|---|
+| W1 | 6 |
+| W5 | 10 |
+| W6 | 2 |
+| W7 | 1 |
+| W9 | 5 |
+| W10 | 6 |
+| W11 | 2 |
+| W12 | 4 |
+| W13 | 1 |
+
+状态冲突、这次不删、等 Zack 定的：2 个（worktrees.tsv 里 W11 且原因写「状态冲突」）
+
+终端：LIST 22（T1 10，T2 2，T7 6，T8 4）
+
+超过 30 天的备份（只列出，删除另外批准）：无
