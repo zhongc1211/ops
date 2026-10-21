@@ -1,0 +1,573 @@
+#!/usr/bin/python3 -I
+# -*- coding: utf-8 -*-
+"""ops-v5-sampler：PER-126 v5 前提 2 的被动采样器。只读，不派活，不改 Orca/Linear 状态。
+
+每次运行采一次本机读数，追加一行 JSON 到
+  <state>/samples/<host>/YYYY-MM-DD.jsonl
+由 LaunchAgent（StartInterval 60）每分钟拉起一次。
+
+用法：
+  ops-v5-sampler [--once] [--state-dir DIR] [--config FILE] [--print]
+  ops-v5-sampler --version
+
+  --once       采一次就退出（默认就是这样，写上是为了让调用处看得清）
+  --state-dir  默认 ~/.local/state/dispatch
+  --config     默认 ~/.config/dispatch/sampler.env（必须有 SAMPLER_CONFIG_VERSION=1）
+  --print      把这次的记录也打印到 stdout
+
+退出码：0 正常（含「锁被占」「本分钟已采」两种跳过），3 配置错，4 写盘失败，1 其他错误。
+
+外部命令（全部限时，超时连同子进程组一起杀掉）：
+  orca diagnostics memory --json   ≤ ORCA_TIMEOUT_SEC（默认 10 秒）
+  orca worktree ps --json          同上，只取白名单字段
+  orca terminal list --json        同上，只取 handle / tabId / leafId
+  ps -A -o pid,ppid,rss,etime,comm ≤ CMD_TIMEOUT_SEC（默认 5 秒），不采命令行和环境变量
+  sysctl -n kern.memorystatus_level / vm.loadavg / hw.memsize
+  df -k $HOME
+整轮 ≤ ROUND_TIMEOUT_SEC（默认 30 秒）。
+"""
+from __future__ import print_function
+
+import datetime
+import errno
+import fcntl
+import json
+import os
+import re
+import resource
+import signal
+import socket
+import subprocess
+import sys
+import time
+
+SAMPLER_VERSION = "1.0.0"
+SCHEMA = "ops-v5-sample/1"
+CONFIG_VERSION = "1"
+
+# launchd 和非交互 ssh 的 PATH 只有系统目录；追加在后面，测试放在前面的桩仍然优先。
+_EXTRA_PATH = [
+    "/Applications/Orca.app/Contents/Resources/bin",
+    "/usr/bin", "/bin", "/usr/sbin", "/sbin",
+    "/opt/homebrew/bin", "/usr/local/bin",
+]
+os.environ["PATH"] = ":".join(
+    [p for p in os.environ.get("PATH", "").split(":") if p] + _EXTRA_PATH)
+
+# 配置项：名字 -> (类型, 默认值)。没有默认值的是必填。
+CONFIG_SPEC = {
+    "SAMPLER_CONFIG_VERSION": (str, None),
+    "SAMPLER_HOST": (str, ""),
+    "ORCA_BIN": (str, "orca"),
+    "RETENTION_DAYS": (int, 14),
+    "MAX_TOTAL_MB": (float, 200.0),
+    "LOG_MAX_KB": (int, 512),
+    "ORCA_TIMEOUT_SEC": (float, 10.0),
+    "CMD_TIMEOUT_SEC": (float, 5.0),
+    "ROUND_TIMEOUT_SEC": (float, 30.0),
+    "AGENT_COMMS": (str, "claude,codex,pi,opencode,gemini,node"),
+}
+
+# worktree ps 里 agent 条目只取这些字段；prompt、preview、lastAssistantMessage 等正文一律不取。
+AGENT_FIELDS = ("state", "workingMode", "stateStartedAt", "agentType")
+
+
+class ConfigError(Exception):
+    pass
+
+
+class RoundTimeout(Exception):
+    pass
+
+
+class CmdError(Exception):
+    pass
+
+
+# ---------------------------------------------------------------- 日志
+
+class Log(object):
+    def __init__(self, path, max_kb):
+        self.path = path
+        self.max_bytes = max(16, max_kb) * 1024
+
+    def cap(self, path=None):
+        """超过上限就轮转成 .1（覆盖旧的 .1），所以最多占两份上限。"""
+        path = path or self.path
+        try:
+            if os.path.getsize(path) > self.max_bytes:
+                os.rename(path, path + ".1")
+        except OSError:
+            pass
+
+    def write(self, level, msg):
+        line = "%s %s %s\n" % (
+            datetime.datetime.now().astimezone().isoformat(timespec="seconds"), level, msg)
+        try:
+            d = os.path.dirname(self.path)
+            if d and not os.path.isdir(d):
+                os.makedirs(d)
+            with open(self.path, "a") as f:
+                f.write(line)
+        except OSError:
+            sys.stderr.write(line)
+
+
+# ---------------------------------------------------------------- 配置
+
+def load_config(path):
+    if not os.path.isfile(path):
+        raise ConfigError("配置缺失：%s" % path)
+    raw = {}
+    with open(path) as f:
+        for n, line in enumerate(f, 1):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" not in line:
+                raise ConfigError("配置第 %d 行不是 KEY=VALUE" % n)
+            k, v = line.split("=", 1)
+            k = k.strip()
+            if k.startswith("export "):
+                k = k[len("export "):].strip()
+            v = v.strip()
+            if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
+                v = v[1:-1]
+            raw[k] = v
+    ver = raw.get("SAMPLER_CONFIG_VERSION")
+    if ver != CONFIG_VERSION:
+        raise ConfigError("配置版本不对：SAMPLER_CONFIG_VERSION=%r，需要 %s" % (ver, CONFIG_VERSION))
+    cfg = {}
+    for k, (typ, default) in CONFIG_SPEC.items():
+        if k not in raw or raw[k] == "":
+            cfg[k] = default
+            continue
+        try:
+            cfg[k] = typ(raw[k])
+        except ValueError:
+            raise ConfigError("配置项 %s 不是 %s：%r" % (k, typ.__name__, raw[k]))
+    unknown = sorted(set(raw) - set(CONFIG_SPEC))
+    cfg["_unknown"] = unknown
+    cfg["_agent_comms"] = set(x.strip() for x in cfg["AGENT_COMMS"].split(",") if x.strip())
+    if not cfg["SAMPLER_HOST"]:
+        cfg["SAMPLER_HOST"] = socket.gethostname().split(".")[0].lower()
+    if not re.match(r"^[A-Za-z0-9_.-]+$", cfg["SAMPLER_HOST"]):
+        raise ConfigError("SAMPLER_HOST 只能用字母数字和 ._-：%r" % cfg["SAMPLER_HOST"])
+    return cfg
+
+
+# ---------------------------------------------------------------- 外部命令
+
+class Budget(object):
+    def __init__(self, total):
+        self.deadline = time.time() + total
+
+    def left(self):
+        return self.deadline - time.time()
+
+
+def run_cmd(argv, timeout, budget):
+    """限时跑一个命令，返回 stdout 文本。超时杀整个进程组并回收，不留僵尸。"""
+    t = min(timeout, budget.left())
+    if t <= 0.2:
+        raise CmdError("no_budget")
+    try:
+        p = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, start_new_session=True)
+    except OSError as e:
+        raise CmdError("not_found" if e.errno == errno.ENOENT else "spawn:%s" % e.errno)
+    try:
+        out, err = p.communicate(timeout=t)
+    except subprocess.TimeoutExpired:
+        raise CmdError("timeout")
+    finally:
+        if p.poll() is None:
+            try:
+                os.killpg(p.pid, signal.SIGKILL)
+            except OSError:
+                pass
+            try:
+                p.communicate(timeout=2)
+            except Exception:
+                pass
+    if p.returncode != 0:
+        first = (err or b"").decode("utf-8", "replace").strip().splitlines()[:1]
+        raise CmdError("exit:%d%s" % (p.returncode, (" " + first[0][:120]) if first else ""))
+    return out.decode("utf-8", "replace")
+
+
+def orca_json(args, cfg, budget):
+    out = run_cmd([cfg["ORCA_BIN"]] + args + ["--json"], cfg["ORCA_TIMEOUT_SEC"], budget)
+    try:
+        d = json.loads(out)
+    except ValueError:
+        raise CmdError("bad_json")
+    if not isinstance(d, dict) or d.get("ok") is False or not isinstance(d.get("result"), dict):
+        raise CmdError("not_ok")
+    return d["result"]
+
+
+# ---------------------------------------------------------------- 采集
+
+def collect_fallback(rec, cfg, budget, errors):
+    m = rec["machine"]
+    for key, name in (("memorystatus_level", "kern.memorystatus_level"),
+                      ("vm_loadavg", "vm.loadavg"),
+                      ("hw_memsize", "hw.memsize")):
+        try:
+            out = run_cmd(["sysctl", "-n", name], cfg["CMD_TIMEOUT_SEC"], budget).strip()
+            if key == "vm_loadavg":
+                m[key] = [float(x) for x in out.strip("{} \n").split()][:3]
+            else:
+                m[key] = int(out)
+        except (CmdError, ValueError) as e:
+            errors.append({"step": "sysctl:" + name, "error": str(e)})
+    try:
+        out = run_cmd(["df", "-k", os.path.expanduser("~")], cfg["CMD_TIMEOUT_SEC"], budget)
+        m["disk_home_avail_kb"] = int(out.strip().splitlines()[-1].split()[3])
+    except (CmdError, ValueError, IndexError) as e:
+        errors.append({"step": "df", "error": str(e)})
+
+
+def collect_ps(cfg, budget, errors):
+    try:
+        out = run_cmd(["ps", "-A", "-o", "pid,ppid,rss,etime,comm"], cfg["CMD_TIMEOUT_SEC"], budget)
+    except CmdError as e:
+        errors.append({"step": "ps", "error": str(e)})
+        return None
+    procs = {}
+    for line in out.splitlines()[1:]:
+        parts = line.split(None, 4)
+        if len(parts) < 5:
+            continue
+        try:
+            pid, ppid, rss = int(parts[0]), int(parts[1]), int(parts[2])
+        except ValueError:
+            continue
+        comm = os.path.basename(parts[4].strip().lstrip("-"))
+        procs[pid] = {"pid": pid, "ppid": ppid, "rss_kb": rss, "etime": parts[3], "comm": comm}
+    if not procs:
+        errors.append({"step": "ps", "error": "empty"})
+        return None
+    return procs
+
+
+def proc_tree(procs, children, root, agent_comms):
+    """root 及其子孙：rss 合计、进程数、顶层 agent（祖先里没有 agent 的 agent 进程）。"""
+    total, count, agents, seen = 0, 0, [], set()
+    stack = [(root, False)]
+    while stack:
+        pid, under_agent = stack.pop()
+        if pid in seen or pid not in procs:
+            continue
+        seen.add(pid)
+        p = procs[pid]
+        total += p["rss_kb"]
+        count += 1
+        is_agent = p["comm"] in agent_comms
+        if is_agent and not under_agent:
+            agents.append(p["comm"])
+        for c in children.get(pid, ()):
+            stack.append((c, under_agent or is_agent))
+    return total, count, agents, seen
+
+
+def pick_agent_type(agents):
+    non_node = [a for a in agents if a != "node"]
+    if non_node:
+        return non_node[0]
+    return agents[0] if agents else None
+
+
+def collect(cfg, budget, rec):
+    """就地填 rec；整轮超时打断时，已经采到的部分留在 rec 里照样写盘。"""
+    errors = rec["errors"]
+    # 1. 机器级：Orca
+    diag = None
+    try:
+        diag = orca_json(["diagnostics", "memory"], cfg, budget)
+        host = diag.get("host")
+        if not isinstance(host, dict) or "availableMemory" not in host:
+            raise CmdError("no_host")
+        rec["machine"]["orca"] = {k: host.get(k) for k in (
+            "availableMemory", "totalMemory", "freeMemory", "loadAverage1m",
+            "cpuCoreCount", "availableMemorySource")}
+        rec["machine"]["orca"]["collectedAt"] = diag.get("collectedAt")
+        rec["orca_ok"] = True
+    except CmdError as e:
+        errors.append({"step": "orca_diag", "error": str(e)})
+        rec["orca_ok"] = False
+        diag = None
+    # 1b. 机器级后备读数（每次都记）
+    collect_fallback(rec, cfg, budget, errors)
+
+    # 2. 会话级
+    sessions = []
+    if diag is not None:
+        for w in diag.get("worktrees") or []:
+            if not isinstance(w, dict):
+                continue
+            for s in w.get("sessions") or []:
+                if not isinstance(s, dict):
+                    continue
+                sessions.append({
+                    "worktreeId": w.get("worktreeId"), "worktreeName": w.get("worktreeName"),
+                    "repoName": w.get("repoName"), "sessionId": s.get("sessionId"),
+                    "paneKey": s.get("paneKey"), "pid": s.get("pid"),
+                    "memory": s.get("memory"), "cpu": s.get("cpu"), "terminal": None,
+                })
+
+    rec["sessions"] = sessions
+
+    # 2b. 终端 handle 和 agent 状态（只取白名单字段）
+    if sessions:
+        handles, agent_info, wt_issue = {}, {}, {}
+        try:
+            tl = orca_json(["terminal", "list"], cfg, budget)
+            for t in tl.get("terminals") or []:
+                if not isinstance(t, dict) or not t.get("handle"):
+                    continue
+                pk = t.get("paneKey") or "%s:%s" % (t.get("tabId"), t.get("leafId"))
+                handles[pk] = t["handle"]
+        except CmdError as e:
+            errors.append({"step": "orca_terminal_list", "error": str(e)})
+        try:
+            wp = orca_json(["worktree", "ps"], cfg, budget)
+            for w in wp.get("worktrees") or []:
+                if not isinstance(w, dict):
+                    continue
+                wt_issue[w.get("worktreeId")] = w.get("linkedLinearIssue")
+                for a in w.get("agents") or []:
+                    if isinstance(a, dict) and a.get("paneKey"):
+                        agent_info[a["paneKey"]] = dict(
+                            (k, a.get(k)) for k in AGENT_FIELDS if k in a)
+        except CmdError as e:
+            errors.append({"step": "orca_worktree_ps", "error": str(e)})
+        for s in sessions:
+            pk = s["paneKey"]
+            if pk in handles or pk in agent_info:
+                t = {"handle": handles.get(pk)}
+                t.update(agent_info.get(pk, {}))
+                t["linkedLinearIssue"] = wt_issue.get(s["worktreeId"])
+                s["terminal"] = t
+
+    # 3. 进程树
+    procs = collect_ps(cfg, budget, errors)
+    comms = cfg["_agent_comms"]
+    if procs is not None:
+        children = {}
+        for p in procs.values():
+            children.setdefault(p["ppid"], []).append(p["pid"])
+        covered = set()
+        for s in sessions:
+            pid = s["pid"]
+            if not isinstance(pid, int) or pid not in procs:
+                s["proc"] = {"found": False}
+                continue
+            total, count, agents, seen = proc_tree(procs, children, pid, comms)
+            covered |= seen
+            s["proc"] = {"found": True, "tree_rss_kb": total, "n_procs": count,
+                         "agents": agents, "agent_type": pick_agent_type(agents)}
+        for p in sorted(procs.values(), key=lambda x: x["pid"]):
+            if p["pid"] in covered or p["comm"] not in comms:
+                continue
+            parent = procs.get(p["ppid"])
+            if parent is not None and parent["comm"] in comms:
+                continue
+            rec["orphan_agents"].append(dict(p))
+    sess_agents = sum(len(s.get("proc", {}).get("agents") or []) for s in sessions)
+    rec["agent_count"] = {"in_sessions": sess_agents, "orphan": len(rec["orphan_agents"]),
+                          "total": sess_agents + len(rec["orphan_agents"])} if procs is not None else None
+    return rec
+
+
+# ---------------------------------------------------------------- 存储
+
+DAY_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})\.jsonl$")
+
+
+def last_minute(path):
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            f.seek(max(0, size - 262144))
+            tail = f.read()
+    except OSError:
+        return None
+    for line in reversed(tail.splitlines()):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            return json.loads(line.decode("utf-8")).get("minute")
+        except (ValueError, UnicodeDecodeError, AttributeError):
+            return None
+    return None
+
+
+def day_files(host_dir):
+    out = []
+    try:
+        names = os.listdir(host_dir)
+    except OSError:
+        return out
+    for n in names:
+        m = DAY_RE.match(n)
+        p = os.path.join(host_dir, n)
+        if m and os.path.isfile(p) and not os.path.islink(p):
+            out.append((m.group(1), p, os.path.getsize(p)))
+    out.sort()
+    return out
+
+
+def rotate(host_dir, today, cfg, incoming, log):
+    """只动 host_dir 下名字是 YYYY-MM-DD.jsonl 的文件。返回能否追加 incoming 字节。"""
+    cutoff = (datetime.date.fromisoformat(today)
+              - datetime.timedelta(days=max(1, cfg["RETENTION_DAYS"]) - 1)).isoformat()
+    for day, path, _ in day_files(host_dir):
+        if day < cutoff:
+            os.remove(path)
+            log.write("INFO", "超过保留天数，删除 %s" % path)
+    cap = int(cfg["MAX_TOTAL_MB"] * 1024 * 1024)
+    files = day_files(host_dir)
+    total = sum(sz for _, _, sz in files) + incoming
+    for day, path, sz in files:
+        if total <= cap:
+            break
+        if day >= today:
+            continue
+        os.remove(path)
+        total -= sz
+        log.write("INFO", "超过总大小上限 %.1fMB，删除 %s" % (cfg["MAX_TOTAL_MB"], path))
+    if total > cap:
+        log.write("ERROR", "当天文件已到总大小上限 %.1fMB，本次不追加" % cfg["MAX_TOTAL_MB"])
+        return False
+    return True
+
+
+# ---------------------------------------------------------------- 主流程
+
+def parse_args(argv):
+    opts = {"state_dir": os.path.expanduser("~/.local/state/dispatch"),
+            "config": os.path.expanduser("~/.config/dispatch/sampler.env"),
+            "print": False}
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--version":
+            print("ops-v5-sampler %s" % SAMPLER_VERSION)
+            sys.exit(0)
+        elif a == "--once":
+            pass
+        elif a == "--print":
+            opts["print"] = True
+        elif a in ("--state-dir", "--config") and i + 1 < len(argv):
+            opts[a[2:].replace("-", "_")] = os.path.abspath(os.path.expanduser(argv[i + 1]))
+            i += 1
+        elif a in ("-h", "--help"):
+            print(__doc__)
+            sys.exit(0)
+        else:
+            sys.stderr.write("未知参数：%s\n" % a)
+            sys.exit(2)
+        i += 1
+    return opts
+
+
+def _alarm(signum, frame):
+    raise RoundTimeout()
+
+
+def main(argv):
+    t0 = time.time()
+    opts = parse_args(argv)
+    state = opts["state_dir"]
+    log = Log(os.path.join(state, "ops-v5-sampler.log"), CONFIG_SPEC["LOG_MAX_KB"][1])
+    try:
+        cfg = load_config(opts["config"])
+    except (ConfigError, OSError) as e:
+        log.write("ERROR", str(e))
+        sys.stderr.write("ops-v5-sampler: %s\n" % e)
+        return 3
+    log.max_bytes = max(16, cfg["LOG_MAX_KB"]) * 1024
+    log.cap()
+    log.cap(os.path.join(state, "ops-v5-sampler.launchd.log"))
+    if cfg["_unknown"]:
+        log.write("WARN", "配置里有不认识的项：%s" % ",".join(cfg["_unknown"]))
+
+    host = cfg["SAMPLER_HOST"]
+    host_dir = os.path.join(state, "samples", host)
+    try:
+        if not os.path.isdir(host_dir):
+            os.makedirs(host_dir)
+        lock_f = open(os.path.join(state, "ops-v5-sampler.lock"), "a")
+    except OSError as e:
+        log.write("ERROR", "建目录或锁文件失败：%s" % e)
+        return 4
+    try:
+        fcntl.flock(lock_f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except (IOError, OSError):
+        log.write("INFO", "锁被占，跳过本次")
+        return 0
+
+    now = datetime.datetime.now().astimezone()
+    today = now.date().isoformat()
+    minute = now.strftime("%Y-%m-%dT%H:%M")
+    day_path = os.path.join(host_dir, today + ".jsonl")
+    if last_minute(day_path) == minute:
+        log.write("INFO", "本分钟 %s 已有记录，跳过" % minute)
+        return 0
+
+    budget = Budget(cfg["ROUND_TIMEOUT_SEC"])
+    signal.signal(signal.SIGALRM, _alarm)
+    signal.setitimer(signal.ITIMER_REAL, cfg["ROUND_TIMEOUT_SEC"] + 2)
+    body = {"machine": {}, "sessions": [], "orphan_agents": [], "orca_ok": False,
+            "agent_count": None, "errors": []}
+    try:
+        collect(cfg, budget, body)
+    except RoundTimeout:
+        body["errors"].append({"step": "round", "error": "round_timeout"})
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+
+    ru_self = resource.getrusage(resource.RUSAGE_SELF)
+    ru_kids = resource.getrusage(resource.RUSAGE_CHILDREN)
+    rec = {
+        "schema": SCHEMA, "sampler_version": SAMPLER_VERSION,
+        "ts": now.isoformat(timespec="seconds"), "minute": minute, "host": host,
+        "ok": not body["errors"], "orca_ok": body.get("orca_ok", False),
+    }
+    rec.update(body)
+    rec["self"] = {
+        "duration_ms": int((time.time() - t0) * 1000),
+        # macOS 的 ru_maxrss 单位是字节
+        "maxrss_kb": ru_self.ru_maxrss // 1024,
+        "children_maxrss_kb": ru_kids.ru_maxrss // 1024,
+        "cpu_ms": int((ru_self.ru_utime + ru_self.ru_stime + ru_kids.ru_utime + ru_kids.ru_stime) * 1000),
+    }
+    line = (json.dumps(rec, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
+    try:
+        if rotate(host_dir, today, cfg, len(line), log):
+            fd = os.open(day_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+            try:
+                os.write(fd, line)
+            finally:
+                os.close(fd)
+    except OSError as e:
+        log.write("ERROR", "写 samples 失败：%s" % e)
+        return 4
+    log.write("INFO" if rec["ok"] else "WARN", "采样 %s orca_ok=%s sessions=%d errors=%s %dms" % (
+        minute, rec["orca_ok"], len(rec["sessions"]),
+        ",".join("%s=%s" % (e["step"], e["error"]) for e in rec["errors"]) or "-",
+        rec["self"]["duration_ms"]))
+    if opts["print"]:
+        sys.stdout.write(line.decode("utf-8"))
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except KeyboardInterrupt:
+        sys.exit(130)

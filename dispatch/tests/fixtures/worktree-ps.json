@@ -1,0 +1,5 @@
+{"ok":true,"result":{"worktrees":[
+ {"worktreeId":"repo1::/w/a","linkedLinearIssue":"PER-1","preview":"SECRET_BODY_MARKER","comment":"SECRET_BODY_MARKER",
+  "agents":[{"paneKey":"tabA:leafA","state":"working","agentType":"claude","prompt":"SECRET_BODY_MARKER prompt","lastAssistantMessage":"SECRET_BODY_MARKER msg","toolInput":"SECRET_BODY_MARKER","stateStartedAt":1792554000000,"workingMode":"auto"}]},
+ {"worktreeId":"repo1::/w/b","linkedLinearIssue":null,"agents":[]}
+],"totalCount":2,"truncated":false}}

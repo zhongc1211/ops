@@ -1,0 +1,106 @@
+{
+ "schema": "ops-v5-sample/1",
+ "sampler_version": "1.0.0",
+ "ts": "2026-10-21T12:00:20+08:00",
+ "minute": "2026-10-21T12:00",
+ "host": "imac",
+ "ok": true,
+ "orca_ok": true,
+ "machine": {
+  "orca": {
+   "availableMemory": 3521873183,
+   "totalMemory": 8589934592,
+   "freeMemory": 107560960,
+   "loadAverage1m": 4.0380859375,
+   "cpuCoreCount": 8,
+   "availableMemorySource": "memory-pressure",
+   "collectedAt": 1792555220582
+  },
+  "memorystatus_level": 41,
+  "vm_loadavg": [
+   4.04,
+   4.04,
+   4.49
+  ],
+  "hw_memsize": 8589934592,
+  "disk_home_avail_kb": 44570484
+ },
+ "sessions": [
+  {
+   "worktreeId": "e9b33f9c-721…",
+   "worktreeName": "[演练 PER-67 缺口7] ops · PER-80 缺口7 重跑（执行）",
+   "repoName": "ops",
+   "sessionId": "e9b33f9c-721…",
+   "paneKey": "8319e11d-cc0…",
+   "pid": 41289,
+   "memory": 117391360,
+   "cpu": 0.1,
+   "terminal": {
+    "handle": "term_4f68792…",
+    "state": "done",
+    "stateStartedAt": 1792518359195,
+    "agentType": "claude",
+    "linkedLinearIssue": "PER-80"
+   },
+   "proc": {
+    "found": true,
+    "tree_rss_kb": 106544,
+    "n_procs": 4,
+    "agents": [
+     "claude"
+    ],
+    "agent_type": "claude"
+   }
+  },
+  {
+   "worktreeId": "e9b33f9c-721…",
+   "worktreeName": "ops · PER-78 #45 第3轮补改（iMac）",
+   "repoName": "ops",
+   "sessionId": "e9b33f9c-721…",
+   "paneKey": "b0bcf500-849…",
+   "pid": 44404,
+   "memory": 2523136,
+   "cpu": 0,
+   "terminal": {
+    "handle": "term_e7d55df…",
+    "linkedLinearIssue": "PER-78"
+   },
+   "proc": {
+    "found": true,
+    "tree_rss_kb": 2496,
+    "n_procs": 2,
+    "agents": [],
+    "agent_type": null
+   }
+  }
+ ],
+ "orphan_agents": [
+  {
+   "pid": 1418,
+   "ppid": 1,
+   "rss_kb": 1792,
+   "etime": "12:35:09",
+   "comm": "node"
+  },
+  {
+   "pid": 1420,
+   "ppid": 1,
+   "rss_kb": 7264,
+   "etime": "12:35:09",
+   "comm": "node"
+  }
+ ],
+ "agent_count": {
+  "in_sessions": 15,
+  "orphan": 2,
+  "total": 17
+ },
+ "errors": [],
+ "self": {
+  "duration_ms": 619,
+  "maxrss_kb": 20208,
+  "children_maxrss_kb": 92992,
+  "cpu_ms": 669
+ },
+ "_note": "截短：只留前 2 个会话（原有 22 个），id 类字段截到 12 字符"
+}

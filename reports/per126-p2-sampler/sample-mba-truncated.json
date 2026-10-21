@@ -1,0 +1,94 @@
+{
+ "schema": "ops-v5-sample/1",
+ "sampler_version": "1.0.0",
+ "ts": "2026-10-21T12:00:21+08:00",
+ "minute": "2026-10-21T12:00",
+ "host": "mba",
+ "ok": true,
+ "orca_ok": true,
+ "machine": {
+  "orca": {
+   "availableMemory": 3178275799,
+   "totalMemory": 8589934592,
+   "freeMemory": 184107008,
+   "loadAverage1m": 15.70263671875,
+   "cpuCoreCount": 8,
+   "availableMemorySource": "memory-pressure",
+   "collectedAt": 1792555221923
+  },
+  "memorystatus_level": 37,
+  "vm_loadavg": [
+   15.7,
+   9.32,
+   8.24
+  ],
+  "hw_memsize": 8589934592,
+  "disk_home_avail_kb": 55314020
+ },
+ "sessions": [
+  {
+   "worktreeId": "4e5bd73a-a95…",
+   "worktreeName": "deepvision-ads",
+   "repoName": "deepvision-ads",
+   "sessionId": "4e5bd73a-a95…",
+   "paneKey": "813ce90a-d3a…",
+   "pid": 68840,
+   "memory": 393216,
+   "cpu": 0,
+   "terminal": {
+    "handle": "term_bfcfe78…",
+    "linkedLinearIssue": null
+   },
+   "proc": {
+    "found": true,
+    "tree_rss_kb": 352,
+    "n_procs": 2,
+    "agents": [],
+    "agent_type": null
+   }
+  },
+  {
+   "worktreeId": "659a8841-0b1…",
+   "worktreeName": "ops",
+   "repoName": "ops",
+   "sessionId": "659a8841-0b1…",
+   "paneKey": "9f10d544-f21…",
+   "pid": 85288,
+   "memory": 393216,
+   "cpu": 0,
+   "terminal": {
+    "handle": "term_16efda2…",
+    "linkedLinearIssue": null
+   },
+   "proc": {
+    "found": true,
+    "tree_rss_kb": 352,
+    "n_procs": 2,
+    "agents": [],
+    "agent_type": null
+   }
+  }
+ ],
+ "orphan_agents": [
+  {
+   "pid": 31528,
+   "ppid": 31516,
+   "rss_kb": 50320,
+   "etime": "01:15",
+   "comm": "node"
+  }
+ ],
+ "agent_count": {
+  "in_sessions": 10,
+  "orphan": 1,
+  "total": 11
+ },
+ "errors": [],
+ "self": {
+  "duration_ms": 1211,
+  "maxrss_kb": 20464,
+  "children_maxrss_kb": 91216,
+  "cpu_ms": 1238
+ },
+ "_note": "截短：只留前 2 个会话（原有 23 个），id 类字段截到 12 字符"
+}
