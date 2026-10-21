@@ -1,13 +1,14 @@
 #!/bin/bash
 # B1 的回退测试：把本 PR 的代码换回 base，用本分支的演练整轮跑一次 wake/tests/heartbeat-watch-ssh.sh，看本 PR 会改变结果的
 # 场景是不是真的挂了、本 PR 不改变结果的场景是不是照样过。期望先写在 automations/heartbeat-1021/FAILURE-MODES.md
-# 「回退测试的期望」一节，下面的表照抄它。在 iMac 的仓库根目录跑：
+# 「回退测试的期望」各节，下面的表照抄它们。在 iMac 的仓库根目录跑：
 #   wake/tests/heartbeat-watch-ssh-rollback.sh [<base commit>]   默认 f828d452；产物写到 reports/heartbeat-mba-imac-1021-rollback-<base 前 7 位>/
 #   HB_ROLLBACK_OUT=<目录>                                       产物换个目录（目录里有 .hb-drill 标记才清空重写）
 # 旧代码怎么放回去：临时目录里 git clone --shared 本仓库，检出 base（没有 scripts/orca-via-ssh 和 register.sh，heartbeat-watch.sh
 # 是 base 那份），放进 HEAD 的演练脚本、回放数据和一份现网版 defs.json：MBA 那条的 precheck 用现网 box 94e4b0bc 的原文
 # （environment iMac，不经 ssh），5c2d0575 各阶段都用它的现网原文，都没有 lockf。演练的安全措施照旧：heartbeat-watch 都用临时状态目录，
 # 除 S12、S13 外都带 --dry-run、用假 webhook；S12、S13 不带 --dry-run，webhook 目录是空的。锁文件都在临时目录。orca 只读。
+# 第五轮新加的 7 项该挂的，还要在演练的「实际」一栏里对上挂的原因（WHY_RE），对不上算不一致。
 # 退出码：0 每项都和期望一致；1 有不一致的；2 跑不起来。
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
@@ -71,8 +72,8 @@ cp "$tree/automations/heartbeat-1021/defs.json" "$OUT/rollback/defs-live.json"
 python3 -I - "$OUT" "$base" "$head" <<'PY'
 import json, os, re, sys
 out, base, head = sys.argv[1:4]
-# 照抄 automations/heartbeat-1021/FAILURE-MODES.md「回退测试的期望」「回退测试的期望（第二轮）」「回退测试的期望（第五轮）」：
-# 本 PR 会改变结果的 27 项该挂，其余 29 项照样过
+# 照抄 automations/heartbeat-1021/FAILURE-MODES.md「回退测试的期望」「回退测试的期望（第二轮）」「回退测试的期望（第五轮）」
+# 「回退测试的期望（第五轮补）」：本 PR 会改变结果的 27 项该挂，其余 29 项照样过
 FAIL = {}
 for ids, why in (("S0.diff", "base 和「本分支」是同一份，没有第 13 行的改动"),
                  ("S2.sh S2.zsh", "现网版 precheck 在 MBA 上读不到 iMac ops · 01：MBA 的 Orca 没有 environment iMac"),
@@ -82,15 +83,23 @@ for ids, why in (("S0.diff", "base 和「本分支」是同一份，没有第 13
                  ("S8.mba S8.imac-noid S8.parallel S8.final S8.rollback S8.refuse", "没有 register.sh"),
                  ("S11", "orca-via-ssh、register.sh 不存在"),
                  ("S12", "现网版 precheck 不经 ssh：MBA 的 Orca 没有 environment iMac，几秒内就查不到（invalid_argument），ssh 替身一次都没起"),
-                 ("S13", "现网版 precheck 没套 lockf：B 照常跑，退出不是 75"),
+                 ("S13", "现网版 precheck 没套 lockf：B 在 A 跑的期间照常跑完一轮（没超时、退出 1、调了 orca），B 前后状态目录不一样"),
                  ("S14.MBA.held S14.iMac.held", "现网版 precheck 没套 lockf：heartbeat-watch 照常起来，建出了那个不存在的目录，退出不是 75"),
-                 ("S14.MBA.nodir S14.iMac.nodir", "现网版 precheck 没有锁文件这一步，照常跑，退出不是 73"),
-                 ("S14.MBA.timeout S14.iMac.timeout", "现网版 precheck 没套 lockf：第一轮跑的时候探针拿得到锁（退出 0）")):
+                 ("S14.MBA.nodir S14.iMac.nodir", "现网版 precheck 没有锁文件这一步，照常跑，建出了那个不存在的目录，退出不是 73"),
+                 ("S14.MBA.timeout S14.iMac.timeout",
+                  "现网版 precheck 没套 lockf：第一轮还在跑的时候探锁，退出 0；替身起了至少 1 次；第一轮到 12 秒被杀")):
     for i in ids.split():
         FAIL[i] = why
 PASS = ("S0.same S0.bot " + " ".join("S1.c%02d" % n for n in range(1, 15)) + " S1.curl S3 S6 S6b.box "
         "S9.5c2d0575 S9.94e4b0bc S9.439cd438 S9.mba S10.MBA S10.iMac S12.old S14.MBA.kill S14.iMac.kill").split()
 assert len(FAIL) == 27 and len(PASS) == 29
+# 第五轮新加的 7 项该挂的，挂的原因要在演练的「实际」一栏里对得上（FAILURE-MODES.md C15、「回退测试的期望（第五轮补）」）
+WHY_RE = {"S13": r"；B：[^；]*（在 A 跑的期间），没超时，用时 [\d.]+ 秒，退出 1，.*，ssh \d+ 次、orca [1-9]\d* 次，状态目录前后不一样；C：",
+          "S14.MBA.held": r"^退出 (?!75，)\d+，.*；目录有；", "S14.iMac.held": r"^退出 (?!75，)\d+，.*；目录有；",
+          "S14.MBA.nodir": r"^退出 (?!73，)\d+，.*；目录有；", "S14.iMac.nodir": r"^退出 (?!73，)\d+，.*；目录有；",
+          "S14.MBA.timeout": r"^探锁退出 0（[^）]*），探锁在第一轮开始后 [\d.]+–[\d.]+ 秒（第一轮还在跑）；第一轮超时被杀，用时 [\d.]+ 秒；替身起了 [1-9]\d* 次",
+          "S14.iMac.timeout": r"^探锁退出 0（[^）]*），探锁在第一轮开始后 [\d.]+–[\d.]+ 秒（第一轮还在跑）；第一轮超时被杀，用时 [\d.]+ 秒；替身起了 [1-9]\d* 次"}
+assert len(WHY_RE) == 7 and set(WHY_RE) <= set(FAIL)
 rows = [l.rstrip("\n").split("\t") for l in open(os.path.join(out, "results.tsv"), encoding="utf-8") if l.strip()]
 got = {r[0]: r for r in rows}
 # 该挂的每项从 raw/ 里取输出原文（前两行，去掉开头的时间戳）：演练的「实际」一栏只摘期望子串所在的那行，挂了常常是空的。
@@ -127,7 +136,10 @@ tab = []
 for i in order:
     want = "FAIL" if i in FAIL else "PASS" if i in PASS else "不在期望表里"
     act = got[i][1] if i in got else "没有这一项"
-    tab.append((i, want, act, "一致" if act == want else "不一致", FAIL.get(i, ""), got[i][3] if i in got else "", rawtext(i)))
+    same = "一致" if act == want else "不一致"
+    if same == "一致" and i in WHY_RE and not re.search(WHY_RE[i], got[i][3]):
+        same = "不一致（挂了，但原因对不上）"
+    tab.append((i, want, act, same, FAIL.get(i, ""), got[i][3] if i in got else "", rawtext(i)))
 bad = sum(t[3] != "一致" for t in tab)
 with open(os.path.join(out, "rollback.tsv"), "w", encoding="utf-8") as f:
     f.write("编号\t回退后期望\t实际\t和期望\t为什么该挂\t演练的「实际」一栏\traw/ 里的输出原文\n")
@@ -146,8 +158,9 @@ L = ["# B1 回退测试：旧代码（base %s）上跑同一套演练" % base[:7
      "**结果：%d 项里 %d 项和期望一致，%d 项不一致。期望挂的 %d 项挂了 %d 项；期望过的 %d 项过了 %d 项。**"
      % (len(tab), len(tab) - bad, bad, len(FAIL), nf, len(PASS), np_), "",
      "把本 PR 的代码换回 base `%s`，用本分支 `%s` 的演练脚本和回放数据整轮跑 `wake/tests/heartbeat-watch-ssh.sh`。" % (base, head),
-     "期望先写在 `automations/heartbeat-1021/FAILURE-MODES.md`「回退测试的期望」「回退测试的期望（第二轮）」「回退测试的期望（第五轮）」三节，再跑。"
-     "这个文件由回退脚本生成。", "",
+     "期望先写在 `automations/heartbeat-1021/FAILURE-MODES.md`「回退测试的期望」「回退测试的期望（第二轮）」「回退测试的期望（第五轮）」"
+     "「回退测试的期望（第五轮补）」四节，再跑。第五轮新加的 7 项该挂的（S13、S14 的 held、nodir、timeout），还要在演练的「实际」一栏里"
+     "对上挂的原因（回退脚本里的 `WHY_RE`），对不上记「不一致（挂了，但原因对不上）」。这个文件由回退脚本生成。", "",
      "## 怎么重跑", "", "在 iMac 的仓库根目录：", "", "```bash", "wake/tests/heartbeat-watch-ssh-rollback.sh", "```", "",
      "要求和 `wake/tests/heartbeat-watch-ssh.sh` 一样。整个目录会被重写（有 `.hb-drill` 标记才清空）。", "",
      "## 旧代码怎么放回去", "",
@@ -163,10 +176,10 @@ L = ["# B1 回退测试：旧代码（base %s）上跑同一套演练" % base[:7
      "## 这次运行", ""] + ["- " + cell(l) for l in env] + ["",
      "## 期望挂的 %d 项（本 PR 会改变结果）" % len(FAIL), "",
      "「raw/ 里的输出原文」：冒号前是 `raw/` 下的文件，冒号后是这些文件里不空的前两行（去掉开头的时间戳，⏎ 隔开）。", "",
-     "| 编号 | 为什么该挂 | 实际 | 和期望 | raw/ 里的输出原文（截到 240 字） | 演练的「实际」一栏（截到 160 字） |",
+     "| 编号 | 为什么该挂 | 实际 | 和期望 | raw/ 里的输出原文（截到 240 字） | 演练的「实际」一栏（截到 160 字；核对原因的 7 项截到 600 字） |",
      "|---|---|---|---|---|---|"]
 L += ["| %s | %s | %s | %s | %s：%s | %s |" % (t[0], cell(t[4]), t[2], t[3], "、".join(RAW[t[0]].split()), cell(t[6], 240),
-                                             cell(t[5], 160)) for t in tab if t[1] == "FAIL"]
+                                             cell(t[5], 600 if t[0] in WHY_RE else 160)) for t in tab if t[1] == "FAIL"]
 L += ["", "## 期望过的 %d 项（本 PR 不改变结果，用来排除「是环境坏了才挂」）" % len(PASS), "",
       "| 编号 | 实际 | 和期望 | 实际原文（截到 200 字） |", "|---|---|---|---|"]
 L += ["| %s | %s | %s | %s |" % (t[0], t[2], t[3], cell(t[5], 200)) for t in tab if t[1] == "PASS"]

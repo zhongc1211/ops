@@ -11,7 +11,7 @@
 # lockf 的锁文件都放在临时目录里，不碰 ~/.orca-state/heartbeat-watch/ 下的真锁。S14.kill 核对 pid、ppid、命令名以后，只给演练自己起的 lockf 发 SIGKILL。
 # orca 只用 automations list / show / runs；不往 ~/.orca-state/bin 装文件；MBA 上只用 mktemp -d 建的临时目录，跑完删掉。
 # 替身：S1、S3 用回放（假 HB_ORCA，S1 还固定时钟），S5 用假 ssh，S8 用假 orca，S12 用 ssh 替身（远端命令换成 sleep 110），
-# S13 用 ssh 替身（A 那轮先等 30 秒），S14 的 held、nodir、timeout 第一轮用 ssh / orca 替身，这几个不算 E2E。
+# S13 用 ssh、orca 替身（A 那轮每次调用先等 30 秒），S14 的 held、nodir、timeout 第一轮用 ssh / orca 替身，这几个不算 E2E。
 # S2、S4、S5b、S6、S6b、S7、S9、S10、S14.kill 是真机器、真 ssh、真 Orca（只读）、真 lockf。
 # 内部用法：--mba-side <MBA 上的临时目录> <标记>，由 iMac 这边拷到 MBA 上跑 MBA 的场景。
 set -u
@@ -152,14 +152,14 @@ lockf_child() {
 # S14（FAILURE-MODES.md A31、A33–A35）：lockf 本身，MBA、iMac 各跑一遍，锁文件都在 <工作目录> 下。
 # s14 <mini|inherit> <工作目录> <输出目录> <precheck，锁目录写成 @LOCKDIR@> <锁文件名> <替身名，空格隔开> <第二轮的超时>
 #     <orca-precheck.py> <webhook 目录>
-# 替身：log/ 里的只记录调用、退出 1；slow/ 里的记下 pid 后 exec sleep 60。
+# 替身：log/ 里的只记录调用（pid、时间、替身名、参数）、退出 1；slow/ 里的记下 pid、时间、替身名后 exec sleep 60。
 # 要在主 shell 里调（不放进 $( ) 或后台）：kill 那步核对 lockf 的 ppid 是 $$。只 wait 自己起的 pid，不碰后台的 S12。
 s14() {
     local mode=$1 d=$2 o=$3 pc=$4 lk=$5 stubs=$6 lim2=$7 op=$8 hooks=$9 s k L hp c i pid ppid comm
     mkdir -p "$o" "$d/log" "$d/slow" "$d/none" "$d/held/lock" "$d/kill/lock" "$d/timeout/lock"
     for s in $stubs; do
-        printf '#!/bin/sh\necho "$$ $(date +%%s) $*" >>"%s"\nexit 1\n' "$d/log.calls" >"$d/log/$s"
-        printf '#!/bin/sh\necho "$$ $(date +%%s)" >>"%s"\nexec /bin/sleep 60\n' "$d/slow.calls" >"$d/slow/$s"
+        printf '#!/bin/sh\necho "$$ $(date +%%s) %s $*" >>"%s"\nexit 1\n' "$s" "$d/log.calls" >"$d/log/$s"
+        printf '#!/bin/sh\necho "$$ $(date +%%s) %s" >>"%s"\nexec /bin/sleep 60\n' "$s" "$d/slow.calls" >"$d/slow/$s"
         chmod +x "$d/log/$s" "$d/slow/$s"
     done
     # held：lockf … sleep 6 先拿住锁（等到它起的 sleep 出现），再照 defs 原文跑 precheck。nodir：锁文件放在不存在的目录里
@@ -213,8 +213,9 @@ s14() {
     done
     if [ -n "$c" ] && ps -o pid,ppid,rss,etime,comm -p "$c" >/dev/null; then echo 还在; else echo "没了（kill 以后约 $((i / 10)) 秒）"; fi \
         >"$o/kill.child-end"
-    # timeout：第一轮照 Orca 的做法起，超时 12 秒，替身换成 slow/ 里的；替身起来 3 秒后探一次锁。第一轮被杀以后看替身还在不在，
-    # 紧接着用真的 ssh / orca 起第二轮（none/ 是空目录），超时取 defs。两轮都加 --dry-run。
+    # timeout：第一轮照 Orca 的做法起，超时 12 秒，替身换成 slow/ 里的；替身起来 3 秒后探一次锁，前后各记一次时间（判断时和第一轮的
+    # 起止时间比，FAILURE-MODES.md C15）。第一轮被杀以后看替身还在不在，紧接着用真的 ssh / orca 起第二轮（none/ 是空目录），
+    # 超时取 defs。两轮都加 --dry-run。
     L=$d/timeout/lock
     printf '%s\n' "${pc//@LOCKDIR@/$L} --dry-run" >"$o/timeout.cmd"
     : >"$d/slow.calls"
@@ -226,8 +227,10 @@ s14() {
         i=$((i + 1))
     done
     sleep 3
+    /usr/bin/python3 -I -c 'import time; print("%.3f" % time.time())' >"$o/timeout.probe.t"
     /usr/bin/lockf -k -t 0 "$L/$lk" /usr/bin/true 2>"$o/timeout.probe.err"
     echo $? >"$o/timeout.probe.rc"
+    /usr/bin/python3 -I -c 'import time; print("%.3f" % time.time())' >>"$o/timeout.probe.t"
     wait "$hp"
     sleep 1  # 被杀的替身由 launchd 收尸，留 1 秒
     cut -d' ' -f1 "$d/slow.calls" | while read -r pid; do
@@ -304,26 +307,31 @@ EOF
         done
         echo "MBA $n 跑完"
     }
-    # S13（FAILURE-MODES.md A30）：两轮同时跑。照 defs 原文（只换两个脚本路径和锁目录，不带 --dry-run）照 Orca 的做法起三轮 A、B、C，
-    # 共用状态目录和锁文件。PATH 最前面的 ssh 替身记下每次调用再 exec 真 ssh，A 那轮先等 30 秒：A 的 ssh 起来 3 秒后起 B，A 结束后起 C。
+    # S13（FAILURE-MODES.md A30、C15）：两轮同时跑。照 defs 原文（只换两个脚本路径和锁目录，不带 --dry-run）照 Orca 的做法起三轮 A、B、C，
+    # 共用状态目录和锁文件。PATH 最前面的 ssh、orca 替身记下每次调用（pid、时间、替身名）再 exec 真的，A 那轮每次先等 30 秒：
+    # A 的替身起来 3 秒后起 B，A 结束后起 C。新代码只经 ssh；回退测试里 base 的 MBA precheck 直接调 orca（F30），PATH 里找不到 orca 时
+    # heartbeat-watch 用 /Applications/Orca.app/Contents/Resources/bin/orca，orca 替身 exec 的也是它。
     # B 前后各记一次状态目录里每个文件的 sha256。webhook 目录是空的，PATH 里有只记录调用的假 curl。
     s13() {
         local d=$R/s13 n hp i=0
         mkdir -p "$d/bin" "$d/state" "$d/hooks" "$d/lock"
         cat >"$d/bin/ssh" <<'EOF'
 #!/bin/sh
-echo "$$ $(date +%s)" >>"$S13_SSH_LOG"
+n=${0##*/}
+echo "$$ $(date +%s) $n" >>"$S13_LOG"
 [ "$S13_DELAY" = 0 ] || sleep "$S13_DELAY"
-exec /usr/bin/ssh "$@"
+[ "$n" = ssh ] && exec /usr/bin/ssh "$@"
+exec /Applications/Orca.app/Contents/Resources/bin/orca "$@"
 EOF
+        cp "$d/bin/ssh" "$d/bin/orca"
         printf '#!/bin/sh\necho "$*" >>"$S13_CURL_LOG"\nexit 7\n' >"$d/bin/curl"
-        chmod +x "$d/bin/ssh" "$d/bin/curl"
-        for n in A B C; do : >"$d/ssh-$n.log"; done
+        chmod +x "$d/bin/ssh" "$d/bin/orca" "$d/bin/curl"
+        for n in A B C; do : >"$d/calls-$n.log"; done
         : >"$d/curl.log"
         cp "$R/s13-precheck.txt" "$O/S13.cmd"
         s13_one A 30 &
         hp=$!
-        while [ ! -s "$d/ssh-A.log" ] && [ ! -e "$O/S13-A.orca.json" ] && [ $i -lt 200 ]; do
+        while [ ! -s "$d/calls-A.log" ] && [ ! -e "$O/S13-A.orca.json" ] && [ $i -lt 200 ]; do
             sleep 0.1
             i=$((i + 1))
         done
@@ -337,12 +345,12 @@ EOF
         (cd "$d/state" && find . -type f | sort) >"$O/S13.statefiles"
         if [ -f "$d/state/state.json" ]; then cp "$d/state/state.json" "$O/S13.state.json"; fi
     }
-    s13_one() {  # s13_one <A|B|C> <ssh 替身先等几秒>
+    s13_one() {  # s13_one <A|B|C> <替身每次调用先等几秒>
         env -i HOME="$HOME" PATH="$R/s13/bin:$MINPATH" LANG=en_US.UTF-8 PYTHONDONTWRITEBYTECODE=1 HB_DRILL_CANARY="$CANARY" \
-            S13_SSH_LOG="$R/s13/ssh-$1.log" S13_DELAY="$2" S13_CURL_LOG="$R/s13/curl.log" \
+            S13_LOG="$R/s13/calls-$1.log" S13_DELAY="$2" S13_CURL_LOG="$R/s13/curl.log" \
             HB_STATE_DIR="$R/s13/state" STUCK_WEBHOOK_DIR="$R/s13/hooks" \
             /usr/bin/python3 -I "$R/orca-precheck.py" "$(cat "$R/mba-timeout.txt")" "$O/S13-$1" "$(cat "$R/s13-precheck.txt")"
-        cp "$R/s13/ssh-$1.log" "$O/S13-$1.ssh-calls"
+        cp "$R/s13/calls-$1.log" "$O/S13-$1.calls"
     }
     s13_state() {
         (cd "$R/s13/state" && find . -type f | sort | while IFS= read -r f; do shasum -a 256 "$f"; done)
@@ -420,7 +428,7 @@ PY
     echo "MBA S7 跑完"
     s13
     echo "MBA S13 跑完"
-    s14 mini "$R/s14" "$O/S14" "$(cat "$R/s14-precheck.txt")" mba-hb-watch.lock ssh "$(cat "$R/mba-timeout.txt")" \
+    s14 mini "$R/s14" "$O/S14" "$(cat "$R/s14-precheck.txt")" mba-hb-watch.lock "ssh orca" "$(cat "$R/mba-timeout.txt")" \
         "$R/orca-precheck.py" "$R/hooks"
     echo "MBA S14 跑完"
     wait
@@ -863,7 +871,7 @@ expect S6b.box "并行版里的 box 目标正常。要 iMac 到 box 的 grok-bot
 expect S6b.final "5c2d0575 最终版 precheck：只查 MBA 目标，读到运行记录" \
     "$T/s6b-final.all" 1 "$OUT/raw/S6b/final.rc" "MBA ops · 29 心跳互查：中断：最近 " "!box ops · 29" "!运行记录查不到" "!最近 0 次"
 
-# S14 的判断（FAILURE-MODES.md A31–A35），MBA、iMac 共用。s14_judge <输出目录> <机器> <第二轮第一个目标的结论行开头>
+# S14 的判断（FAILURE-MODES.md A31–A35、C15），MBA、iMac 共用。s14_judge <输出目录> <机器> <第二轮第一个目标的结论行开头>
 s14_judge() {
     python3 -I - "$1" "$2" "$3" "$OUT/results.tsv" "$CANARY" <<'PY'
 import json, os, re, sys
@@ -895,7 +903,12 @@ def head(s, n=160):
     return (s[:n] + "…" if len(s) > n else s) or "空"
 
 
-stub = "ssh" if m == "MBA" else "orca 和 orca-ide"
+def names(text):  # 替身记下的每行：pid 时间 替身名 …
+    n = [l.split()[2] for l in text.splitlines() if len(l.split()) >= 3]
+    return "（%s）" % "、".join("%s %d 次" % (s, n.count(s)) for s in sorted(set(n))) if n else ""
+
+
+stub = "ssh 和 orca" if m == "MBA" else "orca 和 orca-ide"
 for k, code, word, how in (("held", "75", "already locked", "锁先被 lockf … sleep 6 拿住"),
                            ("nodir", "73", "cannot open", "锁文件放在不存在的目录里（漏了 README 第 1 步的 mkdir）")):
     out, err, rc, probe = rd(k + ".out"), rd(k + ".err"), rd(k + ".rc").strip(), rd(k + ".probe").strip()
@@ -905,7 +918,8 @@ for k, code, word, how in (("held", "75", "already locked", "锁先被 lockf …
     res("S14.%s.%s" % (m, k), ok,
         "%s 上照 defs 原文跑 precheck（锁文件换到临时目录，加 --dry-run，HB_STATE_DIR 指向不存在的目录，PATH 最前面是记录调用的 %s 替身），"
         "%s：退出 %s，stdout 空，stderr 有 %s；那个目录没被建出来（heartbeat-watch 没起）；替身 0 次" % (m, stub, how, code, word),
-        "退出 %s，stdout %d 字节，stderr：%s；目录%s；替身 %d 次%s" % (rc, len(out.encode()), head(err), probe or "?", calls, extra))
+        "退出 %s，stdout %d 字节，stderr：%s；目录%s；替身 %d 次%s%s" % (rc, len(out.encode()), head(err), probe or "?", calls,
+                                                                 names(rd(k + ".calls")), extra))
 p1, p2, hrc = rd("kill.probe1.rc").strip(), rd("kill.probe2.rc").strip(), rd("kill.holder-rc").strip()
 sent, child, end = rd("kill.sent").strip(), rd("kill.child-after-kill").split(), rd("kill.child-end").strip()
 ok = (p1 == "75" and sent.startswith("kill -KILL ") and hrc == "137" and p2 == "0" and len(child) >= 2 and child[1] == "1"
@@ -918,20 +932,28 @@ res("S14.%s.kill" % m, ok,
 o1, o2 = orca("timeout-1"), orca("timeout-2")
 prc, perr = rd("timeout.probe.rc").strip(), rd("timeout.probe.err")
 stubs, after = len(rd("timeout.stub-calls").splitlines()), rd("timeout.stub-after").strip()
+try:
+    t0, t1 = (float(x) for x in rd("timeout.probe.t").split())
+except ValueError:
+    t0 = t1 = None
+# 探锁要落在第一轮跑的期间（FAILURE-MODES.md C15）
+during = t0 is not None and bool(o1) and o1["start"] < t0 and t1 < o1["end"]
+when = ("没记下探锁的时间" if t0 is None else "没有第一轮的预检结果" if not o1 else
+        "探锁在第一轮开始后 %.1f–%.1f 秒（第一轮%s）" % (t0 - o1["start"], t1 - o1["start"], "还在跑" if during else "不在跑"))
 out2, err2 = rd("timeout-2.out"), rd("timeout-2.err")
 line2 = next((re.sub(r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d SGT ", "", l) for l in out2.splitlines() if first in l),
              "（没有「%s」那行）" % first)
-ok = (prc == "75" and "already locked" in perr and stubs >= 1
+ok = (prc == "75" and "already locked" in perr and during and stubs >= 1
       and o1.get("timedOut") is True and 12 <= (o1.get("durationS") or 0) <= 27 and not after
       and o2.get("timedOut") is False and o2.get("exitCode") == 1 and "already locked" not in err2 and first in out2
       and canary not in out2 + err2 + rd("timeout-1.out") + rd("timeout-1.err"))
 res("S14.%s.timeout" % m, ok,
-    "%s 上第一轮照 Orca 的做法起，超时 12 秒，加 --dry-run，%s 替身换成 sleep 60：替身起来 3 秒后探锁退出 75；第一轮到 12 秒被杀"
-    "（timedOut，用时 12–27 秒），替身的进程没了；紧接着第二轮用真的 ssh / orca、超时取 defs（%s 秒），加 --dry-run："
-    "没超时，退出 1，没有 already locked，有「%s」那行" % (m, stub, o2.get("timeoutSeconds"), first),
-    "探锁退出 %s（%s）；第一轮%s，用时 %s 秒；替身起了 %d 次，被杀以后%s；第二轮%s，用时 %s 秒，退出 %s，stderr %s；%s" % (
-        prc, head(perr, 80), "超时被杀" if o1.get("timedOut") else "没超时（退出 %s）" % o1.get("exitCode"), o1.get("durationS"),
-        stubs, "都没了" if not after else "还在：" + head(after, 80),
+    "%s 上第一轮照 Orca 的做法起，超时 12 秒，加 --dry-run，%s 替身换成 sleep 60：替身起来 3 秒后、第一轮还在跑的时候探锁，退出 75；"
+    "第一轮到 12 秒被杀（timedOut，用时 12–27 秒），替身的进程没了；紧接着第二轮用真的 ssh / orca、超时取 defs（%s 秒），"
+    "加 --dry-run：没超时，退出 1，没有 already locked，有「%s」那行" % (m, stub, o2.get("timeoutSeconds"), first),
+    "探锁退出 %s（%s），%s；第一轮%s，用时 %s 秒；替身起了 %d 次%s，被杀以后%s；第二轮%s，用时 %s 秒，退出 %s，stderr %s；%s" % (
+        prc, head(perr, 80), when, "超时被杀" if o1.get("timedOut") else "没超时（退出 %s）" % o1.get("exitCode"),
+        o1.get("durationS"), stubs, names(rd("timeout.stub-calls")), "都没了" if not after else "还在：" + head(after, 80),
         "超时被杀" if o2.get("timedOut") else "没超时", o2.get("durationS"), o2.get("exitCode"),
         "有 already locked" if "already locked" in err2 else "没有 already locked", line2[:160]))
 PY
@@ -1144,7 +1166,7 @@ for n, cid in (("S12", "S12"), ("S12-old", "S12.old")):
     open(tsv, "a", encoding="utf-8").write("%s\t%s\t%s\t%s\n" % (cid, "PASS" if ok else "FAIL", want, got))
     print("%-4s %-16s %s" % ("PASS" if ok else "FAIL", cid, got))
 PY
-    # S13 的判断（FAILURE-MODES.md A30、A32、A37）
+    # S13 的判断（FAILURE-MODES.md A30、A32、A37、C15）
     python3 -I - "$M" "$OUT/results.tsv" "$CANARY" <<'PY'
 import json, os, re, sys
 m, tsv, canary = sys.argv[1:4]
@@ -1166,8 +1188,9 @@ for n in "ABC":
         o = {}
     out = rd("S13-%s.out" % n)
     hbs = re.findall(r"^@@HB (\{.*\})\s*$", out, re.M)
+    calls = [l.split()[2] for l in rd("S13-%s.calls" % n).splitlines() if len(l.split()) >= 3]  # pid 时间 替身名
     r[n] = {"o": o, "out": out, "err": rd("S13-%s.err" % n), "hb": json.loads(hbs[-1]) if hbs else None,
-            "ssh": len(rd("S13-%s.ssh-calls" % n).splitlines())}
+            "ssh": calls.count("ssh"), "orca": calls.count("orca")}
 a, b, c = r["A"], r["B"], r["C"]
 
 
@@ -1189,9 +1212,9 @@ def since(x, k1, y, k2):
 
 
 def desc(x):
-    return "%s，用时 %s 秒，退出 %s，%s，@@HB %s，ssh %d 次" % (
+    return "%s，用时 %s 秒，退出 %s，%s，@@HB %s，ssh %d 次、orca %d 次" % (
         ("超时被杀" if x["o"].get("timedOut") else "没超时") if x["o"] else "没有预检结果", x["o"].get("durationS"),
-        x["o"].get("exitCode"), line(x), "rc %s" % x["hb"].get("rc") if x["hb"] else "没有", x["ssh"])
+        x["o"].get("exitCode"), line(x), "rc %s" % x["hb"].get("rc") if x["hb"] else "没有", x["ssh"], x["orca"])
 
 
 ao, bo, co = a["o"], b["o"], c["o"]
@@ -1202,17 +1225,18 @@ curl = rd("S13.curl-calls").strip()
 alltext = "".join(x["out"] + x["err"] for x in (a, b, c))
 ok = (normal(a) and inside and bo.get("timedOut") is False and bo.get("exitCode") == 75
       and bo.get("durationS") is not None and bo["durationS"] <= 3
-      and not b["out"] and "already locked" in b["err"] and b["ssh"] == 0 and same
+      and not b["out"] and "already locked" in b["err"] and b["ssh"] == 0 and b["orca"] == 0 and same
       and after and normal(c) and not curl and "POST" not in alltext and "webhook 配置" not in alltext and canary not in alltext)
-got = "A：%s；B：A 开始后 %s 秒开始、A 结束前 %s 秒结束，%s，用时 %s 秒，退出 %s，stdout %d 字节，stderr：%s，ssh %d 次，状态目录前后%s；" \
-      "C：A 结束后 %s 秒开始，%s；假 curl %d 次；状态文件：%s" % (
-          desc(a), since(b, "start", a, "start"), since(a, "end", b, "end"),
+got = "A：%s；B：A 开始后 %s 秒开始、A 结束前 %s 秒结束（%s），%s，用时 %s 秒，退出 %s，stdout %d 字节，stderr：%s，" \
+      "ssh %d 次、orca %d 次，状态目录前后%s；C：A 结束后 %s 秒开始，%s；假 curl %d 次；状态文件：%s" % (
+          desc(a), since(b, "start", a, "start"), since(a, "end", b, "end"), "在 A 跑的期间" if inside else "不在 A 跑的期间",
           ("超时被杀" if bo.get("timedOut") else "没超时") if bo else "没有预检结果", bo.get("durationS"), bo.get("exitCode"),
-          len(b["out"].encode()), (b["err"].strip().splitlines() or ["空"])[0][:120], b["ssh"], "一样" if same else "不一样",
+          len(b["out"].encode()), (b["err"].strip().splitlines() or ["空"])[0][:120], b["ssh"], b["orca"],
+          "一样" if same else "不一样",
           since(c, "start", a, "end"), desc(c), len(curl.splitlines()), " ".join(rd("S13.statefiles").split()) or "没有")
 want = ("MBA 上照 defs 原文跑 MBA 新任务的 precheck（只换两个脚本路径和锁目录，不带 --dry-run），照 Orca 的做法起三轮，"
-        "共用状态目录和锁文件；A 的 ssh 替身先等 30 秒，A 的 ssh 起来 3 秒后起 B，A 结束后起 C："
-        "A 退出 1、正常、@@HB rc 0；B 在 A 跑的期间开始和结束，3 秒内退出 75，stdout 空，stderr 有 already locked，ssh 0 次，"
+        "共用状态目录和锁文件；ssh、orca 替身记下每次调用再 exec 真的，A 那轮每次先等 30 秒，A 的替身起来 3 秒后起 B，A 结束后起 C："
+        "A 退出 1、正常、@@HB rc 0；B 在 A 跑的期间开始和结束，3 秒内退出 75，stdout 空，stderr 有 already locked，ssh、orca 都是 0 次，"
         "B 前后状态目录一样；C 在 A 结束以后开始，退出 1、正常、@@HB rc 0；假 curl 0 次，输出里没有 POST 和 webhook 配置")
 got = got.replace("\t", " ").replace("\n", " ")
 open(tsv, "a", encoding="utf-8").write("S13\t%s\t%s\t%s\n" % ("PASS" if ok else "FAIL", want, got))
@@ -1298,7 +1322,8 @@ scen = [
      "替身：ssh 替身把远端命令换成 sleep 110；ssh 客户端、包装、heartbeat-watch 和 iMac 是真的。预检进程照 Orca 的做法起，不是 Orca 起的"),
     ("S13", "两轮同时跑：照 defs 原文跑 MBA 新任务的 precheck（套着 lockf），A 还在跑时起 B，A 结束后起 C，三轮共用状态目录和锁文件",
      "MBA → ssh iMac",
-     "替身：ssh 替身让 A 先等 30 秒；lockf、包装、heartbeat-watch、ssh 客户端和 iMac 是真的。三轮都是演练脚本照 Orca 的做法起的，不是 Orca 起的"),
+     "替身：ssh、orca 替身记下每次调用，A 那轮每次调用先等 30 秒再 exec 真的；lockf、包装、heartbeat-watch、ssh 客户端和 iMac 是真的。"
+     "三轮都是演练脚本照 Orca 的做法起的，不是 Orca 起的"),
     ("S14", "lockf 实测：拿不到锁时（held）、锁目录不存在时（nodir）、持锁的 lockf 被 kill 以后（kill）、一轮被超时杀掉以后（timeout）",
      "MBA、iMac 各一遍",
      "kill 只用 lockf 和 sleep，是真的；held、nodir 用记录调用的 ssh / orca 替身；timeout 第一轮用 sleep 60 的替身、超时 12 秒，第二轮是真的"),
@@ -1352,11 +1377,11 @@ L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "- `raw/S6/`、`raw/S6b/`：iMac 上的命令和原始输出。`raw/S8/`：register.sh 每次的参数和输出。`raw/S9/`：只读 show / list 摘下来的字段。",
      "- `raw/mba/`：MBA 那边的原始输出（S2、S3、S4、S4b、S5、S5b、S7 摘要、S10、S12、S13、S14）。S7 只留摘要，不留运行记录原文。",
      "- `raw/mba/S13.cmd`、`raw/mba/S13-A.*`、`S13-B.*`、`S13-C.*`：precheck；三轮各自的 stdout、stderr、预检结果（`.orca.json`）、"
-     "ssh 替身记下的调用（`.ssh-calls`：pid 和时间）；`S13-B.state-before`、`S13-B.state-after`：B 前后状态目录里每个文件的 sha256；"
+     "ssh、orca 替身记下的调用（`.calls`：pid、时间、替身名）；`S13-B.state-before`、`S13-B.state-after`：B 前后状态目录里每个文件的 sha256；"
      "`S13.curl-calls`、`S13.statefiles`、`S13.state.json`：假 curl 的调用、三轮跑完后状态目录里的文件和 state.json。",
-     "- `raw/mba/S14/`、`raw/S14-imac/`：S14 每一步的 precheck（`.cmd`）、退出码、stdout、stderr、替身的调用（`.calls`、`timeout.stub-calls`）、"
+     "- `raw/mba/S14/`、`raw/S14-imac/`：S14 每一步的 precheck（`.cmd`）、退出码、stdout、stderr、替身的调用（`.calls`、`timeout.stub-calls`：pid、时间、替身名）、"
      "HB_STATE_DIR 指向的目录有没有被建出来（`.probe`）；kill 那步的进程检查（`kill.holder-ps`、`kill.child-after-kill`，"
-     "是 `ps -o pid,ppid,rss,etime,comm` 的输出）、发出的信号（`kill.sent`）、两次探锁的结果；timeout 两轮的预检结果（`timeout-1.*`、`timeout-2.*`）。",
+     "是 `ps -o pid,ppid,rss,etime,comm` 的输出）、发出的信号（`kill.sent`）、两次探锁的结果；timeout 探锁的结果和探锁前后的时间（`timeout.probe.*`）、两轮的预检结果（`timeout-1.*`、`timeout-2.*`）。",
      "- `raw/mba/S12.*`、`raw/mba/S12-old.*`：precheck（`.cmd`）、stdout、stderr、预检结果（`.orca.json`：超时、是否超时、退出码、用时、起止时间）、"
      "每次 ssh 的 pid 和开始时间（`.ssh-starts`）、ssh 收到的参数（`.ssh-args`）、进程检查（`.first-alive-at-second`、`.alive-after`，"
      "是 `ps -o pid,ppid,rss,etime,comm` 的输出，空 = 进程已经没了）、假 curl 的调用（`.curl-calls`）、状态目录里的文件和内容。",
