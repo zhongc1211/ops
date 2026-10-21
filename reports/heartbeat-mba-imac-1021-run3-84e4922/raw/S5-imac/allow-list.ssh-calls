@@ -1,0 +1,1 @@
+[-o][BatchMode=yes][-o][ConnectTimeout=10][imac][zsh -lc 'orca '\''automations'\'' '\''list'\'' '\''--json'\''']

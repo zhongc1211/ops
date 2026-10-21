@@ -1,0 +1,9 @@
+./s1/c05-base/state/state.json
+./s1/c05-installed/state/state.json
+./s1/c05-new/state/state.json
+./s1/c07-base/state/state.json
+./s1/c07-installed/state/state.json
+./s1/c07-new/state/state.json
+./s1/c10-base/state/state.json
+./s1/c10-installed/state/state.json
+./s1/c10-new/state/state.json
