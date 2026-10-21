@@ -1,0 +1,7 @@
+2026-10-21 08:3x SGT drill cleanup (Zack decision 6)
+- orca terminal close --terminal term_fe39422a-b40c-44bc-9ff8-edcc455516ac  -> ok, ptyKilled
+- orca worktree rm --worktree path:/Users/jiawenwang/orca/workspaces/ws-cleanup-drill/d01-clean -> ok
+- orca project setup-delete --setup aa123560-8996-445e-9798-58252049e7e5 -> ok (project repo:aa123560..., repo record removed)
+- rm -rf /Users/jiawenwang/ops-drill (contents: archive archive-r2 origin.git ws-cleanup-drill wt wt-r2; .dev.vars there were DRILL_FAKE fixtures) -> ok
+- rmdir /Users/jiawenwang/orca/workspaces/ws-cleanup-drill (empty) -> ok
+- worktree ps totalCount: before run 153, after execute 121, after drill 96
