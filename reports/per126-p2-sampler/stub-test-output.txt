@@ -1,18 +1,28 @@
+commit 0870d83fce40cb32a4dfbfb012f707fd9633ab83
+env macOS 26.6.2; GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25); Python 3.9.6
 [normal]
-  ok   退出码 0
+  ok   退出码 0（F19 空环境）
   ok   写了一行
   ok   schema/host/ok
   ok   ts 带时区
   ok   机器级读数
   ok   三个会话
-  ok   会话 A 终端对上
-  ok   会话 A 进程树 rss=528+1968+200000+50000，顶层 agent 只有 claude
+  ok   会话 A 每分钟字段：rss=528+1968+200000+50000，顶层 agent 只有 claude
   ok   会话 B agent 是 codex
-  ok   会话 C（pid 300）找不到进程
-  ok   会话外 agent：400 claude、500 node（401 在 400 下面不算）
+  ok   会话 C（pid 300）找不到进程（F11）
+  ok   每分钟记录里没有静态字段
+  ok   会话外 agent 只记个数、rss 合计：400 claude + 500 node（401 在 400 下面不算）
   ok   agent 计数
+  ok   字典写了 3 条
+  ok   字典最后一条（会话 C，对不上终端）
+  ok   字典第一条（会话 A）对上 term_A、claude、auto、PER-1
   ok   没存会话正文（F18）
   ok   self 耗时和 rss
+  ok   状态文件 ok
+[dict_dedup]
+  ok   第二次采样追加了第 2 行（F21）
+  ok   静态字段没变，字典不重复写
+  ok   日志写 dict+0
 [same_minute]
   ok   同一分钟两次只一行（F5）
   ok   日志写了跳过
@@ -24,9 +34,10 @@
   ok   版本 2 退出码 3（F2）
   ok   没写版本退出码 3
   ok   日志写版本不对
+  ok   状态文件 config_error
 [config_bad_value]
   ok   数值项坏退出码 3（F3）
-  ok   日志点名 RETENTION_DAYS
+  ok   日志点名 MAX_DAYS
 [lock_held]
   ok   锁被占退出码 0（F4）
   ok   没写 samples
@@ -53,47 +64,81 @@
 [orca_enrich_fail]
   ok   orca_ok 仍是 true（F10）
   ok   两步补充都记错
-  ok   会话照记，terminal=null
+  ok   会话照记，没有 state
+  ok   字典里 handle 为 null
 [fallback_tools_fail]
   ok   退出码 0（F12）
   ok   错误记了 ps、3 个 sysctl、df
-  ok   agent_count=null，会话没有 proc
-[rotate_old]
-  ok   保留 3 天：今天、1、2 天前（F14）
-  ok   别的主机目录不动（F16）
-  ok   非 YYYY-MM-DD.jsonl 不动
+  ok   agent_count、orphan_agents 为 null，会话没有 found
+[max_days]
+  ok   已有 3 天、到 MAX_DAYS=3：今天不写（F14）
+  ok   旧文件一个没删（F14b）
+  ok   日志 ERROR 写了停写原因
+  ok   状态文件 full
+  ok   ops 挪走一天后恢复写入
+  ok   状态文件回到 ok
 [size_cap]
-  ok   删了最旧的一个（F15）
-  ok   别的主机目录不动（F16）
-  ok   当天文件超上限不追加
-  ok   日志写了上限
-  ok   旧文件全删光，当天留着
+  ok   超总大小：不写、不删（F15）
+  ok   日志 ERROR 写了 MAX_TOTAL_MB
+  ok   状态文件 full
+  ok   挪走旧文件后写入 1 行
+  ok   当天文件超上限后不再追加、不截断
 [log_cap]
-  ok   日志轮转成 .1（F17）
-  ok   launchd 日志也轮转
+  ok   日志挪到 log-archive，新日志很小（F17）
+  ok   launchd 日志也挪走
+  ok   第二次挪走不覆盖第一份（共 2 份）
+  ok   归档满了：日志停写、不挪（F17b）
+  ok   数据照写
 [replay_gate1]
   ok   回放退出码 0
-  ok   坏行计数（R1）
+  ok   坏行 1，会话字典跳过不算坏行（R1）
   ok   门槛 1：最长 61 分钟（R3）
   ok   门槛 1：只报一个超过 60 分钟的窗口，从 00:30 开始
   ok   缺数据 1 分钟单列，打断连续段（R2）
-  ok   摘要里有分位数
+  ok   摘要里有分位数和按 agent 类型的 rss
   ok   该组合不被推荐
 [replay_gate2]
   ok   放行 1 次
   ok   X=10%：1 次违规，最低 6.25%（R4）
   ok   X=5%：不违规
   ok   分位数：会话 rss p90 = 0.391GB
+  ok   按 agent 类型：claude p90 0.391、pi p90 0.098（R6）
   ok   X=5% 有推荐、X=10% 没有
 [install]
   ok   装前 --check 退出 1
-  ok   --dry-run 退出 0 且不写文件
-  ok   --dry-run 列出 plist 和配置
+  ok   --dry-run 退出 0，没写文件，没跑 backup.sh
+  ok   --dry-run 列出快照步骤、plist、配置、ops-v5 数据目录
   ok   临时 HOME 安装退出 0
+  ok   先跑了 backup.sh --label p2-sampler（F22）
+  ok   打印了快照目录和 MANIFEST sha256
+  ok   install-log.tsv 只有表头和 backup.sh 那一行，install.sh 没往里写
+  ok   安装记录写进 ~/.local/state/ops-v5/install-records.tsv：表头 + 4 个文件
+  ok   记录里的 sha256 和已装文件一致，快照目录和 MANIFEST sha256 对上 backup.sh 那一行
   ok   临时 HOME 下没调 launchctl
-  ok   plist 里 HOME 已替换且合法
-  ok   重复安装不备份、不重复建
-  ok   装后 --check 报版本、配置、采样年龄、大小
+  ok   plist 用 ops-v5 数据目录且合法
+  ok   重复安装：不备份、不重复建
+  ok   覆盖前的旧文件进归档（不在 .local/bin、LaunchAgents）
+  ok   装后 --check 退出 0
+  ok   装后 --check 报版本、配置、状态、采样年龄、大小
+  ok   采样器 full：--check 报警、退出 1
   ok   已有配置不覆盖
+[install_backup_fail]
+  ok   backup.sh 失败：退出非 0（F23）
+  ok   什么都没装
+  ok   backup.sh 没写 install-log：退出非 0，什么都没装
+  ok   install-log 新行 label 不对：退出非 0，什么都没装
+  ok   没有 backup.sh：退出非 0，什么都没装
+[uninstall]
+  ok   --uninstall 退出 0（F24）
+  ok   plist、两个脚本、配置都挪到 removed-<时间>/，保留原层次
+  ok   原位置都没了
+  ok   数据目录默认留着
+  ok   临时 HOME 下没调 launchctl
+  ok   卸载后 --check 退出 1
+  ok   --move-data：采样器的数据、日志、状态也挪走
+[install_not_macos]
+  ok   不在 macOS：退出 2 并说明原因（F25）
+  ok   缺 dscl：退出 2 并说明原因
 
-通过 78，失败 0
+通过 116，失败 0
+rc=0

@@ -30,41 +30,41 @@
  "bad_lines": 0,
  "hosts": {
   "imac": {
-   "first": "2026-10-21T11:50+0800",
-   "last": "2026-10-21T12:00+0800",
-   "span_minutes": 11,
+   "first": "2026-10-21T12:55+0800",
+   "last": "2026-10-21T13:04+0800",
+   "span_minutes": 10,
    "samples": 10,
    "orca_ok": 10,
    "fallback_minutes": 0,
-   "unknown_minutes": 1,
+   "unknown_minutes": 0,
    "stats": {
     "availableMemory_gb": {
      "n": 10,
-     "p50": 3.12,
-     "p90": 3.28,
-     "p99": 3.44,
-     "max": 3.44
+     "p50": 3.04,
+     "p90": 3.12,
+     "p99": 3.12,
+     "max": 3.12
     },
     "loadAverage1m": {
      "n": 10,
-     "p50": 3.7,
-     "p90": 4.04,
-     "p99": 4.18,
-     "max": 4.18
+     "p50": 3.52,
+     "p90": 3.89,
+     "p99": 4.26,
+     "max": 4.26
     },
     "session_memory_gb": {
      "n": 220,
-     "p50": 0.033,
-     "p90": 0.145,
-     "p99": 0.406,
-     "max": 0.41
+     "p50": 0.03,
+     "p90": 0.166,
+     "p99": 0.384,
+     "max": 0.461
     },
     "session_tree_rss_gb": {
      "n": 220,
-     "p50": 0.032,
-     "p90": 0.131,
-     "p99": 0.34,
-     "max": 0.366
+     "p50": 0.03,
+     "p90": 0.159,
+     "p99": 0.296,
+     "max": 0.384
     },
     "agent_count": {
      "n": 10,
@@ -72,45 +72,61 @@
      "p90": 17.0,
      "p99": 17.0,
      "max": 17.0
+    },
+    "session_tree_rss_gb_by_agent": {
+     "claude": {
+      "n": 120,
+      "p50": 0.106,
+      "p90": 0.199,
+      "p99": 0.301,
+      "max": 0.384
+     },
+     "pi": {
+      "n": 30,
+      "p50": 0.013,
+      "p90": 0.013,
+      "p99": 0.017,
+      "max": 0.017
+     }
     }
    }
   },
   "mba": {
-   "first": "2026-10-21T11:50+0800",
-   "last": "2026-10-21T12:00+0800",
-   "span_minutes": 11,
+   "first": "2026-10-21T12:55+0800",
+   "last": "2026-10-21T13:04+0800",
+   "span_minutes": 10,
    "samples": 10,
    "orca_ok": 10,
    "fallback_minutes": 0,
-   "unknown_minutes": 1,
+   "unknown_minutes": 0,
    "stats": {
     "availableMemory_gb": {
      "n": 10,
-     "p50": 2.8,
-     "p90": 3.12,
-     "p99": 3.2,
-     "max": 3.2
+     "p50": 2.72,
+     "p90": 3.28,
+     "p99": 3.28,
+     "max": 3.28
     },
     "loadAverage1m": {
      "n": 10,
-     "p50": 5.91,
+     "p50": 5.08,
      "p90": 10.19,
-     "p99": 15.7,
-     "max": 15.7
+     "p99": 10.65,
+     "max": 10.65
     },
     "session_memory_gb": {
      "n": 230,
      "p50": 0.002,
-     "p90": 0.098,
-     "p99": 0.148,
-     "max": 0.203
+     "p90": 0.099,
+     "p99": 0.145,
+     "max": 0.154
     },
     "session_tree_rss_gb": {
      "n": 230,
      "p50": 0.002,
-     "p90": 0.097,
-     "p99": 0.198,
-     "max": 0.203
+     "p90": 0.092,
+     "p99": 0.136,
+     "max": 0.154
     },
     "agent_count": {
      "n": 10,
@@ -118,6 +134,15 @@
      "p90": 12.0,
      "p99": 12.0,
      "max": 12.0
+    },
+    "session_tree_rss_gb_by_agent": {
+     "claude": {
+      "n": 100,
+      "p50": 0.038,
+      "p90": 0.122,
+      "p99": 0.139,
+      "max": 0.154
+     }
     }
    }
   }
@@ -132,7 +157,7 @@
      "gate1": {
       "max_blocked_min": 0,
       "blocked_minutes": 0,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -141,27 +166,36 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": []
        },
        "10": {
-        "violations": 0,
+        "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
+        "worst_free_pct": 10.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 10.0
+         },
+         {
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
+         }
+        ]
        },
        "15": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 10.0
          },
          {
-          "admit": "2026-10-21T11:51+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
          }
         ]
        }
@@ -170,9 +204,9 @@
     },
     "mba": {
      "gate1": {
-      "max_blocked_min": 1,
+      "max_blocked_min": 2,
       "blocked_minutes": 2,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -181,36 +215,36 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": []
        },
        "10": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 8.0
          },
          {
-          "admit": "2026-10-21T11:51+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:58+0800",
+          "min_free_pct": 8.0
          }
         ]
        },
        "15": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 8.0
          },
          {
-          "admit": "2026-10-21T11:51+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:58+0800",
+          "min_free_pct": 8.0
          }
         ]
        }
@@ -228,7 +262,7 @@
      "gate1": {
       "max_blocked_min": 0,
       "blocked_minutes": 0,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -237,27 +271,36 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": []
        },
        "10": {
-        "violations": 0,
+        "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
+        "worst_free_pct": 10.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 10.0
+         },
+         {
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
+         }
+        ]
        },
        "15": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 10.0
          },
          {
-          "admit": "2026-10-21T11:51+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
          }
         ]
        }
@@ -266,9 +309,9 @@
     },
     "mba": {
      "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 1,
-      "unknown_minutes": 1,
+      "max_blocked_min": 0,
+      "blocked_minutes": 0,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -277,36 +320,36 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": []
        },
        "10": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          },
          {
-          "admit": "2026-10-21T11:51+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:56+0800",
+          "min_free_pct": 8.0
          }
         ]
        },
        "15": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          },
          {
-          "admit": "2026-10-21T11:51+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:56+0800",
+          "min_free_pct": 8.0
          }
         ]
        }
@@ -324,7 +367,7 @@
      "gate1": {
       "max_blocked_min": 0,
       "blocked_minutes": 0,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -333,27 +376,36 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": []
        },
        "10": {
-        "violations": 0,
+        "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
+        "worst_free_pct": 10.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 10.0
+         },
+         {
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
+         }
+        ]
        },
        "15": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 10.0
          },
          {
-          "admit": "2026-10-21T11:51+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
          }
         ]
        }
@@ -364,7 +416,7 @@
      "gate1": {
       "max_blocked_min": 0,
       "blocked_minutes": 0,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -373,36 +425,36 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": []
        },
        "10": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          },
          {
-          "admit": "2026-10-21T11:51+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:56+0800",
+          "min_free_pct": 8.0
          }
         ]
        },
        "15": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          },
          {
-          "admit": "2026-10-21T11:51+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:56+0800",
+          "min_free_pct": 8.0
          }
         ]
        }
@@ -420,7 +472,7 @@
      "gate1": {
       "max_blocked_min": 0,
       "blocked_minutes": 0,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -429,27 +481,36 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": []
        },
        "10": {
-        "violations": 0,
+        "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
+        "worst_free_pct": 10.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 10.0
+         },
+         {
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
+         }
+        ]
        },
        "15": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 10.0
          },
          {
-          "admit": "2026-10-21T11:51+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
          }
         ]
        }
@@ -458,9 +519,9 @@
     },
     "mba": {
      "gate1": {
-      "max_blocked_min": 1,
+      "max_blocked_min": 2,
       "blocked_minutes": 2,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -469,36 +530,36 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": []
        },
        "10": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 8.0
          },
          {
-          "admit": "2026-10-21T11:53+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:59+0800",
+          "min_free_pct": 8.0
          }
         ]
        },
        "15": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 8.0
          },
          {
-          "admit": "2026-10-21T11:53+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:59+0800",
+          "min_free_pct": 8.0
          }
         ]
        }
@@ -516,7 +577,7 @@
      "gate1": {
       "max_blocked_min": 0,
       "blocked_minutes": 0,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -525,27 +586,36 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": []
        },
        "10": {
-        "violations": 0,
+        "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
+        "worst_free_pct": 10.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 10.0
+         },
+         {
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
+         }
+        ]
        },
        "15": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 10.0
          },
          {
-          "admit": "2026-10-21T11:51+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
          }
         ]
        }
@@ -554,9 +624,9 @@
     },
     "mba": {
      "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 1,
-      "unknown_minutes": 1,
+      "max_blocked_min": 0,
+      "blocked_minutes": 0,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -565,36 +635,36 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": []
        },
        "10": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          },
          {
-          "admit": "2026-10-21T11:53+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:59+0800",
+          "min_free_pct": 8.0
          }
         ]
        },
        "15": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          },
          {
-          "admit": "2026-10-21T11:53+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:59+0800",
+          "min_free_pct": 8.0
          }
         ]
        }
@@ -612,7 +682,7 @@
      "gate1": {
       "max_blocked_min": 0,
       "blocked_minutes": 0,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -621,27 +691,36 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": []
        },
        "10": {
-        "violations": 0,
+        "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
+        "worst_free_pct": 10.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 10.0
+         },
+         {
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
+         }
+        ]
        },
        "15": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 10.0
          },
          {
-          "admit": "2026-10-21T11:51+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
          }
         ]
        }
@@ -652,7 +731,7 @@
      "gate1": {
       "max_blocked_min": 0,
       "blocked_minutes": 0,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -661,36 +740,36 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": []
        },
        "10": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          },
          {
-          "admit": "2026-10-21T11:53+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:59+0800",
+          "min_free_pct": 8.0
          }
         ]
        },
        "15": {
         "violations": 2,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          },
          {
-          "admit": "2026-10-21T11:53+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:59+0800",
+          "min_free_pct": 8.0
          }
         ]
        }
@@ -706,9 +785,9 @@
    "hosts": {
     "imac": {
      "gate1": {
-      "max_blocked_min": 0,
-      "blocked_minutes": 0,
-      "unknown_minutes": 1,
+      "max_blocked_min": 1,
+      "blocked_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -717,19 +796,19 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 23.5,
+        "worst_free_pct": 15.5,
         "examples": []
        },
        "10": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 23.5,
+        "worst_free_pct": 15.5,
         "examples": []
        },
        "15": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 23.5,
+        "worst_free_pct": 15.5,
         "examples": []
        }
       }
@@ -737,9 +816,689 @@
     },
     "mba": {
      "gate1": {
+      "max_blocked_min": 2,
+      "blocked_minutes": 2,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 20.5,
+        "examples": []
+       },
+       "10": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 20.5,
+        "examples": []
+       },
+       "15": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 20.5,
+        "examples": []
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "reserve_gb": 1.0,
+   "floor_gb": 1.5,
+   "load_max": 12.0,
+   "hosts": {
+    "imac": {
+     "gate1": {
       "max_blocked_min": 1,
+      "blocked_minutes": 1,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 15.5,
+        "examples": []
+       },
+       "10": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 15.5,
+        "examples": []
+       },
+       "15": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 15.5,
+        "examples": []
+       }
+      }
+     }
+    },
+    "mba": {
+     "gate1": {
+      "max_blocked_min": 0,
+      "blocked_minutes": 0,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 20.5,
+        "examples": []
+       },
+       "10": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 20.5,
+        "examples": []
+       },
+       "15": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 20.5,
+        "examples": []
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "reserve_gb": 1.0,
+   "floor_gb": 1.5,
+   "load_max": 16.0,
+   "hosts": {
+    "imac": {
+     "gate1": {
+      "max_blocked_min": 1,
+      "blocked_minutes": 1,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 15.5,
+        "examples": []
+       },
+       "10": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 15.5,
+        "examples": []
+       },
+       "15": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 15.5,
+        "examples": []
+       }
+      }
+     }
+    },
+    "mba": {
+     "gate1": {
+      "max_blocked_min": 0,
+      "blocked_minutes": 0,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 20.5,
+        "examples": []
+       },
+       "10": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 20.5,
+        "examples": []
+       },
+       "15": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 20.5,
+        "examples": []
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "reserve_gb": 1.5,
+   "floor_gb": 0.5,
+   "load_max": 8.0,
+   "hosts": {
+    "imac": {
+     "gate1": {
+      "max_blocked_min": 0,
+      "blocked_minutes": 0,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": []
+       },
+       "10": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 9.25
+         }
+        ]
+       },
+       "15": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 9.25
+         }
+        ]
+       }
+      }
+     }
+    },
+    "mba": {
+     "gate1": {
+      "max_blocked_min": 2,
+      "blocked_minutes": 2,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": []
+       },
+       "10": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": []
+       },
+       "15": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 14.25
+         }
+        ]
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "reserve_gb": 1.5,
+   "floor_gb": 0.5,
+   "load_max": 12.0,
+   "hosts": {
+    "imac": {
+     "gate1": {
+      "max_blocked_min": 0,
+      "blocked_minutes": 0,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": []
+       },
+       "10": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 9.25
+         }
+        ]
+       },
+       "15": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 9.25
+         }
+        ]
+       }
+      }
+     }
+    },
+    "mba": {
+     "gate1": {
+      "max_blocked_min": 0,
+      "blocked_minutes": 0,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": []
+       },
+       "10": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": []
+       },
+       "15": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 14.25
+         }
+        ]
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "reserve_gb": 1.5,
+   "floor_gb": 0.5,
+   "load_max": 16.0,
+   "hosts": {
+    "imac": {
+     "gate1": {
+      "max_blocked_min": 0,
+      "blocked_minutes": 0,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": []
+       },
+       "10": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 9.25
+         }
+        ]
+       },
+       "15": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 9.25
+         }
+        ]
+       }
+      }
+     }
+    },
+    "mba": {
+     "gate1": {
+      "max_blocked_min": 0,
+      "blocked_minutes": 0,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": []
+       },
+       "10": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": []
+       },
+       "15": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 14.25
+         }
+        ]
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "reserve_gb": 1.5,
+   "floor_gb": 1.0,
+   "load_max": 8.0,
+   "hosts": {
+    "imac": {
+     "gate1": {
+      "max_blocked_min": 1,
+      "blocked_minutes": 1,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": []
+       },
+       "10": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 9.25
+         }
+        ]
+       },
+       "15": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 9.25
+         }
+        ]
+       }
+      }
+     }
+    },
+    "mba": {
+     "gate1": {
+      "max_blocked_min": 2,
+      "blocked_minutes": 2,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": []
+       },
+       "10": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": []
+       },
+       "15": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 14.25
+         }
+        ]
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "reserve_gb": 1.5,
+   "floor_gb": 1.0,
+   "load_max": 12.0,
+   "hosts": {
+    "imac": {
+     "gate1": {
+      "max_blocked_min": 1,
+      "blocked_minutes": 1,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": []
+       },
+       "10": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 9.25
+         }
+        ]
+       },
+       "15": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 9.25
+         }
+        ]
+       }
+      }
+     }
+    },
+    "mba": {
+     "gate1": {
+      "max_blocked_min": 0,
+      "blocked_minutes": 0,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": []
+       },
+       "10": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": []
+       },
+       "15": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 14.25
+         }
+        ]
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "reserve_gb": 1.5,
+   "floor_gb": 1.0,
+   "load_max": 16.0,
+   "hosts": {
+    "imac": {
+     "gate1": {
+      "max_blocked_min": 1,
+      "blocked_minutes": 1,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": []
+       },
+       "10": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 9.25
+         }
+        ]
+       },
+       "15": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 9.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 9.25
+         }
+        ]
+       }
+      }
+     }
+    },
+    "mba": {
+     "gate1": {
+      "max_blocked_min": 0,
+      "blocked_minutes": 0,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": []
+       },
+       "10": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": []
+       },
+       "15": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 14.25
+         }
+        ]
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "reserve_gb": 1.5,
+   "floor_gb": 1.5,
+   "load_max": 8.0,
+   "hosts": {
+    "imac": {
+     "gate1": {
+      "max_blocked_min": 2,
       "blocked_minutes": 3,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -748,20 +1507,56 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 17.5,
+        "worst_free_pct": 16.25,
         "examples": []
        },
        "10": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 17.5,
+        "worst_free_pct": 16.25,
         "examples": []
        },
        "15": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 17.5,
+        "worst_free_pct": 16.25,
         "examples": []
+       }
+      }
+     }
+    },
+    "mba": {
+     "gate1": {
+      "max_blocked_min": 5,
+      "blocked_minutes": 9,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": []
+       },
+       "10": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": []
+       },
+       "15": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 14.25,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:59+0800",
+          "min_free_pct": 14.25
+         }
+        ]
        }
       }
      }
@@ -769,406 +1564,15 @@
    }
   },
   {
-   "reserve_gb": 1.0,
+   "reserve_gb": 1.5,
    "floor_gb": 1.5,
    "load_max": 12.0,
    "hosts": {
     "imac": {
      "gate1": {
-      "max_blocked_min": 0,
-      "blocked_minutes": 0,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 23.5,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 23.5,
-        "examples": []
-       },
-       "15": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 23.5,
-        "examples": []
-       }
-      }
-     }
-    },
-    "mba": {
-     "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 2,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.5,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.5,
-        "examples": []
-       },
-       "15": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.5,
-        "examples": []
-       }
-      }
-     }
-    }
-   }
-  },
-  {
-   "reserve_gb": 1.0,
-   "floor_gb": 1.5,
-   "load_max": 16.0,
-   "hosts": {
-    "imac": {
-     "gate1": {
-      "max_blocked_min": 0,
-      "blocked_minutes": 0,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 23.5,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 23.5,
-        "examples": []
-       },
-       "15": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 23.5,
-        "examples": []
-       }
-      }
-     }
-    },
-    "mba": {
-     "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 1,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.5,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.5,
-        "examples": []
-       },
-       "15": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.5,
-        "examples": []
-       }
-      }
-     }
-    }
-   }
-  },
-  {
-   "reserve_gb": 1.5,
-   "floor_gb": 0.5,
-   "load_max": 8.0,
-   "hosts": {
-    "imac": {
-     "gate1": {
-      "max_blocked_min": 0,
-      "blocked_minutes": 0,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       },
-       "15": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       }
-      }
-     }
-    },
-    "mba": {
-     "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 2,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": []
-       },
-       "15": {
-        "violations": 1,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": [
-         {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.25
-         }
-        ]
-       }
-      }
-     }
-    }
-   }
-  },
-  {
-   "reserve_gb": 1.5,
-   "floor_gb": 0.5,
-   "load_max": 12.0,
-   "hosts": {
-    "imac": {
-     "gate1": {
-      "max_blocked_min": 0,
-      "blocked_minutes": 0,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       },
-       "15": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       }
-      }
-     }
-    },
-    "mba": {
-     "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 1,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": []
-       },
-       "15": {
-        "violations": 1,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": [
-         {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.25
-         }
-        ]
-       }
-      }
-     }
-    }
-   }
-  },
-  {
-   "reserve_gb": 1.5,
-   "floor_gb": 0.5,
-   "load_max": 16.0,
-   "hosts": {
-    "imac": {
-     "gate1": {
-      "max_blocked_min": 0,
-      "blocked_minutes": 0,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       },
-       "15": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       }
-      }
-     }
-    },
-    "mba": {
-     "gate1": {
-      "max_blocked_min": 0,
-      "blocked_minutes": 0,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": []
-       },
-       "15": {
-        "violations": 1,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": [
-         {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.25
-         }
-        ]
-       }
-      }
-     }
-    }
-   }
-  },
-  {
-   "reserve_gb": 1.5,
-   "floor_gb": 1.0,
-   "load_max": 8.0,
-   "hosts": {
-    "imac": {
-     "gate1": {
-      "max_blocked_min": 0,
-      "blocked_minutes": 0,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       },
-       "15": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       }
-      }
-     }
-    },
-    "mba": {
-     "gate1": {
-      "max_blocked_min": 1,
+      "max_blocked_min": 2,
       "blocked_minutes": 3,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -1177,210 +1581,19 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
+        "worst_free_pct": 16.25,
         "examples": []
        },
        "10": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": []
-       },
-       "15": {
-        "violations": 1,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": [
-         {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.25
-         }
-        ]
-       }
-      }
-     }
-    }
-   }
-  },
-  {
-   "reserve_gb": 1.5,
-   "floor_gb": 1.0,
-   "load_max": 12.0,
-   "hosts": {
-    "imac": {
-     "gate1": {
-      "max_blocked_min": 0,
-      "blocked_minutes": 0,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
+        "worst_free_pct": 16.25,
         "examples": []
        },
        "15": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       }
-      }
-     }
-    },
-    "mba": {
-     "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 2,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": []
-       },
-       "15": {
-        "violations": 1,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": [
-         {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.25
-         }
-        ]
-       }
-      }
-     }
-    }
-   }
-  },
-  {
-   "reserve_gb": 1.5,
-   "floor_gb": 1.0,
-   "load_max": 16.0,
-   "hosts": {
-    "imac": {
-     "gate1": {
-      "max_blocked_min": 0,
-      "blocked_minutes": 0,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       },
-       "15": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       }
-      }
-     }
-    },
-    "mba": {
-     "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 1,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": []
-       },
-       "15": {
-        "violations": 1,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": [
-         {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.25
-         }
-        ]
-       }
-      }
-     }
-    }
-   }
-  },
-  {
-   "reserve_gb": 1.5,
-   "floor_gb": 1.5,
-   "load_max": 8.0,
-   "hosts": {
-    "imac": {
-     "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 2,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       },
-       "15": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
+        "worst_free_pct": 16.25,
         "examples": []
        }
       }
@@ -1390,7 +1603,7 @@
      "gate1": {
       "max_blocked_min": 5,
       "blocked_minutes": 8,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -1399,97 +1612,23 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
+        "worst_free_pct": 14.25,
         "examples": []
        },
        "10": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
+        "worst_free_pct": 14.25,
         "examples": []
        },
        "15": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
+        "worst_free_pct": 14.25,
         "examples": [
          {
-          "admit": "2026-10-21T11:53+0800",
-          "min_free_pct": 11.25
-         }
-        ]
-       }
-      }
-     }
-    }
-   }
-  },
-  {
-   "reserve_gb": 1.5,
-   "floor_gb": 1.5,
-   "load_max": 12.0,
-   "hosts": {
-    "imac": {
-     "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 2,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       },
-       "15": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
-        "examples": []
-       }
-      }
-     }
-    },
-    "mba": {
-     "gate1": {
-      "max_blocked_min": 2,
-      "blocked_minutes": 7,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": []
-       },
-       "15": {
-        "violations": 1,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
-        "examples": [
-         {
-          "admit": "2026-10-21T11:53+0800",
-          "min_free_pct": 11.25
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 14.25
          }
         ]
        }
@@ -1505,9 +1644,9 @@
    "hosts": {
     "imac": {
      "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 2,
-      "unknown_minutes": 1,
+      "max_blocked_min": 2,
+      "blocked_minutes": 3,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -1516,19 +1655,19 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
+        "worst_free_pct": 16.25,
         "examples": []
        },
        "10": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
+        "worst_free_pct": 16.25,
         "examples": []
        },
        "15": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 17.25,
+        "worst_free_pct": 16.25,
         "examples": []
        }
       }
@@ -1536,9 +1675,9 @@
     },
     "mba": {
      "gate1": {
-      "max_blocked_min": 2,
-      "blocked_minutes": 7,
-      "unknown_minutes": 1,
+      "max_blocked_min": 5,
+      "blocked_minutes": 8,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -1547,23 +1686,23 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
+        "worst_free_pct": 14.25,
         "examples": []
        },
        "10": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
+        "worst_free_pct": 14.25,
         "examples": []
        },
        "15": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.25,
+        "worst_free_pct": 14.25,
         "examples": [
          {
-          "admit": "2026-10-21T11:53+0800",
-          "min_free_pct": 11.25
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 14.25
          }
         ]
        }
@@ -1579,34 +1718,44 @@
    "hosts": {
     "imac": {
      "gate1": {
-      "max_blocked_min": 0,
-      "blocked_minutes": 0,
-      "unknown_minutes": 1,
+      "max_blocked_min": 1,
+      "blocked_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
       "admits": 1,
       "by_free_pct": {
        "5": {
-        "violations": 0,
+        "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
+        "worst_free_pct": 3.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 3.0
+         }
+        ]
        },
        "10": {
-        "violations": 0,
+        "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
+        "worst_free_pct": 3.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 3.0
+         }
+        ]
        },
        "15": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 3.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 3.0
          }
         ]
        }
@@ -1615,9 +1764,9 @@
     },
     "mba": {
      "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 3,
-      "unknown_minutes": 1,
+      "max_blocked_min": 2,
+      "blocked_minutes": 2,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -1626,28 +1775,28 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": []
        },
        "10": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 8.0
          }
         ]
        },
        "15": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 8.0
          }
         ]
        }
@@ -1663,34 +1812,44 @@
    "hosts": {
     "imac": {
      "gate1": {
-      "max_blocked_min": 0,
-      "blocked_minutes": 0,
-      "unknown_minutes": 1,
+      "max_blocked_min": 1,
+      "blocked_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
       "admits": 1,
       "by_free_pct": {
        "5": {
-        "violations": 0,
+        "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
+        "worst_free_pct": 3.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 3.0
+         }
+        ]
        },
        "10": {
-        "violations": 0,
+        "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
+        "worst_free_pct": 3.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 3.0
+         }
+        ]
        },
        "15": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 3.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 3.0
          }
         ]
        }
@@ -1699,9 +1858,9 @@
     },
     "mba": {
      "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 2,
-      "unknown_minutes": 1,
+      "max_blocked_min": 0,
+      "blocked_minutes": 0,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -1710,28 +1869,28 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": []
        },
        "10": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          }
         ]
        },
        "15": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          }
         ]
        }
@@ -1747,34 +1906,44 @@
    "hosts": {
     "imac": {
      "gate1": {
-      "max_blocked_min": 0,
-      "blocked_minutes": 0,
-      "unknown_minutes": 1,
+      "max_blocked_min": 1,
+      "blocked_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
       "admits": 1,
       "by_free_pct": {
        "5": {
-        "violations": 0,
+        "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
+        "worst_free_pct": 3.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 3.0
+         }
+        ]
        },
        "10": {
-        "violations": 0,
+        "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
+        "worst_free_pct": 3.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 3.0
+         }
+        ]
        },
        "15": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 3.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 3.0
          }
         ]
        }
@@ -1783,9 +1952,9 @@
     },
     "mba": {
      "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 1,
-      "unknown_minutes": 1,
+      "max_blocked_min": 0,
+      "blocked_minutes": 0,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -1794,28 +1963,28 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": []
        },
        "10": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          }
         ]
        },
        "15": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          }
         ]
        }
@@ -1831,9 +2000,9 @@
    "hosts": {
     "imac": {
      "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 2,
-      "unknown_minutes": 1,
+      "max_blocked_min": 2,
+      "blocked_minutes": 3,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -1842,23 +2011,117 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": []
        },
        "10": {
-        "violations": 0,
+        "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
+        "worst_free_pct": 10.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
+         }
+        ]
        },
        "15": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
+         }
+        ]
+       }
+      }
+     }
+    },
+    "mba": {
+     "gate1": {
+      "max_blocked_min": 5,
+      "blocked_minutes": 9,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 8.0,
+        "examples": []
+       },
+       "10": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 8.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:59+0800",
+          "min_free_pct": 8.0
+         }
+        ]
+       },
+       "15": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 8.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:59+0800",
+          "min_free_pct": 8.0
+         }
+        ]
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "reserve_gb": 2.0,
+   "floor_gb": 1.0,
+   "load_max": 12.0,
+   "hosts": {
+    "imac": {
+     "gate1": {
+      "max_blocked_min": 2,
+      "blocked_minutes": 3,
+      "unknown_minutes": 0,
+      "windows_over_limit": []
+     },
+     "gate2": {
+      "admits": 1,
+      "by_free_pct": {
+       "5": {
+        "violations": 0,
+        "unjudged_admits": 0,
+        "worst_free_pct": 10.0,
+        "examples": []
+       },
+       "10": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 10.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
+         }
+        ]
+       },
+       "15": {
+        "violations": 1,
+        "unjudged_admits": 0,
+        "worst_free_pct": 10.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
          }
         ]
        }
@@ -1869,7 +2132,7 @@
      "gate1": {
       "max_blocked_min": 5,
       "blocked_minutes": 8,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -1878,112 +2141,28 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": []
        },
        "10": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:53+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          }
         ]
        },
        "15": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:53+0800",
-          "min_free_pct": 5.0
-         }
-        ]
-       }
-      }
-     }
-    }
-   }
-  },
-  {
-   "reserve_gb": 2.0,
-   "floor_gb": 1.0,
-   "load_max": 12.0,
-   "hosts": {
-    "imac": {
-     "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 2,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
-       },
-       "10": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
-       },
-       "15": {
-        "violations": 1,
-        "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": [
-         {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.0
-         }
-        ]
-       }
-      }
-     }
-    },
-    "mba": {
-     "gate1": {
-      "max_blocked_min": 2,
-      "blocked_minutes": 7,
-      "unknown_minutes": 1,
-      "windows_over_limit": []
-     },
-     "gate2": {
-      "admits": 1,
-      "by_free_pct": {
-       "5": {
-        "violations": 0,
-        "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
-        "examples": []
-       },
-       "10": {
-        "violations": 1,
-        "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
-        "examples": [
-         {
-          "admit": "2026-10-21T11:53+0800",
-          "min_free_pct": 5.0
-         }
-        ]
-       },
-       "15": {
-        "violations": 1,
-        "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
-        "examples": [
-         {
-          "admit": "2026-10-21T11:53+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          }
         ]
        }
@@ -1999,9 +2178,9 @@
    "hosts": {
     "imac": {
      "gate1": {
-      "max_blocked_min": 1,
-      "blocked_minutes": 2,
-      "unknown_minutes": 1,
+      "max_blocked_min": 2,
+      "blocked_minutes": 3,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -2010,23 +2189,28 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": []
        },
        "10": {
-        "violations": 0,
+        "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
-        "examples": []
+        "worst_free_pct": 10.0,
+        "examples": [
+         {
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
+         }
+        ]
        },
        "15": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 11.0,
+        "worst_free_pct": 10.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:50+0800",
-          "min_free_pct": 11.0
+          "admit": "2026-10-21T12:57+0800",
+          "min_free_pct": 10.0
          }
         ]
        }
@@ -2035,9 +2219,9 @@
     },
     "mba": {
      "gate1": {
-      "max_blocked_min": 2,
-      "blocked_minutes": 7,
-      "unknown_minutes": 1,
+      "max_blocked_min": 5,
+      "blocked_minutes": 8,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -2046,28 +2230,28 @@
        "5": {
         "violations": 0,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": []
        },
        "10": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:53+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          }
         ]
        },
        "15": {
         "violations": 1,
         "unjudged_admits": 0,
-        "worst_free_pct": 5.0,
+        "worst_free_pct": 8.0,
         "examples": [
          {
-          "admit": "2026-10-21T11:53+0800",
-          "min_free_pct": 5.0
+          "admit": "2026-10-21T12:55+0800",
+          "min_free_pct": 8.0
          }
         ]
        }
@@ -2083,9 +2267,9 @@
    "hosts": {
     "imac": {
      "gate1": {
-      "max_blocked_min": 8,
+      "max_blocked_min": 10,
       "blocked_minutes": 10,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -2114,9 +2298,9 @@
     },
     "mba": {
      "gate1": {
-      "max_blocked_min": 8,
+      "max_blocked_min": 10,
       "blocked_minutes": 10,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -2152,9 +2336,9 @@
    "hosts": {
     "imac": {
      "gate1": {
-      "max_blocked_min": 8,
+      "max_blocked_min": 10,
       "blocked_minutes": 10,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -2183,9 +2367,9 @@
     },
     "mba": {
      "gate1": {
-      "max_blocked_min": 8,
+      "max_blocked_min": 10,
       "blocked_minutes": 10,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -2221,9 +2405,9 @@
    "hosts": {
     "imac": {
      "gate1": {
-      "max_blocked_min": 8,
+      "max_blocked_min": 10,
       "blocked_minutes": 10,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -2252,9 +2436,9 @@
     },
     "mba": {
      "gate1": {
-      "max_blocked_min": 8,
+      "max_blocked_min": 10,
       "blocked_minutes": 10,
-      "unknown_minutes": 1,
+      "unknown_minutes": 0,
       "windows_over_limit": []
      },
      "gate2": {
@@ -2290,13 +2474,13 @@
     "floor_gb": 1.5,
     "reserve_gb": 1.5,
     "load_max": 8.0,
-    "passing_combos": 24
+    "passing_combos": 21
    },
    "10": {
     "floor_gb": 1.5,
     "reserve_gb": 1.5,
     "load_max": 8.0,
-    "passing_combos": 12
+    "passing_combos": 6
    },
    "15": {
     "floor_gb": 1.5,
@@ -2305,7 +2489,17 @@
     "passing_combos": 3
    }
   },
-  "reserve_hint_gb": 0.131,
+  "reserve_hint_gb": 0.159,
+  "reserve_hint_gb_by_agent": {
+   "claude": {
+    "p90": 0.199,
+    "p99": 0.301
+   },
+   "pi": {
+    "p90": 0.013,
+    "p99": 0.017
+   }
+  },
   "rule": "两台都过门槛 1、2 的组合里取下限最大、R 最大、负载上限最小的一组；R 不应低于 reserve_hint_gb（各台会话进程树 rss 的 p90 取大）。被动采样只定初值。"
  },
  "note": "被动采样只定初值；模拟放行的 agent 按「放行即用满 R、持续 hold_min 分钟」保守计。"

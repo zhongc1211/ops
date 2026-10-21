@@ -1,1 +1,7 @@
+commit 0870d83fce40cb32a4dfbfb012f707fd9633ab83
+$ wake/tests/lint-bash32-utf8.sh dispatch
 lint-bash32-utf8: ok
+rc=0
+$ shellcheck -S warning dispatch/install.sh dispatch/tests/*.sh dispatch/tests/stubs/*
+version: 0.11.0
+rc=0

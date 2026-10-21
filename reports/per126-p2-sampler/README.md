@@ -1,46 +1,41 @@
-# PER-126 v5 前提 2：被动采样器测试记录（2026-10-21）
+# PER-126 v5 前提 2：被动采样器测试记录（2026-10-21，第二轮）
 
-代码在 `dispatch/`，说明见 `dispatch/README.md`。本目录是这次的测试产物。线上没有安装任何东西（见下面「线上核对」）。
+代码在 `dispatch/`，说明见 `dispatch/README.md`。本目录是第二轮的测试产物，第一轮（cbccc9d）的样例、日志、耗时文件已删掉，避免和新路径、新格式混在一起。线上没有安装任何东西：两台真实 HOME 下没写 `~/.local/bin/ops-v5-*`、`~/.config/dispatch/`、`~/.local/state/ops-v5/`、`~/Library/LaunchAgents/com.zhongc1211.ops-v5-*`，没调 launchctl，没跑 backup.sh、`install.sh --install`/`--uninstall`。
 
-## 1. 桩测
+## 1. 真机 E2E：每分钟一次，各 10 分钟
 
-- 命令：`dispatch/tests/sampler-stub.sh`
-- 环境：iMac（macOS 26.6.2，/bin/bash 3.2.57，/usr/bin/python3 3.9.6），全部在 `mktemp -d` 临时目录，`HOME` 指向临时目录，假的 orca/ps/sysctl/df/launchctl 放在 PATH 最前。
-- 结果：通过 78，失败 0。完整输出：`stub-test-output.txt`。
-- 覆盖：正常采样（含 `env -i` 空环境、正文不落盘断言）、Orca 不在/超时（含子进程被杀）/坏 JSON/`ok:false`/退出码非 0、补充查询失败、整轮超时、配置缺失/版本错/数值坏、锁被占、同一分钟重复、按天轮转、总大小上限（含当天文件超上限停写）、日志上限、会话找不到进程、后备工具失败、回放门槛 1（连续 61 分钟不可起 + 缺数据分钟）、回放门槛 2（放行后跌破 X）、install.sh 的 `--check`/`--dry-run`/`--install`（临时 HOME，不调 launchctl）。用例和 `dispatch/tests/FAILURE-MODES.md` 编号对应。
-- 这是桩测，不是 E2E。
+- 命令（仓库根目录，两条同时跑）：
+  - iMac 本地：`dispatch/tests/e2e-real-10min.sh --host imac`
+  - MBA：`dispatch/tests/e2e-real-10min.sh --ssh mba`（采样器经 ssh 从 stdin 传过去：`/usr/bin/python3 -I - --once ...`）
+- 环境：iMac（macOS 26.6.2，Orca 1.4.224）、MBA（macOS 26.6.2，Orca 1.4.229），都是 `/usr/bin/python3` 3.9.6。
+  每台在 `mktemp -d` 里放临时 HOME、数据目录和配置，`env -i` 只带 `HOME=<临时>`、`PATH=/usr/bin:/bin`、`ORCA_USER_DATA_PATH=<真实 HOME>/Library/Application Support/orca`（orca CLI 靠这个路径找到本机 Orca，脚本不读里面的文件）。
+- commit、起止时间、临时目录：`e2e-<host>/env.txt`（`uncommitted_in_dispatch 0` 表示跑的就是该 commit 的代码）。
+- 结果：`e2e-<host>/summary.txt`。最后一次运行的结论写在 `.orca-task/RESULT.md`。
+- 完整数据：`e2e-<host>/state/samples/<host>/2026-10-21.jsonl`（10 行）和 `2026-10-21.sessions.jsonl`（会话字典），还有采样器日志和状态文件。
+- 每次的 `/usr/bin/time -l`：`e2e-<host>/time/NN.txt`；每次的退出码：`runs.txt`。
+- 正文和密钥扫描：`summary.txt` 末尾的 `scan_hits`。扫的是正文字段名（prompt、preview、lastAssistantMessage、message、content、env、argv、command 等）、密钥样式（sk-、ghp_、xox*-、AKIA、Bearer、PEM 头）和 password/secret/token/cookie/api_key 等词。
+  另外人工核对过字段：每分钟记录只有数值和状态；字典只有 paneKey、sessionId、worktreeId、worktreeName（任务标题）、repoName、handle、agentType、workingMode、linkedLinearIssue。
+- 真实 HOME：`real-home-before.txt`、`real-home-after.txt`，5 个路径跑前跑后都不存在。
+- 临时目录：`cleanup.txt`，两台都写「临时目录已删」，MBA 的也删了。
 
-## 2. 真机只读运行（临时目录）
+## 2. 回放（用上面的 10 分钟数据）
 
-- iMac：`dispatch/bin/ops-v5-sampler --once --state-dir <scratchpad>/state --config <scratchpad>/sampler.env`，2026-10-21 11:50–12:00 每分钟一次，共 10 次。Orca 1.4.224。
-- MBA：同一脚本经 `ssh mba '/usr/bin/python3 -I - --once ...' < dispatch/bin/ops-v5-sampler` 从 stdin 跑，数据写 MBA 的 `mktemp -d /tmp/ops-v5-sampler-test.XXXXXX`，跑完 scp 回来后删掉该临时目录（已确认 `/tmp/ops-v5-sampler-test.*` 不存在）。Orca 1.4.229。
-- 两台 10/10 次 `orca_ok=true`、`errors=[]`。iMac 22 个会话、MBA 23 个会话，全部对上终端 handle 和进程。
-- 样例（截短，只留 2 个会话）：`sample-imac-truncated.json`、`sample-mba-truncated.json`。日志：`sampler-log-imac.txt`、`sampler-log-mba.txt`。
+- 命令：`dispatch/bin/ops-v5-sample-replay --dir e2e-imac/state/samples --dir e2e-mba/state/samples --json replay-10min.json`
+- 摘要：`replay-summary-10min.txt`。完整 JSON：`replay-10min.json`，含按 agent 类型的 tree_rss p90/p99（`reserve_hint_gb_by_agent`）。
+- 10 分钟数据定不了阈值，只用来确认回放能读新格式。建议初值要等 24 小时数据。
 
-开销（`/usr/bin/time -l`，`time-imac.txt`、`time-mba.txt`）：
+## 3. 桩测
 
-| | 每次耗时 | 采样器自身 rss | 最大子进程 rss（orca CLI） | CPU（自身+子进程） |
-|---|---|---|---|---|
-| iMac | 0.75–1.02 秒 | 约 20MB | 约 93MB | 约 0.65 秒 |
-| MBA | 0.97–2.13 秒 | 约 20MB | 约 91MB | 0.65–1.2 秒 |
+- 命令：`dispatch/tests/sampler-stub.sh`。环境：iMac，/bin/bash 3.2.57，临时目录和临时 HOME；假的 orca、ps、sysctl、df、launchctl 放在 PATH 最前，假的 backup.sh 放在临时 HOME 的归档目录。
+- 输出：`stub-test-output.txt`，第一行是 commit。用例和 `dispatch/tests/FAILURE-MODES.md` 编号对应。这是桩测，不是 E2E。
 
-每分钟一次，平均约占一个核的 1–2%。子进程 rss 主要是 orca CLI，一轮调 3 次（diagnostics memory、terminal list、worktree ps），依次跑，同一时刻最多一个。
+## 4. lint 和 shellcheck
 
-数据量：一行约 15KB（22–23 个会话），每台每天约 22MB。24 小时采样用不到上限；按默认 200MB 上限，14 天保留实际约 9 天就会触发按大小删旧。
+`lint-shellcheck.txt`：`wake/tests/lint-bash32-utf8.sh dispatch` 和 `shellcheck -S warning dispatch/install.sh dispatch/tests/*.sh dispatch/tests/stubs/*` 的输出和退出码。
 
-## 3. 回放样例（10 分钟数据，只为演示输出格式）
+## 5. 线上只读核对（iMac 真实 HOME）
 
-- 命令：`dispatch/bin/ops-v5-sample-replay --dir <imac samples> --dir <mba samples> --json replay-10min.json`
-- 摘要：`replay-summary-10min.txt`；完整 JSON：`replay-10min.json`。
-- 每台「缺数据 1 分钟」是测试循环造成的：每轮 `sleep 60` 加采样耗时约 62 秒，11 分钟跨度里漏了一个分钟号。LaunchAgent 按 `StartInterval 60` 拉起不会这样累积漂移。
-- 10 分钟数据定不了阈值，建议初值要等 24 小时数据再算。
-
-## 4. 线上核对（只读）
-
-- `install-check-imac-live.txt`：iMac 真实 HOME 下 `dispatch/install.sh --check`，全部报「缺失 / 未加载 / 无数据」，退出 1。
-- `install-dryrun-imac-live.txt`：同一台 `--dry-run` 的输出，即安装会新建的路径和会执行的 `launchctl bootstrap`。
-- MBA：`launchctl print gui/501/com.zhongc1211.ops-v5-sampler` 返回 113（未加载）；`~/.config/dispatch`、`~/.local/state/dispatch` 不存在。
-
-## 5. lint
-
-`wake/tests/lint-bash32-utf8.sh dispatch` → `lint-bash32-utf8: ok`（`lint-bash32.txt`）。`shellcheck -S warning dispatch/install.sh` 无输出。测试脚本里 shellcheck 报的 SC2034/SC2120 是 `eval` 断言引用变量造成的误报。
+- `install-check-imac-live.txt`：`dispatch/install.sh --check`，全部报缺失、未加载、无数据，退出 1。
+- `install-dryrun-imac-live.txt`：`dispatch/install.sh --dry-run`，即安装会先跑的 backup.sh、会新建的路径和会执行的 `launchctl bootstrap`。
+- 这两次把 launchctl 换成了 `dispatch/tests/stubs/launchctl`（`print` 一律答「未加载」），因为这轮不允许调 launchctl。所以「未加载」那一行不是真机读数，其余各行是真实 HOME 下的读数。
+- MBA 没跑 `install.sh`（要仓库目录）。真实 HOME 下 5 个路径不存在，见 `e2e-mba/real-home-*.txt`。

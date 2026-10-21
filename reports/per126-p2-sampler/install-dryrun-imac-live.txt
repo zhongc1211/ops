@@ -1,13 +1,16 @@
+# commit 0870d83fce40cb32a4dfbfb012f707fd9633ab83；iMac 真实 HOME；launchctl 换成 dispatch/tests/stubs/launchctl（print 一律答「未加载」），没调真的 launchctl
+快照 会先跑 /Users/jiawenwang/ops-archive/per126-v5-backup-1021/imac/tools/backup.sh --label p2-sampler，并核对 /Users/jiawenwang/ops-archive/per126-v5-backup-1021/imac/install-log.tsv 多一行
 已有 /Users/jiawenwang/.local/bin/
 新建 /Users/jiawenwang/.config/dispatch/
-新建 /Users/jiawenwang/.local/state/dispatch/
-新建 /Users/jiawenwang/.local/state/dispatch/samples/
+新建 /Users/jiawenwang/.local/state/ops-v5/
+新建 /Users/jiawenwang/.local/state/ops-v5/samples/
 已有 /Users/jiawenwang/Library/LaunchAgents/
 新建 /Users/jiawenwang/.local/bin/ops-v5-sampler
 新建 /Users/jiawenwang/.local/bin/ops-v5-sample-replay
 新建 /Users/jiawenwang/Library/LaunchAgents/com.zhongc1211.ops-v5-sampler.plist
 新建 /Users/jiawenwang/.config/dispatch/sampler.env（从 dispatch/config/sampler.env.in 复制）
 加载 launchctl bootstrap gui/501 /Users/jiawenwang/Library/LaunchAgents/com.zhongc1211.ops-v5-sampler.plist
-运行后 采样器自己会建：/Users/jiawenwang/.local/state/dispatch/samples/imac/、/Users/jiawenwang/.local/state/dispatch/samples/imac/YYYY-MM-DD.jsonl
-运行后 /Users/jiawenwang/.local/state/dispatch/ops-v5-sampler.lock、ops-v5-sampler.log(.1)、ops-v5-sampler.launchd.log(.1)
-rc=0
+运行后 采样器自己会建：/Users/jiawenwang/.local/state/ops-v5/samples/imac/YYYY-MM-DD.jsonl、YYYY-MM-DD.sessions.jsonl
+运行后 /Users/jiawenwang/.local/state/ops-v5/ops-v5-sampler.lock、ops-v5-sampler.status、ops-v5-sampler.log、ops-v5-sampler.launchd.log、log-archive/
+运行后 /Users/jiawenwang/.local/state/ops-v5/install-records.tsv 追加 4 行（已装文件和 sha256）；/Users/jiawenwang/ops-archive/per126-v5-backup-1021/imac/install-log.tsv 只由 backup.sh 追加 1 行
+# rc=0
