@@ -8,6 +8,11 @@
 #   execute  change some workspaces after the dry-run, run the guard checks (W40, E10, E11, E14), then the real --execute
 #            twice (second run = E12), with an appender running on d12 (E1)
 #   post     snapshot after, compare with before, check backups
+# R6 (Zack 10-21, PER-139 R6): init builds ~/ops-drill from nothing and adds it as its own Orca repo; then with DRILL_TAG=r6
+#   r6-setup  h1-h4 workspaces (no Linear issue) + DELETE_OK review records in ~/ops-drill/reviews-r6, snapshot before
+#   r6-dry    dry-run with --no-issue-reviews (bash 3.2 and 5.3)
+#   r6-exec   one --execute per case, each --only-from holding just that drill row (checked first)
+#   r6-post   snapshot after, archive tree, MANIFEST copies and checks
 set -u
 PHASE=${1:?phase}; OUT=${2:?outdir}
 O=/Applications/Orca.app/Contents/Resources/bin/orca
@@ -20,6 +25,16 @@ WT=$R/wt$SUF; ARCH=$R/archive$SUF
 G="git -c user.name=drill -c user.email=drill@localhost"
 [ "$(hostname -s)" = iMac ] || { echo "drill: only on iMac" >&2; exit 2; }
 mkdir -p "$OUT"
+if [ "$PHASE" = init ]; then                  # R6: build ~/ops-drill from nothing and register it as its own Orca repo
+  if [ ! -d "$MAIN/.git" ]; then
+    mkdir -p "$R" && git init -q --bare "$R/origin.git" && git --git-dir="$R/origin.git" symbolic-ref HEAD refs/heads/main
+    git init -q "$MAIN" && git -C "$MAIN" symbolic-ref HEAD refs/heads/main && git -C "$MAIN" remote add origin "$R/origin.git"
+    printf 'ws-cleanup drill repo (local only)\n' > "$MAIN/README"; printf '.orca-task/\n.dev.vars\n*.local\n' > "$MAIN/.gitignore"
+    $G -C "$MAIN" add README .gitignore && $G -C "$MAIN" commit -qm init && git -C "$MAIN" push -q -u origin main || exit 1
+  fi
+  "$O" repo add --path "$MAIN" --json > "$OUT/repo-add.json" 2>&1; echo "repo add exit $?"
+  exit 0
+fi
 RID=$("$O" repo list --json | python3 -I -c 'import json,sys
 print("".join(r["id"] for r in json.load(sys.stdin)["result"]["repos"] if r["path"] == sys.argv[1]))' "$MAIN")
 [ -n "$RID" ] || { echo "drill: $MAIN is not an Orca repo (orca repo add --path $MAIN)" >&2; exit 2; }
@@ -33,6 +48,15 @@ mk() {  # mk NAME [base]: external worktree on its own branch, pushed, status co
   [ -e "$WT/$n" ] && return 0
   git -C "$MAIN" worktree add -q -b "drill$SUF/$n" "$WT/$n" "$base" && git -C "$WT/$n" push -q -u origin "drill$SUF/$n"
 }
+orca_list() {  # this repo's Orca worktrees: id, path, status, branch
+  "$O" worktree list --json | python3 -I -c 'import json, os, sys
+h = os.path.expanduser("~")
+for w in sorted(json.load(sys.stdin)["result"]["worktrees"], key=lambda w: w["path"]):
+    if w["repoId"] == sys.argv[1]: print("\t".join([w["id"].replace(h, "~"), w["path"].replace(h, "~"), w.get("workspaceStatus") or "", w.get("branch") or ""]))' "$RID"; }
+others() {    # everything outside the drill repo, as a count and a hash of the sorted ids (no names or comments in the report)
+  "$O" worktree list --json | python3 -I -c 'import hashlib, json, sys
+ids = sorted(w["id"] for w in json.load(sys.stdin)["result"]["worktrees"] if w["repoId"] != sys.argv[1])
+print("other worktrees: %d, sha256 of sorted ids: %s" % (len(ids), hashlib.sha256("\n".join(ids).encode()).hexdigest()))' "$RID"; }
 wait_listed() { local i; for i in 1 2 3 4 5 6 7 8 9 10; do "$O" worktree list --json | grep -q "\"$WT/$1\"" && return 0; sleep 1; done; echo "drill: $1 not listed" >&2; return 1; }
 
 case $PHASE in
@@ -120,6 +144,76 @@ post)
   find "$ARCH" -path "$ARCH/reports" -prune -o -type d -exec stat -f '%Sp %N' {} + | sed "s|$HOME|~|" | sort -k2 > "$OUT/archive-dirperms.txt"
   for m in $(find "$ARCH" -name MANIFEST.sha256); do (cd "$(dirname "$m")" && shasum -a 256 -c MANIFEST.sha256 > /dev/null 2>&1 && echo "OK ${m#$HOME/}" || echo "FAIL ${m#$HOME/}"); done > "$OUT/manifest-check.txt"
   ls -la "$WT/d11-locked/.dev.vars" 2> /dev/null | awk '{print $1, $NF}' | sed "s|$HOME|~|" > "$OUT/d11-devvars-still-there.txt"
+  ;;
+# ---- R6 (DRILL_TAG=r6): no Linear issue + DELETE_OK review record (h1), HEAD changed after the dry-run (h2),
+#      gh failing at --execute time (h3), workspace changed between backup and rm (h4). One --execute per case.
+r6-setup)
+  [ "$SUF" = -r6 ] || { echo "drill: r6 phases need DRILL_TAG=r6" >&2; exit 2; }
+  mkdir -p "$WT"
+  "$O" repo set --repo "id:$RID" --external-worktree-visibility show --json > /dev/null
+  for n in h1-review-ok h2-late-head h3-gh-fail h4-after-backup; do
+    mk $n; mkdir -p "$WT/$n/.orca-task"; echo "drill brief $n" > "$WT/$n/.orca-task/BRIEF.md"
+    wait_listed $n && status $n completed
+  done
+  # review records, as the R4 ones: PATH / HEAD / VERDICT
+  DN=$("$O" repo list --json | python3 -I -c 'import json, re, sys
+r = [r for r in json.load(sys.stdin)["result"]["repos"] if r["id"] == sys.argv[1]][0]
+print(re.sub(r"[^\w.\-]+", "_", r.get("displayName") or r["id"]).strip("_") or "_")' "$RID")
+  mkdir -p "$R/reviews-r6/$DN"
+  for n in h1-review-ok h2-late-head h3-gh-fail h4-after-backup; do
+    printf '# 演练审查记录：%s\n\n演练工作区，只在 ~/ops-drill 里。\n\nPATH: %s\nHEAD: %s\nVERDICT: DELETE_OK\n' \
+      "$n" "$WT/$n" "$(git -C "$WT/$n" rev-parse HEAD)" > "$R/reviews-r6/$DN/$n.md"
+  done
+  cp -R "$R/reviews-r6" "$OUT/reviews-r6"
+  orca_list > "$OUT/before-orca-worktree-list.tsv"; others > "$OUT/before-others.txt"
+  git -C "$MAIN" worktree list --porcelain | sed "s|$HOME|~|" > "$OUT/before-git-worktrees.txt"
+  ;;
+r6-dry)
+  run dry-bash3.2 /bin/bash "$SCRIPT" --repo "$RID" --no-issue-reviews "$R/reviews-r6" --out "$OUT/dry-bash3.2"
+  run dry-bash5.3 /usr/local/bin/bash "$SCRIPT" --repo "$RID" --no-issue-reviews "$R/reviews-r6" --out "$OUT/dry-bash5.3"
+  ;;
+r6-exec)
+  [ -s "$OUT/dry-bash3.2/worktrees.tsv" ] || { echo "drill: no dry-run list" >&2; exit 2; }
+  pick() {  # pick CASE: that one row of the dry-run list, refused unless every row is a drill worktree of this repo
+    python3 -I - "$OUT/dry-bash3.2/worktrees.tsv" "$RID" "$WT" "$1" "$OUT/list-$1.tsv" <<'EOF' || exit 2
+import csv, sys
+src, rid, wt, case, dst = sys.argv[1:]
+rows = list(csv.reader(open(src), delimiter="\t")); h = rows[0]; I, P = h.index("id"), h.index("path")
+keep = [r for r in rows[1:] if r[P] == wt + "/" + case]
+bad = [r for r in keep if not (r[I] == rid + "::" + r[P] and r[P].startswith(wt + "/"))]
+if len(keep) != 1 or bad: sys.exit("drill: list for %s is not exactly one drill row" % case)
+csv.writer(open(dst, "w"), delimiter="\t", lineterminator="\n").writerows([h] + keep)
+print("list-%s.tsv: 1 row, %s %s" % (case, keep[0][h.index("verdict")], keep[0][h.index("rule")]))
+EOF
+  }
+  X() { local name=$1 case=$2; shift 2; pick "$case" > "$OUT/$name.listcheck"; cat "$OUT/$name.listcheck"
+        run "$name" "$@" /bin/bash "$SCRIPT" --execute --repo "$RID" --no-issue-reviews "$R/reviews-r6" --only-from "$OUT/list-$case.tsv" --out "$OUT/$name"; }
+  # case 1: nothing changed → backed up (with NO-ISSUE-REVIEW.md) and removed
+  X c1-execute h1-review-ok env
+  # case 2: a commit after the dry-run → skipped at the recheck, no backup, no rm
+  echo late > "$WT/h2-late-head/late.txt"; $G -C "$WT/h2-late-head" add late.txt; $G -C "$WT/h2-late-head" commit -qm late
+  X c2-execute h2-late-head env
+  # case 4: a commit between the backup and the rm (hook honoured only with WS_ORCA set; it is the real orca here)
+  printf '#!/bin/bash\n# drill case 4: change the workspace after its backup\necho after-backup > "$1/after-backup.txt"\n%s -C "$1" add after-backup.txt && %s -C "$1" commit -qm after-backup\n' "$G" "$G" > "$OUT/hook-c4.sh"
+  chmod +x "$OUT/hook-c4.sh"
+  X c4-execute h4-after-backup env WS_ORCA="$O" WS_AFTER_BACKUP_HOOK="$OUT/hook-c4.sh"
+  # case 3: give the drill repo a GitHub remote (never fetched, never contacted: the gh below fails) so the recheck asks gh
+  git -C "$MAIN" remote get-url github > /dev/null 2>&1 || git -C "$MAIN" remote add github https://github.com/zhongc1211/ops-drill-no-such-repo.git
+  printf '#!/bin/bash\n# drill case 3a: passes the startup check, every PR query fails\n[ "$1 $2" = "auth status" ] && exit 0\necho "drill: gh always fails" >&2; exit 1\n' > "$OUT/gh-fail-a.sh"
+  printf '#!/bin/bash\n# drill case 3b: everything fails, auth status too\necho "drill: gh always fails" >&2; exit 1\n' > "$OUT/gh-fail-b.sh"
+  chmod +x "$OUT/gh-fail-a.sh" "$OUT/gh-fail-b.sh"
+  X c3a-execute h3-gh-fail env WS_GH="$OUT/gh-fail-a.sh"
+  X c3b-execute h3-gh-fail env WS_GH="$OUT/gh-fail-b.sh"
+  ;;
+r6-post)
+  orca_list > "$OUT/after-orca-worktree-list.tsv"; others > "$OUT/after-others.txt"
+  git -C "$MAIN" worktree list --porcelain | sed "s|$HOME|~|" > "$OUT/after-git-worktrees.txt"
+  find "$ARCH" | sed "s|^$HOME|~|" | sort > "$OUT/archive-tree.txt"
+  mkdir -p "$OUT/manifests"
+  for m in $(find "$ARCH" -name MANIFEST.sha256); do d=$(dirname "$m"); n=$(basename "$d")
+    cp "$m" "$OUT/manifests/$n.MANIFEST.sha256"
+    (cd "$d" && shasum -a 256 -c MANIFEST.sha256 > /dev/null 2>&1 && echo "OK ${m#$HOME/}" || echo "FAIL ${m#$HOME/}"); done > "$OUT/manifest-check.txt"
+  for n in h2-late-head h3-gh-fail h4-after-backup; do printf '%s\t%s\t%s\n' "$n" "$([ -d "$WT/$n" ] && echo 目录在 || echo 目录不在)" "$(git -C "$WT/$n" log -1 --format='%h %s' 2>&1)"; done > "$OUT/left-workspaces.txt"
   ;;
 *) echo "drill: unknown phase $PHASE" >&2; exit 2 ;;
 esac

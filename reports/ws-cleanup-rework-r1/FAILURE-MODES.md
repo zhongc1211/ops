@@ -184,3 +184,51 @@
 P10 的处理：分支名和 sha 两路查到的 open PR，如果本地有它目标分支的远端分支、而且那个分支已经包含 HEAD，就不算。本地没有目标分支的照样算。
 
 P2 改过一次：第二次真实 dry-run 时，心月-CI-CD-第二阶段 因为 sha 搜索查到了已合并、目标分支是 staging 的 PR #88（它的 head 包含 aa526b5），W17 通过，从 SKIP W17 变成了 BACKUP_RM。这次派活是安全修复，不该多放行，所以改成：分支名和 sha 两路查到的 PR 只用来挡（W9），不当作 W17 的已合并证据。要不要放开，等 Zack 定。
+
+补充（R6，dr eggbot 10-21 11:10 审查必改 1）：`--execute` 原来的顺序是复查 → `do_backup`（大工作区要几分钟）→ 直接 `orca worktree rm`。备份期间工作区如果被动了，rm 照样执行，会停掉新开的终端，删掉本地分支和没推送的提交。
+改法：BACKUP_RM 的工作区在备份成功后、rm 之前，再跑一次 `collect()` + `safe_eval`，并把结论、规则、备份清单、HEAD、未提交数、未推送数、Linear 和状态、Orca 状态、lastActivityAt、终端数、agent 和这次动手前的复查结果逐项比较。有一项变了就不 rm，备份留着，result 和 journal 写原因。
+RM（不备份）的工作区在复查和 rm 之间没有耗时步骤，不再复查一次。
+测试和演练用 `WS_AFTER_BACKUP_HOOK`（只在设了 WS_ORCA 时认）：备份成功后，以工作区路径为参数调用它，等它返回后再复查。
+
+| # | 失败方式 | 用例 | 期望 |
+|---|---|---|---|
+| S1 | 备份期间有了新提交（HEAD 变了、出现未推送提交），照样 rm，本地分支和提交一起丢 | x_pb_commit（钩子里提交一次） | 「已备份到 …；跳过：备份后复查有变化（…），没 rm，备份留着」；没有 rm 调用；备份目录还在；journal 有 recheck 行 |
+| S2 | 备份期间出现未提交改动，照样 rm | x_pb_dirty（钩子里新建一个未跟踪文件） | 同 S1，原因含 W7 |
+| S3 | 备份期间开了终端，rm 会把它停掉 | x_pb_term（钩子里往 term.json 加一个这个工作区的终端） | 同 S1，原因含 W6 或终端数 |
+| S4 | 备份期间 agent 进了工作区 | x_pb_agent（钩子里在 wps.json 给它加 agent） | 同 S1，原因含 W5 |
+| S5 | 备份期间只是 lastActivityAt 变了（结论没变），被当成没变化 | x_pb_act（钩子里把 lastActivityAt 加 1 毫秒） | 同 S1，原因含 lastActivityAt |
+| S6 | 备份期间 Linear 被重新打开 | x_pb_lin（OKZ-1 在钩子里改成 started） | 同 S1，原因含 W10 |
+| S7 | 复查本身失败（collect 抛错），被当成没变化，照样 rm | 由 except 分支兜住：异常发生在 rm 之前，记 ERROR，不 rm | 不 rm（代码路径，没有单独用例） |
+| S8 | 备份后什么都没变，却因为复查拿到不同的派生值（如 idle_h、备份大小）误判有变化，正常的 BACKUP_RM 全部不删 | x_bk、x_rev_ok（钩子什么都不做） | 照旧「已备份到 …；已 rm」 |
+| S9 | 复查跳过时把备份删了或挪了，事后找不回 | S1–S6 | 备份目录和 MANIFEST 还在原处 |
+
+建议项顺手做的（审查建议 2、3、5、6）：
+
+| # | 失败方式 | 用例 | 期望 |
+|---|---|---|---|
+| S10 | `gh pr list --limit 100` 正好拿到 100 条，可能被截断，却当作查全了 | 假 gh 对 `--head br/c_pr100` 返回 100 条已合并 PR | SKIP W9「PR 查不到（… 拿到 100 条，可能被截断）」 |
+| S11 | 主仓库路径不在，`remotes` 返回 []，`prs_for` 当作「没有 PR」放行 | 代码改成抛 QueryFail；目前没有能走到这里的假 orca 数据，没加用例 | SKIP W9「PR 查不到（主仓库路径不在）」 |
+| S12 | `WS_LOCK` 设错，指向一个别的目录，结束时 rmtree 删了它 | `WS_LOCK` 指向已有、里面有别的文件的目录：拿锁失败，退出码 6，目录原样 | 不删 |
+
+## R6 addendum（Zack 11:15）：W17 只认 main
+
+改之前先写的失败方式。W17 原来把「工作区自己的 PR 已合并、合进哪个 base 都算」当作放行证据，run1 因此删了 site #60、#61、#75 和 xinyue-site #89 的工作区（都合进 staging）。
+
+| # | 失败方式 | 用例 | 期望 |
+|---|---|---|---|
+| T1 | 自己分支的 PR 合进 staging，HEAD 只在 staging 上，W17 照样放行 | c_stg_own：PR #77 MERGED，base staging，head 就是 HEAD；HEAD 只在 origin/staging | SKIP W17 |
+| T2 | 自己分支的 PR 合进 staging，HEAD 在 PR head 的祖先里，W17 照样放行 | c_stg_anc：PR #78 MERGED，base staging，head 包含 HEAD | SKIP W17 |
+| T3 | 合进 staging 的 PR 的 base 被加进「目标分支」，HEAD 在 origin/staging 上就放行 | 同 T1、T2（`bases` 只剩主分支） | SKIP W17 |
+| T4 | 改严以后连合进 main 的 PR 也不认了（squash 合并时 HEAD 不在 main 上） | c_main_squash：PR #79 MERGED，base main，head 就是 HEAD，HEAD 不在 origin/main | 过 W17，merged_via 是「PR #79 的 head」 |
+| T5 | PR 的 baseRefName 缺失时被当作主分支 | 代码：缺 base 的 PR 不算 | 不放行（代码路径） |
+| T6 | 按字面把「HEAD 在自己已推送的分支上」当作已合并：没合并只推送过的工作区也能删，比原来更松 | 不实现；c_stg_own 的 HEAD 在 origin/br/c_stg_own 上，仍要 SKIP W17 | SKIP W17，写进 RESULT 等 Zack 定 |
+
+## R6 真 Orca 演练（`ws-cleanup-drill.sh` 的 r6-* 阶段）
+
+| # | 失败方式 | 演练用例 | 期望 |
+|---|---|---|---|
+| H1 | 没挂 Linear、审查 DELETE_OK、HEAD 对得上的工作区，真 Orca 下备份里没有审查记录，或者根本没 rm | h1-review-ok | 已备份再 rm；MANIFEST 里有 NO-ISSUE-REVIEW.md，校验通过 |
+| H2 | dry-run 之后 HEAD 变了，真 Orca 下照样 rm | h2-late-head（dry-run 后提交一次） | 跳过，没备份，没 rm，工作区还在 |
+| H3 | `--execute` 时 gh 查询失败，被当成「没有 PR」放行 | h3-gh-fail：仓库加一个 GitHub remote；3a 的 gh 只让 `auth status` 过；3b 的 gh 全失败 | 3a：SKIP W9「PR 查不到」，没 rm；3b：退出码 5，什么都不动 |
+| H4 | 备份和 rm 之间工作区被改，真 Orca 下照样 rm | h4-after-backup（钩子在备份后提交一次） | 「已备份到 …；跳过：备份后复查有变化」，没 rm，备份留着 |
+| H5 | `--only-from` 里混进别的仓库或演练目录外的行 | 每次 execute 前检查名单只有这一行演练工作区 | 检查不过就不执行 |

@@ -4,14 +4,15 @@
 # Orca 工作区 / 终端夜间清理（纯脚本，不起模型）。规则：reports/ws-cleanup-dryrun-1021/RESULT.md、.orca-task/RULES-DRAFT.md
 # （Zack 10-21 01:43 定），按独立评审 PER-139 返工（reports/ws-cleanup-rework-r1/）。**默认 dry-run**：只读，写出 worktrees.tsv、
 # terminals.tsv、backup-files.tsv（会备份的被忽略文件逐个列出）、summary.md。只有 --execute 才会备份、`orca worktree rm`（不加 --force）；--execute 必须带 --only-from 一份 dry-run
-# 名单，只处理名单里、重新判定后结论和备份清单都没变的工作区；终端默认不关，要再加 --close-terminals（也只关名单里的）。
+# 名单，只处理名单里、重新判定后结论和备份清单都没变的工作区；BACKUP_RM 的备份成功后、rm 前再复查一次，有变化就不 rm、备份留着（R6）；
+# 终端默认不关，要再加 --close-terminals（也只关名单里的）。
 #   工作区从上往下判，第一条命中的就是结论：W1 main/bare → W2 本任务所在 → W3 别的机器 → W5 agent 在跑 → W6 终端有活进程 / 还开着
 #   → W18 GIT_LOCKED：这个 worktree 自己的 gitdir 里有 index.lock、没做完的 merge / rebase / am / cherry-pick / revert / bisect，或被 git worktree lock（Zack 10-21 07:34）
 #   → 目录已不在：W4 看 git 记录的 HEAD（不在远端、也没有别的 ref 包含 → SKIP） / 目录在：W7 未提交 → W8 未推送
 #   → W9 open PR（按工作区分支名和 linkedPR 查；HEAD 不在远端主分支上时，再按包含它的远端分支名、HEAD sha 查，R5：fork 上换了分支名的 PR；查不到当作开着）→ W19 NO_LINEAR_ISSUE 没挂 Linear issue（Zack 10-21 08:44：PR 已合并、HEAD 在主分支都不能代替；
 #     10-21 09:18：带 --no-issue-reviews DIR 时，DIR/<repo>/<工作区目录名>.md 里 PATH 是它、VERDICT: DELETE_OK、HEAD 和现在一致才放行，
 #     放行的照样走后面每一条规则，最后一律 BACKUP_RM，备份里带上这份记录）→ W10 Linear 未关（Zack 03:37：真删前每次实时查，查不到、超时、找不到 issue 都不删）→ W11 Orca 状态不是 completed
-#   → W12 近 IDLE_H 小时有活动 → W17 HEAD 不在已合并的 PR / 远端主分支或合并目标分支上
+#   → W12 近 IDLE_H 小时有活动 → W17 HEAD 不在合进主分支的 PR / 远端主分支上（staging 等其他 base 不算，Zack 10-21 11:15）
 #   （Zack 10-21 03:33：Linear Done、状态 completed 都只是前提，安全核对一项不过就不删）
 #   → W13 被忽略的文件：可重建的以外一律先备份（有嵌套 .git、非普通文件 → SKIP） → W14 rm（目录已不在的是 W4 rm）。
 #   W16：git 里有、Orca 里没有的 worktree，只列出。
@@ -26,7 +27,8 @@
 #   5 环境不对（gh、diagnostics、ps、worktree ps 有查不到的，--execute 什么都不做）；6 另一个 --execute 正在跑。
 # 演练用：WS_ORCA、WS_GH（命令路径，设了但不存在就退出 / 当作没有 gh）、WS_PS_FILE（ps 输出文件）、WS_NOW（epoch 秒）、
 #   WS_HOST（只在设了 WS_ORCA 时认）、WS_SELF（本任务工作区）、WS_SELF_TERM（本终端 handle）、WS_ARCHIVE（备份根目录，默认 ~/ops-archive/ws-cleanup）、
-#   WS_LOCK（锁目录）、WS_IDLE_H / WS_TERM_IDLE_H（默认 24）、WS_AGENT_SIB_IDLE_H（默认 12）、WS_LSOF（lsof 路径）、WS_NO_DU=1（不算磁盘）、WS_PAUSE_FILE（只在设了 WS_ORCA 时认：判定后、动手前等这个文件出现）。
+#   WS_LOCK（锁目录）、WS_IDLE_H / WS_TERM_IDLE_H（默认 24）、WS_AGENT_SIB_IDLE_H（默认 12）、WS_LSOF（lsof 路径）、WS_NO_DU=1（不算磁盘）、WS_PAUSE_FILE（只在设了 WS_ORCA 时认：判定后、动手前等这个文件出现）、
+#   WS_AFTER_BACKUP_HOOK（只在设了 WS_ORCA 时认：备份成功后、复查前以工作区路径调用它）。
 set -u
 PY=$(command -v python3 || echo /usr/bin/python3)
 exec "$PY" -I - "$@" <<'PYEOF'
@@ -217,8 +219,11 @@ def gh_json(args, what):
     if not GH: raise QueryFail("找不到 gh")
     r = run([GH, *args], timeout=120)
     if r.returncode != 0: return None, r.stderr
-    try: return json.loads(r.stdout), ""
+    try: out = json.loads(r.stdout)
     except ValueError: raise QueryFail(what + "（JSON 读不出）")
+    if "--limit" in args and isinstance(out, list) and len(out) >= int(args[args.index("--limit") + 1]):
+        raise QueryFail("%s 拿到 %d 条，可能被截断" % (what, len(out)))   # 审查建议 2：正好满额当作查不到
+    return out, ""
 
 def linear_state(key, d):
     team = key.split("-")[0]
@@ -253,7 +258,7 @@ def prs_for(w, ctx, head):
     HEAD 不在远端主分支上时，再按包含 HEAD 的每个远端分支名查（PR 的 headRepositoryOwner 要是那个 remote 的 owner），
     并按 HEAD sha 搜 PR；这两路查到的 open PR，目标分支已经包含 HEAD 的不算（GitHub 按 sha 搜会搜到这种）。
     这两路查到的 PR 带 _extra：只用来挡（W9），不当作 W17 的已合并证据。"""
-    if ctx["remotes"] is None: raise QueryFail("git remote")
+    if ctx["remotes"] is None: raise QueryFail("git remote（主仓库路径不在或查不到）")
     repos = list(ctx["remotes"])
     pj = w.get("projectId") or ""
     if pj.startswith("github:"): repos = [pj[7:]] + [r for r in repos if r != pj[7:]]
@@ -481,7 +486,7 @@ def evaluate(w, d, ctx):
     ctx["idle_h"] = (NOW - act) / 3600
     if ctx["idle_h"] < IDLE_H: return "SKIP", "W12", "最近 %g 小时内有活动" % IDLE_H, ev
     how = head_merged(gitdir, head, prs, ctx)
-    if not how: return "SKIP", "W17", "HEAD %s 不在已合并的 PR / 远端主分支上" % head[:7], ev
+    if not how: return "SKIP", "W17", "HEAD %s 不在合进主分支的 PR / 远端主分支上（staging 等不算）" % head[:7], ev
     ev["merged_via"] = how
     if gone:
         how = "HEAD %s 已在远端" % head[:7] if ev["unpushed"] == "0" else "HEAD %s 被 %s 包含" % (head[:7], ev["_refs"][0])
@@ -500,13 +505,15 @@ def evaluate(w, d, ctx):
     return "RM", "W14", "条件全部满足", ev
 
 def head_merged(gitdir, head, prs, ctx):
-    """HEAD 已经进了哪里：已合并 PR 的 head（或它的祖先），或者远端的主分支 / 已合并 PR 的目标分支。都不在返回 None。"""
+    """HEAD 已经进了哪里：合进主分支的已合并 PR 的 head（或它的祖先），或者远端的主分支。都不在返回 None。
+    Zack 10-21 11:15：合进 staging 等主分支以外 base 的 PR 不算合并。"""
     anc = lambda ref: run(["git", "-C", gitdir, "merge-base", "--is-ancestor", head, ref]).returncode == 0
-    merged = [p for p in prs if p["state"] == "MERGED" and not p.get("_extra")]   # R5 新查法查到的只用来挡，不用来放行
+    bases = ctx["main_branches"]
+    merged = [p for p in prs if p["state"] == "MERGED" and not p.get("_extra")   # R5 新查法查到的只用来挡，不用来放行
+              and p.get("baseRefName") in bases]
     for p in merged:
         if p.get("headRefOid") == head: return "PR #%s 的 head" % p["number"]
         if p.get("headRefOid") and anc(p["headRefOid"]): return "PR #%s 的 head 包含" % p["number"]
-    bases = ctx["main_branches"] | {p.get("baseRefName") for p in merged if p.get("baseRefName")}
     try: refs = git(gitdir, "for-each-ref", "refs/remotes", "--format=%(refname:short)").split()
     except QueryFail: return None
     for ref in sorted(refs):
@@ -518,7 +525,7 @@ def make_ctx(w, d):
     base = d["mains"].get(w["repoId"]) or rp.get("path")
     return {"terms": d["by_wt"].get(w["id"], []), "branch": (w.get("branch") or "").replace("refs/heads/", ""),
             "main_branches": d["main_branches"].get(w["repoId"], set()) | {"main", "master"}, "main": base,
-            "remotes": remotes(base) if base and os.path.exists(base) else [], "idle_h": None}
+            "remotes": remotes(base) if base and os.path.exists(base) else None, "idle_h": None}   # 审查建议 3：主仓库不在是查不到，不是没有 PR
 
 def safe_eval(w, d):
     ctx = make_ctx(w, d)
@@ -775,6 +782,12 @@ def execute(rows, trows, journal):
                 journal("backup", r["id"], "0" if ok else "1", msg)
                 if not ok: r["result"] = "BACKUP_FAIL：" + msg; fails += 1; continue
                 r["result"] = "已备份到 " + msg
+                after_backup_hook(w)
+                why = recheck_after_backup(w, fresh, v2, rule2, ev2)   # R6：备份要几分钟，这期间工作区被动了就不 rm
+                if why:
+                    r["result"] += "；跳过：备份后复查有变化（%s），没 rm，备份留着" % why
+                    journal("recheck", r["id"], "1", why); continue
+                journal("recheck", r["id"], "0", "没变化")
             journal("rm-start", r["id"], "", "")
             p = run([ORCA, "worktree", "rm", "--worktree", "id:" + w["id"], "--json"], timeout=300)
             journal("rm-end", r["id"], str(p.returncode), (p.stdout or p.stderr).strip()[:300])
@@ -807,6 +820,30 @@ def execute(rows, trows, journal):
             r["result"] = "ERROR：%s" % type(e).__name__; journal("error", r["handle"], "", r["result"]); fails += 1
     return fails
 
+def fingerprint(w, d, v, rule, ev):
+    """备份前后要一样的东西。"""
+    wp = (d["wps"] or {}).get(w["id"]) if d["wps"] is not None else None
+    return {"结论": "%s %s" % (v, rule), "备份清单": clean(ev.get("backup", "")), "HEAD": ev.get("head", ""), "未提交": ev.get("dirty", ""),
+            "未推送": ev.get("unpushed", ""), "Linear": ev.get("linear", ""), "Orca 状态": w.get("workspaceStatus") or "",
+            "lastActivityAt": str(w.get("lastActivityAt")), "终端数": str(len(d["by_wt"].get(w["id"], []))),
+            "agent": "查不到" if wp is None and d["wps"] is None else str(bool((wp or {}).get("agents")))}
+
+def recheck_after_backup(w, d, v, rule, ev):
+    """备份成功后、rm 之前再取一次实时数据重新判定；返回变了什么（空串表示没变）。"""
+    fresh = collect()
+    w2 = fresh["wt_by_id"].get(w["id"])
+    if not w2: return "Orca 里已经没有这个工作区"
+    v2, rule2, why2, ev2, _ = safe_eval(w2, fresh)
+    a, b = fingerprint(w, d, v, rule, ev), fingerprint(w2, fresh, v2, rule2, ev2)
+    diff = ["%s %s→%s" % (k, a[k] or "空", b[k] or "空") for k in a if a[k] != b[k]]
+    if diff and v2 != v: diff.append(why2)
+    return "；".join(diff)[:300]
+
+def after_backup_hook(w):
+    """演练 / 测试用：备份成功后、复查之前调用 WS_AFTER_BACKUP_HOOK <工作区路径>（只在设了 WS_ORCA 时认）。"""
+    h = ENV.get("WS_AFTER_BACKUP_HOOK") if TEST else None
+    if h: run([h, w["path"]], timeout=120)
+
 def orca_err(p):
     """orca --json 失败时的 error.message；不是 JSON 就用最后一行输出。"""
     try: e = json.loads(p.stdout).get("error") or {}
@@ -829,6 +866,7 @@ def take_lock():
                 except ProcessLookupError: alive = False
                 except PermissionError: pass
             if alive: die("另一个 --execute 正在跑（锁 %s，pid %s），这次什么都不做" % (LOCK, pid), 6)
+            if sorted(os.listdir(LOCK)) != ["pid"]: die("锁目录 %s 里除了 pid 还有别的东西，不删，这次什么都不做" % LOCK, 6)
             shutil.rmtree(LOCK)               # 锁里的 pid 已经不在：上次异常退出留下的
     die("拿不到锁 %s" % LOCK, 6)
 
@@ -913,7 +951,7 @@ def main():
     except Exception as e:
         note = "中途出错：%s %s（已做的见 journal.tsv）" % (type(e).__name__, str(e)[:200]); fails += 1
     finally:
-        if locked: shutil.rmtree(LOCK, ignore_errors=True)
+        if locked and os.path.isdir(LOCK) and sorted(os.listdir(LOCK)) == ["pid"]: shutil.rmtree(LOCK, ignore_errors=True)   # 审查建议 6
         wc, tc = WCOLS + (["result"] if EXECUTE else []), TCOLS + (["result"] if EXECUTE else [])
         write_tsv(os.path.join(OUT, "worktrees.tsv"), wc, rows)
         write_tsv(os.path.join(OUT, "terminals.tsv"), tc, trows)

@@ -1,7 +1,7 @@
 #!/bin/bash
 # ws-cleanup-test.sh: run scripts/ws-cleanup.sh against fake orca / gh / ps data plus real throwaway git repos under mktemp -d.
 # One case per failure mode in reports/ws-cleanup-dryrun-1021/RESULT.md (A1-A34) and reports/ws-cleanup-rework-r1/FAILURE-MODES.md
-# (B1-B29, E1-E19, G1-G11, M1-M5, N1-N8, R1-R13, P1-P10). Uses test doubles, so it is not an E2E test; the E2E is the real dry-run on iMac / MBA.
+# (B1-B29, E1-E19, G1-G11, M1-M5, N1-N8, R1-R13, P1-P10, S1-S12, T1-T4). Uses test doubles, so it is not an E2E test; the E2E is the real dry-run on iMac / MBA.
 # The --execute cases run only against the fake orca in the temp dir: guard_fake() refuses to start one otherwise.
 # WS_CLEANUP=<path> runs another implementation (an older version or an empty stub must fail).
 S=${WS_CLEANUP:-$(cd "$(dirname "$0")/.." && pwd)/ws-cleanup.sh}
@@ -34,7 +34,7 @@ for c in c_self c_remote_host c_agent c_agent_noid c_proc c_diag_missing c_dirty
          c_linked_open_pr c_linear_open c_linear_fail c_not_done c_merged_inreview c_recent c_backup c_backup_evidence \
          c_nested c_cache_only c_termhost c_termhost2 git_only c_testresults c_report c_tgz c_mixed_dir c_nested_git c_fifo \
          c_moved_open c_old_open_pr c_linked_dup c_sleep_cap c_ps_agent c_build c_gone_ownbranch \
-         c_head_unmerged c_linear_done_unmerged c_head_pr_merged; do add "$c" "br/$c"; done
+         c_head_unmerged c_linear_done_unmerged c_head_pr_merged c_stg_own c_stg_anc c_main_squash; do add "$c" "br/$c"; done
 git -C "$P" worktree add -q -b br/zh "$T/wt/c_中文 空格" main 2>/dev/null
 git -C "$T/repos/ops" worktree add -q -b br/ops_common "$T/wt/c_ops_common" origin/main 2>/dev/null
 git -C "$T/repos/ops" worktree add -q -b br/gh_fail "$T/wt/c_gh_fail" origin/main 2>/dev/null
@@ -44,10 +44,12 @@ printf 'y\n' >"$T/wt/c_zero_recent_commit/y"; git -C "$T/wt/c_zero_recent_commit
 GIT_COMMITTER_DATE="@$((NOW-3600))" git -C "$T/wt/c_zero_recent_commit" commit -qm recent --date "@$((NOW-3600))"
 git -C "$T/wt/c_zero_recent_commit" push -q origin br/c_zero_recent_commit 2>/dev/null
 # W17 cases: a pushed commit on the branch only (not in main); c_head_pr_merged's HEAD is a merged PR's head
-for c in c_head_unmerged c_linear_done_unmerged c_head_pr_merged; do
+for c in c_head_unmerged c_linear_done_unmerged c_head_pr_merged c_stg_own c_stg_anc c_main_squash; do
   printf '%s\n' "$c" >"$T/wt/$c/f"; git -C "$T/wt/$c" add f; git -C "$T/wt/$c" commit -qm "$c"
   git -C "$T/wt/$c" push -q origin "br/$c" 2>/dev/null; done
 MERGED_SHA=$(git -C "$T/wt/c_head_pr_merged" rev-parse HEAD)
+# T cases (Zack 10-21 11:15): a PR merged into staging is not a merge; c_stg_anc's PR head is a later commit on top of HEAD
+STG_ANC_PR=$(git -C "$T/wt/c_stg_anc" commit-tree -p HEAD -m later "HEAD^{tree}")
 git -C "$P" fetch -q "$T/origin.git" '+refs/heads/*:refs/remotes/origin/*'
 printf 'changed\n' >>"$T/wt/c_dirty/README"
 printf 'new\n' >"$T/wt/c_untracked/new.txt"
@@ -90,7 +92,7 @@ git -C "$P" worktree add -q --detach "$T/wt/c_nolin_gone" main 2>/dev/null; rm -
 git -C "$P" remote add fork https://github.com/me/proj.git; git -C "$P" remote add local "$T/origin.git"
 fork(){ printf '%s\n' "$1" >"$T/wt/$1/f"; git -C "$T/wt/$1" add f; git -C "$T/wt/$1" commit -qm "$1"
   git -C "$P" update-ref "refs/remotes/$2" "$(git -C "$T/wt/$1" rev-parse HEAD)"; }
-for c in c_fork_open c_fork_merged c_fork_fail c_sha_fail c_sha_open c_fork_owner c_local_only c_sha_base; do add "$c" "br/$c"; done
+for c in c_fork_open c_fork_merged c_fork_fail c_sha_fail c_sha_open c_fork_owner c_local_only c_sha_base c_pr100; do add "$c" "br/$c"; done
 fork c_fork_open fork/feat-open; fork c_fork_merged fork/feat-merged; fork c_fork_fail fork/feat-fail; fork c_sha_fail fork/feat-shafail
 fork c_sha_open fork/feat-sha; fork c_fork_owner fork/feat-own; fork c_local_only local/feat-loc
 fork c_sha_base upstream/staging   # P10: already in upstream's staging, which an open PR targets
@@ -106,9 +108,10 @@ printf 'o\n' >"$T/wt/c_gone_ownbranch/o"; git -C "$T/wt/c_gone_ownbranch" add o;
 rm -rf "$T/wt/c_gone_pushed" "$T/wt/c_gone_local" "$T/wt/c_gone_ownbranch"
 # execute project x: one worktree per --execute case
 for c in x_ok x_bk x_sha x_rmfail x_e8a_noperm x_e8b_after x_late x_late2 x_late3 x_late4 x_late5 x_notlisted x_listchanged x_lin_fail x_lin_gone \
-         x_late_lock x_late_nolin x_rev_ok x_rev_moved x_rev_stale_rec x_q01 x_q02 x_q03 x_q04 x_q05 x_q06 x_q07 x_q08 x_q09 x_q10 x_term x_term2 x_term3; do
+         x_late_lock x_late_nolin x_rev_ok x_rev_moved x_rev_stale_rec x_pb_commit x_pb_dirty x_pb_term x_pb_agent x_pb_act x_pb_lin x_q01 x_q02 x_q03 x_q04 x_q05 x_q06 x_q07 x_q08 x_q09 x_q10 x_term x_term2 x_term3; do
   git -C "$X" worktree add -q -b "br/$c" "$T/wt/$c" origin/main 2>/dev/null; done
 mkdir -p "$T/wt/x_bk/.orca-task"; printf 'brief\n' >"$T/wt/x_bk/.orca-task/BRIEF.md"
+for c in x_pb_commit x_pb_dirty x_pb_term x_pb_agent x_pb_act x_pb_lin; do mkdir -p "$T/wt/$c/.orca-task"; printf 'brief\n' >"$T/wt/$c/.orca-task/BRIEF.md"; done   # S1-S6
 printf 'API_TOKEN=%s\n' "$SECRET" >"$T/wt/x_bk/.dev.vars"
 mkdir -p "$T/wt/x_sha/.orca-task"; dd if=/dev/zero of="$T/wt/x_sha/.orca-task/grow.log" bs=1048576 count=32 2>/dev/null
 mkdir -p "$T/wt/x_rmfail/.orca-task"; printf 'b\n' >"$T/wt/x_rmfail/.orca-task/BRIEF.md"
@@ -147,18 +150,20 @@ W = [w(f"{T}/repos/proj", br="main", main=True, status="in-progress"),
      w(wt("c_moved_open"), proj="github:zz/moved"), w(wt("c_old_open_pr")), w(wt("c_linked_dup"), pr=50, proj="github:zz/proj"),
      w(wt("c_sleep_cap"), status="Sleep", lin="PER-2"), w(wt("c_ps_agent")), w(wt("c_build")),
      w(wt("c_gone_pushed"), br=""), w(wt("c_gone_local"), br=""), w(wt("c_gone_ownbranch")),
-     w(wt("c_head_unmerged")), w(wt("c_linear_done_unmerged"), lin="PER-2"), w(wt("c_head_pr_merged"))]
+     w(wt("c_head_unmerged")), w(wt("c_linear_done_unmerged"), lin="PER-2"), w(wt("c_head_pr_merged")),
+     w(wt("c_stg_own")), w(wt("c_stg_anc")), w(wt("c_main_squash"))]
 W += [w(wt(c)) for c in ("c_lk_index", "c_lk_merge", "c_lk_rebase", "c_lk_am", "c_lk_cherry", "c_lk_bisect", "c_lk_wtlock")]
 W += [w(wt("c_lk_gone"), br=""),
       w(wt("c_email"), name="bob.smith@example.com", comment="Bob.Smith@example.com ops-admin@corp.example.org pkg@1.2.3 node@20"),
       w(wt("c_email_long"), comment="x" * 50 + " admin.person@example.com")]
 XS = ["x_ok", "x_bk", "x_sha", "x_rmfail", "x_e8a_noperm", "x_e8b_after", "x_late", "x_late2", "x_late3", "x_late4", "x_late5",
-      "x_notlisted", "x_listchanged", "x_lin_fail", "x_lin_gone", "x_late_lock", "x_late_nolin", "x_rev_ok", "x_rev_moved", "x_rev_stale_rec"] + ["x_q%02d" % i for i in range(1, 11)] + ["x_term", "x_term2", "x_term3"]
-W += [w(wt(c), repo=RX, lin={"x_late5": "XXX-1", "x_lin_fail": "YYY-1", "x_lin_gone": "XXX-2"}.get(c, None if c.startswith("x_rev_") else "")) for c in XS]
+      "x_notlisted", "x_listchanged", "x_lin_fail", "x_lin_gone", "x_late_lock", "x_late_nolin", "x_rev_ok", "x_rev_moved", "x_rev_stale_rec",
+      "x_pb_commit", "x_pb_dirty", "x_pb_term", "x_pb_agent", "x_pb_act", "x_pb_lin"] + ["x_q%02d" % i for i in range(1, 11)] + ["x_term", "x_term2", "x_term3"]
+W += [w(wt(c), repo=RX, lin={"x_late5": "XXX-1", "x_lin_fail": "YYY-1", "x_lin_gone": "XXX-2", "x_pb_lin": "OKZ-1"}.get(c, None if c.startswith("x_rev_") else "")) for c in XS]
 W += [w(wt("c_rev_inreview"), lin=None, status="in-review"), w(wt("c_rev_bad"), lin=None), w(wt("c_rev_wrongpath"), lin=None)]
 W += [w(wt("c_nolin"), lin=None), w(wt("c_nolin_pr"), lin=None), w(wt("c_nolin_backup"), lin=None), w(wt("c_nolin_blank"), lin="  "),
       w(wt("c_nolin_gone"), br="", lin=None)]
-W += [w(wt(c)) for c in ("c_fork_open", "c_fork_merged", "c_fork_fail", "c_sha_fail", "c_sha_open", "c_fork_owner", "c_local_only", "c_sha_base")]
+W += [w(wt(c)) for c in ("c_fork_open", "c_fork_merged", "c_fork_fail", "c_sha_fail", "c_sha_open", "c_fork_owner", "c_local_only", "c_sha_base", "c_pr100")]
 W += [w(wt("c_fork_gone"), br="")]
 json.dump({"result": {"worktrees": W}}, open(F + "/wt.json", "w"), ensure_ascii=False)
 # terminals: (handle, case, pid or None, connected, orphaned, agent, tab, children comm list, screen or None, lastOutputAt)
@@ -211,6 +216,7 @@ json.dump({"result": {"issues": [st("PER-1", "started"), st("PER-2", "completed"
 json.dump({"result": {"issues": [st("XXX-1", "completed"), st("XXX-2", "completed")]}}, open(F + "/lin-XXX.json", "w"))
 json.dump({"result": {"issues": [st("YYY-1", "completed")]}}, open(F + "/lin-YYY.json", "w"))
 json.dump({"result": {"issues": [st("OKX-1", "completed")]}}, open(F + "/lin-OKX.json", "w"))
+json.dump({"result": {"issues": [st("OKZ-1", "completed")]}}, open(F + "/lin-OKZ.json", "w"))
 pr = lambda num, s, br, owner="zz": {"number": num, "state": s, "headRefName": br, "headRepositoryOwner": {"login": owner},
                                     "headRefOid": "0" * 40, "baseRefName": "main"}
 # newest first, like gh; a list call without --head only sees the newest one (stands in for the --limit cut-off)
@@ -241,6 +247,17 @@ json.dump(up, open(F + "/pr-up__proj.json", "w"))
 json.dump([], open(F + "/pr-me__proj.json", "w"))
 PY
 touch "$F/fail-gh-head-feat-fail" "$F/fail-gh-search-$(hd c_sha_fail)"
+git -C "$P" update-ref refs/remotes/origin/staging "$(hd c_stg_own)"   # T1: HEAD is in origin/staging (that is where #77 went)
+python3 -I - "$F" "$(hd c_stg_own)" "$STG_ANC_PR" "$(hd c_main_squash)" <<'PY'
+import json, sys
+F, OWN, ANC, SQ = sys.argv[1:]
+pr = lambda num, br, oid, base: {"number": num, "state": "MERGED", "headRefName": br, "headRepositoryOwner": {"login": "zz"}, "headRefOid": oid, "baseRefName": base}
+zz = json.load(open(F + "/pr-zz__proj.json"))
+zz += [pr(77, "br/c_stg_own", OWN, "staging"),      # T1
+       pr(78, "br/c_stg_anc", ANC, "staging"),      # T2
+       pr(79, "br/c_main_squash", SQ, "main")]      # T4: squash-merged into main, so HEAD itself is not in origin/main
+json.dump(zz, open(F + "/pr-zz__proj.json", "w"))
+PY
 json_repos='{"result":{"repos":[{"id":"r-proj","displayName":"proj","path":"'"$P"'","kind":"git"},{"id":"r-ops","displayName":"ops","path":"'"$T"'/repos/ops","kind":"git"},{"id":"r-nogh","displayName":"nogh","path":"'"$T"'/repos/ops","kind":"git"},{"id":"r-x","displayName":"x/proj","path":"'"$X"'","kind":"git"}]}}'
 printf '%s' "$json_repos" >"$F/repos.json"
 
@@ -289,6 +306,9 @@ if a[:2] == ["pr", "list"]:
     h, q = opt("--head"), opt("--search")
     if os.path.exists("%s/fail-gh-%s" % (F, "head-" + h if h else "search-" + str(q))): print("HTTP 502", file=sys.stderr); sys.exit(1)
     if q: print(json.dumps([p for p in prs if p["headRefOid"] == q or q in p.get("commits", [])])); sys.exit(0)
+    if h == "br/c_pr100":                 # S10: exactly --limit results
+        print(json.dumps([{"number": 1000 + i, "state": "MERGED", "headRefName": h, "headRepositoryOwner": {"login": "zz"}, "headRefOid": "0" * 40,
+                           "baseRefName": "main"} for i in range(100)])); sys.exit(0)
     print(json.dumps([p for p in prs if p["headRefName"] == h] if h else prs[:1])); sys.exit(0)
 if a[:2] == ["pr", "view"]:
     hit = [p for p in prs if str(p["number"]) == a[2]]
@@ -426,16 +446,22 @@ pv c_fork_fail P3 SKIP/W9 "^PR 查不到（gh pr list .* --head feat-fail）"
 pv c_sha_fail P4 SKIP/W9 "^PR 查不到（gh pr list .* --search "
 pv c_sha_open P5 SKIP/W9 "^PR 还开着|.*#72 OPEN"
 check "P6 HEAD on origin/main: c_cache_only still RM/W14, #73 not on it, no --search for the main sha" '[ "$(col "$WT" c_cache_only action)/$(col "$WT" c_cache_only rule)" = RM/W14 ] && ! col "$WT" c_cache_only pr | grep -q "#73" && ! grep -q -- "--search $MAIN_SHA" "$F/gh-calls.log"'
-pv c_fork_owner P7 SKIP/W17 "不在已合并"
+pv c_fork_owner P7 SKIP/W17 "不在合进主分支"
 check "P7 c_fork_owner: stranger's #74 on the same branch name is not counted" '! col "$WT" c_fork_owner pr | grep -q "#74"'
 pv c_fork_gone P8 SKIP/W9 "^PR 还开着|.*#75 OPEN"
-pv c_local_only P9 SKIP/W17 "不在已合并"
-pv c_sha_base P10 SKIP/W17 "不在已合并"
+pv c_local_only P9 SKIP/W17 "不在合进主分支"
+pv c_sha_base P10 SKIP/W17 "不在合进主分支"
+pv c_pr100 S10 SKIP/W9 "^PR 查不到（gh pr list .* 拿到 100 条，可能被截断）"
 check "P10 c_sha_base: open #76 targets staging, which already has HEAD, so it is not counted" '! col "$WT" c_sha_base pr | grep -q "#76" && grep -q -- "--search $(hd c_sha_base)" "$F/gh-calls.log"'
 check "P9 branches of a non-GitHub remote are not looked up by name" '! grep -q -- "--head feat-loc" "$F/gh-calls.log"'
 expect c_linear_done_unmerged B35 SKIP/W17
 expect c_head_pr_merged B36 RM/W14
 check "B36 c_head_pr_merged merged_via names PR #61" 'col "$WT" c_head_pr_merged merged_via | grep -q "PR #61 的 head"' 
+pv c_stg_own T1 SKIP/W17 "staging 等不算"
+check "T1 c_stg_own: #77 (merged into staging) is seen, HEAD is in origin/staging and its own pushed branch, still no merged_via" 'col "$WT" c_stg_own pr | grep -q "#77 MERGED" && [ -z "$(col "$WT" c_stg_own merged_via)" ]'
+pv c_stg_anc T2 SKIP/W17 "staging 等不算"
+expect c_main_squash T4 RM/W14
+check "T4 c_main_squash merged_via names PR #79" 'col "$WT" c_main_squash merged_via | grep -q "PR #79 的 head"' 
 check "B1 c_gone_local reason names the commit $GONE_SHA" 'col "$WT" c_gone_local reason | grep -q "$GONE_SHA"'
 check "B3 c_gone_pushed reason says the git worktree record goes too" 'col "$WT" c_gone_pushed reason | grep -q "git worktree 记录"'
 check "B5 c_testresults backup lists test-results" '[ "$(col "$WT" c_testresults backup)" = "test-results" ]'
@@ -503,6 +529,8 @@ check "B28 WS_REBUILD_DIRS=node_modules -> c_cache_only must back up dist (BACKU
 rc=$(WS_ARCHIVE=$T/archive2 "$B" "$S" >"$T/log" 2>&1; echo $?)
 check "B26 default output goes under the archive root, not the ops workspace" '[ "$rc" = 0 ] && ls "$T/archive2/reports"/ws-cleanup-*/summary.md >/dev/null 2>&1'
 
+# permission bits: BSD stat on macOS, GNU stat elsewhere (GNU `stat -f` means --file-system and does not fail)
+mode(){ if [ "$(uname)" = Darwin ]; then stat -f %Lp "$1"; else stat -c %a "$1"; fi; }
 # ---------------- --execute against the fake orca (project x only) ----------------
 guard_fake
 XD=$T/xd; rc=$(run "$XD" --repo r-x --no-issue-reviews "$RV")
@@ -524,10 +552,39 @@ json.dump(d, open(sys.argv[1], "w"))
 PY
 SH
 chmod +x "$F/on-rm.sh"
+cat >"$F/after-backup.sh" <<SH
+#!/bin/bash
+# S1-S6: change the workspace between its backup and the rm
+case "\$(basename "\$1")" in
+x_pb_commit) printf 'c\\n' >"\$1/pb"; git -C "\$1" add pb; git -C "\$1" commit -qm after-backup;;
+x_pb_dirty) printf 'd\\n' >"\$1/new.txt";;
+x_pb_term|x_pb_agent|x_pb_act|x_pb_lin) python3 -I "$F/after-backup.py" "$F" "\$1";;
+esac
+SH
+cat >"$F/after-backup.py" <<'PYH'
+import json, os, sys
+F, p = sys.argv[1:]; c = os.path.basename(p)
+if c == "x_pb_term":
+    t = json.load(open(F + "/term.json"))
+    t["result"]["terminals"].append({"handle": "t_pb", "worktreeId": "r-x::" + p, "worktreePath": p, "ptyId": "pty-t_pb", "connected": True,
+                                     "orphaned": False, "agentIdentity": None, "tabId": "tab-pb", "title": "t_pb", "lastOutputAt": None})
+    json.dump(t, open(F + "/term.json", "w"))
+if c == "x_pb_agent":
+    d = json.load(open(F + "/wps.json"))
+    next(x for x in d["result"]["worktrees"] if x["worktreeId"] == "r-x::" + p)["agents"] = [{"agentType": "claude", "state": "working"}]
+    json.dump(d, open(F + "/wps.json", "w"))
+if c == "x_pb_act":
+    d = json.load(open(F + "/wt.json"))
+    next(x for x in d["result"]["worktrees"] if x["path"] == p)["lastActivityAt"] += 1
+    json.dump(d, open(F + "/wt.json", "w"))
+if c == "x_pb_lin":
+    json.dump({"result": {"issues": [{"identifier": "OKZ-1", "state": {"type": "started", "name": "started"}}]}}, open(F + "/lin-OKZ.json", "w"))
+PYH
+chmod +x "$F/after-backup.sh"
 touch "$F/fail-stream-t_x_arcfail"
 ( while :; do echo grow >>"$T/wt/x_sha/.orca-task/grow.log"; sleep 0.01; done ) & APPENDER=$!
 : >"$F/orca-calls.log"
-XE=$T/xe; ( WS_PAUSE_FILE=$T/go "$B" "$S" --execute --only-from "$XD/worktrees.tsv" --close-terminals --repo r-x --no-issue-reviews "$RV" --out "$XE" >"$T/xlog" 2>&1; echo $? >"$T/xrc" ) &
+XE=$T/xe; ( WS_PAUSE_FILE=$T/go WS_AFTER_BACKUP_HOOK=$F/after-backup.sh "$B" "$S" --execute --only-from "$XD/worktrees.tsv" --close-terminals --repo r-x --no-issue-reviews "$RV" --out "$XE" >"$T/xlog" 2>&1; echo $? >"$T/xrc" ) &
 XPID=$!
 for _ in $(seq 1 600); do [ -f "$T/go.ready" ] && break; sleep 0.1; done
 check "E4 execute stops at the pause point" '[ -f "$T/go.ready" ]'
@@ -563,7 +620,7 @@ check "E2 exit code 3 (x_rmfail failed)" '[ "$xrc" = 3 ]'
 check "E0 x_ok removed" '[ "$(res x_ok)" = "已 rm" ]'
 check "E3 x_bk backed up then removed" 'res x_bk | grep -q "^已备份到 .*；已 rm$"'
 BK=$(ls -d "$T/archive"/*/x_proj/x_bk 2>/dev/null | head -1)
-check "E3 backup dir 700, .dev.vars 600, MANIFEST present (L4: repo name x/proj -> x_proj)" '[ -n "$BK" ] && [ "$(stat -f %Lp "$BK" 2>/dev/null || stat -c %a "$BK")" = 700 ] && [ "$(stat -f %Lp "$BK/.dev.vars" 2>/dev/null || stat -c %a "$BK/.dev.vars")" = 600 ] && [ -s "$BK/MANIFEST.sha256" ]'
+check "E3 backup dir 700, .dev.vars 600, MANIFEST present (L4: repo name x/proj -> x_proj)" '[ -n "$BK" ] && [ "$(mode "$BK")" = 700 ] && [ "$(mode "$BK/.dev.vars")" = 600 ] && [ -s "$BK/MANIFEST.sha256" ]'
 check "E3/L3 original .dev.vars left in place" '[ -f "$T/wt/x_bk/.dev.vars" ] && [ -f "$T/wt/x_rmfail/.dev.vars" ]'
 check "E1 x_sha: BACKUP_FAIL on sha mismatch and no rm call" 'res x_sha | grep -q "^BACKUP_FAIL：sha 对不上" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q "/x_sha"'
 check "E2 x_rmfail: failure text recorded, rm called exactly once, never --force" 'res x_rmfail | grep -q "rm 失败（不重试、不加 --force）：error: worktree is locked" && [ "$(grep "worktree rm" "$F/orca-calls.log" | grep -c "/x_rmfail")" = 1 ] && ! grep -q -- "--force" "$F/orca-calls.log"'
@@ -580,9 +637,17 @@ check "G10 x_late_lock locked after the dry-run: skipped as W18, no backup, no r
 check "N6 x_late_nolin: Linear unlinked after the dry-run -> skipped as W19, no rm" '[ "$(col "$XD/worktrees.tsv" x_late_nolin verdict)" = RM ] && res x_late_nolin | grep -q "跳过：重新判定变成 SKIP W19（NO_LINEAR_ISSUE" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_late_nolin'
 check "R9 x_rev_moved: HEAD moved after the dry-run -> skipped as W19, no backup, no rm" 'res x_rev_moved | grep -q "^跳过：重新判定变成 SKIP W19（NO_LINEAR_ISSUE：记录里的 HEAD" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_rev_moved && ! grep -q "x_rev_moved" "$XE/journal.tsv"'
 check "R10 x_rev_stale_rec: record changed after the dry-run -> skipped as W19, no rm" 'res x_rev_stale_rec | grep -q "^跳过：重新判定变成 SKIP W19（NO_LINEAR_ISSUE：记录里的 HEAD ${MERGED_SHA:0:7}" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_rev_stale_rec'
-mode(){ stat -f %Lp "$1" 2>/dev/null || stat -c %a "$1"; }
 RB=$(ls -d "$T/archive"/*/x_proj/x_rev_ok 2>/dev/null | head -1)
 check "R11 x_rev_ok backed up with NO-ISSUE-REVIEW.md (600, in MANIFEST, same bytes) and removed" 'res x_rev_ok | grep -q "^已备份到 .*；已 rm$" && [ -n "$RB" ] && [ "$(mode "$RB/NO-ISSUE-REVIEW.md")" = 600 ] && grep -q "  NO-ISSUE-REVIEW.md$" "$RB/MANIFEST.sha256" && cmp -s "$RB/NO-ISSUE-REVIEW.md" "$RV/x_proj/x_rev_ok.md"'
+pb(){ RBK=$(ls -d "$T/archive"/*/x_proj/$1 2>/dev/null | head -1); check "$2 $1: changed after its backup -> not removed, backup kept, journal says why (got: $(res $1))" \
+  'res '"$1"' | grep -q "^已备份到 .*；跳过：备份后复查有变化（.*'"$3"'.*），没 rm，备份留着$" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q "/'"$1"' " && [ -s "'"$RBK"'/MANIFEST.sha256" ] && grep "recheck	r-x::.*/'"$1"'	1	" "$XE/journal.tsv" | grep -q "'"$3"'"'; }
+pb x_pb_commit S1 "HEAD "
+pb x_pb_dirty S2 "未提交 0→1"
+pb x_pb_term S3 "终端数 0→1"
+pb x_pb_agent S4 "agent False→True"
+pb x_pb_act S5 "lastActivityAt "
+pb x_pb_lin S6 "Linear OKZ-1 completed→"
+check "S8 x_bk / x_rev_ok: nothing changed after the backup -> recheck 0, removed" 'grep -q "recheck	r-x::.*/x_bk	0	没变化" "$XE/journal.tsv" && grep -q "recheck	r-x::.*/x_rev_ok	0	没变化" "$XE/journal.tsv" && res x_bk | grep -q "；已 rm$"'
 check "M4 journal / execute output: orca's email masked" '! grep -rqE "$EM" "$XE" "$T/xlog" && grep -qF "o***@example.com" "$XE/journal.tsv"'
 check "E14 x_notlisted (not in --only-from) untouched" '[ "$(res x_notlisted)" = "没动：不在 --only-from 名单里" ] && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_notlisted'
 check "E15 x_listchanged: backup list changed -> skipped" 'res x_listchanged | grep -q "^跳过：" && ! grep "worktree rm" "$F/orca-calls.log" | grep -q /x_listchanged'
@@ -614,6 +679,10 @@ check "E11 lock held by a live pid -> exit 6, nothing removed" '[ "$rc" = 6 ] &&
 echo 999999 >"$T/archive/.lock/pid"
 rc=$(run "$T/xe5" --execute --only-from "$XD/worktrees.tsv" --repo r-x)
 check "E11 stale lock (dead pid) is taken over and the run goes on" '[ "$rc" = 3 ] || [ "$rc" = 0 ]; [ -s "$T/xe5/worktrees.tsv" ] && grep -q "worktree rm" "$F/orca-calls.log" && [ ! -e "$T/archive/.lock" ]'
+mkdir -p "$T/archive/.lock"; echo 999999 >"$T/archive/.lock/pid"; echo keep >"$T/archive/.lock/keep"; : >"$F/orca-calls.log"
+rc=$(run "$T/xe11" --execute --only-from "$XD/worktrees.tsv" --repo r-x)
+check "S12 stale lock dir holding more than pid -> exit 6, not deleted, nothing removed" '[ "$rc" = 6 ] && [ -f "$T/archive/.lock/keep" ] && ! grep -q "worktree rm" "$F/orca-calls.log"'
+rm -rf "$T/archive/.lock"
 python3 -I -c 'import sys; L=open(sys.argv[1]).read().splitlines(); rm=[l for l in L if "\tRM\t" in l][0]; open(sys.argv[2],"w").write("\n".join(L+[rm.replace("r-x::","r-proj::",1)])+"\n")' "$XD/worktrees.tsv" "$T/outside.tsv"
 cp "$XD/terminals.tsv" "$T/terminals.tsv"; : >"$F/orca-calls.log"
 rc=$(run "$T/xe10" --execute --only-from "$T/outside.tsv" --repo r-x)
