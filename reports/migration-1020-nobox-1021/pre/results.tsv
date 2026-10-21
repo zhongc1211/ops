@@ -1,0 +1,66 @@
+X0	PASS	drill	两台机器上，闸门（按它自己的 PATH 行）和同步脚本先找到的 ssh 都是演练的记录用 ssh	[ "$iw" = "$T/bin/ssh" ] && [ "$iw2" = "$T/bin/ssh" ] && [ "$mw" = "$RT/bin/ssh" ] && [ "$mw2" = "$RT/bin/ssh" ] && grep -qF "$GPATH" $S/night-review-gate.sh 
+L1	PASS	kept	锁被占时第二个 acquire 退出 1，status 显示持有者	[ $rc -eq 1 ] && $HL status | grep -q name=night-review-vllm-omni 
+L2	PASS	kept	8 个并发 acquire 恰好 1 个拿到	[ $(cat $T/l2/rc* | grep -c "^0$") -eq 1 ] 
+L3a	PASS	kept	超过 40 分钟的锁被收回	[ $rc -eq 0 ] && $HL status | grep -q name=fresh-job 
+L3b	PASS	kept	39 分钟的锁不收回	[ $rc -eq 1 ] && $HL status | grep -q name=fresh-job 
+L4a	PASS	kept	名字不对的 release 退出 1，锁还在	[ $rc -eq 1 ] && $HL status | grep -q name=fresh-job 
+L5	PASS	kept	refresh 后重新计时	[ $(( $(date +%s) - $($HL status | sed -n "s/.*since=\([0-9]*\).*/\1/p") )) -lt 60 ] 
+L4b	PASS	kept	本人 release 后锁空	[ -f $HEAVY_LOCK_DIR.log ] && ! $HL status 
+D1a	PASS	kept	00:30 往回 13 小时 = 昨天	[ "$(rd 2026-10-21T00:30:00 13)" = 2026-10-20 ] 
+D1b	PASS	kept	23:40 往回 6 小时 = 当天	[ "$(rd 2026-10-20T23:40:00 6)" = 2026-10-20 ] 
+D1c	PASS	kept	跨月、跨年、闰年	[ "$(rd 2026-11-01T01:20:00 13)" = 2026-10-31 ] && [ "$(rd 2027-01-01T00:55:00 13)" = 2026-12-31 ] && [ "$(rd 2028-03-01T00:30:00 13)" = 2028-02-29 ] 
+D1d	PASS	kept	next：闰年、跨年	[ "$(/bin/bash $S/review-date.sh next 2028-02-28)" = 2028-02-29 ] && [ "$(/bin/bash $S/review-date.sh next 2026-12-31)" = 2027-01-01 ] 
+D2	PASS	kept	MBA / iMac 提示词不含 date -d，日期用 review-date.sh	! grep -l "date -d" $PR/*/night-review-*.md && [ $(grep -l "review-date.sh ago" $PR/*/night-review-*.md | wc -l) -eq 8 ] 
+D3a	PASS	kept	4 个夜审提示词里算 D 的命令在 MBA /bin/bash 3.2 上实跑出日期	d3 $RT/ops mba 
+D3b	PASS	kept	同样的命令在 iMac（没有 gdate）实跑出日期	d3 $OPS imac 
+M2a	PASS	kept	源主机连不上：退出 3，SYNC-STATUS=failed	[ $rc -eq 3 ] && grep -q "^failed reach" $T/m2/dst/vllm-omni/2026-10-19/SYNC-STATUS 
+M2b	PASS	kept	源主机（MBA）上没有这天：退出 3，SYNC-STATUS=failed	[ $rc -eq 3 ] && grep -q "^failed" $T/m2/dst/vllm-omni/2001-01-01/SYNC-STATUS 
+M5a	FAIL	new	iMac 上 SYNC_SRC_HOST=local：同步成功，SYNC-STATUS=ok，3 个 transcript 都是本机可读副本	[ $rc -eq 0 ] && python3 -I $PK/synced-ok.py $T/m5a/vllm-omni/2099-01-20 
+M5b	FAIL	new	iMac 上 SYNC_SRC_HOST=imac（本机名）：不 ssh 自己，同步成功	[ $rc -eq 0 ] && [ $s1 -eq $s0 ] && python3 -I $PK/synced-ok.py $T/m5b/vllm-omni/2099-01-20 
+M6	PASS	kept	MBA 从 iMac 上的清单同步（ssh imac，只读）：成功，transcript 都是 MBA 本机可读副本	[ $rc -eq 0 ] && sm "python3 -I $RT/synced-ok.py $RT/m6/vllm-omni/2099-01-20" 
+W1a	PASS	kept	MBA 离线：看守退出 1、写接替标记 reason=offline	[ $rc -eq 1 ] && istat $D takeover | grep -q reason=offline 
+W1b	PASS	kept	iMac 备用拿 iMac 锁放行	[ $rc -eq 0 ] && istat $D | tail -1 | grep -q "state=started machine=imac reason=offline" && HEAVY_LOCK_DIR=$T/lock $HL status | grep -q name=night-review-vllm-omni 
+W1c	PASS	kept	收尾经 notify-run：拷进存放目录、记 done、放锁，ops-system 收到 1 条 done，task 含 machine=imac reason=offline	[ $rc -eq 0 ] && istat $D | grep -q "state=done machine=imac reason=offline" && ! HEAVY_LOCK_DIR=$T/lock $HL status && [ $(hooks $T/hooks.jsonl ops-system "machine=imac reason=offline" "\"status\": \"done\"" $D) -eq 1 ] && grep -q 状态 $T/store/$D-vllm-omni.md 
+W2a	PASS	kept	用电池：MBA 主预检退出 1，记 missed reason=asleep	[ $rc -eq 1 ] && mstat $D | tail -1 | grep -q "state=missed machine=mba reason=asleep detail=on_battery" 
+W2b	PASS	kept	看守（iMac 经 ssh 读 MBA）判 asleep	istat $D takeover | grep -q reason=asleep 
+W2c	PASS	kept	合盖、没禁睡、没外接屏：主预检退出 1，reason=asleep detail=lid_closed	[ $rc -eq 1 ] && mstat $D | tail -1 | grep -q "reason=asleep detail=lid_closed" 
+W2d	PASS	kept	MBA 能连上但当晚预检没跑：看守判 asleep	istat $D takeover | grep -q reason=asleep 
+W2e	PASS	kept	合盖但接电源、SleepDisabled=1：主预检放行，记 started	[ $rc -eq 0 ] && mstat $D | tail -1 | grep -q "state=started machine=mba reason=ok" 
+K1a	PASS	kept	主预检起了 caffeinate（MBA 上按 pid 看进程名）	[ -n "$cpid" ] && sm "ps -o pid,ppid,rss,etime,comm -p $cpid" | grep caffeinate 
+S1	PASS	kept	主预检先同步清单再拿锁（同步调用记录有 vllm-omni 2099-01-04 mba）	sm "cat $RT/sync-calls" | grep -q "vllm-omni $D mba" 
+W8a	PASS	kept	补跑触发时当晚已 started：退出 1，不记 lock_busy	[ $rc -eq 1 ] && [ "$(mstat $D | tail -1 | grep -c lock_busy)" = 0 ] 
+W8b	PASS	kept	MBA 在跑（started < 60 分钟）：看守不写接替标记	! istat $D takeover >/dev/null && istat $D | tail -1 | grep -q state=seen_running 
+W8c	PASS	kept	补跑在 MBA 时间 +25 分钟以后不起（交给 iMac）	[ $rc -eq 1 ] && ! mstat $D | grep -q started 
+W8d	PASS	kept	MBA 时间 +30 分钟以前 iMac 备用不接替	[ $rc -eq 1 ] && ! istat $D takeover >/dev/null 
+W3a	PASS	kept	MBA 锁被占：主预检记 lock_busy	[ $rc -eq 1 ] && mstat $D | tail -1 | grep -q "reason=lock_busy detail=vllm-upstream" 
+W3b	PASS	kept	看守判 lock_busy 并交给 iMac	istat $D takeover | grep -q reason=lock_busy 
+W4	PASS	kept	iMac 锁被占超过 60 分钟：ops-system 收到 1 条 stuck reason=lock_busy，只 1 条	[ $rc -eq 1 ] && [ $(hooks $T/hooks.jsonl ops-system "\"status\": \"stuck\"" lock_busy $D) -eq 1 ] 
+N5	FAIL	new	这条 stuck 写 machine=imac，提示按 iMac 备用接替，不提 box	stuck_imac $T/hooks.jsonl $D lock_busy 
+W5	PASS	kept	存放目录已有完成摘要：MBA 主预检退出 1	[ $rc -eq 1 ] && mstat $D | tail -1 | grep -q already_done 
+W6	PASS	kept	存放目录已有完成摘要：iMac 备用预检退出 1，不拿锁	[ $rc -eq 1 ] && ! HEAVY_LOCK_DIR=$T/lock $HL status 
+W7a	PASS	kept	box-watch（保留，没有任务用；这里在 MBA 上跑）：iMac 接替在跑时不发	[ $(hooks $T/mba-hooks.jsonl ops-system $D) -eq 0 ] && mstat $D | grep -q seen_imac_running 
+W7b	PASS	kept	box-watch：没人完成时 ops-system 收到 1 条 stuck reason=imac_missed，只 1 条	[ $rc -eq 1 ] && [ $(hooks $T/mba-hooks.jsonl ops-system "\"status\": \"stuck\"" imac_missed $D2) -eq 1 ] 
+N7	FAIL	new	box-watch 的 stuck 写 machine=imac，提示按 iMac 备用接替，不提 box	stuck_imac $T/mba-hooks.jsonl $D2 imac_missed 
+F1	PASS	kept	摘要没有「状态：完成」：finish 退出 3，放锁	[ $rc -eq 3 ] && ! gm "$HM status" 
+F2	PASS	kept	拷不到存放主机：finish 退出 4，记 rsync_failed，放锁	[ $rc -eq 4 ] && mstat $D | tail -1 | grep -q detail=rsync_failed && ! gm "$HM status" 
+K1b	PASS	kept	防睡任务起 caffeinate 后退出 1（不起模型）	[ $rc -eq 1 ] && [ -n "$kp" ] && sm "ps -o pid,ppid,rss,etime,comm -p $kp" | grep caffeinate 
+N4	FAIL	new	NR_STORE_HOST=local、NR_STORE_DIR 生效（NR_BOX_HOST 指向连不上的主机）：收尾拷到 NR_STORE_DIR 退出 0；同晚备用按新位置看到完成，退出 1、不拿锁	[ $rc -eq 0 ] && grep -q 状态 $T/store-n4/$D-vllm-omni.md && [ $rc2 -eq 1 ] && ! HEAVY_LOCK_DIR=$T/lock $HL status 
+N9	FAIL	new	iMac 上 NR_STORE_HOST=imac（本机名）：收尾走本地拷贝，这一步没有 ssh，退出 0、放锁	[ $rc -eq 0 ] && grep -q 状态 $T/store-n9/$D-vllm-omni.md && [ $s1 -eq $s0 ] && ! HEAVY_LOCK_DIR=$T/lock $HL status 
+W0	FAIL	new	存放位置设成 iMac（README「切换到 iMac 存放」）：MBA 主跑、收尾经 ssh 拷到 iMac，iMac 看守 seen_done，备用退出 1、不拿锁，ops-system 收到 MBA 的 done	[ $rc0 -eq 0 ] && [ $rc1 -eq 0 ] && grep -q 状态 $T/store-w0/$D-vllm-omni.md && [ -f $T/store-w0/$D-vllm-omni-ledger.jsonl ] && mstat $D | tail -1 | grep -q "state=done machine=mba reason=ok" && istat $D | tail -1 | grep -q state=seen_done && [ $rc2 -eq 1 ] && [ ! -f $T/state/vllm-omni/$D.takeover ] && ! HEAVY_LOCK_DIR=$T/lock $HL status && [ $(hooks $T/mba-hooks.jsonl ops-system "machine=mba reason=ok" "\"status\": \"done\"" $D) -eq 1 ] 
+N8	FAIL	new	什么都不设时，发给存放主机 box（这里是不联网的 fake-ssh）的 mkdir / tar 和 grep 里是字面 ~/xinyue-deploy/nightly-review/	[ $rc -eq 0 ] && python3 -I -c " import json,sys c=[json.loads(l) for l in open(sys.argv[1])]; print(c) assert {x[\"kind\"] for x in c}=={\"tar\",\"grep\"} and all(x[\"host\"]==\"box\" and x[\"path\"].startswith(\"~/xinyue-deploy/nightly-review\") for x in c)" $N8/ssh.jsonl 
+R1a	PASS	kept	register 默认 dry-run：mba / imac / box 各跑一次，orca 调用 0 次	[ ! -e $T/orca-calls ] 
+R1b	PASS	kept	MBA 9 条、iMac 10 条 create，每条都带 --missed-run-grace-minutes 120 和 --disabled	for m in mba:9 imac:10; do f=$T/register-${m%%:*}.out; c=$(grep -c "^orca automations create" $f); [ $c -eq ${m#*:} ] && [ $(grep "^orca automations create" $f | grep -- "--missed-run-grace-minutes 120" | grep -c -- "--disabled") -eq $c ] || exit 1; done 
+N1	FAIL	new	defs.json 里没有 box：rg 没有输出，没有 box-watch、/workspace/repos/ops，edit 为空	rgbox 
+N2	FAIL	new	register.sh box 退出 2：stderr 一行说明，stdout 为空，不调用 orca	[ "$(cat $T/register-box.rc)" = 2 ] && [ ! -s $T/register-box.out ] && [ $(wc -l < $T/register-box.err) -eq 1 ] && [ ! -e $T/orca-calls ] 
+N3	FAIL	new	register.sh mba / imac 打印的任务名和 defs.json 里这台的一致，合起来是 defs.json 的全部 create	names; r=$?; cat $T/register-names.txt; [ $r -eq 0 ] 
+P1a	PASS	kept	MBA / iMac 提示词不含 /workspace/repos、/var/lib/everos-ingest、load>8、coding-assistant	! grep -El "/workspace/repos|/var/lib/everos-ingest|load *> *8|coding-assistant" $PR/*/*.md 
+P1b	PASS	kept	8 个夜审提示词都有 caffeinate、heavy-lock refresh、SYNC-STATUS、finish、状态：完成、首行运行环境	for f in $PR/*/night-review-*.md; do grep -q "caffeinate -dimsu -w" $f && grep -q "heavy-lock.sh refresh" $f && grep -q SYNC-STATUS $f && grep -q "night-review-gate.sh finish" $f && grep -q "状态：完成" $f && head -1 $f | grep -q "运行环境：" || exit 1; done 
+P1c	PASS	kept	make-prompts.py --check：提交的提示词和生成结果一致	python3 -I $RMIG/make-prompts.py --check > $T/make-prompts-check.txt 2>&1; rc=$?; echo "rc=$rc" >> $T/make-prompts-check.txt; cat $T/make-prompts-check.txt; [ $rc -eq 0 ] 
+P1d	PASS	kept	iMac 接替提示词写明读回去重；MBA 版没有	[ $(grep -l "接替运行" $PR/imac/night-review-*.md | wc -l) -eq 4 ] && ! grep -l "接替运行" $PR/mba/*.md 
+N6	FAIL	new	提示词和 noop 里没有 box 兜底（拷回 box、box 上 01:00 的兜底、Linear 连不上改用 box、box-watch）；8 个夜审收尾都写存放位置 NR_STORE_HOST	! grep -l -e "拷回 box" -e "01:00 的兜底" -e "改用 \`ssh box" $PR/*/*.md $PR/noop.prompt.md && ! grep -q box-watch $PR/noop.prompt.md && [ $(grep -l NR_STORE_HOST $PR/*/night-review-*.md | wc -l) -eq 8 ] 
+G1a	SKIP	post	新旧 night-review-gate.sh 在什么都不设时判定一致	only on post: it compares base with this checkout
+G1b	SKIP	post	只设旧变量名 NR_BOX_HOST / NR_BOX_DIR 时判定一致	only on post: it compares base with this checkout
+K1c	PASS	drill	MBA 主预检和防睡任务起的 caffeinate 到时自己退出	[ -n "$cpid" ] && [ -n "$kp" ] && ! sm "ps -o pid,ppid,rss,etime,comm -p $cpid" | grep -q caffeinate && ! sm "ps -o pid,ppid,rss,etime,comm -p $kp" | grep -q caffeinate 
+X1	PASS	drill	两台机器的 ssh 记录里没有 box（名字或地址），没有被拒的调用；确有 iMac→MBA、MBA→iMac 的记录（闸门和同步确实经过它）	spycheck "$BA_I $BA_M" $T/ssh-spy-imac.log $T/ssh-spy-mba.log && grep -q " pass mba " $T/ssh-spy-imac.log && grep -q " pass imac " $T/ssh-spy-mba.log 
+X2	PASS	drill	演练文件里没有结束进程的命令；两台机器的假 webhook 看到停止文件后自己退出	nosignal $E/run-e2e.sh $E/gate-equivalence.py $E/ssh-spy $E/fake-ssh.py $E/mock_webhook.py && [ $mrc -eq 0 ] && ! ps -o pid,ppid,rss,etime,comm -p $MOCK | grep -qi python && ! sm "ps -o pid,ppid,rss,etime,comm -p $mpid" | grep -qi python 
+W7c	PASS	drill	两台机器的叫醒只到 127.0.0.1 上的假 webhook：ops-system 各至少 1 条，coding-assistant 0 条，KEY 都是假的那个	[ $(hooks $T/hooks.jsonl ops-system) -ge 1 ] && [ $(hooks $T/mba-hooks.jsonl ops-system) -ge 1 ] && [ $(hooks $T/hooks.jsonl coding-assistant) -eq 0 ] && [ $(hooks $T/mba-hooks.jsonl coding-assistant) -eq 0 ] && ! grep -q "\"auth_ok\": false" $T/hooks.jsonl $T/mba-hooks.jsonl 

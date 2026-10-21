@@ -1,0 +1,293 @@
++ mba: /bin/bash -c 'export PATH=/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH; command -v ssh'
+/tmp/b2a-e2e-20261022-005434-pre-95502/bin/ssh
++ mba: /bin/bash -c 'command -v ssh'
+/tmp/b2a-e2e-20261022-005434-pre-95502/bin/ssh
+== X0: [ "$iw" = "$T/bin/ssh" ] && [ "$iw2" = "$T/bin/ssh" ] && [ "$mw" = "$RT/bin/ssh" ] && [ "$mw2" = "$RT/bin/ssh" ] && grep -qF "$GPATH" $S/night-review-gate.sh
++ /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/heavy-lock.sh acquire night-review-vllm-omni
+heavy-lock: acquired by night-review-vllm-omni
++ /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/heavy-lock.sh acquire vllm-upstream
+heavy-lock: busy, held by night-review-vllm-omni for 0s; vllm-upstream skipped
+== L1: [ $rc -eq 1 ] && $HL status | grep -q name=night-review-vllm-omni
+== L2: [ $(cat $T/l2/rc* | grep -c "^0$") -eq 1 ]
++ /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/heavy-lock.sh acquire dead-job
+heavy-lock: acquired by dead-job
++ /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/heavy-lock.sh acquire fresh-job
+heavy-lock: stale lock (name=dead-job since=1792599218 host=iMac pid=95502, 2460s old) broken, acquired by fresh-job
+== L3a: [ $rc -eq 0 ] && $HL status | grep -q name=fresh-job
++ /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/heavy-lock.sh acquire other-job
+heavy-lock: busy, held by fresh-job for 2340s; other-job skipped
+== L3b: [ $rc -eq 1 ] && $HL status | grep -q name=fresh-job
++ /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/heavy-lock.sh release other-job
+heavy-lock: held by fresh-job, not other-job; not released
+== L4a: [ $rc -eq 1 ] && $HL status | grep -q name=fresh-job
++ /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/heavy-lock.sh refresh fresh-job
+heavy-lock: refreshed by fresh-job
+== L5: [ $(( $(date +%s) - $($HL status | sed -n "s/.*since=\([0-9]*\).*/\1/p") )) -lt 60 ]
++ /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/heavy-lock.sh release fresh-job
+heavy-lock: released by fresh-job
+== L4b: [ -f $HEAVY_LOCK_DIR.log ] && ! $HL status
+free
+== D1a: [ "$(rd 2026-10-21T00:30:00 13)" = 2026-10-20 ]
+== D1b: [ "$(rd 2026-10-20T23:40:00 6)" = 2026-10-20 ]
+== D1c: [ "$(rd 2026-11-01T01:20:00 13)" = 2026-10-31 ] && [ "$(rd 2027-01-01T00:55:00 13)" = 2026-12-31 ] && [ "$(rd 2028-03-01T00:30:00 13)" = 2028-02-29 ]
+== D1d: [ "$(/bin/bash $S/review-date.sh next 2028-02-28)" = 2028-02-29 ] && [ "$(/bin/bash $S/review-date.sh next 2026-12-31)" = 2027-01-01 ]
+== D2: ! grep -l "date -d" $PR/*/night-review-*.md && [ $(grep -l "review-date.sh ago" $PR/*/night-review-*.md | wc -l) -eq 8 ]
+== D3a: d3 $RT/ops mba
+D3 mba night-review-deepvision-ads.prompt.md [bash /tmp/b2a-e2e-20261022-005434-pre-95502/ops/scripts/review-date.sh ago 13] -> '2026-10-21'
+D3 mba night-review-deepvision-site.prompt.md [bash /tmp/b2a-e2e-20261022-005434-pre-95502/ops/scripts/review-date.sh ago 13] -> '2026-10-21'
+D3 mba night-review-vllm-omni.prompt.md [bash /tmp/b2a-e2e-20261022-005434-pre-95502/ops/scripts/review-date.sh ago 13] -> '2026-10-21'
+D3 mba night-review-xinyue.prompt.md [bash /tmp/b2a-e2e-20261022-005434-pre-95502/ops/scripts/review-date.sh ago 6] -> '2026-10-21'
+== D3b: d3 $OPS imac
+D3 imac night-review-deepvision-ads.prompt.md [bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/review-date.sh ago 13] -> '2026-10-21'
+D3 imac night-review-deepvision-site.prompt.md [bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/review-date.sh ago 13] -> '2026-10-21'
+D3 imac night-review-vllm-omni.prompt.md [bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/review-date.sh ago 13] -> '2026-10-21'
+D3 imac night-review-xinyue.prompt.md [bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/review-date.sh ago 6] -> '2026-10-21'
++ imac: SYNC_DST_ROOT=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/m2/dst SYNC_SRC_HOST=nosuchhost.invalid SYNC_PEERS= /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/sync-manifests-from-box.sh vllm-omni 2026-10-19 imac
+ssh: Could not resolve hostname nosuchhost.invalid: nodename nor servname provided, or not known
+ssh: Could not resolve hostname nosuchhost.invalid: nodename nor servname provided, or not known
+sync-manifests-from-box: vllm-omni 2026-10-19 failed at reach (rc 255)
+== M2a: [ $rc -eq 3 ] && grep -q "^failed reach" $T/m2/dst/vllm-omni/2026-10-19/SYNC-STATUS
++ imac: SYNC_DST_ROOT=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/m2/dst SYNC_SRC_HOST=mba SYNC_PEERS= /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/sync-manifests-from-box.sh vllm-omni 2001-01-01 imac
+sync-manifests-from-box: vllm-omni 2001-01-01 failed at reach (rc 1)
+== M2b: [ $rc -eq 3 ] && grep -q "^failed" $T/m2/dst/vllm-omni/2001-01-01/SYNC-STATUS
++ imac: SYNC_SRC_HOST=local SYNC_SRC_ROOT=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/fix SYNC_DST_ROOT=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/m5a SYNC_STAGE_ROOT=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/stage SYNC_PEERS= /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/sync-manifests-from-box.sh vllm-omni 2099-01-20 imac
+ssh: Could not resolve hostname local: nodename nor servname provided, or not known
+ssh: Could not resolve hostname local: nodename nor servname provided, or not known
+sync-manifests-from-box: vllm-omni 2099-01-20 failed at reach (rc 255)
+== M5a: [ $rc -eq 0 ] && python3 -I $PK/synced-ok.py $T/m5a/vllm-omni/2099-01-20
++ imac: SYNC_SRC_HOST=imac SYNC_SRC_ROOT=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/fix SYNC_DST_ROOT=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/m5b SYNC_STAGE_ROOT=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/stage SYNC_PEERS= /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/sync-manifests-from-box.sh vllm-omni 2099-01-20 imac
+Host key verification failed.
+Host key verification failed.
+sync-manifests-from-box: vllm-omni 2099-01-20 failed at reach (rc 255)
+== M5b: [ $rc -eq 0 ] && [ $s1 -eq $s0 ] && python3 -I $PK/synced-ok.py $T/m5b/vllm-omni/2099-01-20
++ mba: SYNC_SRC_HOST=imac SYNC_SRC_ROOT=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/fix SYNC_DST_ROOT=/tmp/b2a-e2e-20261022-005434-pre-95502/m6 SYNC_STAGE_ROOT=/tmp/b2a-e2e-20261022-005434-pre-95502/stage SYNC_PEERS= /bin/bash ops/scripts/sync-manifests-from-box.sh vllm-omni 2099-01-20 mba
+sync-manifests-from-box: vllm-omni 2099-01-20 ok: 3 list file(s), 3 transcript(s) -> /tmp/b2a-e2e-20261022-005434-pre-95502/m6/vllm-omni/2099-01-20
+== M6: [ $rc -eq 0 ] && sm "python3 -I $RT/synced-ok.py $RT/m6/vllm-omni/2099-01-20"
+3 transcripts readable under /tmp/b2a-e2e-20261022-005434-pre-95502/m6/vllm-omni/2099-01-20
++ imac: NR_D=2099-01-01 NR_NOW=1792518600 NR_MBA_HOST=nosuchhost.invalid /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh watch vllm-omni
+night-review-gate watch vllm-omni 2099-01-01: state=takeover reason=offline
+== W1a: [ $rc -eq 1 ] && istat $D takeover | grep -q reason=offline
++ imac: NR_D=2099-01-01 NR_NOW=1792519200 /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh backup vllm-omni
+heavy-lock: acquired by night-review-vllm-omni
+night-review-gate backup vllm-omni 2099-01-01: state=started machine=imac reason=offline
+== W1b: [ $rc -eq 0 ] && istat $D | tail -1 | grep -q "state=started machine=imac reason=offline" && HEAVY_LOCK_DIR=$T/lock $HL status | grep -q name=night-review-vllm-omni
++ imac: /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh reason vllm-omni 2099-01-01
+offline
++ imac: NR_D=2099-01-01 NR_NOW=1792519200 /Users/jiawenwang/.local/bin/notify-run --bot ops-system --no-tty --task vllm-omni夜审 2099-01-01 machine=imac reason=offline -- /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh finish vllm-omni 2099-01-01 imac offline
+night-review-gate finish vllm-omni 2099-01-01: state=done machine=imac reason=offline files=1
+heavy-lock: released by night-review-vllm-omni
+machine=imac reason=offline: vllm-omni 2099-01-01 done, 1 file(s) copied to box
+notify-run: webhook bot=ops-system status=done exit_code=0 http=200 第1次
+== W1c: [ $rc -eq 0 ] && istat $D | grep -q "state=done machine=imac reason=offline" && ! HEAVY_LOCK_DIR=$T/lock $HL status && [ $(hooks $T/hooks.jsonl ops-system "machine=imac reason=offline" "\"status\": \"done\"" $D) -eq 1 ] && grep -q 状态 $T/store/$D-vllm-omni.md
+free
++ mba: NR_PMSET_BATT=/tmp/b2a-e2e-20261022-005434-pre-95502/pm-bat NR_D=2099-01-02 NR_NOW=1792516860 /bin/bash ops/scripts/night-review-gate.sh primary vllm-omni
+night-review-gate primary vllm-omni 2099-01-02: state=checking machine=mba
+night-review-gate primary vllm-omni 2099-01-02: state=missed machine=mba reason=asleep detail=on_battery
+== W2a: [ $rc -eq 1 ] && mstat $D | tail -1 | grep -q "state=missed machine=mba reason=asleep detail=on_battery"
++ imac: NR_D=2099-01-02 NR_NOW=1792518600 /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh watch vllm-omni
+night-review-gate watch vllm-omni 2099-01-02: state=takeover reason=asleep
+== W2b: istat $D takeover | grep -q reason=asleep
++ mba: NR_IOREG=/tmp/b2a-e2e-20261022-005434-pre-95502/io-shut NR_PMSET_G=/tmp/b2a-e2e-20261022-005434-pre-95502/pm-nosd NR_D=2099-01-03 NR_NOW=1792516860 /bin/bash ops/scripts/night-review-gate.sh primary vllm-omni
+night-review-gate primary vllm-omni 2099-01-03: state=checking machine=mba
+night-review-gate primary vllm-omni 2099-01-03: state=missed machine=mba reason=asleep detail=lid_closed
+== W2c: [ $rc -eq 1 ] && mstat $D | tail -1 | grep -q "reason=asleep detail=lid_closed"
++ imac: NR_D=2099-01-11 NR_NOW=1792518600 /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh watch vllm-omni
+night-review-gate watch vllm-omni 2099-01-11: state=takeover reason=asleep
+== W2d: istat $D takeover | grep -q reason=asleep
++ mba: NR_CAFFEINATE_T=30 NR_IOREG=/tmp/b2a-e2e-20261022-005434-pre-95502/io-shut NR_PMSET_G=/tmp/b2a-e2e-20261022-005434-pre-95502/pm-sd NR_D=2099-01-04 NR_NOW=1792516860 /bin/bash ops/scripts/night-review-gate.sh primary vllm-omni
+night-review-gate primary vllm-omni 2099-01-04: state=checking machine=mba
+heavy-lock: acquired by night-review-vllm-omni
+night-review-gate primary vllm-omni 2099-01-04: state=started machine=mba reason=ok gh=no caffeinate=36421
+== W2e: [ $rc -eq 0 ] && mstat $D | tail -1 | grep -q "state=started machine=mba reason=ok"
+== K1a: [ -n "$cpid" ] && sm "ps -o pid,ppid,rss,etime,comm -p $cpid" | grep caffeinate
+36421     1   1744   00:05 caffeinate
+== S1: sm "cat $RT/sync-calls" | grep -q "vllm-omni $D mba"
++ mba: NR_D=2099-01-04 NR_NOW=1792517460 /bin/bash ops/scripts/night-review-gate.sh primary vllm-omni
+night-review-gate primary vllm-omni 2099-01-04: already started here, skip
+== W8a: [ $rc -eq 1 ] && [ "$(mstat $D | tail -1 | grep -c lock_busy)" = 0 ]
++ imac: NR_D=2099-01-04 NR_NOW=1792518600 /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh watch vllm-omni
+night-review-gate watch vllm-omni 2099-01-04: state=seen_running
+== W8b: ! istat $D takeover >/dev/null && istat $D | tail -1 | grep -q state=seen_running
++ mba: /bin/bash ops/scripts/heavy-lock.sh release night-review-vllm-omni
+heavy-lock: released by night-review-vllm-omni
++ mba: NR_D=2099-01-12 NR_NOW=1792519260 /bin/bash ops/scripts/night-review-gate.sh primary vllm-omni
+night-review-gate primary vllm-omni 2099-01-12: outside MBA time .. +25 min, skip
+== W8c: [ $rc -eq 1 ] && ! mstat $D | grep -q started
++ imac: NR_D=2099-01-12 NR_NOW=1792517460 /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh backup vllm-omni
+== W8d: [ $rc -eq 1 ] && ! istat $D takeover >/dev/null
++ mba: /bin/bash ops/scripts/heavy-lock.sh acquire vllm-upstream
+heavy-lock: acquired by vllm-upstream
++ mba: NR_D=2099-01-05 NR_NOW=1792516860 /bin/bash ops/scripts/night-review-gate.sh primary vllm-omni
+night-review-gate primary vllm-omni 2099-01-05: state=checking machine=mba
+night-review-gate primary vllm-omni 2099-01-05: state=missed machine=mba reason=lock_busy detail=vllm-upstream
+== W3a: [ $rc -eq 1 ] && mstat $D | tail -1 | grep -q "reason=lock_busy detail=vllm-upstream"
++ imac: NR_D=2099-01-05 NR_NOW=1792518600 /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh watch vllm-omni
+night-review-gate watch vllm-omni 2099-01-05: state=takeover reason=lock_busy
+== W3b: istat $D takeover | grep -q reason=lock_busy
++ mba: /bin/bash ops/scripts/heavy-lock.sh release vllm-upstream
+heavy-lock: released by vllm-upstream
++ imac: /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/heavy-lock.sh acquire linear-sync
+heavy-lock: acquired by linear-sync
++ imac: NR_D=2099-01-06 NR_NOW=1792519200 /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh backup vllm-omni
+200 <- ops-system stuck machine=box reason=lock_busy
+night-review-gate backup vllm-omni 2099-01-06: escalated=box reason=lock_busy
++ imac: NR_D=2099-01-06 NR_NOW=1792519800 /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh backup vllm-omni
+== W4: [ $rc -eq 1 ] && [ $(hooks $T/hooks.jsonl ops-system "\"status\": \"stuck\"" lock_busy $D) -eq 1 ]
+== N5: stuck_imac $T/hooks.jsonl $D lock_busy
+Traceback (most recent call last):
+  File "<string>", line 5, in <module>
+    assert len(w)==1 and w[0]["machine"]=="imac" and "box" not in w[0]["note"] and "iMac backup" in w[0]["note"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+[{"bot": "ops-system", "task": "vllm-omni 夜审 2099-01-06", "status": "stuck", "machine": "box", "reason": "lock_busy", "note": "machine=box reason=lock_busy MBA missed (offline), iMac heavy-lock busy > 60 min; run the disabled box task by hand (README §回滚)", "source": "night-review-gate"}]
++ imac: /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/heavy-lock.sh release linear-sync
+heavy-lock: released by linear-sync
++ mba: NR_D=2099-01-07 NR_NOW=1792516860 /bin/bash ops/scripts/night-review-gate.sh primary vllm-omni
+night-review-gate primary vllm-omni 2099-01-07: state=skipped reason=already_done
+== W5: [ $rc -eq 1 ] && mstat $D | tail -1 | grep -q already_done
++ imac: NR_D=2099-01-07 NR_NOW=1792519200 /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh backup vllm-omni
+== W6: [ $rc -eq 1 ] && ! HEAVY_LOCK_DIR=$T/lock $HL status
+free
++ mba: NR_D=2099-01-08 NR_NOW=1792525800 NR_IMAC_HOST=imac NR_IMAC_STATE=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/state /bin/bash ops/scripts/night-review-gate.sh box-watch vllm-omni
+night-review-gate box-watch vllm-omni 2099-01-08: state=seen_imac_running
++ mba: NR_D=2099-01-09 NR_NOW=1792525800 NR_IMAC_HOST=imac NR_IMAC_STATE=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/state /bin/bash ops/scripts/night-review-gate.sh box-watch vllm-omni
+200 <- ops-system stuck machine=box reason=imac_missed
+night-review-gate box-watch vllm-omni 2099-01-09: escalated=box reason=imac_missed
++ mba: NR_D=2099-01-09 NR_NOW=1792526400 NR_IMAC_HOST=imac NR_IMAC_STATE=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/state /bin/bash ops/scripts/night-review-gate.sh box-watch vllm-omni
+== W7a: [ $(hooks $T/mba-hooks.jsonl ops-system $D) -eq 0 ] && mstat $D | grep -q seen_imac_running
+== W7b: [ $rc -eq 1 ] && [ $(hooks $T/mba-hooks.jsonl ops-system "\"status\": \"stuck\"" imac_missed $D2) -eq 1 ]
+== N7: stuck_imac $T/mba-hooks.jsonl $D2 imac_missed
+Traceback (most recent call last):
+  File "<string>", line 5, in <module>
+    assert len(w)==1 and w[0]["machine"]=="imac" and "box" not in w[0]["note"] and "iMac backup" in w[0]["note"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+[{"bot": "ops-system", "task": "vllm-omni 夜审 2099-01-09", "status": "stuck", "machine": "box", "reason": "imac_missed", "note": "machine=box reason=imac_missed neither MBA nor iMac finished by +150 min; run the disabled box task by hand", "source": "night-review-gate"}]
++ mba: /bin/bash ops/scripts/heavy-lock.sh acquire night-review-vllm-omni
+heavy-lock: acquired by night-review-vllm-omni
++ mba: NR_D=2099-01-10 /bin/bash ops/scripts/night-review-gate.sh finish vllm-omni 2099-01-10 mba ok
+night-review-gate finish vllm-omni 2099-01-10: state=failed machine=mba reason=ok detail=no_done_line
+heavy-lock: released by night-review-vllm-omni
+== F1: [ $rc -eq 3 ] && ! gm "$HM status"
++ mba: /bin/bash ops/scripts/heavy-lock.sh status
+free
+free
++ mba: /bin/bash ops/scripts/heavy-lock.sh acquire night-review-vllm-omni
+heavy-lock: acquired by night-review-vllm-omni
++ mba: NR_D=2099-01-10 NR_BOX_HOST=nosuchhost.invalid /bin/bash ops/scripts/night-review-gate.sh finish vllm-omni 2099-01-10 mba ok
+ssh: Could not resolve hostname nosuchhost.invalid: nodename nor servname provided, or not known
+night-review-gate finish vllm-omni 2099-01-10: state=failed machine=mba reason=ok detail=rsync_failed
+heavy-lock: released by night-review-vllm-omni
+== F2: [ $rc -eq 4 ] && mstat $D | tail -1 | grep -q detail=rsync_failed && ! gm "$HM status"
++ mba: /bin/bash ops/scripts/heavy-lock.sh status
+free
+free
++ mba: NR_CAFFEINATE_T=3 /bin/bash ops/scripts/night-review-gate.sh keepawake
+keepawake: caffeinate pid 37089 for 3s
+== K1b: [ $rc -eq 1 ] && [ -n "$kp" ] && sm "ps -o pid,ppid,rss,etime,comm -p $kp" | grep caffeinate
+37089     1   3104   00:01 caffeinate
++ imac: /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/heavy-lock.sh acquire night-review-vllm-omni
+heavy-lock: acquired by night-review-vllm-omni
++ imac: NR_BOX_HOST=nosuchhost.invalid NR_STORE_HOST=local NR_STORE_DIR=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store-n4 NR_D=2099-01-13 /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh finish vllm-omni 2099-01-13 imac offline
+ssh: Could not resolve hostname nosuchhost.invalid: nodename nor servname provided, or not known
+night-review-gate finish vllm-omni 2099-01-13: state=failed machine=imac reason=offline detail=rsync_failed
+heavy-lock: released by night-review-vllm-omni
++ imac: NR_BOX_HOST=nosuchhost.invalid NR_STORE_HOST=local NR_STORE_DIR=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store-n4 NR_D=2099-01-13 NR_NOW=1792519200 /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh backup vllm-omni
+heavy-lock: acquired by night-review-vllm-omni
+night-review-gate backup vllm-omni 2099-01-13: state=started machine=imac reason=offline
+== N4: [ $rc -eq 0 ] && grep -q 状态 $T/store-n4/$D-vllm-omni.md && [ $rc2 -eq 1 ] && ! HEAVY_LOCK_DIR=$T/lock $HL status
++ imac: /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/heavy-lock.sh release night-review-vllm-omni
+heavy-lock: released by night-review-vllm-omni
++ imac: /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/heavy-lock.sh acquire night-review-vllm-omni
+heavy-lock: acquired by night-review-vllm-omni
++ imac: NR_BOX_HOST=nosuchhost.invalid NR_STORE_HOST=imac NR_STORE_DIR=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store-n9 NR_D=2099-01-14 /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh finish vllm-omni 2099-01-14 imac offline
+ssh: Could not resolve hostname nosuchhost.invalid: nodename nor servname provided, or not known
+night-review-gate finish vllm-omni 2099-01-14: state=failed machine=imac reason=offline detail=rsync_failed
+heavy-lock: released by night-review-vllm-omni
+== N9: [ $rc -eq 0 ] && grep -q 状态 $T/store-n9/$D-vllm-omni.md && [ $s1 -eq $s0 ] && ! HEAVY_LOCK_DIR=$T/lock $HL status
++ imac: /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/heavy-lock.sh release night-review-vllm-omni
+heavy-lock: already free
++ mba: NR_BOX_HOST=nosuchhost.invalid NR_STORE_HOST=imac NR_STORE_DIR=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store-w0 NR_D=2099-01-15 NR_NOW=1792516860 /bin/bash ops/scripts/night-review-gate.sh primary vllm-omni
+night-review-gate primary vllm-omni 2099-01-15: state=checking machine=mba
+heavy-lock: acquired by night-review-vllm-omni
+night-review-gate primary vllm-omni 2099-01-15: state=started machine=mba reason=ok gh=no caffeinate=37423
++ mba: NR_BOX_HOST=nosuchhost.invalid NR_STORE_HOST=imac NR_STORE_DIR=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store-w0 NR_D=2099-01-15 NR_NOW=1792516860 /Users/jiawenwang/.local/bin/notify-run --bot ops-system --no-tty --task 'vllm-omni夜审 2099-01-15 machine=mba reason=ok' -- /bin/bash ops/scripts/night-review-gate.sh finish vllm-omni 2099-01-15 mba ok
+ssh: Could not resolve hostname nosuchhost.invalid: nodename nor servname provided, or not known
+night-review-gate finish vllm-omni 2099-01-15: state=failed machine=mba reason=ok detail=rsync_failed
+heavy-lock: released by night-review-vllm-omni
+notify-run: webhook bot=ops-system status=failed exit_code=4 http=200 第1次
++ imac: NR_BOX_HOST=nosuchhost.invalid NR_STORE_HOST=imac NR_STORE_DIR=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store-w0 NR_D=2099-01-15 NR_NOW=1792518600 /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh watch vllm-omni
+night-review-gate watch vllm-omni 2099-01-15: state=takeover reason=asleep
++ imac: NR_BOX_HOST=nosuchhost.invalid NR_STORE_HOST=imac NR_STORE_DIR=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store-w0 NR_D=2099-01-15 NR_NOW=1792519200 /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/night-review-gate.sh backup vllm-omni
+heavy-lock: acquired by night-review-vllm-omni
+night-review-gate backup vllm-omni 2099-01-15: state=started machine=imac reason=asleep
+== W0: [ $rc0 -eq 0 ] && [ $rc1 -eq 0 ] && grep -q 状态 $T/store-w0/$D-vllm-omni.md && [ -f $T/store-w0/$D-vllm-omni-ledger.jsonl ] && mstat $D | tail -1 | grep -q "state=done machine=mba reason=ok" && istat $D | tail -1 | grep -q state=seen_done && [ $rc2 -eq 1 ] && [ ! -f $T/state/vllm-omni/$D.takeover ] && ! HEAVY_LOCK_DIR=$T/lock $HL status && [ $(hooks $T/mba-hooks.jsonl ops-system "machine=mba reason=ok" "\"status\": \"done\"" $D) -eq 1 ]
++ imac: /bin/bash /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/scripts/heavy-lock.sh release night-review-vllm-omni
+heavy-lock: released by night-review-vllm-omni
++ mba: /bin/bash ops/scripts/heavy-lock.sh release night-review-vllm-omni
+heavy-lock: already free
++ n8: finish with defaults
+night-review-gate finish vllm-omni 2099-01-30: state=done machine=mba reason=ok files=1
+heavy-lock: already free
+machine=mba reason=ok: vllm-omni 2099-01-30 done, 1 file(s) copied to box
+== N8: [ $rc -eq 0 ] && python3 -I -c "
+import json,sys
+c=[json.loads(l) for l in open(sys.argv[1])]; print(c)
+assert {x[\"kind\"] for x in c}=={\"tar\",\"grep\"} and all(x[\"host\"]==\"box\" and x[\"path\"].startswith(\"~/xinyue-deploy/nightly-review\") for x in c)" $N8/ssh.jsonl
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+    assert {x["kind"] for x in c}=={"tar","grep"} and all(x["host"]=="box" and x["path"].startswith("~/xinyue-deploy/nightly-review") for x in c)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+[{'host': 'box', 'kind': 'tar', 'path': '/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/n8/home/xinyue-deploy/nightly-review', 'rc': 0, 'cmd': 'mkdir -p /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/n8/home/xinyue-deploy/nightly-review && tar -xzf - -C /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/n8/home/xinyue-deploy/nightly-review'}, {'host': 'box', 'kind': 'grep', 'path': '/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/n8/home/xinyue-deploy/nightly-review/2099-01-30-vllm-omni.md', 'rc': 0, 'cmd': "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/n8/home/xinyue-deploy/nightly-review/2099-01-30-vllm-omni.md"}]
+== R1a: [ ! -e $T/orca-calls ]
+== R1b: for m in mba:9 imac:10; do f=$T/register-${m%%:*}.out; c=$(grep -c "^orca automations create" $f); [ $c -eq ${m#*:} ] && [ $(grep "^orca automations create" $f | grep -- "--missed-run-grace-minutes 120" | grep -c -- "--disabled") -eq $c ] || exit 1; done
+== N1: rgbox
+== N2: [ "$(cat $T/register-box.rc)" = 2 ] && [ ! -s $T/register-box.out ] && [ $(wc -l < $T/register-box.err) -eq 1 ] && [ ! -e $T/orca-calls ]
+== N3: names; r=$?; cat $T/register-names.txt; [ $r -eq 0 ]
+mba: register.sh printed 9 create(s), defs.json has 9 for mba, same names: True
+  dv广告 · 21 夜审 MBA
+  dv广告 · 21 夜审 MBA 补跑
+  dv运维 · 20 夜审 官网 MBA
+  dv运维 · 20 夜审 官网 MBA 补跑
+  ops · 夜审防睡 MBA
+  vllm · 22 夜审 MBA
+  vllm · 22 夜审 MBA 补跑
+  心月 · 18 夜审 MBA
+  心月 · 18 夜审 MBA 补跑
+imac: register.sh printed 10 create(s), defs.json has 10 for imac, same names: True
+  dv广告 · 21 夜审 备用 iMac
+  dv广告 · 21 夜审 看守 iMac
+  dv运维 · 20 夜审 官网 备用 iMac
+  dv运维 · 20 夜审 官网 看守 iMac
+  ops · 12 Linear 状态对齐 iMac
+  vllm · 17 上游 PR 监控 iMac
+  vllm · 22 夜审 备用 iMac
+  vllm · 22 夜审 看守 iMac
+  心月 · 18 夜审 备用 iMac
+  心月 · 18 夜审 看守 iMac
+mba + imac: 19, every create in defs.json: 23, same: False
+in defs.json but printed for neither Mac: dv广告 · 21 夜审 看守 box, dv运维 · 20 夜审 官网 看守 box, vllm · 22 夜审 看守 box, 心月 · 18 夜审 看守 box
+== P1a: ! grep -El "/workspace/repos|/var/lib/everos-ingest|load *> *8|coding-assistant" $PR/*/*.md
+== P1b: for f in $PR/*/night-review-*.md; do grep -q "caffeinate -dimsu -w" $f && grep -q "heavy-lock.sh refresh" $f && grep -q SYNC-STATUS $f && grep -q "night-review-gate.sh finish" $f && grep -q "状态：完成" $f && head -1 $f | grep -q "运行环境：" || exit 1; done
+== P1c: python3 -I $RMIG/make-prompts.py --check > $T/make-prompts-check.txt 2>&1; rc=$?; echo "rc=$rc" >> $T/make-prompts-check.txt; cat $T/make-prompts-check.txt; [ $rc -eq 0 ]
+make-prompts: up to date
+rc=0
+== P1d: [ $(grep -l "接替运行" $PR/imac/night-review-*.md | wc -l) -eq 4 ] && ! grep -l "接替运行" $PR/mba/*.md
+== N6: ! grep -l -e "拷回 box" -e "01:00 的兜底" -e "改用 \`ssh box" $PR/*/*.md $PR/noop.prompt.md && ! grep -q box-watch $PR/noop.prompt.md && [ $(grep -l NR_STORE_HOST $PR/*/night-review-*.md | wc -l) -eq 8 ]
+/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/automations/migration-1020/prompts/imac/linear-sync.prompt.md
+/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/automations/migration-1020/prompts/imac/night-review-deepvision-ads.prompt.md
+/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/automations/migration-1020/prompts/imac/night-review-deepvision-site.prompt.md
+/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/automations/migration-1020/prompts/imac/night-review-vllm-omni.prompt.md
+/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/automations/migration-1020/prompts/imac/night-review-xinyue.prompt.md
+/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/automations/migration-1020/prompts/mba/night-review-deepvision-ads.prompt.md
+/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/automations/migration-1020/prompts/mba/night-review-deepvision-site.prompt.md
+/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/automations/migration-1020/prompts/mba/night-review-vllm-omni.prompt.md
+/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree/automations/migration-1020/prompts/mba/night-review-xinyue.prompt.md
+== K1c: [ -n "$cpid" ] && [ -n "$kp" ] && ! sm "ps -o pid,ppid,rss,etime,comm -p $cpid" | grep -q caffeinate && ! sm "ps -o pid,ppid,rss,etime,comm -p $kp" | grep -q caffeinate
+== X1: spycheck "$BA_I $BA_M" $T/ssh-spy-imac.log $T/ssh-spy-mba.log && grep -q " pass mba " $T/ssh-spy-imac.log && grep -q " pass imac " $T/ssh-spy-mba.log
+31 ssh calls logged, 0 refused or to box
+
+== X2: nosignal $E/run-e2e.sh $E/gate-equivalence.py $E/ssh-spy $E/fake-ssh.py $E/mock_webhook.py && [ $mrc -eq 0 ] && ! ps -o pid,ppid,rss,etime,comm -p $MOCK | grep -qi python && ! sm "ps -o pid,ppid,rss,etime,comm -p $mpid" | grep -qi python
+no command that ends a process in the drill files
+== W7c: [ $(hooks $T/hooks.jsonl ops-system) -ge 1 ] && [ $(hooks $T/mba-hooks.jsonl ops-system) -ge 1 ] && [ $(hooks $T/hooks.jsonl coding-assistant) -eq 0 ] && [ $(hooks $T/mba-hooks.jsonl coding-assistant) -eq 0 ] && ! grep -q "\"auth_ok\": false" $T/hooks.jsonl $T/mba-hooks.jsonl

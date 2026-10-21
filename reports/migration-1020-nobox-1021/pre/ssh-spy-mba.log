@@ -1,0 +1,9 @@
+1792601704 pass imac 100.64.0.4 test -d '/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/fix/vllm-omni/2099-01-20'
+1792601706 pass imac 100.64.0.4 tar -C '/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/fix/vllm-omni/2099-01-20' --exclude=./mba --exclude=./imac -czf - .
+1792601709 pass imac 100.64.0.4 tar -czf - --files-from=- 2>/dev/null
+1792601744 pass imac 100.64.0.4 cat /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/state/vllm-omni/2099-01-08.status
+1792601746 pass imac 100.64.0.4 cat /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/state/vllm-omni/2099-01-09.status
+1792601756 pass nosuchhost.invalid nosuchhost.invalid mkdir -p /tmp/b2a-e2e-20261022-005434-pre-95502/store-mba && tar -xzf - -C /tmp/b2a-e2e-20261022-005434-pre-95502/store-mba
+1792601766 pass nosuchhost.invalid nosuchhost.invalid grep -Eq '^状态(：|:)[[:space:]]*完成' /tmp/b2a-e2e-20261022-005434-pre-95502/store-mba/2099-01-15-vllm-omni.md
+1792601771 pass nosuchhost.invalid nosuchhost.invalid grep -Eq '^状态(：|:)[[:space:]]*完成' /tmp/b2a-e2e-20261022-005434-pre-95502/store-mba/2099-01-15-vllm-omni.md
+1792601772 pass nosuchhost.invalid nosuchhost.invalid mkdir -p /tmp/b2a-e2e-20261022-005434-pre-95502/store-mba && tar -xzf - -C /tmp/b2a-e2e-20261022-005434-pre-95502/store-mba

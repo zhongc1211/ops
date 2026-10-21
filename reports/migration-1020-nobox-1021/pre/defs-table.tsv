@@ -1,0 +1,33 @@
+key	machine	name	rrule	grace	precheck	replaces
+mba-xinyue	mba	心月 · 18 夜审 MBA	40 23 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh primary xinyue	75b324a4
+mba-xinyue-retry	mba	心月 · 18 夜审 MBA 补跑	5,15,25,35,45,55 23,0,1 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh primary xinyue	75b324a4
+imac-xinyue-watch	imac	心月 · 18 夜审 看守 iMac	10 0 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh watch xinyue	
+imac-xinyue-backup	imac	心月 · 18 夜审 备用 iMac	*/10 0-5 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh backup xinyue	75b324a4
+box-xinyue-watch	box	心月 · 18 夜审 看守 box	10 2 * * *	120	bash /workspace/repos/ops/scripts/night-review-gate.sh box-watch xinyue	
+mba-deepvision-site	mba	dv运维 · 20 夜审 官网 MBA	30 0 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh primary deepvision-site	43c55a22
+mba-deepvision-site-retry	mba	dv运维 · 20 夜审 官网 MBA 补跑	5,15,25,35,45,55 23,0,1 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh primary deepvision-site	43c55a22
+imac-deepvision-site-watch	imac	dv运维 · 20 夜审 官网 看守 iMac	0 1 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh watch deepvision-site	
+imac-deepvision-site-backup	imac	dv运维 · 20 夜审 官网 备用 iMac	*/10 0-5 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh backup deepvision-site	43c55a22
+box-deepvision-site-watch	box	dv运维 · 20 夜审 官网 看守 box	0 3 * * *	120	bash /workspace/repos/ops/scripts/night-review-gate.sh box-watch deepvision-site	
+mba-deepvision-ads	mba	dv广告 · 21 夜审 MBA	55 0 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh primary deepvision-ads	9b5c20e7
+mba-deepvision-ads-retry	mba	dv广告 · 21 夜审 MBA 补跑	5,15,25,35,45,55 23,0,1 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh primary deepvision-ads	9b5c20e7
+imac-deepvision-ads-watch	imac	dv广告 · 21 夜审 看守 iMac	25 1 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh watch deepvision-ads	
+imac-deepvision-ads-backup	imac	dv广告 · 21 夜审 备用 iMac	*/10 0-5 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh backup deepvision-ads	9b5c20e7
+box-deepvision-ads-watch	box	dv广告 · 21 夜审 看守 box	25 3 * * *	120	bash /workspace/repos/ops/scripts/night-review-gate.sh box-watch deepvision-ads	
+mba-vllm-omni	mba	vllm · 22 夜审 MBA	20 1 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh primary vllm-omni	c392a743
+mba-vllm-omni-retry	mba	vllm · 22 夜审 MBA 补跑	5,15,25,35,45,55 23,0,1 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh primary vllm-omni	c392a743
+imac-vllm-omni-watch	imac	vllm · 22 夜审 看守 iMac	50 1 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh watch vllm-omni	
+imac-vllm-omni-backup	imac	vllm · 22 夜审 备用 iMac	*/10 0-5 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh backup vllm-omni	c392a743
+box-vllm-omni-watch	box	vllm · 22 夜审 看守 box	50 3 * * *	120	bash /workspace/repos/ops/scripts/night-review-gate.sh box-watch vllm-omni	
+mba-keepawake	mba	ops · 夜审防睡 MBA	40 21 * * *	120	bash $HOME/orca/workspaces/ops/scripts/night-review-gate.sh keepawake	
+imac-linear-sync	imac	ops · 12 Linear 状态对齐 iMac	47 8 * * *	120	export PATH=/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH; orca linear team list >/dev/null && bash $HOME/orca/workspaces/ops/scripts/heavy-lock.sh acquire linear-sync	bc9ee42b
+imac-vllm-upstream	imac	vllm · 17 上游 PR 监控 iMac	17 */3 * * *	120	export PATH=/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH; $HOME/orca/workspaces/ops/scripts/vllm-upstream-precheck.sh && bash $HOME/orca/workspaces/ops/scripts/heavy-lock.sh acquire vllm-upstream	349967f6
+edit 75b324a4	box		{"grace": 120}			
+edit 43c55a22	box		{"grace": 120}			
+edit 9b5c20e7	box		{"grace": 120}			
+edit c392a743	box		{"grace": 120}			
+edit bc9ee42b	box		{"grace": 120}			
+edit 349967f6	box		{"grace": 120}			
+edit 1191c819	box		{"grace": 120, "precheck": "bash /workspace/repos/ops/scripts/cleanup-precheck.sh ws", "precheckTimeout": 120}			
+edit 8c40fa83	box		{"grace": 120, "precheck": "bash /workspace/repos/ops/scripts/cleanup-precheck.sh mem", "precheckTimeout": 120}			
+edit 27383c07	box	MIGRATION-BRIEF: guard 00:30 -> 01:00 so the 23:40 MBA review and its copy back to box fit; a failed copy back = review not done, the guard alarms (correct)	{"rrule": "0 1 * * *"}			

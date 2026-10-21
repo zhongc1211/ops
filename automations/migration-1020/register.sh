@@ -1,16 +1,20 @@
 #!/bin/bash
-# register.sh [mba|imac|box] [--apply]: turn defs.json into orca automations commands for one machine (PER-79).
+# register.sh mba|imac [--apply]: turn defs.json into orca automations commands for one machine (PER-79).
 # Default is a dry-run: prints the commands and calls nothing. Every create carries --disabled and
 # --missed-run-grace-minutes 120; enabling, disabling the old box tasks and deleting stay manual (README §上线顺序).
 # --apply runs them through `orca` on this machine; it needs Zack's approval first (BRIEF: creating or editing
 # automations is his call) and refuses to run on a machine other than the one named.
+# box is not a target since B2a (PER-146): the plan creates no box task and changes no box task's definition;
+# the rollout cards disable the old box tasks being replaced: disable only, never delete (README §上线顺序).
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 m=${1:-}; apply=no; [ "${2:-}" = --apply ] && apply=yes
-case "$m" in mba|imac|box) ;; *) echo "usage: register.sh mba|imac|box [--apply]" >&2; exit 2;; esac
+case "$m" in mba|imac) ;;
+  box) echo "register.sh: box is not a target any more (B2a: no new task runs on box; box's own tasks are Zack's call, README §待 Zack 决定)" >&2; exit 2;;
+  *) echo "usage: register.sh mba|imac [--apply]" >&2; exit 2;; esac
 if [ $apply = yes ]; then
   h=$(hostname -s | tr 'A-Z' 'a-z')
-  case "$m:$h" in mba:mba|imac:imac*|box:box*) ;; *) echo "register.sh: --apply for $m but this is $h; run it on $m" >&2; exit 2;; esac
+  case "$m:$h" in mba:mba|imac:imac*) ;; *) echo "register.sh: --apply for $m but this is $h; run it on $m" >&2; exit 2;; esac
 fi
 python3 -I - "$here" "$m" "$apply" <<'PY'
 import json, os, shlex, subprocess, sys
@@ -45,10 +49,5 @@ for note, argv, shown in cmds:
     print("\n".join(note)); print(shown)
     if apply:
         r = subprocess.run(argv); rc |= r.returncode
-if m == "box":
-    old = sorted({c["replaces"] for c in d["create"] if c.get("replaces")})
-    print("# later, one by one after the replacement's first real pass (README), with Zack's approval:")
-    for i in old:
-        print(f"#   orca automations edit {i} --disabled")
 sys.exit(rc)
 PY
