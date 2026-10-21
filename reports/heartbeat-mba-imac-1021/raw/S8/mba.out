@@ -1,0 +1,6 @@
+# register.sh mba：1 条命令，dry-run，不调用 orca
+# 先备份：mkdir -p ~/ops-archive/heartbeat-1021 && orca automations list --json > ~/ops-archive/heartbeat-1021/mba-list.before.json
+# mba-hb-watch：replaces box 94e4b0bc (same rrule, precheck timeout and grace); MBA's Orca has no environment for the iMac, so heartbeat-watch reads the iMac's run records through scripts/orca-via-ssh; empty environment = the Orca that HB_ORCA reaches
+orca automations create --name 'ops · 29 心跳互查 MBA（盯 iMac ops · 01）' --trigger '*/5 * * * *' --timezone Asia/Singapore --provider claude '--extra-agent-args=--model haiku --effort low' --workspace path:/Users/jiawenwang/orca/workspaces/ops --precheck 'HB_ORCA=$HOME/orca/workspaces/ops/scripts/orca-via-ssh ORCA_SSH_HOST=imac $HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target "iMac ops · 01 卡住工作检查||439cd438-cffe-44dd-bd2b-23b07bfa3d61|20"' --precheck-timeout 240 --missed-run-grace-minutes 720 --fresh-session --disabled --prompt "$(cat automations/heartbeat-1021/prompts/noop.prompt.md)"
+# 建好后：orca automations list --json 里按名字找新 id，orca automations show --id <新 id> --json 核对 enabled=false 和 precheck。
+# 启用是 README 第 3 步（另要 Zack 卡片）：orca automations edit <新 id> --enabled

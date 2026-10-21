@@ -1,0 +1,6 @@
+{
+ "command": "orca automations show --id 94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80 --environment grok-bot --json",
+ "tries": 3,
+ "error": "{\"code\": \"remote_runtime_unavailable\", \"message\": \"Could not connect to the remote Orca runtime.\"}",
+ "automation": null
+}
