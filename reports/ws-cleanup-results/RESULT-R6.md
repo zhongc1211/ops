@@ -166,7 +166,7 @@
 -## 跑了什么（55/55 通过；aeb576b 上的 dry-run；MBA ssh 跑法）
 -## 没跑（`--execute` 这条路径……没写成用例，也没验证过；box）
 -## 要 Zack 看的（RESULT.md 第 4 节的 5 条建议）
--https://claude.ai/code/session_…
+-（会话链接）
 @@ 新加的段落 @@
 +开头：默认 dry-run；`--execute --only-from` 才备份和 rm，不加 --force；终端要另加 --close-terminals
 +## 规则版本（01:43 底稿，R1–R6，10:57 定稿，11:15 W17 口径，没实现的那半句）
@@ -177,7 +177,7 @@
 +## 要 Zack 定的（W17 那半句；演练项目清理）
 ```
 
-逐行的完整 diff 在 `reports/ws-cleanup-results/PR73-BODY-R6.diff`（106 行）。上面是按段落缩写的，方便看。
+逐行的完整 diff 在 `reports/ws-cleanup-results/PR73-BODY-R6.diff`（106 行）。上面是按段落缩写的，方便看。存档的旧描述和 diff 里，会话链接那一行换成了「（会话链接，存档时已去掉）」，其余是原文。
 
 ## ④ 评审建议
 
