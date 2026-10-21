@@ -69,3 +69,28 @@ iMac / MBA / box 上 `orca automations list|show|runs --json` 的只读结果、
   S6b.box 的实际一栏附两样对照：紧接着用 base 版 heartbeat-watch 跑现网 5c2d0575 的 precheck（defs 里 before 的原文）
   得到的 box 结论，和现网 5c2d0575 最近 4 次运行对 box 的结论。
 - F4 补充：MBA 上的 orca 是 1.4.229，iMac 是 1.4.224。
+
+## 回退测试的期望（2026-10-21 20:2x，写回退脚本、跑之前；ops bot 验收要求）
+
+回退测试 `wake/tests/heartbeat-watch-ssh-rollback.sh` 把代码换回 base `f828d452`：没有 `scripts/orca-via-ssh`、`register.sh`，
+heartbeat-watch.sh 是 base 那份。defs.json 换成现网版：MBA 那条的 precheck 用现网 box `94e4b0bc` 的原文（environment `iMac`，
+不经 ssh），`5c2d0575` 的并行版、最终版都用它的现网原文（只有 box 目标）。演练脚本和回放数据用本分支的，整轮跑一次。
+
+本 PR 会改变结果的场景，回退后应该挂（19 项）：
+
+| 编号 | 回退后为什么挂 |
+|---|---|
+| S0.diff | base 和「本分支」是同一份，没有第 13 行的改动 |
+| S2.sh、S2.zsh | 现网版 precheck 在 MBA 上读不到 iMac ops · 01：MBA 的 Orca 没有 environment `iMac` |
+| S4、S4b | 没有包装，heartbeat-watch 报的是 FileNotFoundError，不是 ssh 连不上的 JSONDecodeError |
+| S4.wrapper、S5.iMac、S5.MBA、S5b、S7 | 没有 `scripts/orca-via-ssh`，退出 127，不是 2 / 255 / 0 |
+| S6b.parallel、S6b.final | 现网 5c2d0575 只有 box 目标，没有 MBA 目标 |
+| S8.mba、S8.imac-noid、S8.parallel、S8.final、S8.rollback、S8.refuse | 没有 `register.sh` |
+| S11 | `orca-via-ssh`、`register.sh` 不存在，`bash -n`、shellcheck 报错，最后一步不是 `exec ssh` |
+
+本 PR 不改变结果的场景，回退后应该照样过（26 项），用来排除「是环境坏了才挂」：S0.same、S0.bot、S1 全部 15 项（heartbeat-watch
+行为本来就没变）、S3（回放）、S6（environment `mba` 本来就能读）、S6b.box、S9 四项（defs 现网版的 before 就是现网）、
+S10.MBA、S10.iMac。其中 S6b.box、S9.94e4b0bc 要 iMac 到 box 的 grok-bot 隧道当时是通的。
+
+为了让旧 defs 也能照原文跑，演练脚本里拼 precheck 的两处检查放宽成「最多出现一次」：S2 的包装路径、S6b 的 MBA 新任务 id 占位。
+各场景的断言没改。

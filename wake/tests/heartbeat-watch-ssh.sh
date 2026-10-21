@@ -3,6 +3,7 @@
 #   wake/tests/heartbeat-watch-ssh.sh           跑全部场景，产物写到 reports/heartbeat-mba-imac-1021/（目录里有 .hb-drill 标记才清空重写）
 #   wake/tests/heartbeat-watch-ssh.sh --record  从本机 Orca 重录回放数据 wake/tests/hb-replay/fixtures/（只留 @@HB 行），然后退出
 #   HB_DRILL_OUT=<目录>                          产物换个目录
+#   HB_DRILL_NOTE=<一句话>                       写在产物 README 标题下面（回退测试 heartbeat-watch-ssh-rollback.sh 用）
 # 要求：本机是 iMac（Orca 有 environment mba、grok-bot），能 ssh mba，MBA 能 ssh imac。退出码：0 全部 PASS，1 有 FAIL，2 跑不起来。
 # 场景编号和要防的失败方式见 automations/heartbeat-1021/FAILURE-MODES.md；结果和期望写进产物目录的 README.md。
 # 安全：heartbeat-watch 一律 --dry-run、临时 HB_STATE_DIR、假 webhook 目录（127.0.0.1:9 的假地址），不发叫醒、不读真凭据；
@@ -552,7 +553,7 @@ if sys.argv[2] == "before-base":
     p = next(x for x in d["edit"] if x["stage"] == "parallel")["before"]["precheck"]
 else:
     p = next(x for x in d["edit"] if x["stage"] == sys.argv[2])["set"]["precheck"]
-    assert p.count("<MBA 新任务 id>") == 1
+    assert p.count("<MBA 新任务 id>") <= 1  # 回退测试的现网版 defs 没有 MBA 目标
 old = "$HOME/.orca-state/bin/heartbeat-watch.sh"
 assert p.count(old) == 1
 print(p.replace(old, sys.argv[3]).replace("<MBA 新任务 id>", sys.argv[4]) + " --dry-run")
@@ -614,9 +615,10 @@ else
 import json, sys
 c = next(x for x in json.load(open(sys.argv[1], encoding="utf-8"))["create"] if x["machine"] == "mba")
 p, r = c["precheck"], sys.argv[2]
+# 包装路径最多一处：回退测试（heartbeat-watch-ssh-rollback.sh）的现网版 defs 不经包装
+assert p.count("$HOME/.orca-state/bin/heartbeat-watch.sh") == 1 and p.count("$HOME/orca/workspaces/ops/scripts/orca-via-ssh") <= 1
 for old, new in (("$HOME/orca/workspaces/ops/scripts/orca-via-ssh", r + "/orca-via-ssh"),
                  ("$HOME/.orca-state/bin/heartbeat-watch.sh", r + "/heartbeat-watch.sh")):
-    assert p.count(old) == 1, old
     p = p.replace(old, new)
 print(p + " --dry-run")
 PY
@@ -757,7 +759,8 @@ scen = [
 ]
 L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "B1（ops 审计）。代码和上线步骤见 [`automations/heartbeat-1021/`](../../automations/heartbeat-1021/README.md)，"
-     "失败方式清单见 [`FAILURE-MODES.md`](../../automations/heartbeat-1021/FAILURE-MODES.md)。这个文件由演练脚本生成。", "",
+     "失败方式清单见 [`FAILURE-MODES.md`](../../automations/heartbeat-1021/FAILURE-MODES.md)。这个文件由演练脚本生成。", ""] + \
+    (["> " + os.environ["HB_DRILL_NOTE"], ""] if os.environ.get("HB_DRILL_NOTE") else []) + [
      "**结果：%d 项 PASS，%d 项 FAIL。**" % (npass, nfail), "", "## 怎么重跑", "",
      "在 iMac 的仓库根目录：", "", "```bash", "wake/tests/heartbeat-watch-ssh.sh", "```", "",
      "要求本机 Orca 有 environment `mba`、`grok-bot`，能 `ssh mba`，MBA 能 `ssh imac`。整个目录会被重写"

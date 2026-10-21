@@ -142,7 +142,9 @@ python3 -c 'import json,sys; a=json.load(open(sys.argv[1]))["result"]["automatio
 ## 演练
 
 ```bash
-wake/tests/heartbeat-watch-ssh.sh     # 在 iMac 的仓库根目录跑；要能 ssh mba，MBA 要能 ssh imac
+wake/tests/heartbeat-watch-ssh.sh            # 在 iMac 的仓库根目录跑；要能 ssh mba，MBA 要能 ssh imac
+wake/tests/heartbeat-watch-ssh-rollback.sh   # 回退测试：代码换回 base f828d452、defs 换成现网版，同一套演练整轮跑一次，看该挂的是不是挂了
 ```
+回退测试的期望写在 [`FAILURE-MODES.md`](FAILURE-MODES.md)「回退测试的期望」，结果在 `reports/heartbeat-mba-imac-1021-rollback-f828d45/ROLLBACK.md`。
 场景、期望、实际结果和原始输出在 [`reports/heartbeat-mba-imac-1021/`](../../reports/heartbeat-mba-imac-1021/README.md)。
 全部 `--dry-run`、临时 `HB_STATE_DIR`、假 webhook 目录；不建、不改任何自动任务。
