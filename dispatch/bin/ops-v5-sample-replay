@@ -1,0 +1,436 @@
+#!/usr/bin/python3 -I
+# -*- coding: utf-8 -*-
+"""ops-v5-sample-replay：读 ops-v5-sampler 的 samples，按 v5「上线」一节算两条门槛，给阈值初值。
+
+被动采样里没有真队列，所以用一个合成候选（预扣额 R）每分钟按 admit 公式判一次：
+  availableMemory − 已有预扣剩余 − R ≥ 下限 F，且 loadAverage1m ≤ L，且 ~ 可用磁盘 ≥ D
+
+门槛 1「有能跑、装得下的候选时，某台连续 60 分钟一个都起不了」
+  每分钟独立判（不叠加模拟放行的预扣），找每台最长连续「起不了」时长和超过 --gate1-minutes 的窗口。
+  缺数据的分钟单列为 unknown，不算起不了，并打断连续段。
+
+门槛 2「按门槛模拟放行后 30 分钟内 free% 低于 X%」
+  从头到尾模拟：每分钟最多放行一个（间隔 --admit-gap-min），能放就放。
+  保守假设：被动数据里模拟放行的 agent 没有真的跑，它的内存不会出现在 availableMemory 里，
+  所以假设它从放行那一分钟起就用满 R、一直用到 --hold-min 分钟后结束；
+  按 v5 规则「剩余预扣 = max(0, R − 峰值)」，峰值记作 R 时剩余预扣为 0，但这 R 是真实用量，
+  要从 availableMemory 里扣掉。两者合起来就是：每个在跑的模拟 agent 扣 R。
+  free% = (availableMemory − 在跑的模拟 agent 数 × R) / totalMemory，
+  看每次放行之后 --window-min 分钟内的最低值是否 < X。
+
+被动采样只定初值；上线后要用真队列数据复核。
+
+用法：
+  ops-v5-sample-replay [--dir PATH]... [--ssh HOST]... [参数] [--json FILE|-]
+  --dir PATH         本地 samples 根目录、某台的目录或单个 .jsonl，可重复
+  --ssh HOST         经 ssh 只读拉取 HOST 上 ~/.local/state/ops-v5/samples 下全部 YYYY-MM-DD.jsonl，可重复
+  --since YYYY-MM-DD / --until YYYY-MM-DD   只用这个日期范围（按记录的 minute）
+  --reserve-gb 1,1.5,2   预扣额 R 的候选
+  --floor-gb 0.5,1,1.5   下限 F 的候选
+  --load-max 8,12,16     loadAverage1m 上限 L 的候选（绝对值，两台都是 8 核）
+  --free-pct 5,10,15     X 的候选
+  --disk-min-gb 10       磁盘下限 D
+  --gate1-minutes 60  --window-min 30  --hold-min 30  --admit-gap-min 1
+  --no-fallback      Orca 读数缺失时不用 memorystatus_level × hw.memsize 估算（默认用，单独计数）
+  --json FILE|-      把完整结果写成 JSON（- 表示 stdout，此时不打印摘要）
+"""
+from __future__ import print_function
+
+import datetime
+import glob
+import json
+import os
+import subprocess
+import sys
+
+GB = 1024.0 ** 3
+SCHEMA = "ops-v5-sample/2"
+DICT_SCHEMA = "ops-v5-session-dict/1"
+# 只拉每分钟的记录；会话字典（YYYY-MM-DD.sessions.jsonl）回放用不到
+REMOTE_CMD = 'find "$HOME/.local/state/ops-v5/samples" -type f -name "????-??-??.jsonl" -exec cat {} +'
+
+
+def floats(s):
+    return [float(x) for x in s.split(",") if x.strip()]
+
+
+def parse_args(argv):
+    o = {"dirs": [], "ssh": [], "since": None, "until": None,
+         "reserve_gb": [1.0, 1.5, 2.0], "floor_gb": [0.5, 1.0, 1.5],
+         "load_max": [8.0, 12.0, 16.0], "free_pct": [5.0, 10.0, 15.0],
+         "disk_min_gb": 10.0, "gate1_minutes": 60, "window_min": 30,
+         "hold_min": 30, "admit_gap_min": 1, "fallback": True, "json": None}
+    lists = {"--reserve-gb": "reserve_gb", "--floor-gb": "floor_gb",
+             "--load-max": "load_max", "--free-pct": "free_pct"}
+    ints = {"--gate1-minutes": "gate1_minutes", "--window-min": "window_min",
+            "--hold-min": "hold_min", "--admit-gap-min": "admit_gap_min"}
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        v = argv[i + 1] if i + 1 < len(argv) else None
+        if a in ("-h", "--help"):
+            print(__doc__)
+            sys.exit(0)
+        if a == "--no-fallback":
+            o["fallback"] = False
+            i += 1
+            continue
+        if v is None:
+            sys.stderr.write("参数 %s 缺值\n" % a)
+            sys.exit(2)
+        if a == "--dir":
+            o["dirs"].append(v)
+        elif a == "--ssh":
+            o["ssh"].append(v)
+        elif a in ("--since", "--until", "--json"):
+            o[a[2:]] = v
+        elif a in lists:
+            o[lists[a]] = floats(v)
+        elif a in ints:
+            o[ints[a]] = int(v)
+        elif a == "--disk-min-gb":
+            o["disk_min_gb"] = float(v)
+        else:
+            sys.stderr.write("未知参数：%s\n" % a)
+            sys.exit(2)
+        i += 2
+    if not o["dirs"] and not o["ssh"]:
+        sys.stderr.write("至少给一个 --dir 或 --ssh\n")
+        sys.exit(2)
+    return o
+
+
+# ---------------------------------------------------------------- 读数据
+
+def iter_local(path):
+    if os.path.isfile(path):
+        files = [path]
+    else:
+        files = sorted(glob.glob(os.path.join(path, "*.jsonl")) +
+                       glob.glob(os.path.join(path, "*", "*.jsonl")))
+    for f in files:
+        with open(f, "rb") as fh:
+            for line in fh:
+                yield line
+
+
+def iter_ssh(host):
+    try:
+        p = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", host, REMOTE_CMD],
+                           stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE, timeout=300)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        raise SystemExit("ssh %s 拉取失败：%s" % (host, e))
+    if p.returncode != 0:
+        raise SystemExit("ssh %s 拉取失败：exit %d %s" % (
+            host, p.returncode, p.stderr.decode("utf-8", "replace").strip()[:200]))
+    for line in p.stdout.splitlines():
+        yield line
+
+
+def minute_key(rec):
+    ts = datetime.datetime.fromisoformat(rec["ts"])
+    return int(ts.timestamp() // 60)
+
+
+def load(opts):
+    hosts, bad = {}, 0
+    sources = [iter_local(d) for d in opts["dirs"]] + [iter_ssh(h) for h in opts["ssh"]]
+    for src in sources:
+        for line in src:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                r = json.loads(line.decode("utf-8") if isinstance(line, bytes) else line)
+                if r.get("schema") == DICT_SCHEMA:
+                    continue
+                if r.get("schema") != SCHEMA:
+                    raise ValueError
+                k = minute_key(r)
+                day = r["minute"][:10]
+                host = r["host"]
+            except (ValueError, KeyError, TypeError, AttributeError, UnicodeDecodeError):
+                bad += 1
+                continue
+            if opts["since"] and day < opts["since"]:
+                continue
+            if opts["until"] and day > opts["until"]:
+                continue
+            hosts.setdefault(host, {}).setdefault(k, r)
+    return hosts, bad
+
+
+def reading(r, fallback):
+    """返回 (avail, total, load, disk, source)；读不出返回 None。"""
+    m = r.get("machine") or {}
+    o = m.get("orca") or {}
+    disk = m.get("disk_home_avail_kb")
+    disk = disk * 1024.0 if isinstance(disk, (int, float)) else None
+    if r.get("orca_ok") and isinstance(o.get("availableMemory"), (int, float)) \
+            and isinstance(o.get("totalMemory"), (int, float)) and o["totalMemory"] > 0:
+        load = o.get("loadAverage1m")
+        if not isinstance(load, (int, float)):
+            la = m.get("vm_loadavg") or []
+            load = la[0] if la else None
+        if load is None or disk is None:
+            return None
+        return float(o["availableMemory"]), float(o["totalMemory"]), float(load), disk, "orca"
+    if not fallback:
+        return None
+    lvl, mem, la = m.get("memorystatus_level"), m.get("hw_memsize"), m.get("vm_loadavg") or []
+    if isinstance(lvl, int) and isinstance(mem, int) and mem > 0 and la and disk is not None:
+        return lvl / 100.0 * mem, float(mem), float(la[0]), disk, "fallback"
+    return None
+
+
+# ---------------------------------------------------------------- 统计
+
+def pct(vals, q):
+    if not vals:
+        return None
+    s = sorted(vals)
+    idx = max(0, min(len(s) - 1, int(-(-q * len(s) // 100)) - 1))
+    return s[idx]
+
+
+def dist(vals, scale=1.0, nd=2):
+    vals = [v / scale for v in vals if isinstance(v, (int, float))]
+    if not vals:
+        return {"n": 0}
+    return {"n": len(vals), "p50": round(pct(vals, 50), nd), "p90": round(pct(vals, 90), nd),
+            "p99": round(pct(vals, 99), nd), "max": round(max(vals), nd)}
+
+
+def host_stats(recs):
+    avail, load, smem, srss, agents, by_type = [], [], [], [], [], {}
+    for r in recs.values():
+        o = (r.get("machine") or {}).get("orca") or {}
+        if r.get("orca_ok"):
+            avail.append(o.get("availableMemory"))
+            load.append(o.get("loadAverage1m"))
+        for s in r.get("sessions") or []:
+            smem.append(s.get("memory"))
+            if s.get("found"):
+                rss = s.get("tree_rss_kb", 0) * 1024
+                srss.append(rss)
+                if s.get("agent_type"):
+                    by_type.setdefault(s["agent_type"], []).append(rss)
+        ac = r.get("agent_count") or {}
+        if isinstance(ac.get("total"), int):
+            agents.append(ac["total"])
+    return {"availableMemory_gb": dist(avail, GB), "loadAverage1m": dist(load),
+            "session_memory_gb": dist(smem, GB, 3), "session_tree_rss_gb": dist(srss, GB, 3),
+            "agent_count": dist(agents, 1.0, 0),
+            "session_tree_rss_gb_by_agent": dict((t, dist(v, GB, 3)) for t, v in sorted(by_type.items()))}
+
+
+# ---------------------------------------------------------------- 门槛
+
+def series(recs, fallback):
+    if not recs:
+        return 0, []
+    lo, hi = min(recs), max(recs)
+    return lo, [reading(recs[k], fallback) if k in recs else None for k in range(lo, hi + 1)]
+
+
+def fmt_min(k):
+    return datetime.datetime.fromtimestamp(k * 60).astimezone().strftime("%Y-%m-%dT%H:%M%z")
+
+
+def gate1(lo, ser, R, F, L, D, limit):
+    runs, cur, start, unknown, blocked = [], 0, None, 0, 0
+    for i, x in enumerate(ser + [None]):
+        ok = None
+        if i < len(ser) and x is not None:
+            avail, total, load, disk, _ = x
+            ok = avail - R >= F and load <= L and disk >= D
+        if ok is False:
+            blocked += 1
+            if cur == 0:
+                start = i
+            cur += 1
+            continue
+        if i < len(ser) and x is None:
+            unknown += 1
+        if cur:
+            runs.append((start, cur))
+        cur = 0
+    longest = max([n for _, n in runs] or [0])
+    windows = [{"start": fmt_min(lo + s), "minutes": n} for s, n in runs if n > limit]
+    return {"max_blocked_min": longest, "blocked_minutes": blocked,
+            "unknown_minutes": unknown, "windows_over_limit": windows}
+
+
+def gate2(lo, ser, R, F, L, D, X, hold, window, gap):
+    n = len(ser)
+    running = [0] * (n + hold + 1)
+    admits, last = [], None
+    for i, x in enumerate(ser):
+        if x is None:
+            continue
+        avail, total, load, disk, _ = x
+        if last is not None and i - last < gap:
+            continue
+        if avail - running[i] * R - R >= F and load <= L and disk >= D:
+            admits.append(i)
+            last = i
+            for j in range(i, min(n, i + hold)):
+                running[j] += 1
+    free = [None if x is None else (x[0] - running[i] * R) / x[1] * 100.0 for i, x in enumerate(ser)]
+    out = {}
+    for xp in X:
+        viol, worst, unjudged = [], None, 0
+        for a in admits:
+            w = [f for f in free[a + 1:a + 1 + window] if f is not None]
+            if not w:
+                unjudged += 1
+                continue
+            m = min(w)
+            worst = m if worst is None else min(worst, m)
+            if m < xp:
+                viol.append({"admit": fmt_min(lo + a), "min_free_pct": round(m, 2)})
+        out["%g" % xp] = {"violations": len(viol), "unjudged_admits": unjudged,
+                          "worst_free_pct": None if worst is None else round(worst, 2),
+                          "examples": viol[:5]}
+    return {"admits": len(admits), "by_free_pct": out}
+
+
+def run(opts):
+    hosts, bad = load(opts)
+    res = {"params": {k: opts[k] for k in ("reserve_gb", "floor_gb", "load_max", "free_pct",
+                                          "disk_min_gb", "gate1_minutes", "window_min",
+                                          "hold_min", "admit_gap_min", "fallback")},
+           "bad_lines": bad, "hosts": {}, "grid": [], "recommendation": None,
+           "note": "被动采样只定初值；模拟放行的 agent 按「放行即用满 R、持续 hold_min 分钟」保守计。"}
+    sers = {}
+    for h in sorted(hosts):
+        recs = hosts[h]
+        lo, ser = series(recs, opts["fallback"])
+        sers[h] = (lo, ser)
+        res["hosts"][h] = {
+            "first": fmt_min(min(recs)), "last": fmt_min(max(recs)),
+            "span_minutes": len(ser), "samples": len(recs),
+            "orca_ok": sum(1 for r in recs.values() if r.get("orca_ok")),
+            "fallback_minutes": sum(1 for x in ser if x is not None and x[4] == "fallback"),
+            "unknown_minutes": sum(1 for x in ser if x is None),
+            "stats": host_stats(recs),
+        }
+    D = opts["disk_min_gb"] * GB
+    for Rg in opts["reserve_gb"]:
+        for Fg in opts["floor_gb"]:
+            for L in opts["load_max"]:
+                row = {"reserve_gb": Rg, "floor_gb": Fg, "load_max": L, "hosts": {}}
+                for h, (lo, ser) in sers.items():
+                    row["hosts"][h] = {
+                        "gate1": gate1(lo, ser, Rg * GB, Fg * GB, L, D, opts["gate1_minutes"]),
+                        "gate2": gate2(lo, ser, Rg * GB, Fg * GB, L, D, opts["free_pct"],
+                                       opts["hold_min"], opts["window_min"], opts["admit_gap_min"]),
+                    }
+                res["grid"].append(row)
+    res["recommendation"] = recommend(res, opts)
+    return res
+
+
+def recommend(res, opts):
+    """每个 X 各给一组：两台都过门槛 1（没有超过限值的窗口）和门槛 2（0 违规）的组合里，
+    取最保守的：下限最大，其次 R 最大，其次负载上限最小。"""
+    out = {}
+    for xp in ("%g" % x for x in opts["free_pct"]):
+        passing = []
+        for row in res["grid"]:
+            hs = row["hosts"].values()
+            if hs and all(not v["gate1"]["windows_over_limit"]
+                          and v["gate2"]["by_free_pct"][xp]["violations"] == 0
+                          and v["gate2"]["admits"] > 0 for v in hs):
+                passing.append(row)
+        passing.sort(key=lambda r: (-r["floor_gb"], -r["reserve_gb"], r["load_max"]))
+        if passing:
+            r = passing[0]
+            out[xp] = {"floor_gb": r["floor_gb"], "reserve_gb": r["reserve_gb"],
+                       "load_max": r["load_max"], "passing_combos": len(passing)}
+        else:
+            out[xp] = None
+    rss = [h["stats"]["session_tree_rss_gb"].get("p90") for h in res["hosts"].values()]
+    rss = [x for x in rss if x is not None]
+    by_agent = {}
+    for h in res["hosts"].values():
+        for t, d in h["stats"]["session_tree_rss_gb_by_agent"].items():
+            if d.get("n"):
+                cur = by_agent.setdefault(t, {"p90": d["p90"], "p99": d["p99"]})
+                cur["p90"], cur["p99"] = max(cur["p90"], d["p90"]), max(cur["p99"], d["p99"])
+    return {"by_free_pct": out,
+            "reserve_hint_gb": max(rss) if rss else None,
+            "reserve_hint_gb_by_agent": by_agent,
+            "rule": "两台都过门槛 1、2 的组合里取下限最大、R 最大、负载上限最小的一组；"
+                    "R 不应低于 reserve_hint_gb（各台会话进程树 rss 的 p90 取大）。被动采样只定初值。"}
+
+
+def summary(res):
+    out = []
+    out.append("ops-v5-sample-replay（被动采样只定初值）")
+    out.append("坏行 %d" % res["bad_lines"])
+    for h, v in res["hosts"].items():
+        s = v["stats"]
+        out.append("")
+        out.append("[%s] %s ~ %s，跨度 %d 分钟，有记录 %d，orca_ok %d，后备估算 %d，缺数据 %d" % (
+            h, v["first"], v["last"], v["span_minutes"], v["samples"], v["orca_ok"],
+            v["fallback_minutes"], v["unknown_minutes"]))
+        for k in ("availableMemory_gb", "loadAverage1m", "session_memory_gb",
+                  "session_tree_rss_gb", "agent_count"):
+            d = s[k]
+            if d["n"]:
+                out.append("  %-22s n=%-6d p50=%-8s p90=%-8s p99=%-8s max=%s" % (
+                    k, d["n"], d["p50"], d["p90"], d["p99"], d["max"]))
+            else:
+                out.append("  %-22s 无数据" % k)
+        for t, d in s["session_tree_rss_gb_by_agent"].items():
+            out.append("  %-22s n=%-6d p50=%-8s p90=%-8s p99=%-8s max=%s" % (
+                "tree_rss_gb[%s]" % t, d["n"], d["p50"], d["p90"], d["p99"], d["max"]))
+    out.append("")
+    xs = list(res["params"]["free_pct"])
+    head = "R(GB) F(GB) L     " + "".join(
+        "| %-6s 门1最长 门1缺 门2放行 %s " % (h, " ".join("违<%g%%" % x for x in xs)) for h in res["hosts"])
+    out.append(head)
+    for row in res["grid"]:
+        line = "%-5g %-5g %-5g " % (row["reserve_gb"], row["floor_gb"], row["load_max"])
+        for h in res["hosts"]:
+            v = row["hosts"][h]
+            g1, g2 = v["gate1"], v["gate2"]
+            flag = "!" if g1["windows_over_limit"] else " "
+            line += "| %-6s %5d%s %5d %6d  %s " % (
+                "", g1["max_blocked_min"], flag, g1["unknown_minutes"], g2["admits"],
+                " ".join("%5d" % g2["by_free_pct"]["%g" % x]["violations"] for x in xs))
+        out.append(line)
+    out.append("（「!」= 该台有超过 %d 分钟的连续不可起窗口）" % res["params"]["gate1_minutes"])
+    out.append("")
+    rec = res["recommendation"]
+    out.append("建议初值（%s）" % rec["rule"])
+    for xp, v in rec["by_free_pct"].items():
+        if v:
+            out.append("  X=%s%%：下限 %gGB，R %gGB，负载上限 %g（%d 组通过）" % (
+                xp, v["floor_gb"], v["reserve_gb"], v["load_max"], v["passing_combos"]))
+        else:
+            out.append("  X=%s%%：没有组合两条门槛都过" % xp)
+    out.append("  R 参考：会话进程树 rss p90 = %s GB" % rec["reserve_hint_gb"])
+    for t, d in sorted(rec["reserve_hint_gb_by_agent"].items()):
+        out.append("    %s：p90 %s GB，p99 %s GB（两台取大）" % (t, d["p90"], d["p99"]))
+    return "\n".join(out)
+
+
+def main(argv):
+    opts = parse_args(argv)
+    res = run(opts)
+    if opts["json"] == "-":
+        json.dump(res, sys.stdout, ensure_ascii=False, indent=1)
+        sys.stdout.write("\n")
+        return 0
+    if opts["json"]:
+        with open(opts["json"], "w") as f:
+            json.dump(res, f, ensure_ascii=False, indent=1)
+    print(summary(res))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

@@ -1,0 +1,6 @@
+#!/bin/bash
+# 假 ps：只接受 -A -o pid,ppid,rss,etime,comm，输出 fixtures/ps.txt。
+set -u
+[ "${FAKE_PS_MODE:-ok}" = fail ] && exit 1
+[ "$*" = "-A -o pid,ppid,rss,etime,comm" ] || { echo "fake ps: 不允许的参数 $*" >&2; exit 2; }
+cat "${FAKE_FIXTURES:?}/ps.txt"

@@ -1,0 +1,4 @@
+{"ok":true,"result":{"terminals":[
+ {"handle":"term_A","tabId":"tabA","leafId":"leafA","title":"t","preview":"SECRET_BODY_MARKER preview","worktreeId":"repo1::/w/a"},
+ {"handle":"term_B","tabId":"tabB","leafId":"leafB","title":"t","preview":"SECRET_BODY_MARKER","worktreeId":"repo1::/w/b"}
+],"totalCount":2,"truncated":false}}

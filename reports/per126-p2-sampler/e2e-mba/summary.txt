@@ -1,0 +1,18 @@
+records 10 / 10
+minutes_distinct 10
+orca_ok 10
+errors_total 0
+  2026-10-21T12:55 sessions=23 found=23 agents=11 orphan=1 avail_gb=3.28 load1=10.650390625 dur_ms=694 rss_kb=21184 errors=[]
+  2026-10-21T12:56 sessions=23 found=23 agents=12 orphan=2 avail_gb=2.64 load1=10.189453125 dur_ms=1187 rss_kb=21120 errors=[]
+  2026-10-21T12:57 sessions=23 found=23 agents=12 orphan=2 avail_gb=2.64 load1=7.3828125 dur_ms=1097 rss_kb=21120 errors=[]
+  2026-10-21T12:58 sessions=23 found=23 agents=12 orphan=2 avail_gb=2.96 load1=7.13623046875 dur_ms=1041 rss_kb=21392 errors=[]
+  2026-10-21T12:59 sessions=23 found=23 agents=12 orphan=2 avail_gb=3.28 load1=5.083984375 dur_ms=723 rss_kb=21088 errors=[]
+  2026-10-21T13:00 sessions=23 found=23 agents=12 orphan=2 avail_gb=2.64 load1=4.046875 dur_ms=857 rss_kb=21056 errors=[]
+  2026-10-21T13:01 sessions=23 found=23 agents=12 orphan=2 avail_gb=2.88 load1=5.58984375 dur_ms=1107 rss_kb=20912 errors=[]
+  2026-10-21T13:02 sessions=23 found=23 agents=12 orphan=2 avail_gb=2.80 load1=4.20654296875 dur_ms=928 rss_kb=21104 errors=[]
+  2026-10-21T13:03 sessions=23 found=23 agents=12 orphan=2 avail_gb=2.72 load1=4.1923828125 dur_ms=1029 rss_kb=20976 errors=[]
+  2026-10-21T13:04 sessions=23 found=23 agents=12 orphan=2 avail_gb=2.72 load1=3.6416015625 dur_ms=733 rss_kb=21520 errors=[]
+bytes_samples 42100 (4210 B/record)
+bytes_dict 14608 (23 lines)
+est_bytes_per_day 6.1 MB (samples*1440 + dict)
+scan_hits 0

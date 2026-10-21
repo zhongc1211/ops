@@ -1,0 +1,10 @@
+# commit 0870d83fce40cb32a4dfbfb012f707fd9633ab83；iMac 真实 HOME；launchctl 换成 dispatch/tests/stubs/launchctl（print 一律答「未加载」），没调真的 launchctl
+缺失 /Users/jiawenwang/.local/bin/ops-v5-sampler
+缺失 /Users/jiawenwang/.local/bin/ops-v5-sample-replay
+缺失 /Users/jiawenwang/Library/LaunchAgents/com.zhongc1211.ops-v5-sampler.plist
+缺失 /Users/jiawenwang/.config/dispatch/sampler.env
+未加载 gui/501/com.zhongc1211.ops-v5-sampler
+无状态 /Users/jiawenwang/.local/state/ops-v5/ops-v5-sampler.status 不存在（采样器还没跑过）
+无数据 /Users/jiawenwang/.local/state/ops-v5/samples/ 下还没有 .jsonl
+缺失 /Users/jiawenwang/.local/state/ops-v5/
+# rc=1

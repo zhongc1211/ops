@@ -1,0 +1,6 @@
+#!/bin/bash
+# 假 launchctl：把调用记到 FAKE_LAUNCHCTL_LOG；print 一律返回「未加载」。
+set -u
+echo "launchctl $*" >> "${FAKE_LAUNCHCTL_LOG:-/dev/null}"
+[ "$1" = print ] && exit 113
+exit 0

@@ -1,0 +1,236 @@
+# 回退测试：本轮桩测 + 第一轮（cbccc9d）的 sampler 和 install.sh
+# 跑的时间 2026-10-21T13:10:22+0800；iMac，macOS 26.6.2，GNU bash, version 3.2.57(1)-release (arm64-apple-darwin25)，Python 3.9.6
+# 做法：git archive affb0a5f55cb3b20551d09110a847d8d57e2cd7a dispatch 解到临时目录（不改分支）；
+#   再用 git show cbccc9d:dispatch/bin/ops-v5-sampler、git show cbccc9d:dispatch/install.sh 覆盖副本里的这两个文件；
+#   其余文件（sampler-stub.sh、桩、fixtures、ops-v5-sample-replay、模板）都是本轮的。在副本里跑 tests/sampler-stub.sh。
+# 副本里两个文件的 sha256（和 cbccc9d 一致）：
+#   cb8ce40b8b8133ac1a2dba929a57022cca690bf9f90cb684d55a3047bec5f032  dispatch/bin/ops-v5-sampler  （cbccc9d：cb8ce40b8b8133ac1a2dba929a57022cca690bf9f90cb684d55a3047bec5f032）
+#   374030c99d9447d1a082ea4231202aca3c39dca516c7b8009478235cdaf57a25  dispatch/install.sh  （cbccc9d：374030c99d9447d1a082ea4231202aca3c39dca516c7b8009478235cdaf57a25）
+# 本轮代码（0870d83）上同一套桩测：通过 116，失败 0（stub-test-output.txt）
+#
+# 结果：通过 66，失败 50（normal normal normal normal normal normal normal normal normal normal dict_dedup dict_dedup config_bad_version config_bad_value orca_enrich_fail fallback_tools_fail max_days max_days max_days max_days max_days size_cap size_cap size_cap log_cap log_cap log_cap log_cap install install install install install install install install install install_backup_fail install_backup_fail install_backup_fail install_backup_fail install_backup_fail uninstall uninstall uninstall uninstall uninstall uninstall install_not_macos install_not_macos）
+#
+# 按用例：挂了几条 / 原因
+#   normal                 ok  8  FAIL 10
+#   dict_dedup             ok  1  FAIL  2
+#   same_minute            ok  2  FAIL  0
+#   config_missing         ok  3  FAIL  0
+#   config_bad_version     ok  3  FAIL  1
+#   config_bad_value       ok  1  FAIL  1
+#   lock_held              ok  4  FAIL  0
+#   orca_missing           ok  4  FAIL  0
+#   orca_timeout           ok  4  FAIL  0
+#   round_timeout          ok  2  FAIL  0
+#   orca_bad_json          ok  1  FAIL  0
+#   orca_not_ok            ok  2  FAIL  0
+#   orca_enrich_fail       ok  3  FAIL  1
+#   fallback_tools_fail    ok  2  FAIL  1
+#   max_days               ok  1  FAIL  5
+#   size_cap               ok  2  FAIL  3
+#   log_cap                ok  1  FAIL  4
+#   replay_gate1           ok  7  FAIL  0
+#   replay_gate2           ok  6  FAIL  0
+#   install                ok  8  FAIL  9
+#   install_backup_fail    ok  0  FAIL  5
+#   uninstall              ok  1  FAIL  6
+#   install_not_macos      ok  0  FAIL  2
+#
+# 原因归类：
+#   预期会挂、证明新用例能抓到旧行为：
+#     max_days、size_cap   旧 sampler 按天数/总量删旧文件，不停写、不写 status=full、不记 ERROR（F14/F14b/F15）
+#     log_cap              旧 sampler 把日志轮转成 .1 覆盖，不挪到 log-archive/（F17/F17b）
+#     install              旧 install.sh 不跑 backup.sh、不打印快照、不写 install-records.tsv，.bak 留在原目录，--check 不看状态文件（F22/F22b/F26）
+#     install_backup_fail  旧 install.sh 不看 backup.sh，照样装（F23）
+#     uninstall            旧 install.sh 没有 --uninstall（F24）
+#     install_not_macos    旧 install.sh 在非 macOS / 缺 dscl 时不按「退出 2 + 说明原因」处理（F25）
+#   格式改了所以挂（旧版本没有这些字段）：
+#     normal、dict_dedup、orca_enrich_fail、fallback_tools_fail  旧 schema 是 ops-v5-sample/1，会话里带静态字段、没有会话字典、orphan_agents 是列表
+#     config_bad_version   旧 sampler 没有状态文件
+#     config_bad_value     用例写的是 MAX_DAYS=two，旧 sampler 没有 MAX_DAYS 这一项，不报错
+#
+# ---------------------------------------------------------------- 完整输出
+[normal]
+  ok   退出码 0（F19 空环境）
+  ok   写了一行
+    实际值：('ops-v5-sample/1', 'testhost', True, True)
+  FAIL schema/host/ok
+  ok   ts 带时区
+  ok   机器级读数
+  ok   三个会话
+    实际值：{'worktreeId': 'repo1::/w/a', 'worktreeName': '任务 A', 'repoName': 'ops', 'sessionId': 'repo1::/w/a@@1', 'paneKey': 'tabA:leafA', 'pid': 100, 'memory': 300000000, 'cpu': 1, 'terminal': {'handle': 'term_A', 'state': 'working', 'workingMode': 'auto', 'stateStartedAt': 1792554000000, 'agentType': 'claude', 'linkedLinearIssue': 'PER-1'}, 'proc': {'found': True, 'tree_rss_kb': 252496, 'n_procs': 4, 'agents': ['claude'], 'agent_type': 'claude'}}
+  FAIL 会话 A 每分钟字段：rss=528+1968+200000+50000，顶层 agent 只有 claude
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "<string>", line 1, in <module>
+KeyError: 'agent_type'
+  FAIL 会话 B agent 是 codex
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "<string>", line 1, in <module>
+KeyError: 'found'
+  FAIL 会话 C（pid 300）找不到进程（F11）
+    实际值：['paneKey', 'repoName', 'sessionId', 'worktreeId', 'worktreeName']
+  FAIL 每分钟记录里没有静态字段
+    实际值：[{'pid': 400, 'ppid': 1, 'rss_kb': 90000, 'etime': '10:00', 'comm': 'claude'}, {'pid': 500, 'ppid': 1, 'rss_kb': 20000, 'etime': '05:00', 'comm': 'node'}]
+  FAIL 会话外 agent 只记个数、rss 合计：400 claude + 500 node（401 在 400 下面不算）
+  ok   agent 计数
+  FAIL 字典写了 3 条
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/normal/state/samples/testhost/2026-10-21.sessions.jsonl'
+  FAIL 字典最后一条（会话 C，对不上终端）
+head: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/normal/state/samples/testhost/2026-10-21.sessions.jsonl: No such file or directory
+  FAIL 字典第一条（会话 A）对上 term_A、claude、auto、PER-1
+grep: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/normal/state/samples/testhost/2026-10-21.sessions.jsonl: No such file or directory
+  ok   没存会话正文（F18）
+  ok   self 耗时和 rss
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/normal/state/ops-v5-sampler.status'
+  FAIL 状态文件 ok
+[dict_dedup]
+  ok   第二次采样追加了第 2 行（F21）
+  FAIL 静态字段没变，字典不重复写
+  FAIL 日志写 dict+0
+[same_minute]
+  ok   同一分钟两次只一行（F5）
+  ok   日志写了跳过
+[config_missing]
+  ok   退出码 3（F1）
+  ok   日志写配置缺失
+  ok   没有 samples
+[config_bad_version]
+  ok   版本 2 退出码 3（F2）
+  ok   没写版本退出码 3
+  ok   日志写版本不对
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/config_bad_version/state/ops-v5-sampler.status'
+  FAIL 状态文件 config_error
+[config_bad_value]
+  FAIL 数值项坏退出码 3（F3）
+  ok   日志点名 MAX_DAYS
+[lock_held]
+  ok   锁被占退出码 0（F4）
+  ok   没写 samples
+  ok   日志写锁被占
+  ok   锁放开后能写
+[orca_missing]
+  ok   退出码 0
+  ok   orca_ok=false，错误 not_found（F6）
+  ok   后备读数还在
+  ok   会话为空，会话外 agent 照记
+[orca_timeout]
+  ok   ORCA_TIMEOUT_SEC=2，整次 < 6 秒（实际 2s）（F7）
+  ok   orca_ok=false，错误 timeout
+  ok   假 orca 和它的 sleep 子进程都已被杀
+  ok   后备读数还在
+[round_timeout]
+  ok   整轮上限 2 秒压住了 10 秒的 orca 上限（实际 2s）（F13）
+  ok   后面的步骤记 no_budget
+[orca_bad_json]
+  ok   坏 JSON：orca_ok=false，bad_json（F8）
+[orca_not_ok]
+  ok   ok:false → not_ok（F9）
+  ok   退出码 1 → exit:1 并带首行
+[orca_enrich_fail]
+  ok   orca_ok 仍是 true（F10）
+  ok   两步补充都记错
+  ok   会话照记，没有 state
+head: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/orca_enrich_fail/state/samples/testhost/2026-10-21.sessions.jsonl: No such file or directory
+  FAIL 字典里 handle 为 null
+[fallback_tools_fail]
+  ok   退出码 0（F12）
+  ok   错误记了 ps、3 个 sysctl、df
+    实际值：(None, [], False)
+  FAIL agent_count、orphan_agents 为 null，会话没有 found
+[max_days]
+  FAIL 已有 3 天、到 MAX_DAYS=3：今天不写（F14）
+  FAIL 旧文件一个没删（F14b）
+  FAIL 日志 ERROR 写了停写原因
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/max_days/state/ops-v5-sampler.status'
+  FAIL 状态文件 full
+  ok   ops 挪走一天后恢复写入
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/max_days/state/ops-v5-sampler.status'
+  FAIL 状态文件回到 ok
+[size_cap]
+  FAIL 超总大小：不写、不删（F15）
+  FAIL 日志 ERROR 写了 MAX_TOTAL_MB
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+FileNotFoundError: [Errno 2] No such file or directory: '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/size_cap/state/ops-v5-sampler.status'
+  FAIL 状态文件 full
+mv: rename /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/size_cap/state/samples/testhost/2026-10-19.jsonl to /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/size_cap/2026-10-19.jsonl: No such file or directory
+  ok   挪走旧文件后写入 1 行
+  ok   当天文件超上限后不再追加、不截断
+[log_cap]
+ls: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/log_cap/state/log-archive: No such file or directory
+  FAIL 日志挪到 log-archive，新日志很小（F17）
+ls: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/log_cap/state/log-archive: No such file or directory
+  FAIL launchd 日志也挪走
+ls: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/log_cap/state/log-archive: No such file or directory
+  FAIL 第二次挪走不覆盖第一份（共 2 份）
+ls: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/log_cap/state/log-archive: No such file or directory
+  FAIL 归档满了：日志停写、不挪（F17b）
+  ok   数据照写
+[replay_gate1]
+  ok   回放退出码 0
+  ok   坏行 1，会话字典跳过不算坏行（R1）
+  ok   门槛 1：最长 61 分钟（R3）
+  ok   门槛 1：只报一个超过 60 分钟的窗口，从 00:30 开始
+  ok   缺数据 1 分钟单列，打断连续段（R2）
+  ok   摘要里有分位数和按 agent 类型的 rss
+  ok   该组合不被推荐
+[replay_gate2]
+  ok   放行 1 次
+  ok   X=10%：1 次违规，最低 6.25%（R4）
+  ok   X=5%：不违规
+  ok   分位数：会话 rss p90 = 0.391GB
+  ok   按 agent 类型：claude p90 0.391、pi p90 0.098（R6）
+  ok   X=5% 有推荐、X=10% 没有
+[install]
+  ok   装前 --check 退出 1
+  ok   --dry-run 退出 0，没写文件，没跑 backup.sh
+  FAIL --dry-run 列出快照步骤、plist、配置、ops-v5 数据目录
+  ok   临时 HOME 安装退出 0
+cat: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/install/backup.calls: No such file or directory
+  FAIL 先跑了 backup.sh --label p2-sampler（F22）
+  FAIL 打印了快照目录和 MANIFEST sha256
+  FAIL install-log.tsv 只有表头和 backup.sh 那一行，install.sh 没往里写
+  FAIL 安装记录写进 ~/.local/state/ops-v5/install-records.tsv：表头 + 4 个文件
+sed: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/install/home/.local/state/ops-v5/install-records.tsv: No such file or directory
+  FAIL 记录里的 sha256 和已装文件一致，快照目录和 MANIFEST sha256 对上 backup.sh 那一行
+  ok   临时 HOME 下没调 launchctl
+  ok   plist 用 ops-v5 数据目录且合法
+  ok   重复安装：不备份、不重复建
+  FAIL 覆盖前的旧文件进归档（不在 .local/bin、LaunchAgents）
+  ok   装后 --check 退出 0
+  FAIL 装后 --check 报版本、配置、状态、采样年龄、大小
+tests/sampler-stub.sh: line 406: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/install/home/.local/state/ops-v5/ops-v5-sampler.status: No such file or directory
+  FAIL 采样器 full：--check 报警、退出 1
+  ok   已有配置不覆盖
+[install_backup_fail]
+  FAIL backup.sh 失败：退出非 0（F23）
+  FAIL 什么都没装
+  FAIL backup.sh 没写 install-log：退出非 0，什么都没装
+  FAIL install-log 新行 label 不对：退出非 0，什么都没装
+  FAIL 没有 backup.sh：退出非 0，什么都没装
+[uninstall]
+  FAIL --uninstall 退出 0（F24）
+ls: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/uninstall/home/ops-archive/per126-v5-backup-1021/imac/removed-*: No such file or directory
+  FAIL plist、两个脚本、配置都挪到 removed-<时间>/，保留原层次
+  FAIL 原位置都没了
+  FAIL 数据目录默认留着
+  ok   临时 HOME 下没调 launchctl
+  FAIL 卸载后 --check 退出 1
+ls: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.ZWDgV9LF1k/uninstall/home/ops-archive/per126-v5-backup-1021/imac/removed-*: No such file or directory
+  FAIL --move-data：采样器的数据、日志、状态也挪走
+[install_not_macos]
+  FAIL 不在 macOS：退出 2 并说明原因（F25）
+  FAIL 缺 dscl：退出 2 并说明原因
+
+通过 66，失败 50（normal normal normal normal normal normal normal normal normal normal dict_dedup dict_dedup config_bad_version config_bad_value orca_enrich_fail fallback_tools_fail max_days max_days max_days max_days max_days size_cap size_cap size_cap log_cap log_cap log_cap log_cap install install install install install install install install install install_backup_fail install_backup_fail install_backup_fail install_backup_fail install_backup_fail uninstall uninstall uninstall uninstall uninstall uninstall install_not_macos install_not_macos）

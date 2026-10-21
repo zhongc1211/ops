@@ -1,0 +1,9 @@
+{"id":"1","ok":true,"result":{"app":{},"processMemoryMetric":"rss","totalCpu":1,"totalMemory":1,"collectedAt":1792554317993,
+"host":{"totalMemory":8589934592,"freeMemory":175521792,"availableMemory":2748779069,"availableMemorySource":"memory-pressure","usedMemory":5841155523,"memoryUsagePercent":68.0,"cpuCoreCount":8,"loadAverage1m":3.5},
+"worktrees":[
+ {"worktreeId":"repo1::/w/a","worktreeName":"任务 A","repoId":"repo1","repoName":"ops","cpu":1,"memory":300000000,"history":[1,2,3],
+  "sessions":[{"sessionId":"repo1::/w/a@@1","paneKey":"tabA:leafA","pid":100,"cpu":1,"memory":300000000}]},
+ {"worktreeId":"repo1::/w/b","worktreeName":"task B","repoId":"repo1","repoName":"ops","cpu":1,"memory":200000000,
+  "sessions":[{"sessionId":"repo1::/w/b@@1","paneKey":"tabB:leafB","pid":200,"cpu":0,"memory":200000000},
+              {"sessionId":"repo1::/w/b@@2","paneKey":"tabB:leafC","pid":300,"cpu":0,"memory":1000}]}
+]}}

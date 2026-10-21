@@ -1,0 +1,9 @@
+#!/bin/bash
+set -u
+[ "${FAKE_SYSCTL_MODE:-ok}" = fail ] && exit 1
+case "$2" in
+  kern.memorystatus_level) echo 40 ;;
+  vm.loadavg) echo '{ 3.50 3.00 2.50 }' ;;
+  hw.memsize) echo 8589934592 ;;
+  *) exit 1 ;;
+esac
