@@ -1,0 +1,1 @@
+{"runs_ok": true, "runs": 101, "hb_lines": 100, "newest_hb": {"ts": 1792608325, "mode": "--scan", "rc": 1, "last_scan": 1792607547, "last_duration_s": 68.6}, "newest_hb_age_min": 1.9, "newest_run_status": "dispatching", "list_ok": true, "list_count": 16, "watched": {"name": "ops · 01 卡住工作检查", "createdAt": 1791804522369, "enabled": true}}
