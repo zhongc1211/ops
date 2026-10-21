@@ -1,0 +1,4 @@
+2026-10-21 11:38:21	backup	13a60bf6-f713-4397-ba4b-0729dafa93f3::/Users/jiawenwang/ops-drill/wt-r6/h1-review-ok	0	/Users/jiawenwang/ops-drill/archive-r6/2026-10-21/ws-cleanup-drill/h1-review-ok
+2026-10-21 11:38:22	recheck	13a60bf6-f713-4397-ba4b-0729dafa93f3::/Users/jiawenwang/ops-drill/wt-r6/h1-review-ok	0	没变化
+2026-10-21 11:38:22	rm-start	13a60bf6-f713-4397-ba4b-0729dafa93f3::/Users/jiawenwang/ops-drill/wt-r6/h1-review-ok		
+2026-10-21 11:38:23	rm-end	13a60bf6-f713-4397-ba4b-0729dafa93f3::/Users/jiawenwang/ops-drill/wt-r6/h1-review-ok	0	{   "id": "77528ba1-cff8-44af-9573-c92721ca0a03",   "ok": true,   "result": {     "removed": true,     "removing": true,     "catalogVersion": {       "epoch": "73678cb8-a185-4c43-a18a-bff8989ae46c",       "sequence": 2448     }   },   "_meta": {     "runtimeId": "cb0f5509-687d-409f-bf36-d841efc78dc

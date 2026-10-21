@@ -1,0 +1,5 @@
+path	verdict	file	bytes
+/Users/jiawenwang/ops-drill/wt-r6/h1-review-ok	BACKUP_RM	.orca-task/BRIEF.md	25
+/Users/jiawenwang/ops-drill/wt-r6/h2-late-head	BACKUP_RM	.orca-task/BRIEF.md	25
+/Users/jiawenwang/ops-drill/wt-r6/h3-gh-fail	BACKUP_RM	.orca-task/BRIEF.md	23
+/Users/jiawenwang/ops-drill/wt-r6/h4-after-backup	BACKUP_RM	.orca-task/BRIEF.md	28

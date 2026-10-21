@@ -1,0 +1,2 @@
+OK ops-drill/archive-r6/2026-10-21/ws-cleanup-drill/h4-after-backup/MANIFEST.sha256
+OK ops-drill/archive-r6/2026-10-21/ws-cleanup-drill/h1-review-ok/MANIFEST.sha256

@@ -1,0 +1,13 @@
+~/ops-drill/archive-r6
+~/ops-drill/archive-r6/2026-10-21
+~/ops-drill/archive-r6/2026-10-21/ws-cleanup-drill
+~/ops-drill/archive-r6/2026-10-21/ws-cleanup-drill/h1-review-ok
+~/ops-drill/archive-r6/2026-10-21/ws-cleanup-drill/h1-review-ok/.orca-task
+~/ops-drill/archive-r6/2026-10-21/ws-cleanup-drill/h1-review-ok/.orca-task/BRIEF.md
+~/ops-drill/archive-r6/2026-10-21/ws-cleanup-drill/h1-review-ok/MANIFEST.sha256
+~/ops-drill/archive-r6/2026-10-21/ws-cleanup-drill/h1-review-ok/NO-ISSUE-REVIEW.md
+~/ops-drill/archive-r6/2026-10-21/ws-cleanup-drill/h4-after-backup
+~/ops-drill/archive-r6/2026-10-21/ws-cleanup-drill/h4-after-backup/.orca-task
+~/ops-drill/archive-r6/2026-10-21/ws-cleanup-drill/h4-after-backup/.orca-task/BRIEF.md
+~/ops-drill/archive-r6/2026-10-21/ws-cleanup-drill/h4-after-backup/MANIFEST.sha256
+~/ops-drill/archive-r6/2026-10-21/ws-cleanup-drill/h4-after-backup/NO-ISSUE-REVIEW.md

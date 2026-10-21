@@ -1,0 +1,2 @@
+2026-10-21 11:38:28	backup	13a60bf6-f713-4397-ba4b-0729dafa93f3::/Users/jiawenwang/ops-drill/wt-r6/h4-after-backup	0	/Users/jiawenwang/ops-drill/archive-r6/2026-10-21/ws-cleanup-drill/h4-after-backup
+2026-10-21 11:38:30	recheck	13a60bf6-f713-4397-ba4b-0729dafa93f3::/Users/jiawenwang/ops-drill/wt-r6/h4-after-backup	1	结论 BACKUP_RM W19→SKIP W8；备份清单 .orca-task→空；HEAD 240f835→0155ab3；未推送 0→1；有未推送提交 1 个
