@@ -131,3 +131,16 @@
 | M4 | 只给 comment 打码，terminals.tsv、journal.tsv、summary.md 里别处出现的邮箱漏掉 | 终端 title / worktree 名带邮箱；execute 的 journal | 所有输出文件里都没有原邮箱 |
 | M5 | 文件名 `page@<hash>.webm`（Playwright 录像）被当成邮箱打码，backup-files.tsv 里的路径变了，对不上真文件；`--execute` 拿打码后的备份清单去和实时的比，永远「不一样」（R2 第一次真实 dry-run 看到 16 个） | c_testresults 里加 `test-results/page@0a1b2c3d.webm` | backup-files.tsv 原样写这个文件名 |
 | M6 | 名单 TSV 是打过码的，`--execute` 用没打码的 id / 备份清单去对，有邮箱的那行永远对不上 | 只在代码里处理：对比前两边都过同一个打码 | — |
+
+补充（R3，Zack 10-21 08:44）：没挂 Linear issue 的工作区一律 SKIP W19 NO_LINEAR_ISSUE。第一次真 `--execute`（reports/ws-cleanup-exec-1021/imac/run1）删的 32 个里有 12 个没挂 Linear，只凭 PR 已合并 / HEAD 在远端主分支就删了。先写失败方式，再改代码。
+
+| # | 失败方式 | 用例 | 期望 |
+|---|---|---|---|
+| N1 | 没挂 Linear、目录干净、HEAD 在 origin/main，照样 RM W14（run1 里 everos-research 就是这样删的） | c_nolin | SKIP W19，reason 以 NO_LINEAR_ISSUE 开头 |
+| N2 | 没挂 Linear，但有已合并的 PR、HEAD 就是 PR 的 head，PR 已合并压过了没有 Linear | c_nolin_pr（PR #62 MERGED） | SKIP W19 |
+| N3 | 没挂 Linear、目录已不在、HEAD 在远端，按 W4 RM | c_nolin_gone | SKIP W19 |
+| N4 | 没挂 Linear、有不能重建的被忽略文件，按 W13 先备份再删 | c_nolin_backup | SKIP W19，不进 backup-files 以外的任何执行计划（planned 为空） |
+| N5 | linkedLinearIssue 是空白串，被当成挂了 issue 去查 Linear，查失败判 W10 而不是 W19；或者被当成挂了、查到别的 | c_nolin_blank（"  "） | SKIP W19 |
+| N6 | dry-run 时挂着 Linear（名单里是 RM），动手前 Orca 里把 issue 摘掉了，`--execute` 复查不看，照样删 | x_late_nolin（等待点期间清掉 linkedLinearIssue） | 跳过：「重新判定变成 SKIP W19」，没有 rm 调用 |
+| N7 | 挂了 Linear 且已关的工作区被新规则误挡 | 现有 RM / BACKUP_RM 用例都挂上已关的 issue（PER-2、OKX-1） | 结论不变 |
+| N8 | summary 里看不出有多少个是因为没挂 Linear 才没删 | out1 | summary 有「NO_LINEAR_ISSUE（W19）：n 个」 |

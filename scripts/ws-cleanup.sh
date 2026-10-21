@@ -8,7 +8,7 @@
 #   工作区从上往下判，第一条命中的就是结论：W1 main/bare → W2 本任务所在 → W3 别的机器 → W5 agent 在跑 → W6 终端有活进程 / 还开着
 #   → W18 GIT_LOCKED：这个 worktree 自己的 gitdir 里有 index.lock、没做完的 merge / rebase / am / cherry-pick / revert / bisect，或被 git worktree lock（Zack 10-21 07:34）
 #   → 目录已不在：W4 看 git 记录的 HEAD（不在远端、也没有别的 ref 包含 → SKIP） / 目录在：W7 未提交 → W8 未推送
-#   → W9 open PR → W10 Linear 未关（Zack 03:37：真删前每次实时查，查不到、超时、找不到 issue 都不删）→ W11 Orca 状态不是 completed
+#   → W9 open PR → W19 NO_LINEAR_ISSUE 没挂 Linear issue（Zack 10-21 08:44：PR 已合并、HEAD 在主分支都不能代替）→ W10 Linear 未关（Zack 03:37：真删前每次实时查，查不到、超时、找不到 issue 都不删）→ W11 Orca 状态不是 completed
 #   → W12 近 IDLE_H 小时有活动 → W17 HEAD 不在已合并的 PR / 远端主分支或合并目标分支上
 #   （Zack 10-21 03:33：Linear Done、状态 completed 都只是前提，安全核对一项不过就不删）
 #   → W13 被忽略的文件：可重建的以外一律先备份（有嵌套 .git、非普通文件 → SKIP） → W14 rm（目录已不在的是 W4 rm）。
@@ -342,7 +342,7 @@ def wt_gitdir(path, main):
 # ---------- 判定 ----------
 def evaluate(w, d, ctx):
     """返回 (结论, 规则, 原因, 证据 dict)。"""
-    ev = {"status": w.get("workspaceStatus") or "", "pr": "", "head_vs_pr": "", "merged_via": "", "linear": w.get("linkedLinearIssue") or "",
+    ev = {"status": w.get("workspaceStatus") or "", "pr": "", "head_vs_pr": "", "merged_via": "", "linear": (w.get("linkedLinearIssue") or "").strip(),
           "dirty": "", "unpushed": "", "head": "", "backup": "", "backup_size": "", "rebuild": "", "_backup": [], "_files": []}
     path = w["path"]
     real = os.path.realpath(path)
@@ -396,13 +396,12 @@ def evaluate(w, d, ctx):
         ev["head_vs_pr"] = ",".join("#%s%s" % (p["number"], "=" if p.get("headRefOid") == head else "≠") for p in prs)
         if any(p["state"] == "OPEN" for p in prs): return "SKIP", "W9", "PR 还开着", ev
     except QueryFail as e: return "SKIP", "W9", "PR 查不到（%s）" % e, ev
-    lin_closed = None
-    if ev["linear"]:
-        try:
-            typ = linear_state(ev["linear"], d); ev["linear"] += " " + typ
-            lin_closed = typ in ("completed", "canceled", "duplicate")
-            if not lin_closed: return "SKIP", "W10", "Linear 还没关", ev
-        except QueryFail: return "SKIP", "W10", "Linear 查不到（当作没关）", ev
+    if not ev["linear"]: return "SKIP", "W19", "NO_LINEAR_ISSUE：Orca 里没挂 Linear issue", ev
+    try:
+        typ = linear_state(ev["linear"], d); ev["linear"] += " " + typ
+        lin_closed = typ in ("completed", "canceled", "duplicate")
+        if not lin_closed: return "SKIP", "W10", "Linear 还没关", ev
+    except QueryFail: return "SKIP", "W10", "Linear 查不到（当作没关）", ev
     if ev["status"].lower() != "completed":   # 评审 M1：先保守，状态不是 completed 一律不删，等 Zack 定
         old = any(p["state"] in ("MERGED", "CLOSED") for p in prs) or lin_closed
         return "SKIP", "W11", "Orca 状态是 %s，不是 completed%s" % (ev["status"] or "空",
@@ -806,6 +805,8 @@ def summary(rows, trows, fails, probs, note):
           "| 规则 | 个数 |", "|---|---|"] + ["| %s | %d |" % (k, rc[k]) for k in sorted(rc, key=lambda x: (x[0] != "W", int(x[1:]) if x[1:].isdigit() else 99))]
     conflict = [r for r in rows if r["rule"] == "W11" and "状态冲突" in r["reason"]]
     if conflict: L += ["", "状态冲突、这次不删、等 Zack 定的：%d 个（worktrees.tsv 里 W11 且原因写「状态冲突」）" % len(conflict)]
+    nolin = [r for r in rows if r["rule"] == "W19"]
+    if nolin: L += ["", "NO_LINEAR_ISSUE（W19）：%d 个（没挂 Linear issue，这次不删）" % len(nolin)]
     locked = [r for r in rows if r["rule"] == "W18"]
     if locked: L += ["", "GIT_LOCKED（W18）：%d 个（gitdir 里有锁或没做完的 git 操作，这次不删）" % len(locked)]
     lin_fail = [r for r in rows if r["rule"] == "W10" and "查不到" in r["reason"]]
