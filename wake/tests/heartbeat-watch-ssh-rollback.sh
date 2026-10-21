@@ -69,7 +69,7 @@ cp "$T/tree.txt" "$T/drill.log" "$OUT/rollback/"
 cp "$tree/automations/heartbeat-1021/defs.json" "$OUT/rollback/defs-live.json"
 
 python3 -I - "$OUT" "$base" "$head" <<'PY'
-import json, os, sys
+import json, os, re, sys
 out, base, head = sys.argv[1:4]
 # 照抄 automations/heartbeat-1021/FAILURE-MODES.md「回退测试的期望」：本 PR 会改变结果的 19 项该挂，其余 26 项照样过
 FAIL = {}
@@ -87,15 +87,40 @@ PASS = ("S0.same S0.bot " + " ".join("S1.c%02d" % n for n in range(1, 15)) + " S
 assert len(FAIL) == 19 and len(PASS) == 26
 rows = [l.rstrip("\n").split("\t") for l in open(os.path.join(out, "results.tsv"), encoding="utf-8") if l.strip()]
 got = {r[0]: r for r in rows}
+# 该挂的每项从 raw/ 里取输出原文（前两行，去掉开头的时间戳）：演练的「实际」一栏只摘期望子串所在的那行，挂了常常是空的。
+RAW = {"S0.diff": "S0/diff-base-new.txt", "S2.sh": "mba/S2-sh.out mba/S2-sh.err", "S2.zsh": "mba/S2-zsh.out mba/S2-zsh.err",
+       "S4": "mba/S4.out mba/S4.err", "S4.wrapper": "mba/S4-wrapper.out mba/S4-wrapper.err", "S4b": "mba/S4b.out mba/S4b.err",
+       "S5.iMac": "S5-imac/edit.err", "S5.MBA": "mba/S5/edit.out mba/S5/edit.err", "S5b": "mba/S5b.out mba/S5b.err",
+       "S7": "mba/S7-runs.err", "S6b.parallel": "S6b/parallel.out S6b/parallel.err", "S6b.final": "S6b/final.out S6b/final.err",
+       "S8.mba": "S8/mba.out S8/mba.err", "S8.imac-noid": "S8/imac.out S8/imac.err",
+       "S8.parallel": "S8/imac-parallel.out S8/imac-parallel.err", "S8.final": "S8/imac-final.out S8/imac-final.err",
+       "S8.rollback": "S8/imac-rollback.out S8/imac-rollback.err", "S8.refuse": "S8/bad-id.out S8/bad-id.err",
+       "S11": "S11/bash-n.txt"}
+assert set(RAW) == set(FAIL)
+
+
+def rawtext(i):
+    if i not in RAW:
+        return ""
+    lines = []
+    for p in RAW[i].split():
+        try:
+            lines += open(os.path.join(out, "raw", p), encoding="utf-8", errors="replace").read().splitlines()
+        except OSError:
+            lines.append("（没有 raw/%s）" % p)
+    lines = [re.sub(r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d SGT ", "", l) for l in lines if l.strip()]
+    return " ⏎ ".join(lines[:2]) or "（%s 没有内容）" % "、".join("raw/" + p for p in RAW[i].split())
+
+
 order = [r[0] for r in rows] + [i for i in list(FAIL) + PASS if i not in got]
 tab = []
 for i in order:
     want = "FAIL" if i in FAIL else "PASS" if i in PASS else "不在期望表里"
     act = got[i][1] if i in got else "没有这一项"
-    tab.append((i, want, act, "一致" if act == want else "不一致", FAIL.get(i, ""), got[i][3] if i in got else ""))
+    tab.append((i, want, act, "一致" if act == want else "不一致", FAIL.get(i, ""), got[i][3] if i in got else "", rawtext(i)))
 bad = sum(t[3] != "一致" for t in tab)
 with open(os.path.join(out, "rollback.tsv"), "w", encoding="utf-8") as f:
-    f.write("编号\t回退后期望\t实际\t和期望\t为什么该挂\t实际原文\n")
+    f.write("编号\t回退后期望\t实际\t和期望\t为什么该挂\t演练的「实际」一栏\traw/ 里的输出原文\n")
     for t in tab:
         f.write("\t".join(t) + "\n")
 
@@ -126,8 +151,11 @@ L = ["# B1 回退测试：旧代码（base %s）上跑同一套演练" % base[:7
      "旧代码检出的情况（`rollback/tree.txt`）：", "", "```"] + tree + ["```", "",
      "## 这次运行", ""] + ["- " + cell(l) for l in env] + ["",
      "## 期望挂的 19 项（本 PR 会改变结果）", "",
-     "| 编号 | 为什么该挂 | 实际 | 和期望 | 实际原文（截到 200 字） |", "|---|---|---|---|---|"]
-L += ["| %s | %s | %s | %s | %s |" % (t[0], cell(t[4]), t[2], t[3], cell(t[5], 200)) for t in tab if t[1] == "FAIL"]
+     "「raw/ 里的输出原文」：冒号前是 `raw/` 下的文件，冒号后是这些文件里不空的前两行（去掉开头的时间戳，⏎ 隔开）。", "",
+     "| 编号 | 为什么该挂 | 实际 | 和期望 | raw/ 里的输出原文（截到 240 字） | 演练的「实际」一栏（截到 160 字） |",
+     "|---|---|---|---|---|---|"]
+L += ["| %s | %s | %s | %s | %s：%s | %s |" % (t[0], cell(t[4]), t[2], t[3], "、".join(RAW[t[0]].split()), cell(t[6], 240),
+                                             cell(t[5], 160)) for t in tab if t[1] == "FAIL"]
 L += ["", "## 期望过的 26 项（本 PR 不改变结果，用来排除「是环境坏了才挂」）", "",
       "| 编号 | 实际 | 和期望 | 实际原文（截到 200 字） |", "|---|---|---|---|"]
 L += ["| %s | %s | %s | %s |" % (t[0], t[2], t[3], cell(t[5], 200)) for t in tab if t[1] == "PASS"]
@@ -136,13 +164,13 @@ if other:
     L += ["", "## 不在期望表里的", "", "| 编号 | 实际 | 实际原文 |", "|---|---|---|"]
     L += ["| %s | %s | %s |" % (t[0], t[2], cell(t[5], 200)) for t in other]
 L += ["", "## 文件", "",
-      "- `rollback.tsv`：每项一行：编号、回退后期望、实际、和期望一不一致、为什么该挂、实际原文。",
+      "- `rollback.tsv`：每项一行：编号、回退后期望、实际、和期望一不一致、为什么该挂、演练的「实际」一栏、raw/ 里的输出原文。",
       "- `rollback/tree.txt`：旧代码检出的情况。`rollback/defs-live.json`：现网版 defs。`rollback/drill.log`：演练的屏幕输出。",
       "- `README.md`、`results.tsv`、`env.txt`、`raw/`：演练脚本在旧代码上生成的，格式同 `reports/heartbeat-mba-imac-1021/`。",
       "- `SHA256SUMS`：除它自己以外所有文件的 sha256（`shasum -a 256 -c SHA256SUMS` 校验）。", ""]
 open(os.path.join(out, "ROLLBACK.md"), "w", encoding="utf-8").write("\n".join(L))
 for t in tab:
-    print("%-6s %-16s 期望 %-4s 实际 %-4s %s" % (t[3], t[0], t[1], t[2], t[5][:120]))
+    print("%-6s %-16s 期望 %-4s 实际 %-4s %s" % (t[3], t[0], t[1], t[2], (t[6] or t[5])[:120]))
 print("回退测试：%d 项里 %d 项和期望一致，%d 项不一致" % (len(tab), len(tab) - bad, bad))
 sys.exit(1 if bad else 0)
 PY
