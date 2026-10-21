@@ -51,9 +51,9 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | scripts/heartbeat-watch.sh | a36d3dc8a88702a8（F8 同类修过；建模时 682dfa079840cf2e。之后 main 只改过注释，B1 又改了第 13 行的部署说明，这里和 SOURCES.sha256 都没跟） | B1 上线后不用：box ops · 29 停用（10-21 还在跑 `~/.orca-state/bin/` 这份，一致） | `~/.orca-state/bin/`（iMac ops · 29 跑的，B1 后盯 MBA 那条）一致 | B1 上线时装到 `~/.orca-state/bin/`（MBA ops · 29 跑，经 `scripts/orca-via-ssh` 读 iMac 的运行记录）；10-21 还没装 |
 | wake/pi/dispatch-wake.ts | 350c898595552ed6 | 没核对（Pi 扩展装在各 agent 的扩展目录） | | |
 
-自动任务（`orca automations show`，只读）：iMac ops · 01 `439cd438` precheck `stuck-check.sh --scan`、rrule 每分钟、**precheck timeoutSeconds 300**；iMac ops · 02 `c7692ae9` codex 备用（`orca-fallback.sh stuck-check 25 60`，8–23 点每小时 53 分）；盯 ops · 01 的是 MBA「ops · 29 心跳互查 MBA（盯 iMac ops · 01）」`HB_ORCA=…/scripts/orca-via-ssh ORCA_SSH_HOST=imac heartbeat-watch.sh --precheck --target "iMac ops · 01 …||439cd438…|20"` 每 5 分钟；iMac ops · 29 `5c2d0575` 盯 MBA 这条（`--target "MBA ops · 29 心跳互查|mba|…|20"`）。这是 B1（`automations/heartbeat-1021/`）上线后的部署；10-21 现网还是 box ops · 29 `94e4b0bc`（`--target "iMac ops · 01 …|iMac|439cd438…|20"`）盯 ops · 01、`5c2d0575` 盯 box 那条，上线顺序和回滚见那个目录的 README。enabled-bots 三台都含全部真实 bot（coding-assistant、deepvision-ops、vllm-omni、xinyue、deepvision-ads、deepvision-marketing），所以模型里不建影子模式。
+自动任务（`orca automations show`，只读）：iMac ops · 01 `439cd438` precheck `stuck-check.sh --scan`、rrule 每分钟、**precheck timeoutSeconds 300**；iMac ops · 02 `c7692ae9` codex 备用（`orca-fallback.sh stuck-check 25 60`，8–23 点每小时 53 分）；盯 ops · 01 的是 MBA「ops · 29 心跳互查 MBA（盯 iMac ops · 01）」`HB_ORCA=…/scripts/orca-via-ssh ORCA_SSH_HOST=imac /usr/bin/lockf -k -t 0 …/mba-hb-watch.lock heartbeat-watch.sh --precheck --target "iMac ops · 01 …||439cd438…|20"` 每 5 分钟、precheck 超时 330 秒；iMac ops · 29 `5c2d0575` 盯 MBA 这条（`--target "MBA ops · 29 心跳互查|mba|…|20"`）。这是 B1（`automations/heartbeat-1021/`）上线后的部署；10-21 现网还是 box ops · 29 `94e4b0bc`（`--target "iMac ops · 01 …|iMac|439cd438…|20"`）盯 ops · 01、`5c2d0575` 盯 box 那条，上线顺序和回滚见那个目录的 README。enabled-bots 三台都含全部真实 bot（coding-assistant、deepvision-ops、vllm-omni、xinyue、deepvision-ads、deepvision-marketing），所以模型里不建影子模式。
 
-B1（2026-10-21）只改了这页的文字，没跑 TLC。模型（P3 的 Heartbeat 部分）和 `SOURCES.sha256` 还是按 box 盯 iMac 建的，更新留给后续 wake-tla 批次。到时要对的：heartbeat-watch.sh 的 sha256；MBA 那条经 ssh 读 iMac（ssh 连不上时每次约 10 秒失败，走「运行记录查不到」）；MBA 睡着超过 20 分钟时 iMac ops · 29 报 MBA 那条中断，这段时间 ops · 01 没人盯；10-21 只读核对时 ops · 01 `439cd438` 的 precheck 超时是 600 秒，不是上面的 300。
+B1（2026-10-21）只改了这页的文字，没跑 TLC。模型（P3 的 Heartbeat 部分）和 `SOURCES.sha256` 还是按 box 盯 iMac 建的，更新留给后续 wake-tla 批次。到时要对的：heartbeat-watch.sh 的 sha256；MBA 那条经 ssh 读 iMac（ssh 连不上时每次约 10 秒失败，走「运行记录查不到」）；MBA 睡着超过 20 分钟时 iMac ops · 29 报 MBA 那条中断，这段时间 ops · 01 没人盯；10-21 只读核对时 ops · 01 `439cd438` 的 precheck 超时是 600 秒，不是上面的 300；MBA 那条和 `5c2d0575` 并行版的 precheck 套了 `/usr/bin/lockf -k -t 0`，上一轮没跑完时这一轮退出 75，不起 heartbeat-watch，没有 `@@HB`（假设 4）。B1 第五轮也没跑 TLC：两台都没有 Java 17 和 tla2tools，`check.sh` 只能在 Linux 上跑，`SOURCES.sha256` 有两项和代码对不上。
 
 ## 动作 ↔ 代码
 
@@ -100,7 +100,7 @@ B1（2026-10-21）只改了这页的文字，没跑 TLC。模型（P3 的 Heartb
 1. 每个任务都经 `orca-agent-launch` → `notify-run --tty` 起，hook 已装（`orca-wake-hooks check` 全 ok）。
 2. 「bot 收到」= webhook 返回 2xx；收到的 bot 一小时内会处理（review / 评论 / 归档），所以第二类不再报（模型里用 ghost 变量 `accepted` 代替「PR 有人看过」）。
 3. 一次扫描内别的进程的交错不影响结论（扫描对 orca-wake 的影响只经 recheck 的 detached 发送，这个发送在模型里是独立动作）。
-4. Orca 不会让同一个自动任务的 precheck 重叠运行（假设成重叠只会多出心跳，不改变 P3 的结论）。
+4. Orca 不会让同一个自动任务的 precheck 重叠运行（假设成重叠只会多出心跳，不改变 P3 的结论）。B1 第五轮读两台 Orca 的代码（1.4.235、1.4.229），没看到这一条：预检超过 rrule 的间隔时，下一轮照常起（`automations/heartbeat-1021/FAILURE-MODES.md` F21、F28，没在真机上验证）。MBA 那条和 `5c2d0575` 并行版靠 precheck 外面的 lockf 挡住重叠，被挡的那一轮没有 `@@HB`，是少了一次心跳，不是多了。
 5. P3 里 MBA 上的 heartbeat-watch 在跑（它自己由 iMac ops · 29 盯，iMac 经 environment `mba` 读它的运行记录）。B1 之前这一条是 box 上的 heartbeat-watch。
 
 ## 结果（commit 和原文见产物目录 /workspace/ops/reports/wake-tla-20261019/）
