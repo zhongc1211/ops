@@ -1,0 +1,2 @@
+2026-10-22 01:24:26 SGT iMac ops · 01 卡住工作检查：运行记录查不到（{"code": "invalid_argument", "message": "Unknown Orca server in --environment iMac: no paired Orca server is named or has id iMac.", "data": {"knownEnvironments": [], "knownSshTargets": [{"id": "ssh-1），已连续 2 分钟
+@@HB {"ts": 1792603466, "mode": "heartbeat-watch", "rc": 0, "last_scan": 1792603466}
