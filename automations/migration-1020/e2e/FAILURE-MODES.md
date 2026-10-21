@@ -7,6 +7,9 @@
 （`box-baseline/`）；「修后」= 本分支。每条新断言在修前至少要挂一次（回退测试），修前修后各跑一轮全量，
 原始输出都保留，不挑重跑。
 
+> 2026-10-21 B2a（PER-146，box 不再出现在新任务的执行路径上）的清单在文末「B2a」一节，现在的 `run-e2e.sh` 按那一节跑。
+> B2a 去掉了下面靠 box 的场景：M1a、M1b、M3a、M3b、M1i、C1a–C1e、C2a、C2b、E1。
+
 ## 动手前查到的、会影响设计的事实
 
 | # | 事实 | 怎么查到的 | 影响 |
@@ -83,3 +86,64 @@ A1 L1 · A2 L2 · A3 L3a L3b · A4 L4a L4b · A5 L5 · A6 D1a–D1d D2 · A7 M2a
 A10 C1a–C1d C2a C2b · A11 C1a C1e · A12 W1a–W1c · A13 W2a–W2d · A14 W3a W3b · A15 W4 W7b W7c · A16 W5 W6 ·
 A17 E1 P1d · A18 W2e · A19 K1a–K1c · A20 R1a–R1c · A21 P1a–P1c · A22 W8a · A23 W8c · A24 W8b W8d W2d ·
 A25 W7a · A26 F1 F2 · A27 D3a D3b · A28 M1i · 另有 S1（主预检先同步再拿锁，F6 的推论）。
+
+## B2a（PER-146）：box 不再出现在新任务的执行路径上
+
+写于 2026-10-21，改任何代码之前。依据：.orca-task/BRIEF.md（B2a）、main f828d452 上的本目录、`box-baseline/`、
+iMac 和 MBA 上的只读检查。本批不连 box：演练在 iMac 上跑，MBA 经 ssh。
+
+「修前」= 本分支的 base（`git merge-base HEAD origin/main`，`git archive` 出来，不检出）；「修后」= 本分支。
+新加的检查（N*、W0、M5a、M5b）修前必须挂；保留的检查（PER-79 里不靠 box 的）修前修后都应过；
+G1a、G1b 比的就是修前和修后，只在修后跑。
+
+### 动手前查到的事实
+
+| # | 事实 | 怎么查到的 | 影响 |
+|---|---|---|---|
+| G1 | `night-review-gate.sh` 第 48 行 `BOXD=${NR_BOX_DIR:-~/xinyue-deploy/nightly-review}` 里的 `~` 在本机展开，得到 `/Users/jiawenwang/xinyue-deploy/nightly-review`，发给 box 的命令里就是这个路径；box 的家目录是 `/home/box`（上面 F3） | /bin/bash 3.2 实测 | 不设变量时（defs 里的任务都不设），MBA、iMac 查不到 box 上的完成摘要，收尾往 box 拷会失败（退出 4），iMac 看守随后按 asleep 接手重跑。PER-79 演练一直设着 NR_BOX_DIR，没跑到默认值。新的默认值写成字面 `"~/…"`，到存放主机上再展开 |
+| G2 | MBA 和 iMac 的 HOME 都是 `/Users/jiawenwang`；`hostname -s` 分别是 `mba`、`iMac` | `ssh mba`、本机 | 第 66 行 `NR_MBA_STATE` 的同样写法因为两台家目录相同，碰巧能用，本批不改。判断「存放主机就是本机」用 `hostname -s` 转小写 |
+| G3 | iMac 上 `ssh imac` 连不上自己（host key 校验失败；BatchMode 下不写 known_hosts） | 实测 | 存放主机或清单源主机是本机时必须走本地。「全放 iMac」那套配置在 iMac 上靠这一条才能用 |
+| G4 | 两台 Mac 的 `/opt/homebrew/bin`、`/usr/local/bin` 里都没有 ssh、curl、grep、sed、tar | `ls` | 闸门脚本把这两个目录插到 PATH 最前面，演练放在 PATH 里的记录用 ssh 不会被绕过 |
+| G5 | MBA 在非交互 ssh 里能 BatchMode 连上 iMac；两台机器上 `ssh -G box` 都解析到 100.64.0.6 | `ssh mba 'ssh imac hostname -s'`、`ssh -G` | 「全放 iMac」配置的 MBA → iMac 拷贝能在演练里真跑；记录用的 ssh 按名字和这个地址拒绝 box |
+| G6 | box 旧夜审把摘要、台账写在 box 的 `~/xinyue-deploy/nightly-review/`，文件名和新任务收尾拷过去的一样（默认存放位置就是这个目录）；box 旧的官网、广告、vllm 提示词不写「状态：完成」，只有心月的写 | 读 `box-baseline/` | 新旧任务同一晚都开着时会互相覆盖文件，新闸门也认不出旧任务的完成（心月除外）。上线和回滚的每一步都把「停旧的」和「开新的」放在同一张卡里，不留新旧重叠的一晚 |
+| G7 | box 上心月兜底 27383c07 每天 00:30 读 box 上的心月摘要和台账，告警发 Coding助手 | `box-baseline/automations.json`、`everos-ingest/night-review-guard-xinyue.sh` | 不再改 box 任务以后它还是 00:30：MBA 23:40 开跑，50 分钟内没拷到 box 就会误报；iMac 接手的夜里一定误报；存放位置挪到 iMac 后每晚误报。放进 README「待 Zack 决定」 |
+
+### 要防的失败方式（修前应挂，修后应过；B13 是保留项）
+
+| # | 失败方式 | 场景 | 修后期望 |
+|---|---|---|---|
+| B1 | defs 里还有 box 任务或 box 路径（4 个 box 看守、给 box 旧任务的改动、box 清理预检），注册时会在 box 上建任务、改任务 | N1 | `rg -n 'machine": *"box"' defs.json` 没有输出；defs 里没有 `box-watch`、`/workspace/repos/ops`；edit 为空 |
+| B2 | `register.sh box` 照样打印 box 的命令，有人照着在 box 上跑 | N2 | 退出 2，stderr 一行说明，stdout 为空，不调用 orca |
+| B3 | 删 box 条目时把 Mac 上的条目删错、改错（名字、台数、grace、`--disabled`） | N3、R1b | `register.sh mba` / `imac` 打印的任务名集合各自和 defs.json 里这台的一致，合起来就是 defs.json 的全部；MBA 9 条、iMac 10 条，每条都带 `--disabled` 和 `--missed-run-grace-minutes 120` |
+| B4 | 新变量不生效：设了 NR_STORE_HOST / NR_STORE_DIR，脚本还按 NR_BOX_HOST 拷、按它判断完成 | N4 | NR_BOX_HOST 指向连不上的主机、NR_STORE_HOST=local 时：收尾拷到 NR_STORE_DIR，退出 0；同一晚的备用预检按新位置看到完成，退出 1，不拿锁 |
+| B5 | 默认行为变了：不设新变量时判定变了，或者拷到了别处 | G1a、G1b | 新旧 `night-review-gate.sh` 在同一组状态文件上（什么都不设；只设旧变量名）：每次调用的退出码、状态文件、接替标记、同步标记、锁、存放目录里的文件、叫醒的 status / reason / task、同步调用、ssh 的目标主机和命令种类都一样。允许的不同只有三类，逐条列出：G1 的路径写法、B8 的提示文字和 machine、屏幕输出的措辞 |
+| B6 | 默认存放目录的 `~` 在本机展开（G1） | N8 | 什么都不设时，发给存放主机的 grep 和 mkdir / tar 命令里是字面 `~/xinyue-deploy/nightly-review/` |
+| B7 | 存放主机就是本机时还 ssh 自己，连不上（G3），于是判成没完成、拷不过去 | N9、W0 | iMac 上 NR_STORE_HOST=imac 时收尾走本地，这一步没有 ssh；MBA 上同样的配置经 ssh 拷到 iMac，iMac 看守看到完成（seen_done），备用退出 1 |
+| B8 | 卡住时的提示还让人去跑 box 上停用的旧任务 | N5、N7 | iMac 锁被占超过 60 分钟、box-watch（保留，没有任务用）发的 stuck：machine=imac，note 写按 iMac 备用接替，没有「box task」 |
+| B9 | 提示词里还有 box 兜底：拷回 box、box 上 01:00 的兜底检查、Linear 连不上改用 box、noop 里的 box-watch | N6 | 生成的提示词和 noop 里都没有这些；收尾那句写存放位置（NR_STORE_HOST / NR_STORE_DIR）；`make-prompts.py --check` 通过（P1c） |
+| B10 | 清单源不是 box 时同步跑不通：源是本机（`local` 或本机名） | M5a、M5b | iMac 上 SYNC_SRC_HOST=local、=imac 都同步成功，SYNC-STATUS=ok，每个 transcript_path 是本机可读文件 |
+| B11 | 演练连了 box 或真 webhook | X0、X1、W7c | 两台机器上，闸门脚本 PATH 里先找到的 ssh 是记录用的那个；它的记录里没有 box（名字或 100.64.0.6），也没有被拒的调用；叫醒只到两台机器 127.0.0.1 上的假 webhook，KEY 是假的 |
+| B12 | 演练杀进程，或留下常驻进程 | X2、K1c | 假 webhook 看到停止文件后自己退出，caffeinate 到时自己退出；演练脚本里没有 kill、pkill |
+| B13 | 去掉 box 以后，PER-79 里不靠 box 的行为退化 | L、D、M2、M6、W、F、K、R、P | 和 PER-79 的期望一样（M6：MBA 从 iMac 上的清单同步成功）。这些是保留项，修前也应通过 |
+
+### 演练本身可能骗人的地方
+
+| # | 风险 | 处理 |
+|---|---|---|
+| H1 | 叫醒用的是假 webhook | 同上面 C1：结果叫 dry-run 演练，不叫 E2E |
+| H2 | 默认存放位置（box）的真实拷贝没跑 | 不许连 box。保留项的存放位置用本地目录（NR_BOX_HOST=local，新旧都认）；默认值只在 G1a 里用不联网的假 ssh 跑，路径写法由 N8 单独查 |
+| H3 | 对照用的假 ssh 按文件名找文件，不看目录 | 所以 G1a、G1b 比的是判定，不证明 box 上有那个目录；路径写法在对照报告里单列一栏 |
+| H4 | 修前跑对照没有意义（新旧都是 base） | G1a、G1b 只在修后跑，修前记 SKIP，不算进回退测试 |
+| H5 | box-watch 在 MBA 上代替 box 跑 | 它已经没有任务用，这里只证明子命令还能跑、提示改了 |
+| H6 | 「全放 iMac」配置只在演练里设，没有启用 | 是。W0 证明这套配置在两台 Mac 之间走得通；要不要切由 Zack 定，步骤写在 README |
+
+### 去掉的场景
+
+M1a、M1b、M3a、M3b、M1i（真 box 拉清单）、C1a–C1e、C2a、C2b（box 清理预检；本方案不再给 box 加预检）、
+E1（读 box 拉来的清单查真 EverOS，还要读 EverOS 凭据）不再跑。对应代码在本批没有改：清单同步从 box 拉的那条路径是默认值，
+`cleanup-precheck.sh`、`box-cleanup.sh`、`nightly_addflush.py` 没动。
+
+### 编号对照
+
+B1 N1 · B2 N2 · B3 N3 R1b · B4 N4 · B5 G1a G1b · B6 N8 · B7 N9 W0 · B8 N5 N7 · B9 N6 P1c · B10 M5a M5b ·
+B11 X0 X1 W7c · B12 X2 K1c · B13 L1–L5 D1a–D1d D2 D3a D3b M2a M2b M6 W1a–W8d F1 F2 K1a K1b S1 R1a R1b P1a–P1d。
