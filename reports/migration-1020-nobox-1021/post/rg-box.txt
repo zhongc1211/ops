@@ -1,0 +1,2 @@
+$ rg -n 'machine": *"box"' automations/migration-1020/defs.json    # in /Users/jiawenwang/orca/workspaces/ops/ops-migration-nobox-b2a-1021
+rc=1

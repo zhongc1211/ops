@@ -1,0 +1,34 @@
+# register.sh box: 13 command(s), dry-run, nothing is called
+# box-xinyue-watch
+orca automations create --name '心月 · 18 夜审 看守 box' --trigger '10 2 * * *' --timezone Asia/Singapore --provider claude '--extra-agent-args=--model sonnet --effort low' --workspace path:/workspace/repos/ops --precheck 'bash /workspace/repos/ops/scripts/night-review-gate.sh box-watch xinyue' --precheck-timeout 120 --missed-run-grace-minutes 120 --fresh-session --disabled --prompt "$(cat prompts/noop.prompt.md)"
+# box-deepvision-site-watch
+orca automations create --name 'dv运维 · 20 夜审 官网 看守 box' --trigger '0 3 * * *' --timezone Asia/Singapore --provider claude '--extra-agent-args=--model sonnet --effort low' --workspace path:/workspace/repos/ops --precheck 'bash /workspace/repos/ops/scripts/night-review-gate.sh box-watch deepvision-site' --precheck-timeout 120 --missed-run-grace-minutes 120 --fresh-session --disabled --prompt "$(cat prompts/noop.prompt.md)"
+# box-deepvision-ads-watch
+orca automations create --name 'dv广告 · 21 夜审 看守 box' --trigger '25 3 * * *' --timezone Asia/Singapore --provider claude '--extra-agent-args=--model sonnet --effort low' --workspace path:/workspace/repos/ops --precheck 'bash /workspace/repos/ops/scripts/night-review-gate.sh box-watch deepvision-ads' --precheck-timeout 120 --missed-run-grace-minutes 120 --fresh-session --disabled --prompt "$(cat prompts/noop.prompt.md)"
+# box-vllm-omni-watch
+orca automations create --name 'vllm · 22 夜审 看守 box' --trigger '50 3 * * *' --timezone Asia/Singapore --provider claude '--extra-agent-args=--model sonnet --effort low' --workspace path:/workspace/repos/ops --precheck 'bash /workspace/repos/ops/scripts/night-review-gate.sh box-watch vllm-omni' --precheck-timeout 120 --missed-run-grace-minutes 120 --fresh-session --disabled --prompt "$(cat prompts/noop.prompt.md)"
+# edit 75b324a4
+orca automations edit 75b324a4 --missed-run-grace-minutes 120
+# edit 43c55a22
+orca automations edit 43c55a22 --missed-run-grace-minutes 120
+# edit 9b5c20e7
+orca automations edit 9b5c20e7 --missed-run-grace-minutes 120
+# edit c392a743
+orca automations edit c392a743 --missed-run-grace-minutes 120
+# edit bc9ee42b
+orca automations edit bc9ee42b --missed-run-grace-minutes 120
+# edit 349967f6
+orca automations edit 349967f6 --missed-run-grace-minutes 120
+# edit 1191c819
+orca automations edit 1191c819 --missed-run-grace-minutes 120 --precheck 'bash /workspace/repos/ops/scripts/cleanup-precheck.sh ws' --precheck-timeout 120
+# edit 8c40fa83
+orca automations edit 8c40fa83 --missed-run-grace-minutes 120 --precheck 'bash /workspace/repos/ops/scripts/cleanup-precheck.sh mem' --precheck-timeout 120
+# edit 27383c07: MIGRATION-BRIEF: guard 00:30 -> 01:00 so the 23:40 MBA review and its copy back to box fit; a failed copy back = review not done, the guard alarms (correct)
+orca automations edit 27383c07 --trigger '0 1 * * *'
+# later, one by one after the replacement's first real pass (README), with Zack's approval:
+#   orca automations edit 349967f6 --disabled
+#   orca automations edit 43c55a22 --disabled
+#   orca automations edit 75b324a4 --disabled
+#   orca automations edit 9b5c20e7 --disabled
+#   orca automations edit bc9ee42b --disabled
+#   orca automations edit c392a743 --disabled

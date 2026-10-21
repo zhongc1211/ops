@@ -1,0 +1,9 @@
+1792601811 pass nosuchhost.invalid nosuchhost.invalid test -d '/var/lib/everos-ingest/vllm-omni/2026-10-19'
+1792601816 pass nosuchhost.invalid nosuchhost.invalid test -d '/var/lib/everos-ingest/vllm-omni/2026-10-19'
+1792601816 pass mba 100.64.0.7 test -d '/var/lib/everos-ingest/vllm-omni/2001-01-01'
+1792601822 pass nosuchhost.invalid nosuchhost.invalid cat /tmp/b2a-e2e-20261022-005640-post-99652/state-mba/vllm-omni/2099-01-01.status
+1792601827 pass nosuchhost.invalid nosuchhost.invalid cat /tmp/b2a-e2e-20261022-005640-post-99652/state-mba/vllm-omni/2099-01-01.status
+1792601830 pass mba 100.64.0.7 cat /tmp/b2a-e2e-20261022-005640-post-99652/state-mba/vllm-omni/2099-01-02.status
+1792601833 pass mba 100.64.0.7 cat /tmp/b2a-e2e-20261022-005640-post-99652/state-mba/vllm-omni/2099-01-11.status
+1792601838 pass mba 100.64.0.7 cat /tmp/b2a-e2e-20261022-005640-post-99652/state-mba/vllm-omni/2099-01-04.status
+1792601845 pass mba 100.64.0.7 cat /tmp/b2a-e2e-20261022-005640-post-99652/state-mba/vllm-omni/2099-01-05.status
