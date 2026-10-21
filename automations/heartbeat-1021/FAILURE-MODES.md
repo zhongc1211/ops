@@ -94,3 +94,48 @@ S10.MBA、S10.iMac。其中 S6b.box、S9.94e4b0bc 要 iMac 到 box 的 grok-bot 
 
 为了让旧 defs 也能照原文跑，演练脚本里拼 precheck 的两处检查放宽成「最多出现一次」：S2 的包装路径、S6b 的 MBA 新任务 id 占位。
 各场景的断言没改。
+
+## 第二轮：dr eggbot 审查 7ac1220 以后（2026-10-21 21:2x，写代码之前）
+
+依据：`.orca-task/REVIEW-dreggbot-7ac1220.md` 的必改 1–4、建议 1–5，和下面新查到的事实。上面几张表不改，新的写在这里。
+
+### 新查到的事实
+
+| # | 事实 | 怎么查到的 | 影响 |
+|---|---|---|---|
+| F14 | Orca 起预检用 `spawn(命令, {shell: true, detached: true})`：`/bin/sh -c`，自成一个进程组。到 timeoutSeconds 先给整个进程组发 SIGTERM，2 秒后发 SIGKILL，这一轮记 timedOut、exitCode 为空；stdout、stderr 都关了才算结束（close 事件）。iMac 1.4.224 和 MBA 1.4.229 这段一样 | 两台 `/Applications/Orca.app/Contents/Resources/app.asar` 里预检那段代码 | 被杀的这一轮，heartbeat-watch 来不及写 state.json、打 `@@HB`（审查 R6）。S12 照这个做法起预检 |
+| F15 | iMac 上 orca CLI 的请求默认 60 秒超时，前面还有一次 status.get。Orca 卡住时，一次调用就可能顶到 heartbeat-watch 的 90 秒 | 审查（box 上 Orca 源码 `cli/runtime/client.js:37`） | 一次查询最坏 3×90+2×8=286 秒，超过 240。ssh 连得上、iMac 的 Orca 卡住时，MBA 那条每轮都被杀，fail_since 记不上，永远不报（必改 1） |
+| F16 | MBA 的 ssh 设置没有 ServerAlive，ConnectTimeout 没设（包装自己加了 10 秒），不复用连接 | 审查（MBA 上 `ssh -G imac`） | 连上以后对面不回，ssh 不会自己退；连接半路断了，客户端要等 TCP 超时 |
+| F17 | 两台都是 macOS 26.6.2，都有 `/usr/bin/perl`（5.34.1）、`/usr/bin/ssh`（OpenSSH_10.3p1）、`/usr/bin/python3`（3.9.6） | `sw_vers`、`perl -e 'print $^V'`、`ssh -V` | 包装用 perl 的 `alarm` 给每次 ssh 加 70 秒上限：先 `alarm 70` 再 exec ssh，计时在 exec 以后还在，到时 SIGALRM 发给 ssh 本身。ssh 会不会自己处理或清掉 SIGALRM，要用真 ssh 实测（A20） |
+| F18 | 5c2d0575 的目标经 iMac 本机 orca 的 environment（`grok-bot`、`mba`）读，不经包装，每个目标最坏还是 286 秒 | defs.json、heartbeat-watch 的 `runs_of` | 并行版两个目标最坏 572 秒，precheckTimeout 改 600（Orca 的上限，F8）；最终版一个目标，改 300；回滚版照旧还原成现网的 240 |
+| F19 | 还没见过目标的心跳（state 里没有 last_hb）、心跳又没有或过期时，heartbeat-watch 还要查一次 `automations list`（createdAt），只查 1 次，也经包装 | 读 `main()` 第 207–210 行、`created_at` | 加上限后 MBA 那条最坏：runs 3 次 226 秒；碰上这种情况再加 list 70 秒，共 296 秒。要超过 240，得是还没见过心跳、心跳又过期，而且 runs 前两次各卡满 70 秒、第三次才成功。写进 README 已知限制 |
+
+### 要防的失败方式
+
+| # | 失败方式 | 场景 | 期望 |
+|---|---|---|---|
+| A18 | ssh 连上了、iMac 的 orca 不回：MBA 这条每轮被 Orca 杀掉，不写 fail_since、不打 `@@HB`，永远不报（必改 1） | S12 | MBA 上照 defs 原文跑 precheck：只换两个脚本路径；不加 `--dry-run`；临时状态目录、空的 webhook 目录、PATH 里放只记录调用的假 curl。PATH 最前面的 ssh 替身把远端命令换成 `sleep 110`，别的参数原样 exec 真 ssh。照 Orca 的做法起（F14），超时取 defs 的 precheckTimeout，真时间。期望：没超时、自己结束、退出 1；有「iMac ops · 01 卡住工作检查：运行记录查不到（JSONDecodeError），已连续 0 分钟」；有 `@@HB`，rc 0；state.json 里这个目标有 fail_since，在这次运行的起止时间之间；ssh 起了 3 次，相邻两次开始隔 75–85 秒（70 秒上限加 8 秒等待）；第二次 ssh 起来时第一次的 ssh 进程已经没了，跑完 3 个都没了；假 curl 0 次，输出里没有「POST」和「webhook 配置」（第一次查不到时走 `continue`，到不了发告警那步） |
+| A19 | S12 分不出好坏：没有上限的包装也能过 | S12.old | 同样的设置，包装换成 7ac1220 那版（没有上限），precheck 直接写（不取 defs），超时取 defs 的 precheckTimeout。期望：到超时被杀（timedOut，用时在超时和超时加 15 秒之间）；没有 `@@HB`；状态目录里什么都没写；相邻两次 ssh 开始隔 95–105 秒（heartbeat-watch 的 90 秒超时加 8 秒）；第二次 ssh 起来时第一次的已经没了，跑完都没了 |
+| A20 | ssh 自己处理或清掉 SIGALRM，70 秒上限不起作用 | S12 | S12 用的是真 ssh，只换了远端命令。上限不起作用的话，每次要等 heartbeat-watch 的 90 秒，两次开始隔 98 秒左右，最后被杀，S12 挂 |
+| A7（补） | heartbeat-watch 90 秒超时杀掉包装后，ssh 还挂着 | S12.old | 原来只做了静态检查（S11）。S12.old 里第二次 ssh 起来时（第一次被 90 秒超时杀掉之后、Orca 杀整个进程组之前）看第一次的 pid，期望已经没了 |
+| A21 | 包装加的 ServerAlive 选项让正常读取出错 | S2、S5b、S7 | 这三个走真 ssh 和新包装，期望照旧 |
+| A22 | 包装里 ssh 的参数变了，或者被放行的调用没走 perl 的上限 | S5、S11 | S5：放行的两条，假 ssh 收到的参数开头是 `-o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=2 imac zsh -lc …`。S11：包装最后一步是 `exec /usr/bin/perl -e 'alarm shift; …' 70 ssh …` |
+| A23 | 没有 perl，或者 perl exec ssh 失败 | 不演练 | 包装退出非 0、stdout 空，heartbeat-watch 走「运行记录查不到」，45 分钟后报。两台都有 `/usr/bin/perl`（F17） |
+| A24 | 预检超时没放够：并行版不到 572 秒、最终版不到 286 秒 | S8 | register.sh 打印的 `--precheck-timeout`：MBA 新任务 240，parallel 600，final 300，rollback 240 |
+| A25 | MBA 用的包装跟着主检出变：主检出切了分支或者删了文件，要 45 分钟后才报（建议 2） | S2、S12 | defs 的 `HB_ORCA` 改成 `$HOME/.orca-state/bin/orca-via-ssh`，和 heartbeat-watch.sh 一样装到 `~/.orca-state/bin/`，装后比 sha（README 第 1 步）。S2、S12 拼 precheck 时换的是这个路径。本 PR 不装 |
+| A26 | 演练写了真状态 | S10 | MBA 上多查一个真路径 `~/.orca-state/bin/orca-via-ssh`，4 个都没有。S12 不是 dry-run，状态写在临时目录；S10 数状态文件时不算 S12 的目录 |
+
+### 演练本身可能骗人的地方
+
+| # | 风险 | 处理 |
+|---|---|---|
+| C8 | S12 的「iMac 的 orca 不回」是 ssh 替身把远端命令换成 `sleep 110` | 是替身，不叫 E2E。ssh 客户端、包装、heartbeat-watch 是真的，连的是真 iMac。iMac 上真 orca 卡住时什么样没演练：比如 orca 自己 60 秒超时后可能先回一个报错 JSON，那样不用等 70 秒上限。远端的 `sleep 110` 最多活 110 秒，自己结束 |
+| C9 | S12 的预检进程是演练脚本照 Orca 的做法起的，不是 Orca | 照两台 app.asar 的代码写（F14）：`/bin/sh -c`、新进程组、超时先 TERM 再 KILL、等 stdout 和 stderr 都关。Orca 自己起这条预检，要到上线卡 ② 才有 |
+| C10 | S12 不带 `--dry-run` | dry-run 不写 state.json、不打 `@@HB`，看不到要证明的东西。状态目录是临时的，webhook 目录是空的，PATH 里有假 curl；第一次查不到时 heartbeat-watch 走 `continue`，到不了发告警那步 |
+
+### 回退测试的期望（第二轮）
+
+base 还是 `f828d452`，回退的做法不变。新加的两项：
+
+- S12 该挂（该挂的变成 20 项）：现网版 precheck 不经 ssh，MBA 的 Orca 没有 environment `iMac`，几秒内就「运行记录查不到（invalid_argument）」。ssh 替身一次都没起，不是 JSONDecodeError，也没有 3 次 70 秒。
+- S12.old 照样过（该过的变成 27 项）：它用的是钉死的 7ac1220 包装，heartbeat-watch 的行为本来就没变。
