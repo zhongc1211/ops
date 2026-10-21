@@ -249,8 +249,8 @@ python3 -c 'import json,sys; a=json.load(open(sys.argv[1]))["result"]["automatio
   - `5c2d0575` 的目标经 iMac 本机 orca 的 environment 读，不经包装，每个目标最坏还是 286 秒。并行版两个目标最坏 572 秒，超时改成 600
     （Orca 的上限）；最终版一个目标，改成 300；回滚版还原成现网的 240，和今天一样，单个目标卡满时也放不下。
 - **两轮预检重叠**：MBA 新任务的预检超时 330 秒、`5c2d0575` 并行版 600 秒，都比 5 分钟的间隔长。一轮预检超过 300 秒时，Orca 照常起下一轮，
-  不等上一轮跑完。这是读两台现装 Orca 的代码得出的（iMac 10-21 23:15 前后自己升级到 1.4.235，MBA 是 1.4.229；前几轮读的是 iMac 的 1.4.224），
-  没在真机上验证。MBA 新任务常见最坏 226 秒，碰不到；少见情况 296 秒加起动约 4 秒，正好在边上；并行版两个目标最坏 572 秒。
+  不等上一轮跑完。这是读 Orca 的代码得出的（iMac 的 1.4.224、1.4.235，MBA 的 1.4.229；MBA 后来自己升级到 1.4.237，这一段没重读，
+  见下面「Orca 会自己升级」），没在真机上验证。MBA 新任务常见最坏 226 秒，碰不到；少见情况 296 秒加起动约 4 秒，正好在边上；并行版两个目标最坏 572 秒。
   - 不加锁会怎样：heartbeat-watch 两个进程各读一份旧状态、各写回整份；`save_json` 不加锁，临时文件名固定是 `state.json.tmp`。
     后存的一轮盖掉先存的：同一次中断报两次、漏报一次中断、「已恢复」不发、45 分钟的计时偏；两轮恰好同时写时，state.json 可能被写坏，
     下一轮按空状态从头算，所有目标的记录一起丢。
@@ -304,6 +304,10 @@ python3 -c 'import json,sys; a=json.load(open(sys.argv[1]))["result"]["automatio
 - **装好的是副本**：MBA 上的 heartbeat-watch.sh、orca-via-ssh、lock-held-alert 和 iMac 上的 lock-held-alert 都是 `~/.orca-state/bin/` 里的副本，
   主检出切分支、改文件都不影响它们。反过来，main 里这几个文件改了，要另开卡片重装、比 sha。
 - **ssh 半路断线**：包装加了 `ServerAliveInterval=15`、`ServerAliveCountMax=2`，MBA 这边约 30 秒退出。没演练。
+- **Orca 会自己升级**：两台的 Orca 这两天都自己升级过，不是本 PR 动的：iMac 10-21 23:15 前后从 1.4.224 升到 1.4.235，MBA 10-22 00:55 前后
+  从 1.4.229 升到 1.4.237。判断预检通过的代码在 1.4.235、1.4.229、1.4.237 上读过，都是退出码不是 0 就记 `skipped_precheck`（FAILURE-MODES F25、F35）；
+  预检怎么起、超时怎么杀（F14）读的是 1.4.224、1.4.229；两轮会不会重叠（F21、F28）读的是 1.4.224、1.4.235、1.4.229。1.4.237 只重读了第一样。
+  以后升级可能改这些行为。
 - **TLA+ 模型**：`wake/tla/` 的 P3 还是按 box 建的，模型里也没有 lockf；`wake/tla/README.md` 的假设 4（Orca 不让同一个任务的预检重叠）
   和上面「两轮预检重叠」不符。这次 wake-tla 没跑：两台都没有 Java 17 和 tla2tools（iMac 只有 Java 8，MBA 没有 Java）；`check.sh` 用 `free`
   和 `/proc/loadavg`，只能在 Linux 上跑；`SOURCES.sha256` 里 stuck-check.sh、heartbeat-watch.sh 两项已经和代码对不上，要先更新模型，结果才有意义。
