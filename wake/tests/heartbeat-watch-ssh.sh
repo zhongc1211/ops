@@ -6,9 +6,10 @@
 #   HB_DRILL_NOTE=<一句话>                       写在产物 README 标题下面（回退测试 heartbeat-watch-ssh-rollback.sh 用）
 # 要求：本机是 iMac（Orca 有 environment mba、grok-bot），能 ssh mba，MBA 能 ssh imac。退出码：0 全部 PASS，1 有 FAIL，2 跑不起来。
 # 场景编号和要防的失败方式见 automations/heartbeat-1021/FAILURE-MODES.md；结果和期望写进产物目录的 README.md。
-# 安全：heartbeat-watch 一律 --dry-run、临时 HB_STATE_DIR、假 webhook 目录（127.0.0.1:9 的假地址），不发叫醒、不读真凭据；
+# 安全：heartbeat-watch 都用临时 HB_STATE_DIR，除 S12 外都带 --dry-run、用假 webhook 目录（127.0.0.1:9 的假地址），不发叫醒、不读真凭据。
+# S12 不带 --dry-run（要看它写下的 state.json 和 @@HB）：webhook 目录是空的，PATH 里有只记录调用的假 curl，第一次查不到也到不了发告警那步。
 # orca 只用 automations list / show / runs；不往 ~/.orca-state/bin 装文件；MBA 上只用 mktemp -d 建的临时目录，跑完删掉。
-# 替身：S1、S3 用回放（假 HB_ORCA，S1 还固定时钟），S5 用假 ssh，S8 用假 orca，这几个不算 E2E。
+# 替身：S1、S3 用回放（假 HB_ORCA，S1 还固定时钟），S5 用假 ssh，S8 用假 orca，S12 用 ssh 替身（远端命令换成 sleep 110），这几个不算 E2E。
 # S2、S4、S5b、S6、S6b、S7、S9、S10 是真机器、真 ssh、真 Orca（只读）。
 # 内部用法：--mba-side <MBA 上的临时目录> <标记>，由 iMac 这边拷到 MBA 上跑 MBA 的场景。
 set -u
@@ -23,14 +24,15 @@ NOID=00000000-0000-0000-0000-000000000000
 FAKEID=11111111-2222-3333-4444-555555555555
 NOW=1792584000                                    # S1 的固定时钟：2026-10-21 20:00:00 SGT
 MINPATH=/usr/bin:/bin:/usr/sbin:/sbin             # 近似 Orca 预检的最少环境
+OLDWRAP=7ac12209ade6b548bdc39bf262f29c72cfb86318  # S12.old 用这个 commit 的 orca-via-ssh（第二轮审查前，ssh 没有 70 秒上限）
 CANARY=
 
 rssh() { ssh -o BatchMode=yes -o ConnectTimeout=10 mba "$@"; }
 
-# 真路径的现状：MBA 上这三个都不该有；主检出的 HEAD 前后要一样（只读 rev-parse）。
+# 真路径的现状：MBA 上这四个都不该有；主检出的 HEAD 前后要一样（只读 rev-parse）。
 real_paths() {
     local p
-    for p in .orca-state/bin/heartbeat-watch.sh .orca-state/heartbeat-watch orca/workspaces/ops/scripts/orca-via-ssh; do
+    for p in .orca-state/bin/heartbeat-watch.sh .orca-state/bin/orca-via-ssh .orca-state/heartbeat-watch orca/workspaces/ops/scripts/orca-via-ssh; do
         if [ -e "$HOME/$p" ]; then echo "有 ~/$p"; else echo "没有 ~/$p"; fi
     done
     echo "主检出 HEAD $(git -C "$HOME/orca/workspaces/ops" rev-parse HEAD 2>&1)"
@@ -94,6 +96,99 @@ mba_side() {
             STUCK_WEBHOOK_DIR="$R/hooks" ${e[@]+"${e[@]}"} "$@" >"$O/$n.out" 2>"$O/$n.err"
         echo $? >"$O/$n.rc"
     }
+    # S12（FAILURE-MODES.md A18–A20）：ssh 连上了、iMac 那边不回。s12 <名字> <目录名> <precheck>
+    # PATH 最前面是 ssh 替身（远端命令换成 sleep 110，别的参数原样 exec 真 ssh，pid 不变）和只记录调用的假 curl。
+    # 不带 --dry-run，状态写临时目录，webhook 目录是空的。照 Orca 起预检的做法（F14）跑，超时取 defs 的 precheckTimeout。
+    # 第二次 ssh 起来时、整条跑完时，用 ps 看前面起的 ssh 还在不在（输出空 = 没了）。
+    s12() {
+        local n=$1 d=$R/$2 cmd=$3 i=0 p1 f
+        mkdir -p "$d/bin" "$d/state" "$d/hooks"
+        cat >"$d/bin/ssh" <<'EOF'
+#!/bin/bash
+echo "$$ $(date +%s)" >>"$S12_SSH_LOG"
+printf '[%s]' "$@" >>"$S12_SSH_ARGS"
+echo >>"$S12_SSH_ARGS"
+set -- "${@:1:$(($# - 1))}" 'sleep 110'
+exec /usr/bin/ssh "$@"
+EOF
+        printf '#!/bin/sh\necho "$*" >>"$S12_CURL_LOG"\nexit 7\n' >"$d/bin/curl"
+        chmod +x "$d/bin/ssh" "$d/bin/curl"
+        : >"$d/ssh.log"
+        : >"$d/ssh.args"
+        : >"$d/curl.log"
+        printf '%s\n' "$cmd" >"$O/$n.cmd"
+        env -i HOME="$HOME" PATH="$d/bin:$MINPATH" LANG=en_US.UTF-8 PYTHONDONTWRITEBYTECODE=1 HB_DRILL_CANARY="$CANARY" \
+            S12_SSH_LOG="$d/ssh.log" S12_SSH_ARGS="$d/ssh.args" S12_CURL_LOG="$d/curl.log" \
+            HB_STATE_DIR="$d/state" STUCK_WEBHOOK_DIR="$d/hooks" \
+            /usr/bin/python3 -I "$R/orca-precheck.py" "$(cat "$R/s12-timeout.txt")" "$O/$n" "$cmd" &
+        while [ ! -e "$O/$n.orca.json" ] && [ "$(wc -l <"$d/ssh.log")" -lt 2 ] && [ $i -lt 300 ]; do
+            sleep 1
+            i=$((i + 1))
+        done
+        date +%s >"$O/$n.first-check-at"
+        p1=$(head -1 "$d/ssh.log" | cut -d' ' -f1)
+        if [ -n "$p1" ]; then
+            ps -o pid,ppid,rss,etime,comm -p "$p1" | sed 1d >"$O/$n.first-alive-at-second"
+        else
+            echo "没有起过 ssh" >"$O/$n.first-alive-at-second"
+        fi
+        wait
+        sleep 1  # 父进程先被杀的 ssh 由 launchd 收尸，留 1 秒
+        cut -d' ' -f1 "$d/ssh.log" | while read -r p1; do
+            ps -o pid,ppid,rss,etime,comm -p "$p1" | sed 1d
+        done >"$O/$n.alive-after"
+        cp "$d/ssh.log" "$O/$n.ssh-starts"
+        cp "$d/ssh.args" "$O/$n.ssh-args"
+        cp "$d/curl.log" "$O/$n.curl-calls"
+        (cd "$d/state" && find . -type f | sort) >"$O/$n.statefiles"
+        for f in state.json heartbeat.json watch.log; do
+            if [ -f "$d/state/$f" ]; then cp "$d/state/$f" "$O/$n.$f"; fi
+        done
+        echo "MBA $n 跑完"
+    }
+    # 照 Orca 起预检：/bin/sh -c，自成一个进程组；到超时先给整个进程组发 SIGTERM，2 秒后发 SIGKILL；stdout、stderr 都关了才算结束。
+    # 只给它自己起的这个进程组发信号。写 <前缀>.out、.err、.orca.json。
+    cat >"$R/orca-precheck.py" <<'PY'
+import json, os, signal, subprocess, sys, time
+
+limit, prefix, cmd = int(sys.argv[1]), sys.argv[2], sys.argv[3]
+
+
+def killpg(pg, sig):
+    try:
+        os.killpg(pg, sig)
+    except ProcessLookupError:
+        pass
+
+
+start = time.time()
+p = subprocess.Popen(["/bin/sh", "-c", cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+timed_out = False
+try:
+    out, err = p.communicate(timeout=limit)
+    end = time.time()
+except subprocess.TimeoutExpired:
+    timed_out = True
+    killpg(p.pid, signal.SIGTERM)
+    kill_at = time.time() + 2
+    try:
+        out, err = p.communicate(timeout=2)
+        end = time.time()
+        time.sleep(max(0.0, kill_at - time.time()))
+        killpg(p.pid, signal.SIGKILL)
+    except subprocess.TimeoutExpired:
+        killpg(p.pid, signal.SIGKILL)
+        out, err = p.communicate(timeout=10)
+        end = time.time()
+open(prefix + ".out", "wb").write(out)
+open(prefix + ".err", "wb").write(err)
+json.dump({"timeoutSeconds": limit, "timedOut": timed_out, "exitCode": None if timed_out else p.returncode,
+           "durationS": round(end - start, 1), "start": start, "end": end}, open(prefix + ".orca.json", "w"))
+PY
+    # S12、S12.old 各要 4 分钟左右：先在后台起，和下面的场景同时跑，S10 之前等它们跑完。
+    # S12 照 defs 原文（只换两个脚本路径）；S12.old 的包装是 7ac1220 那版，precheck 直接写。
+    s12 S12 s12 "$(cat "$R/s12-precheck.txt")" &
+    s12 S12-old s12-old "HB_ORCA='$R/orca-via-ssh.7ac1220' ORCA_SSH_HOST=imac '$R/heartbeat-watch.sh' --precheck --target '$TARGET'" &
     # S2：defs.json 里 MBA 新任务的 precheck 原文（只换两个脚本路径、加 --dry-run），分别经 /bin/sh 和 /bin/zsh 跑。
     pc=$(cat "$R/s2-precheck.txt")
     for sh in sh zsh; do
@@ -157,7 +252,9 @@ print(json.dumps(res, ensure_ascii=False))
 PY
     rm -f "$O/S7-runs.out" "$O/S7-list.out"
     echo "MBA S7 跑完"
-    find "$R" -path '*/state/*' -type f | sed "s|^$R/||" | sort >"$O/S10-statefiles.txt"
+    wait
+    # S12 不是 dry-run，状态写在它自己的临时目录里，不算。
+    find "$R" -path '*/state/*' -type f ! -path "$R/s12*" | sed "s|^$R/||" | sort >"$O/S10-statefiles.txt"
     real_paths >"$O/S10-after.txt"
 }
 
@@ -263,8 +360,8 @@ expect() {
     echo "commit $(git -C "$root" rev-parse HEAD)（分支 $(git -C "$root" rev-parse --abbrev-ref HEAD)）"
     echo "代码有没有未提交的改动（scripts automations wake）：$(git -C "$root" status --porcelain -- scripts automations wake | wc -l | tr -d ' ') 个文件"
     echo "base（和 origin/main 的分叉点）$(git -C "$root" merge-base HEAD origin/main)"
-    echo "iMac：$(hostname -s)，macOS $(sw_vers -productVersion) $(uname -m)，$(/bin/bash --version | head -1)，$(/usr/bin/python3 --version 2>&1)，orca $(orca --version 2>&1 | head -1)，shellcheck $(shellcheck --version 2>/dev/null | sed -n 2p | cut -d' ' -f2)"
-    echo "MBA：$(rssh 'echo "$(hostname -s)，macOS $(sw_vers -productVersion) $(uname -m)，$(/bin/bash --version | head -1)，$(/usr/bin/python3 --version 2>&1)，orca $(zsh -lc "orca --version" 2>&1 | head -1)"' 2>&1)"
+    echo "iMac：$(hostname -s)，macOS $(sw_vers -productVersion) $(uname -m)，$(/bin/bash --version | head -1)，$(/usr/bin/python3 --version 2>&1)，perl $(/usr/bin/perl -e 'print $^V')，$(ssh -V 2>&1)，orca $(orca --version 2>&1 | head -1)，shellcheck $(shellcheck --version 2>/dev/null | sed -n 2p | cut -d' ' -f2)"
+    echo "MBA：$(rssh 'echo "$(hostname -s)，macOS $(sw_vers -productVersion) $(uname -m)，$(/bin/bash --version | head -1)，$(/usr/bin/python3 --version 2>&1)，perl $(/usr/bin/perl -e "print \$^V")，$(ssh -V 2>&1)，orca $(zsh -lc "orca --version" 2>&1 | head -1)"' 2>&1)"
 } >"$OUT/env.txt"
 cat "$OUT/env.txt"
 BASE=$(git -C "$root" merge-base HEAD origin/main)
@@ -394,7 +491,7 @@ s5_judge() {
         v=ok
         [ "$rc" = "$want" ] || v=bad
         case $n in
-            allow-*) [ "$calls" = 1 ] && grep -q '^\[-o\]\[BatchMode=yes\]\[-o\]\[ConnectTimeout=10\]\[imac\]\[zsh -lc ' "$o/$n.ssh-calls" || v=bad ;;
+            allow-*) [ "$calls" = 1 ] && grep -q '^\[-o\]\[BatchMode=yes\]\[-o\]\[ConnectTimeout=10\]\[-o\]\[ServerAliveInterval=15\]\[-o\]\[ServerAliveCountMax=2\]\[imac\]\[zsh -lc ' "$o/$n.ssh-calls" || v=bad ;;
             *) [ "$calls" = 0 ] || v=bad ;;
         esac
         if grep -rqF -- "$CANARY" "$o/$n.out" "$o/$n.err"; then v=bad; fi
@@ -402,7 +499,7 @@ s5_judge() {
     done
     v=PASS
     [ "$ok" = "$total" ] && [ "$total" = 14 ] || v=FAIL
-    res "S5.${m}" "$v" "${m}：edit / run / create / remove / show、别的命令组、参数不全、ORCA_SSH_HOST 没设 / 空 / 以 - 开头，共 12 条都退出 2、假 ssh 0 次；放行的 runs、list 两条对照假 ssh 各记到 1 次；输出里没有标记环境变量" \
+    res "S5.${m}" "$v" "${m}：edit / run / create / remove / show、别的命令组、参数不全、ORCA_SSH_HOST 没设 / 空 / 以 - 开头，共 12 条都退出 2、假 ssh 0 次；放行的 runs、list 两条对照假 ssh 各记到 1 次，参数开头是 -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=2 imac zsh -lc；输出里没有标记环境变量" \
         "${ok}/${total} 条符合${bad:+；不符：}${bad}；edit 那条：$(head -1 "$o/edit.err")"
 }
 s5_judge "$T/s5-imac" iMac
@@ -507,7 +604,7 @@ s8 mba-stage 2 mba --stage final
 s8 box 2 box
 s8 stage-novalue 2 imac --stage
 s8 unknown-flag 2 imac --force
-PC_MBA="'HB_ORCA=\$HOME/orca/workspaces/ops/scripts/orca-via-ssh ORCA_SSH_HOST=imac \$HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target \"iMac ops · 01 卡住工作检查||${WATCHED}|20\"'"
+PC_MBA="'HB_ORCA=\$HOME/.orca-state/bin/orca-via-ssh ORCA_SSH_HOST=imac \$HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target \"iMac ops · 01 卡住工作检查||${WATCHED}|20\"'"
 TB="--target \"box ops · 29 卡住检查心跳|grok-bot|${BOX}|20\""
 TM="--target \"MBA ops · 29 心跳互查|mba|${FAKEID}|20\""
 expect S8.mba "mba：create 带 --disabled、--fresh-session、每 5 分钟、超时 240、grace 720，precheck 是 defs 原文" "$T/s8-mba.cmdline" 0 "$OUT/raw/S8/mba.rc" \
@@ -515,10 +612,10 @@ expect S8.mba "mba：create 带 --disabled、--fresh-session、每 5 分钟、�
     "--precheck-timeout 240" "--missed-run-grace-minutes 720" "--fresh-session" "--disabled"
 cat "$OUT/raw/S8/imac.out" >"$T/s8-imac.all"
 expect S8.imac-noid "imac 没给 --mba-id：命令里是占位，并提示不能照抄" "$T/s8-imac.all" 0 "$OUT/raw/S8/imac.rc" "没给 --mba-id" "|mba|<MBA 新任务 id>|20"
-expect S8.parallel "parallel：保留 box 目标在前、加 MBA 目标，不改名" "$T/s8-imac-parallel.cmdline" 0 "$OUT/raw/S8/imac-parallel.rc" \
-    "orca automations edit ${IMAC_WATCH} --precheck '\$HOME/.orca-state/bin/heartbeat-watch.sh --precheck ${TB} ${TM}' --precheck-timeout 240" "!--name" "!<MBA 新任务 id>"
-expect S8.final "final：只剩 MBA 目标，改名「盯 MBA ops · 29」" "$T/s8-imac-final.cmdline" 0 "$OUT/raw/S8/imac-final.rc" \
-    "orca automations edit ${IMAC_WATCH} --name 'ops · 29 心跳互查（盯 MBA ops · 29）' --precheck '\$HOME/.orca-state/bin/heartbeat-watch.sh --precheck ${TM}' --precheck-timeout 240" "!box ops · 29 卡住检查心跳"
+expect S8.parallel "parallel：保留 box 目标在前、加 MBA 目标，不改名，超时 600（两个目标最坏 572 秒）" "$T/s8-imac-parallel.cmdline" 0 "$OUT/raw/S8/imac-parallel.rc" \
+    "orca automations edit ${IMAC_WATCH} --precheck '\$HOME/.orca-state/bin/heartbeat-watch.sh --precheck ${TB} ${TM}' --precheck-timeout 600" "!--name" "!<MBA 新任务 id>"
+expect S8.final "final：只剩 MBA 目标，改名「盯 MBA ops · 29」，超时 300（一个目标最坏 286 秒）" "$T/s8-imac-final.cmdline" 0 "$OUT/raw/S8/imac-final.rc" \
+    "orca automations edit ${IMAC_WATCH} --name 'ops · 29 心跳互查（盯 MBA ops · 29）' --precheck '\$HOME/.orca-state/bin/heartbeat-watch.sh --precheck ${TM}' --precheck-timeout 300" "!box ops · 29 卡住检查心跳"
 LIVE=$(cat "$OUT/raw/S9/live-5c2d0575-precheck.txt" 2>/dev/null)
 expect S8.rollback "rollback：还原成现网 5c2d0575 的名字和 precheck（S9 读到的原文）" "$T/s8-imac-rollback.cmdline" 0 "$OUT/raw/S8/imac-rollback.rc" \
     "orca automations edit ${IMAC_WATCH} --name 'ops · 29 心跳互查（盯 box ops · 29）' --precheck '${LIVE:-S9 没读到}' --precheck-timeout 240"
@@ -592,7 +689,7 @@ expect S6b.box "并行版里的 box 目标正常。要 iMac 到 box 的 grok-bot
 expect S6b.final "5c2d0575 最终版 precheck：只查 MBA 目标，读到运行记录" \
     "$T/s6b-final.all" 1 "$OUT/raw/S6b/final.rc" "MBA ops · 29 心跳互查：中断：最近 " "!box ops · 29" "!运行记录查不到" "!最近 0 次"
 
-# ---------- MBA 这边：S2、S3、S4、S4b、S5、S5b、S7、S10 ----------
+# ---------- MBA 这边：S2、S3、S4、S4b、S5、S5b、S7、S12、S10 ----------
 WEIRD="hb'drill \"q\" \$(echo HBX) \`echo HBY\` ; echo HBZ && echo HBW * \\ \$HOME 中文 · |
 第二行"
 M=$OUT/raw/mba
@@ -607,20 +704,25 @@ if [ -z "$R" ]; then
 else
     echo "MBA 临时目录 $R" >"$M/tmpdir.txt"
     cp "$root/scripts/heartbeat-watch.sh" "$root/scripts/orca-via-ssh" "$T/bundle/"
+    git -C "$root" show "$OLDWRAP:scripts/orca-via-ssh" >"$T/bundle/orca-via-ssh.7ac1220"
+    chmod +x "$T/bundle/orca-via-ssh.7ac1220"
     cp "$here/heartbeat-watch-ssh.sh" "$T/bundle/drill.sh"
     cp -R "$here/hb-replay/." "$T/bundle/hb-replay/"
     cp "$T/hooks/coding-assistant.env" "$T/bundle/hooks/"
     printf '%s' "$WEIRD" >"$T/bundle/weird.txt"
-    python3 -I - "$root/automations/heartbeat-1021/defs.json" "$R" >"$T/bundle/s2-precheck.txt" <<'PY'
+    # S2 加 --dry-run；S12 不加，超时取 defs 的 precheckTimeout。
+    python3 -I - "$root/automations/heartbeat-1021/defs.json" "$R" "$T/bundle" <<'PY'
 import json, sys
 c = next(x for x in json.load(open(sys.argv[1], encoding="utf-8"))["create"] if x["machine"] == "mba")
-p, r = c["precheck"], sys.argv[2]
+p, r, b = c["precheck"], sys.argv[2], sys.argv[3]
 # 包装路径最多一处：回退测试（heartbeat-watch-ssh-rollback.sh）的现网版 defs 不经包装
-assert p.count("$HOME/.orca-state/bin/heartbeat-watch.sh") == 1 and p.count("$HOME/orca/workspaces/ops/scripts/orca-via-ssh") <= 1
-for old, new in (("$HOME/orca/workspaces/ops/scripts/orca-via-ssh", r + "/orca-via-ssh"),
+assert p.count("$HOME/.orca-state/bin/heartbeat-watch.sh") == 1 and p.count("$HOME/.orca-state/bin/orca-via-ssh") <= 1
+for old, new in (("$HOME/.orca-state/bin/orca-via-ssh", r + "/orca-via-ssh"),
                  ("$HOME/.orca-state/bin/heartbeat-watch.sh", r + "/heartbeat-watch.sh")):
     p = p.replace(old, new)
-print(p + " --dry-run")
+open(b + "/s2-precheck.txt", "w", encoding="utf-8").write(p + " --dry-run\n")
+open(b + "/s12-precheck.txt", "w", encoding="utf-8").write(p + "\n")
+open(b + "/s12-timeout.txt", "w").write("%d\n" % c["precheckTimeout"])
 PY
     COPYFILE_DISABLE=1 tar -C "$T/bundle" -cf - . | rssh "tar -C '$R' -xf -"
     rssh "/bin/bash '$R/drill.sh' --mba-side '$R' '$CANARY'" >"$M/mba-side.log" 2>&1
@@ -687,12 +789,86 @@ want = "MBA 上直接跑 orca-via-ssh automations runs / list：ok，读到 ops 
 open(sys.argv[4], "a", encoding="utf-8").write("S7\t%s\t%s\t%s\n" % ("PASS" if ok else "FAIL", want, got))
 print("%-4s %-16s %s" % ("PASS" if ok else "FAIL", "S7", got))
 PY
+    # S12、S12.old 的判断（FAILURE-MODES.md A18、A19）
+    python3 -I - "$M" "$OUT/results.tsv" "$CANARY" "$WATCHED" "$T/bundle/s12-timeout.txt" <<'PY'
+import json, os, re, sys
+m, tsv, canary, wid = sys.argv[1:5]
+limit = open(sys.argv[5]).read().strip()
+
+
+def rd(name):
+    try:
+        return open(os.path.join(m, name), encoding="utf-8", errors="replace").read()
+    except OSError:
+        return ""
+
+
+def gone(s):
+    return "已经没了" if not s.strip() else "还在：" + " / ".join(s.strip().splitlines())
+
+
+for n, cid in (("S12", "S12"), ("S12-old", "S12.old")):
+    try:
+        o = json.loads(rd(n + ".orca.json"))
+    except ValueError:
+        o = {}
+    out = rd(n + ".out")
+    allout = out + rd(n + ".err")
+    t = [int(l.split()[1]) for l in rd(n + ".ssh-starts").splitlines() if len(l.split()) == 2]
+    gaps = [b - a for a, b in zip(t, t[1:])]
+    first, after, checked = rd(n + ".first-alive-at-second"), rd(n + ".alive-after"), rd(n + ".first-check-at").strip()
+    hbs = re.findall(r"^@@HB (\{.*\})\s*$", out, re.M)
+    hb = json.loads(hbs[-1]) if hbs else None
+    files = rd(n + ".statefiles").split()
+    common = "ssh 起了 %d 次%s；%s；跑完时%s" % (
+        len(t), "，相邻开始隔 " + "、".join("%d" % g for g in gaps) + " 秒" if gaps else "",
+        "第二次起来后 %s 秒查，第一次的 ssh %s" % (int(checked) - t[1], gone(first)) if len(t) >= 2 and checked.isdigit()
+        else "没有第二次 ssh", "都没了" if not after.strip() else gone(after))
+    if n == "S12":
+        try:
+            fs = (json.loads(rd("S12.state.json")).get(wid) or {}).get("fail_since")
+        except (ValueError, AttributeError):
+            fs = None
+        fs_ok = isinstance(fs, (int, float)) and o.get("start", 0) <= fs <= o.get("end", 0)
+        curl = rd("S12.curl-calls").strip()
+        line = next((re.sub(r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d SGT ", "", l) for l in out.splitlines() if not l.startswith("@@HB")),
+                    "（stdout 没有日志行）")
+        ok = (o.get("timedOut") is False and o.get("exitCode") == 1
+              and "iMac ops · 01 卡住工作检查：运行记录查不到（JSONDecodeError），已连续 0 分钟" in out
+              and hb is not None and hb.get("rc") == 0 and fs_ok
+              and len(t) == 3 and all(75 <= g <= 85 for g in gaps) and not first.strip() and not after.strip()
+              and not curl and "POST" not in allout and "webhook 配置" not in allout and canary not in allout)
+        got = "%s，用时 %s 秒，退出 %s；%s；@@HB %s；state.json 的 fail_since %s；%s；假 curl %d 次" % (
+            ("超时被杀" if o.get("timedOut") else "没超时") if o else "没有预检结果", o.get("durationS"), o.get("exitCode"),
+            line[:240], "rc %s" % hb.get("rc") if hb else "没有",
+            ("在运行期间（开始后 %.1f 秒）" % (fs - o["start"]) if fs_ok else "不在运行期间（%s）" % fs) if fs is not None else "没有",
+            common, len(curl.splitlines()))
+        want = ("MBA 上照 defs 原文跑 precheck（只换两个脚本路径，不带 --dry-run），ssh 替身让 iMac 那边不回（sleep 110），"
+                "照 Orca 的做法起、超时 %s 秒：没超时、自己结束、退出 1；有「运行记录查不到（JSONDecodeError），已连续 0 分钟」；"
+                "@@HB rc 0；state.json 的 fail_since 在这次运行期间；ssh 3 次，相邻开始隔 75–85 秒；第二次起来时第一次的 ssh 已经没了，"
+                "跑完都没了；假 curl 0 次，输出里没有 POST 和 webhook 配置" % limit)
+    else:
+        lim = o.get("timeoutSeconds")
+        ok = (o.get("timedOut") is True and o.get("exitCode") is None and isinstance(lim, int)
+              and lim <= (o.get("durationS") or 0) <= lim + 15 and not hbs and not files
+              and len(t) >= 2 and all(95 <= g <= 105 for g in gaps) and not first.strip() and not after.strip()
+              and canary not in allout)
+        got = "%s，用时 %s 秒；@@HB %s；状态目录里%s；%s" % (
+            ("超时被杀（timedOut）" if o.get("timedOut") else "没超时，退出 %s" % o.get("exitCode")) if o else "没有预检结果",
+            o.get("durationS"), "有" if hbs else "没有", "：" + "、".join(files) if files else "什么都没有", common)
+        want = ("同样的设置，包装换成 7ac1220 那版（ssh 没有上限）：到 %s 秒超时被杀（timedOut，用时在超时到超时加 15 秒之间）；"
+                "没有 @@HB；状态目录里什么都没写；相邻两次 ssh 开始隔 95–105 秒；第二次起来时第一次的 ssh 已经没了"
+                "（heartbeat-watch 的 90 秒超时杀的就是 ssh），跑完都没了" % limit)
+    got = got.replace("\t", " ").replace("\n", " ")
+    open(tsv, "a", encoding="utf-8").write("%s\t%s\t%s\t%s\n" % (cid, "PASS" if ok else "FAIL", want, got))
+    print("%-4s %-16s %s" % ("PASS" if ok else "FAIL", cid, got))
+PY
     v=PASS
     cmp -s "$M/S10-before.txt" "$M/S10-after.txt" || v=FAIL
-    [ "$(grep -c '^没有 ' "$M/S10-after.txt")" = 3 ] || v=FAIL
+    [ "$(grep -c '^没有 ' "$M/S10-after.txt")" = 4 ] || v=FAIL
     [ "$(cat "$M/S10-statefiles.txt")" = s4b/state/state.json ] || v=FAIL
     grep -q '^删掉了' "$M/tmpdir-cleanup.txt" || v=FAIL
-    res S10.MBA "$v" "MBA 演练前后：~/.orca-state/bin/heartbeat-watch.sh、~/.orca-state/heartbeat-watch、主检出的 scripts/orca-via-ssh 都没有，主检出 HEAD 不变；临时状态目录里只有 S4b 种的 state.json；临时目录删掉了" \
+    res S10.MBA "$v" "MBA 演练前后：~/.orca-state/bin/heartbeat-watch.sh、~/.orca-state/bin/orca-via-ssh、~/.orca-state/heartbeat-watch、主检出的 scripts/orca-via-ssh 都没有，主检出 HEAD 不变；临时状态目录里只有 S4b 种的 state.json（S12 不是 dry-run，它的状态目录不算）；临时目录删掉了" \
         "$(tr '\n' ' ' <"$M/S10-after.txt")；状态文件：$(tr '\n' ' ' <"$M/S10-statefiles.txt")；临时目录$(cat "$M/tmpdir-cleanup.txt")"
 fi
 
@@ -713,7 +889,7 @@ done
 res S10.iMac "$v" "iMac 演练前后：~/.orca-state/bin/heartbeat-watch.sh 的 sha256 不变，主检出没有 scripts/orca-via-ssh、HEAD 不变；所有临时状态目录里只有种进去的 state.json，内容没变（dry-run 不写 state.json、watch.log、heartbeat.json）" \
     "已装版 ${IMAC_BEFORE:0:16} → ${IMAC_AFTER:0:16}；$(tr '\n' ' ' <"$T/imac-paths-after.txt")；状态文件 $(wc -l <"$OUT/raw/S10-imac-statefiles.txt" | tr -d ' ') 个"
 
-# ---------- S11 静态：bash 3.2 语法、UTF-8 lint、shellcheck、包装最后一步是 exec ssh ----------
+# ---------- S11 静态：bash 3.2 语法、UTF-8 lint、shellcheck、包装最后一步是 perl 加 70 秒上限再 exec ssh ----------
 mkdir -p "$OUT/raw/S11"
 SH_FILES="scripts/orca-via-ssh automations/heartbeat-1021/register.sh wake/tests/heartbeat-watch-ssh.sh wake/tests/hb-replay/orca"
 v=PASS
@@ -729,9 +905,12 @@ fi
 for f in wake/tests/hb-replay/replay.py wake/tests/hb-replay/clock/sitecustomize.py; do
     python3 -I -c 'import ast, sys; ast.parse(open(sys.argv[1], encoding="utf-8").read())' "$root/$f" >>"$OUT/raw/S11/python-ast.txt" 2>&1 || v=FAIL
 done
-[ "$(grep -v '^[[:space:]]*$' "$root/scripts/orca-via-ssh" | tail -1 | cut -c1-9)" = "exec ssh " ] || v=FAIL
-res S11 "$v" "4 个 shell 文件 /bin/bash 3.2 -n、lint-bash32-utf8、shellcheck -S warning 都过；2 个 Python 文件能解析；orca-via-ssh 最后一步是 exec ssh（heartbeat-watch 超时杀的就是 ssh，不留孤儿）" \
-    "bash -n $(wc -c <"$OUT/raw/S11/bash-n.txt" | tr -d ' ') 字节输出；lint $(wc -l <"$OUT/raw/S11/lint-bash32-utf8.txt" | tr -d ' ') 行；shellcheck $(wc -l <"$OUT/raw/S11/shellcheck.txt" | tr -d ' ') 行；最后一步：$(grep -v '^[[:space:]]*$' "$root/scripts/orca-via-ssh" | tail -1 | cut -c1-40)…"
+L1=$(grep -v '^[[:space:]]*$' "$root/scripts/orca-via-ssh" 2>/dev/null | tail -2 | sed -n 1p)
+L2=$(grep -v '^[[:space:]]*$' "$root/scripts/orca-via-ssh" 2>/dev/null | tail -1)
+case $L1 in "exec /usr/bin/perl -e 'alarm shift; exec { \$ARGV[0] } @ARGV"*"' 70 \\") ;; *) v=FAIL ;; esac
+case $L2 in "    ssh -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=2 "*) ;; *) v=FAIL ;; esac
+res S11 "$v" "4 个 shell 文件 /bin/bash 3.2 -n、lint-bash32-utf8、shellcheck -S warning 都过；2 个 Python 文件能解析；orca-via-ssh 最后一步是 exec /usr/bin/perl -e 'alarm shift; exec …' 70 ssh -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=2（每次 ssh 最多 70 秒；heartbeat-watch 超时杀的也是 ssh 本身）" \
+    "bash -n $(wc -c <"$OUT/raw/S11/bash-n.txt" | tr -d ' ') 字节输出；lint $(wc -l <"$OUT/raw/S11/lint-bash32-utf8.txt" | tr -d ' ') 行；shellcheck $(wc -l <"$OUT/raw/S11/shellcheck.txt" | tr -d ' ') 行；最后一步：${L1:0:60}… ${L2:0:100}…"
 
 # ---------- 报告 ----------
 python3 -I - "$OUT" <<'PY'
@@ -756,6 +935,9 @@ scen = [
     ("S9", "现网配置和 defs.json 对得上（只读 show / list）", "iMac → grok-bot、mba", "真（只读）"),
     ("S10", "真路径没动：没装文件、主检出没动、dry-run 不写状态", "iMac、MBA", "真"),
     ("S11", "静态检查", "iMac", "—"),
+    ("S12", "ssh 连上了、iMac 那边不回：照 defs 原文跑 MBA 的 precheck，看超时以前有没有写下 fail_since 和 @@HB；"
+     "S12.old 换成 7ac1220 的包装（ssh 没有上限）对照", "MBA → ssh iMac",
+     "替身：ssh 替身把远端命令换成 sleep 110；ssh 客户端、包装、heartbeat-watch 和 iMac 是真的。预检进程照 Orca 的做法起，不是 Orca 起的"),
 ]
 L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "B1（ops 审计）。代码和上线步骤见 [`automations/heartbeat-1021/`](../../automations/heartbeat-1021/README.md)，"
@@ -765,20 +947,27 @@ L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "在 iMac 的仓库根目录：", "", "```bash", "wake/tests/heartbeat-watch-ssh.sh", "```", "",
      "要求本机 Orca 有 environment `mba`、`grok-bot`，能 `ssh mba`，MBA 能 `ssh imac`。整个目录会被重写"
      "（有 `.hb-drill` 标记才清空）。回放数据要重录时先跑 `wake/tests/heartbeat-watch-ssh.sh --record`。", "",
-     "全部 heartbeat-watch 都带 `--dry-run`、临时 `HB_STATE_DIR`、假 webhook 目录（`127.0.0.1:9` 的假地址），不发叫醒、不读真凭据；"
+     "heartbeat-watch 都用临时 `HB_STATE_DIR`；除 S12 外都带 `--dry-run`、用假 webhook 目录（`127.0.0.1:9` 的假地址），不发叫醒、不读真凭据。"
+     "S12 不带 `--dry-run`（要看它写下的 state.json 和 `@@HB`）：webhook 目录是空的，PATH 里放了只记录调用的假 curl，"
+     "第一次查不到时 heartbeat-watch 走 `continue`，到不了发告警那步。"
+     "S12.old 到超时时，演练脚本照 Orca 的做法给它自己起的预检进程组发 SIGTERM、2 秒后 SIGKILL；没有给演练以外的进程发过信号。"
      "orca 只用 `automations list / show / runs`；不往 `~/.orca-state/bin/` 装文件；MBA 上只用 `mktemp -d` 的临时目录，跑完删掉。", "",
      "## 这次运行", ""] + ["- " + cell(l) for l in env] + ["", "## 场景", "",
      "| 编号 | 场景 | 在哪跑 | 真机还是替身 |", "|---|---|---|---|"] + \
     ["| %s | %s | %s | %s |" % s for s in scen] + [
-     "", "S1、S3、S5、S8 用了测试替身，不算 E2E。S2 是从 iMac `ssh mba` 起的进程，不是 Orca 在 MBA 上跑的预检；"
-     "Orca 预检环境里能不能连 ssh，要到上线第 3 步第一次真实运行才算证实。", "",
+     "", "S1、S3、S5、S8、S12 用了测试替身，不算 E2E。S2 是从 iMac `ssh mba` 起的进程，不是 Orca 在 MBA 上跑的预检；"
+     "Orca 预检环境里能不能连 ssh，要到上线卡 ② 第一次真实运行才算证实。", "",
      "## 期望和实际", "", "| 编号 | 期望 | 实际 | 结果 |", "|---|---|---|---|"] + \
     ["| %s | %s | %s | %s |" % (r[0], cell(r[2]), cell(r[3]), "PASS" if r[1] == "PASS" else "**%s**" % r[1]) for r in rows] + [
      "", "## 没跑的", "",
      "- `register.sh --apply`：任务书禁止。主机名检查、备份文件检查和真正调用 orca 的部分都没演练过。",
      "- 任何 `orca automations create / edit / run`：任务书禁止。MBA 新任务还没建，S6、S6b 用 MBA ops · 09 代替它。",
      "- TLC（`wake/tla/check.sh`）：本批只改了 `wake/tla/README.md` 的文字，模型和 `SOURCES.sha256` 留给后续 wake-tla 批次。",
-     "- heartbeat-watch 90 秒超时杀掉包装时 ssh 会不会留下：不杀进程就没法实测，S11 只检查了包装最后一步是 `exec ssh`。",
+     "- iMac 上真的 orca 卡住时什么样：没演练。S12 的「iMac 那边不回」是 ssh 替身把远端命令换成 `sleep 110`；"
+     "真 orca 可能自己 60 秒超时、先回一个报错，那样不用等 70 秒上限。",
+     "- Orca 自己起这条预检：要到上线卡 ② 才有。S12 的预检进程是演练脚本照 Orca 的做法起的（`/bin/sh -c`、新进程组、到时先 TERM 后 KILL）。",
+     "- ssh 连接半路断了（ServerAlive 起作用）：没演练。",
+     "- MBA 那条的少见情况：还没见过心跳、心跳又过期，而且 runs 前两次各卡满 70 秒，再加一次 list，最坏 296 秒，超过 240。没演练。",
      "", "## 文件", "",
      "- `results.tsv`：每项一行（编号、结果、期望、实际），`README.md` 由它生成。",
      "- `env.txt`：时间、commit、两台机器的系统和工具版本。",
@@ -786,7 +975,10 @@ L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "三版各自的 stdout、stderr、退出码和假 orca 收到的调用。",
      "- `raw/S5-imac/`：iMac 上包装每条用例的命令、退出码、stderr、假 ssh 收到的参数。",
      "- `raw/S6/`、`raw/S6b/`：iMac 上的命令和原始输出。`raw/S8/`：register.sh 每次的参数和输出。`raw/S9/`：只读 show / list 摘下来的字段。",
-     "- `raw/mba/`：MBA 那边的原始输出（S2、S3、S4、S4b、S5、S5b、S7 摘要、S10）。S7 只留摘要，不留运行记录原文。",
+     "- `raw/mba/`：MBA 那边的原始输出（S2、S3、S4、S4b、S5、S5b、S7 摘要、S10、S12）。S7 只留摘要，不留运行记录原文。",
+     "- `raw/mba/S12.*`、`raw/mba/S12-old.*`：precheck（`.cmd`）、stdout、stderr、预检结果（`.orca.json`：超时、是否超时、退出码、用时、起止时间）、"
+     "每次 ssh 的 pid 和开始时间（`.ssh-starts`）、ssh 收到的参数（`.ssh-args`）、进程检查（`.first-alive-at-second`、`.alive-after`，"
+     "是 `ps -o pid,ppid,rss,etime,comm` 的输出，空 = 进程已经没了）、假 curl 的调用（`.curl-calls`）、状态目录里的文件和内容。",
      "- `raw/S11/`：静态检查的输出。", "- `SHA256SUMS`：除它自己以外所有文件的 sha256（`shasum -a 256 -c SHA256SUMS` 校验）。"]
 open(os.path.join(out, "README.md"), "w", encoding="utf-8").write("\n".join(L) + "\n")
 print("\n%d 项 PASS，%d 项 FAIL" % (npass, nfail))

@@ -6,8 +6,8 @@
 #   HB_ROLLBACK_OUT=<目录>                                       产物换个目录（目录里有 .hb-drill 标记才清空重写）
 # 旧代码怎么放回去：临时目录里 git clone --shared 本仓库，检出 base（没有 scripts/orca-via-ssh 和 register.sh，heartbeat-watch.sh
 # 是 base 那份），放进 HEAD 的演练脚本、回放数据和一份现网版 defs.json：MBA 那条的 precheck 用现网 box 94e4b0bc 的原文
-# （environment iMac，不经 ssh），5c2d0575 各阶段都用它的现网原文。演练的安全措施照旧：heartbeat-watch 一律 --dry-run、
-# 临时状态目录、假 webhook，orca 只读。
+# （environment iMac，不经 ssh），5c2d0575 各阶段都用它的现网原文。演练的安全措施照旧：heartbeat-watch 都用临时状态目录，
+# 除 S12 外都带 --dry-run、用假 webhook；S12 不带 --dry-run，webhook 目录是空的。orca 只读。
 # 退出码：0 每项都和期望一致；1 有不一致的；2 跑不起来。
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
@@ -71,7 +71,8 @@ cp "$tree/automations/heartbeat-1021/defs.json" "$OUT/rollback/defs-live.json"
 python3 -I - "$OUT" "$base" "$head" <<'PY'
 import json, os, re, sys
 out, base, head = sys.argv[1:4]
-# 照抄 automations/heartbeat-1021/FAILURE-MODES.md「回退测试的期望」：本 PR 会改变结果的 19 项该挂，其余 26 项照样过
+# 照抄 automations/heartbeat-1021/FAILURE-MODES.md「回退测试的期望」和「回退测试的期望（第二轮）」：本 PR 会改变结果的 20 项该挂，
+# 其余 27 项照样过
 FAIL = {}
 for ids, why in (("S0.diff", "base 和「本分支」是同一份，没有第 13 行的改动"),
                  ("S2.sh S2.zsh", "现网版 precheck 在 MBA 上读不到 iMac ops · 01：MBA 的 Orca 没有 environment iMac"),
@@ -79,12 +80,13 @@ for ids, why in (("S0.diff", "base 和「本分支」是同一份，没有第 13
                  ("S4.wrapper S5.iMac S5.MBA S5b S7", "没有 scripts/orca-via-ssh"),
                  ("S6b.parallel S6b.final", "现网 5c2d0575 只有 box 目标，没有 MBA 目标"),
                  ("S8.mba S8.imac-noid S8.parallel S8.final S8.rollback S8.refuse", "没有 register.sh"),
-                 ("S11", "orca-via-ssh、register.sh 不存在")):
+                 ("S11", "orca-via-ssh、register.sh 不存在"),
+                 ("S12", "现网版 precheck 不经 ssh：MBA 的 Orca 没有 environment iMac，几秒内就查不到（invalid_argument），ssh 替身一次都没起")):
     for i in ids.split():
         FAIL[i] = why
 PASS = ("S0.same S0.bot " + " ".join("S1.c%02d" % n for n in range(1, 15)) + " S1.curl S3 S6 S6b.box "
-        "S9.5c2d0575 S9.94e4b0bc S9.439cd438 S9.mba S10.MBA S10.iMac").split()
-assert len(FAIL) == 19 and len(PASS) == 26
+        "S9.5c2d0575 S9.94e4b0bc S9.439cd438 S9.mba S10.MBA S10.iMac S12.old").split()
+assert len(FAIL) == 20 and len(PASS) == 27
 rows = [l.rstrip("\n").split("\t") for l in open(os.path.join(out, "results.tsv"), encoding="utf-8") if l.strip()]
 got = {r[0]: r for r in rows}
 # 该挂的每项从 raw/ 里取输出原文（前两行，去掉开头的时间戳）：演练的「实际」一栏只摘期望子串所在的那行，挂了常常是空的。
@@ -95,7 +97,7 @@ RAW = {"S0.diff": "S0/diff-base-new.txt", "S2.sh": "mba/S2-sh.out mba/S2-sh.err"
        "S8.mba": "S8/mba.out S8/mba.err", "S8.imac-noid": "S8/imac.out S8/imac.err",
        "S8.parallel": "S8/imac-parallel.out S8/imac-parallel.err", "S8.final": "S8/imac-final.out S8/imac-final.err",
        "S8.rollback": "S8/imac-rollback.out S8/imac-rollback.err", "S8.refuse": "S8/bad-id.out S8/bad-id.err",
-       "S11": "S11/bash-n.txt"}
+       "S11": "S11/bash-n.txt", "S12": "mba/S12.out mba/S12.err"}
 assert set(RAW) == set(FAIL)
 
 
@@ -133,10 +135,11 @@ tree = open(os.path.join(out, "rollback", "tree.txt"), encoding="utf-8").read().
 nf = sum(t[1] == "FAIL" and t[2] == "FAIL" for t in tab)
 np_ = sum(t[1] == "PASS" and t[2] == "PASS" for t in tab)
 L = ["# B1 回退测试：旧代码（base %s）上跑同一套演练" % base[:7], "",
-     "**结果：%d 项里 %d 项和期望一致，%d 项不一致。期望挂的 19 项挂了 %d 项；期望过的 26 项过了 %d 项。**"
-     % (len(tab), len(tab) - bad, bad, nf, np_), "",
+     "**结果：%d 项里 %d 项和期望一致，%d 项不一致。期望挂的 %d 项挂了 %d 项；期望过的 %d 项过了 %d 项。**"
+     % (len(tab), len(tab) - bad, bad, len(FAIL), nf, len(PASS), np_), "",
      "把本 PR 的代码换回 base `%s`，用本分支 `%s` 的演练脚本和回放数据整轮跑 `wake/tests/heartbeat-watch-ssh.sh`。" % (base, head),
-     "期望先写在 `automations/heartbeat-1021/FAILURE-MODES.md`「回退测试的期望」一节，再跑。这个文件由回退脚本生成。", "",
+     "期望先写在 `automations/heartbeat-1021/FAILURE-MODES.md`「回退测试的期望」和「回退测试的期望（第二轮）」两节，再跑。"
+     "这个文件由回退脚本生成。", "",
      "## 怎么重跑", "", "在 iMac 的仓库根目录：", "", "```bash", "wake/tests/heartbeat-watch-ssh-rollback.sh", "```", "",
      "要求和 `wake/tests/heartbeat-watch-ssh.sh` 一样。整个目录会被重写（有 `.hb-drill` 标记才清空）。", "",
      "## 旧代码怎么放回去", "",
@@ -150,13 +153,13 @@ L = ["# B1 回退测试：旧代码（base %s）上跑同一套演练" % base[:7
      "「未提交的改动」数的是上面放进去的文件。", "",
      "旧代码检出的情况（`rollback/tree.txt`）：", "", "```"] + tree + ["```", "",
      "## 这次运行", ""] + ["- " + cell(l) for l in env] + ["",
-     "## 期望挂的 19 项（本 PR 会改变结果）", "",
+     "## 期望挂的 %d 项（本 PR 会改变结果）" % len(FAIL), "",
      "「raw/ 里的输出原文」：冒号前是 `raw/` 下的文件，冒号后是这些文件里不空的前两行（去掉开头的时间戳，⏎ 隔开）。", "",
      "| 编号 | 为什么该挂 | 实际 | 和期望 | raw/ 里的输出原文（截到 240 字） | 演练的「实际」一栏（截到 160 字） |",
      "|---|---|---|---|---|---|"]
 L += ["| %s | %s | %s | %s | %s：%s | %s |" % (t[0], cell(t[4]), t[2], t[3], "、".join(RAW[t[0]].split()), cell(t[6], 240),
                                              cell(t[5], 160)) for t in tab if t[1] == "FAIL"]
-L += ["", "## 期望过的 26 项（本 PR 不改变结果，用来排除「是环境坏了才挂」）", "",
+L += ["", "## 期望过的 %d 项（本 PR 不改变结果，用来排除「是环境坏了才挂」）" % len(PASS), "",
       "| 编号 | 实际 | 和期望 | 实际原文（截到 200 字） |", "|---|---|---|---|"]
 L += ["| %s | %s | %s | %s |" % (t[0], t[2], t[3], cell(t[5], 200)) for t in tab if t[1] == "PASS"]
 other = [t for t in tab if t[1] not in ("FAIL", "PASS")]
