@@ -10,7 +10,7 @@
 #   - 运行记录查不到（连不上那台 Orca）连续 HB_UNREACH_MIN（默认 45）分钟，也按中断报一次（隧道常断几分钟，所以阈值放宽）。
 #   - 目标自动任务建好不到 N 分钟、还没见过它的心跳时不判断（10-19 02:50 上线时两边同时建，iMac 先跑、误报过一次）；
 #     建好时间取 `orca automations list` 的 createdAt。过了 N 分钟还没有心跳（一次都没跑、或跑了没打 @@HB）照报。
-# 部署：box 上的自动任务盯 iMac 的「ops · 01 卡住工作检查」；iMac 上的自动任务盯 box 上这个脚本自己（它每次也打 @@HB）。
+# 部署：MBA 的自动任务盯 iMac 的「ops · 01 卡住工作检查」（HB_ORCA=scripts/orca-via-ssh 经 ssh 读 iMac 的运行记录）；iMac 的自动任务盯 MBA 这条（它每次也打 @@HB）。上线顺序见 automations/heartbeat-1021/。
 #   environment 写空串 = 本机 Orca。
 # 自己的心跳也一样：main() 出错（rc 4）时 last_scan 不前进，盯它的另一个 heartbeat-watch 照样能报（PER-67 F8 同类）。
 # 状态：HB_STATE_DIR（默认 ~/.orca-state/heartbeat-watch）/state.json、watch.log、heartbeat.json。

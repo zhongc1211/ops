@@ -1,0 +1,37 @@
+#!/bin/bash
+# orca-via-ssh automations runs|list [参数...]：在 ORCA_SSH_HOST 那台机器上跑 orca，给 heartbeat-watch.sh 的 HB_ORCA 用。
+# MBA 的 Orca 没有 iMac 的 environment，但 MBA 能 ssh 到 iMac（B1，automations/heartbeat-1021/）：
+#   ORCA_SSH_HOST=imac orca-via-ssh automations runs --id <id> --json
+#   HB_ORCA=<仓库>/scripts/orca-via-ssh ORCA_SSH_HOST=imac heartbeat-watch.sh --target "iMac ops · 01 卡住工作检查||<id>|20"
+# 只放行 automations runs 和 automations list（只读）；别的子命令、ORCA_SSH_HOST 没设或以 - 开头，都退出 2，不连 ssh。
+# 远端用 `zsh -lc` 跑 orca（登录 shell 才有 orca 的 PATH）。ssh 把参数拼成一串交给远端登录 shell，zsh -lc 再解析一次，
+# 所以每个参数加单引号、转义两层：参数里的空格、引号、$、; 原样到 orca，不会被展开或执行。
+# stdout、stderr、退出码都是 ssh 的（exec，heartbeat-watch 超时杀的就是 ssh）。连不上时 ssh 退出 255、stdout 为空，
+# heartbeat-watch 解析不了 JSON，走它已有的「运行记录查不到」分支。不打印任何环境变量。
+set -u
+
+# 单引号转义：每个 ' 换成 '\''，整体包一层单引号。不用 ${s//}，它在 bash 3.2 和新版里对引号的处理不一样。
+q() {
+    local s=$1 out='' head
+    while :; do
+        case $s in
+            *\'*) head=${s%%\'*}; out=$out$head\'\\\'\'; s=${s#*\'} ;;
+            *) break ;;
+        esac
+    done
+    printf "'%s'" "$out$s"
+}
+
+host=${ORCA_SSH_HOST:-}
+case $host in
+    "" | -*) echo "orca-via-ssh: ORCA_SSH_HOST 没设或以 - 开头，不连 ssh" >&2; exit 2 ;;
+esac
+if [ "${1:-}" != automations ] || { [ "${2:-}" != runs ] && [ "${2:-}" != list ]; }; then
+    echo "orca-via-ssh: 只放行 automations runs 和 automations list，拒绝：${1:-<空>} ${2:-}" >&2
+    exit 2
+fi
+cmd=orca
+for a in "$@"; do
+    cmd="$cmd $(q "$a")"
+done
+exec ssh -o BatchMode=yes -o ConnectTimeout=10 "$host" "zsh -lc $(q "$cmd")"

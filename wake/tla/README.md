@@ -48,10 +48,12 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | wake/bin/agent-stop | 7cc0ebefd5b5c53a | 一致 | 一致 | 一致 |
 | scripts/agent-probe | af95da54bf99000a（F2/F6 加了 wake；建模时 0fb882eb340a8004） | 一致 | 一致 | 一致 |
 | scripts/stuck-check.sh | f7c44d4b864c3170（F7/F8、F3、F1、F5/F4、F2/F6 修过；建模时 c0bf9c6dad8c4a09） | — | `~/orca/workspaces/ops/scripts/`（ops · 01/02 跑的）一致 | **不一致**（d743f664…，MBA 上没有自动任务跑它） |
-| scripts/heartbeat-watch.sh | a36d3dc8a88702a8（F8 同类修过；建模时 682dfa079840cf2e） | `~/.orca-state/bin/`（box ops · 29 跑的）一致 | `~/.orca-state/bin/`（iMac ops · 29 跑的）一致 | — |
+| scripts/heartbeat-watch.sh | a36d3dc8a88702a8（F8 同类修过；建模时 682dfa079840cf2e。之后 main 只改过注释，B1 又改了第 13 行的部署说明，这里和 SOURCES.sha256 都没跟） | B1 上线后不用：box ops · 29 停用（10-21 还在跑 `~/.orca-state/bin/` 这份，一致） | `~/.orca-state/bin/`（iMac ops · 29 跑的，B1 后盯 MBA 那条）一致 | B1 上线时装到 `~/.orca-state/bin/`（MBA ops · 29 跑，经 `scripts/orca-via-ssh` 读 iMac 的运行记录）；10-21 还没装 |
 | wake/pi/dispatch-wake.ts | 350c898595552ed6 | 没核对（Pi 扩展装在各 agent 的扩展目录） | | |
 
-自动任务（`orca automations show`，只读）：iMac ops · 01 `439cd438` precheck `stuck-check.sh --scan`、rrule 每分钟、**precheck timeoutSeconds 300**；iMac ops · 02 `c7692ae9` codex 备用（`orca-fallback.sh stuck-check 25 60`，8–23 点每小时 53 分）；box ops · 29 `94e4b0bc` `heartbeat-watch.sh --precheck --target "iMac ops · 01 …|iMac|439cd438…|20"` 每 5 分钟；iMac ops · 29 `5c2d0575` 盯 box ops · 29。enabled-bots 三台都含全部真实 bot（coding-assistant、deepvision-ops、vllm-omni、xinyue、deepvision-ads、deepvision-marketing），所以模型里不建影子模式。
+自动任务（`orca automations show`，只读）：iMac ops · 01 `439cd438` precheck `stuck-check.sh --scan`、rrule 每分钟、**precheck timeoutSeconds 300**；iMac ops · 02 `c7692ae9` codex 备用（`orca-fallback.sh stuck-check 25 60`，8–23 点每小时 53 分）；盯 ops · 01 的是 MBA「ops · 29 心跳互查 MBA（盯 iMac ops · 01）」`HB_ORCA=…/scripts/orca-via-ssh ORCA_SSH_HOST=imac heartbeat-watch.sh --precheck --target "iMac ops · 01 …||439cd438…|20"` 每 5 分钟；iMac ops · 29 `5c2d0575` 盯 MBA 这条（`--target "MBA ops · 29 心跳互查|mba|…|20"`）。这是 B1（`automations/heartbeat-1021/`）上线后的部署；10-21 现网还是 box ops · 29 `94e4b0bc`（`--target "iMac ops · 01 …|iMac|439cd438…|20"`）盯 ops · 01、`5c2d0575` 盯 box 那条，上线顺序和回滚见那个目录的 README。enabled-bots 三台都含全部真实 bot（coding-assistant、deepvision-ops、vllm-omni、xinyue、deepvision-ads、deepvision-marketing），所以模型里不建影子模式。
+
+B1（2026-10-21）只改了这页的文字，没跑 TLC。模型（P3 的 Heartbeat 部分）和 `SOURCES.sha256` 还是按 box 盯 iMac 建的，更新留给后续 wake-tla 批次。到时要对的：heartbeat-watch.sh 的 sha256；MBA 那条经 ssh 读 iMac（ssh 连不上时每次约 10 秒失败，走「运行记录查不到」）；MBA 睡着超过 20 分钟时 iMac ops · 29 报 MBA 那条中断，这段时间 ops · 01 没人盯；10-21 只读核对时 ops · 01 `439cd438` 的 precheck 超时是 600 秒，不是上面的 300。
 
 ## 动作 ↔ 代码
 
@@ -76,7 +78,7 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 | P1 | 每个停下（退出或停在输入框）的任务，最终有一个 bot 收到（2xx），或者升级到 Coding助手 | agent 做完或卡住没人知道，任务一直挂着 | 扫描和时间一直往前走、在途的发送进程会跑完（WF）；前提：Coding助手 的 webhook 最终一直可用；派活 bot 可以一直坏 |
 | P1h | 同上，前提弱化成所有 bot 的 webhook 最终都一直可用（中断有限长） | 同上 | 同上 |
 | P2 | webhook 发送失败（非 2xx、超时、连不上）绝不被记成成功：notify-run 的 exit 0 / 日志（P2_NR）、orca-wake 的 sent/ 和 woken（P2_OW）、stuck-check 自己 POST 后的 agents.json notified（P2_SC_POST）、stuck-check 交给 orca-wake 后的 notified（P2_SC_RECHECK） | 以为叫醒了其实没有，之后也不会补 | 安全性，无前提 |
-| P3 | 卡住检查自己停了（自动任务不跑 / Orca 挂了 / 每次超时 / 每次出错），最终一定告警 Coding助手；P3_BOUND：最后一次跑完的扫描后 75 分钟内 | 兜底没了，没人知道 | Step 的 WF；假设 box 上的 heartbeat-watch 自己在跑、Coding助手 webhook 可用 |
+| P3 | 卡住检查自己停了（自动任务不跑 / Orca 挂了 / 每次超时 / 每次出错），最终一定告警 Coding助手；P3_BOUND：最后一次跑完的扫描后 75 分钟内 | 兜底没了，没人知道 | Step 的 WF；假设 MBA 上的 heartbeat-watch 自己在跑（B1 之前是 box 上的）、Coding助手 webhook 可用 |
 | P4 | 没有任务停下超过 1 小时、没有任何 bot 收到、也没叫醒 Coding助手 | 同 P1，且时间有上限 | 安全性；前提 Coding助手 webhook 一直可用（`CA_ALWAYS_UP`） |
 | P5（代码里找到的） | 一个 bot 的 webhook 坏了，不挡派给 Coding助手 的任务被收到 | 一个坏掉的 bot 让所有卡住告警（含给 Coding助手 的）都发不出去 | 前提 Coding助手 webhook 最终一直可用 |
 | P6（第 6 组） | agent 没起来（orca-agent-launch 拒绝，或 notify-run 起了 claude 却一直没有第 1 个回合），最终有 bot 收到「没起来」（或者它后来起来了）；P6_BOUND：一直没起来的 START+1 分钟内 | 派活 bot 以为 agent 在干活，其实一个都没起（10-19 07:24 iMac term_b8179e9b） | `Launch.tla`；前提 Coding助手 webhook 一直可用 |
@@ -99,7 +101,7 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 2. 「bot 收到」= webhook 返回 2xx；收到的 bot 一小时内会处理（review / 评论 / 归档），所以第二类不再报（模型里用 ghost 变量 `accepted` 代替「PR 有人看过」）。
 3. 一次扫描内别的进程的交错不影响结论（扫描对 orca-wake 的影响只经 recheck 的 detached 发送，这个发送在模型里是独立动作）。
 4. Orca 不会让同一个自动任务的 precheck 重叠运行（假设成重叠只会多出心跳，不改变 P3 的结论）。
-5. P3 里 box 上的 heartbeat-watch 在跑（它自己由 iMac ops · 29 盯）。
+5. P3 里 MBA 上的 heartbeat-watch 在跑（它自己由 iMac ops · 29 盯，iMac 经 environment `mba` 读它的运行记录）。B1 之前这一条是 box 上的 heartbeat-watch。
 
 ## 结果（commit 和原文见产物目录 /workspace/ops/reports/wake-tla-20261019/）
 

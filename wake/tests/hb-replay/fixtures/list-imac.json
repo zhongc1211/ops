@@ -1,0 +1,13 @@
+{
+ "_recorded": "2026-10-21 19:47:56 SGT 在 iMac 上录：orca automations list --json。只留 heartbeat-watch 用到的字段，stdout 只留 @@HB 行。",
+ "ok": true,
+ "result": {
+  "automations": [
+   {
+    "id": "439cd438-cffe-44dd-bd2b-23b07bfa3d61",
+    "name": "ops · 01 卡住工作检查",
+    "createdAt": 1791804522369
+   }
+  ]
+ }
+}
