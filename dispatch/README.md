@@ -84,7 +84,7 @@ ops-v5-sample-replay --dir ~/.local/state/ops-v5/samples --reserve-gb 1,1.5,2 --
    2. 打印快照目录和 MANIFEST sha256。
    3. 装脚本、配置（已存在不覆盖）、plist；内容不同的旧文件先挪到 `<归档>/p2-sampler-bak-<时间>/`，不留在 `~/.local/bin` 或 `~/Library/LaunchAgents`。
    4. `launchctl bootstrap gui/501 …`。MBA 上要用户已登录桌面，否则 `gui/501` 域不存在，bootstrap 会失败。
-   5. 写 `<归档>/p2-sampler-installed-<时间>.tsv`（4 个文件的路径和 sha256），并在 install-log.tsv 追加一行 `p2-sampler-installed`。
+   5. 往 `~/.local/state/ops-v5/install-records.tsv` 追加 4 行：时间、机器、这次的快照目录和 MANIFEST sha256、文件路径、sha256。install-log.tsv 只留给 backup.sh 记快照（rollback 靠它找最新快照），install.sh 不往里写。
 3. 装完 3 分钟后跑 `dispatch/install.sh --check`，应该全部正常：已加载、采样器状态 ok、最近一次采样 ≤ 180 秒。
 
 ## 24 小时之后
@@ -105,8 +105,9 @@ ops-v5-sample-replay --dir ~/.local/state/ops-v5/samples --reserve-gb 1,1.5,2 --
 | `~/Library/LaunchAgents/com.zhongc1211.ops-v5-sampler.plist` | install | `Library/LaunchAgents/com.zhongc1211.ops-v5-*` |
 | `~/.local/state/ops-v5/`、`samples/`、`samples/<host>/YYYY-MM-DD.jsonl`、`YYYY-MM-DD.sessions.jsonl` | install / 采样器 | `.local/state/ops-v5/*` |
 | `~/.local/state/ops-v5/ops-v5-sampler.lock`、`.status`、`.log`、`.launchd.log`、`log-archive/` | 采样器 / launchd | `.local/state/ops-v5/*` |
+| `~/.local/state/ops-v5/install-records.tsv` | install（追加；卸载时留着） | `.local/state/ops-v5/*` |
 | `<归档>/snapshots/<时间>-p2-sampler/`、`install-log.tsv` 一行 | backup.sh | 归档目录，不在 scope 里 |
-| `<归档>/p2-sampler-installed-<时间>.tsv`、`install-log.tsv` 一行、`p2-sampler-bak-<时间>/`（只在重装且内容不同时） | install | 归档目录 |
+| `<归档>/p2-sampler-bak-<时间>/`（只在重装且内容不同时） | install | 归档目录 |
 | `<归档>/removed-<时间>/`（含 `MOVED.tsv`） | uninstall | 归档目录 |
 
 调度项：每台一个 LaunchAgent `gui/501/com.zhongc1211.ops-v5-sampler`。没有 Orca 自动任务。

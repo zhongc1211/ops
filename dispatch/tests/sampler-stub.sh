@@ -386,8 +386,10 @@ t_install() {
   check "临时 HOME 安装退出 0" '[ $? -eq 0 ]'
   check "先跑了 backup.sh --label p2-sampler（F22）" '[ "$(cat "$FAKE_BACKUP_CALLS")" = "fake backup.sh --label p2-sampler" ]'
   check "打印了快照目录和 MANIFEST sha256" 'grep -q "^快照 .*snapshots/20261021T120000-p2-sampler" "$WORK/$CASE/out.--install" && grep -q "^清单 *MANIFEST sha256 0*abc" "$WORK/$CASE/out.--install"'
-  check "install-log.tsv：表头 + backup 行 + 安装记录行" '[ "$(lines "$A/install-log.tsv")" = 3 ] && [ "$(tail -n 1 "$A/install-log.tsv" | cut -f3)" = p2-sampler-installed ]'
-  check "安装记录列了 4 个文件和 sha256，且和实际一致" 'rec=$(tail -n 1 "$A/install-log.tsv" | cut -f4); [ "$(sed 1d "$rec" | wc -l | tr -d " ")" = 4 ] && [ "$(sed -n 2p "$rec" | cut -f2)" = "$(shasum -a 256 "$H/.local/bin/ops-v5-sampler" | cut -d" " -f1)" ] && [ "$(tail -n 1 "$A/install-log.tsv" | cut -f5)" = "$(shasum -a 256 "$rec" | cut -d" " -f1)" ]'
+  check "install-log.tsv 只有表头和 backup.sh 那一行，install.sh 没往里写" '[ "$(lines "$A/install-log.tsv")" = 2 ] && [ "$(tail -n 1 "$A/install-log.tsv" | cut -f3)" = p2-sampler ]'
+  REC="$H/.local/state/ops-v5/install-records.tsv"
+  check "安装记录写进 ~/.local/state/ops-v5/install-records.tsv：表头 + 4 个文件" '[ "$(lines "$REC")" = 5 ] && [ "$(sed 1d "$REC" | cut -f5 | sed "s|^$H/||" | tr "\n" " ")" = ".local/bin/ops-v5-sampler .local/bin/ops-v5-sample-replay Library/LaunchAgents/com.zhongc1211.ops-v5-sampler.plist .config/dispatch/sampler.env " ]'
+  check "记录里的 sha256 和已装文件一致，快照目录和 MANIFEST sha256 对上 backup.sh 那一行" '[ "$(sed -n 2p "$REC" | cut -f6)" = "$(shasum -a 256 "$H/.local/bin/ops-v5-sampler" | cut -d" " -f1)" ] && [ "$(sed -n 2p "$REC" | cut -f3)" = "$(tail -n 1 "$A/install-log.tsv" | cut -f4)" ] && [ "$(sed -n 2p "$REC" | cut -f4)" = "$(tail -n 1 "$A/install-log.tsv" | cut -f5)" ]'
   check "临时 HOME 下没调 launchctl" '[ ! -s "$FAKE_LAUNCHCTL_LOG" ] && grep -q "跳过 *launchctl" "$WORK/$CASE/out.--install"'
   check "plist 用 ops-v5 数据目录且合法" 'grep -q "$H/.local/state/ops-v5/ops-v5-sampler.launchd.log" "$H/Library/LaunchAgents/com.zhongc1211.ops-v5-sampler.plist" && plutil -lint "$H/Library/LaunchAgents/com.zhongc1211.ops-v5-sampler.plist" >/dev/null'
   inst --install

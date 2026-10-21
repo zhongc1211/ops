@@ -11,7 +11,8 @@
 #   --dry-run    只打印会做什么，不写文件、不跑 backup.sh；launchctl 只调只读的 print 看是否已加载
 #   --install    v5 上线约定：先跑本机 <归档>/tools/backup.sh --label p2-sampler，失败就退出、什么都不装；
 #                核对 install-log.tsv 多了一行并打印快照目录和 MANIFEST sha256；再安装；
-#                装完写 <归档>/p2-sampler-installed-<时间>.tsv（路径和 sha256）并在 install-log.tsv 追加一行。
+#                装完往 ~/.local/state/ops-v5/install-records.tsv 追加装了哪些文件和 sha256。
+#                install-log.tsv 只留给 backup.sh 记快照（rollback 靠它找最新快照），install.sh 不往里写。
 #                本 PR 不在线上跑；装线上要 dr eggbot 审 → ops bot 验收 → Zack 点卡。
 #   --uninstall  先 launchctl bootout，再把 plist、两个脚本、配置挪到 <归档>/removed-<时间>/（不删）。
 #                数据目录默认留着；加 --move-data 时把采样器自己的数据和日志也挪过去。
@@ -220,18 +221,17 @@ fi
 
 # ---------------------------------------------------------------- 安装记录
 if [ "$MODE" = install ]; then
-  rec="$ARCH/p2-sampler-installed-$TS.tsv"
-  {
-    printf 'path\tsha256\n'
-    for f in "$BIN/ops-v5-sampler" "$BIN/ops-v5-sample-replay" "$PLIST" "$CONF"; do
-      printf '%s\t%s\n' "$f" "$(sha "$f")"
-    done
-  } > "$rec"
-  # 和 backup.sh 的行同样 10 列：snapshot_dir 填记录文件，manifest_sha256 填记录文件的 sha256，rows 填文件数
-  printf '%s\t%s\t%s\t%s\t%s\t%s\t-\t-\t-\t-\n' "$(date +%Y-%m-%dT%H:%M:%S%z)" "$MACHINE" \
-    p2-sampler-installed "$rec" "$(sha "$rec")" 4 >> "$ILOG"
-  say 记录 "$rec"
-  sed 1d "$rec" | while IFS="$(printf '\t')" read -r f h; do say sha256 "$h  $f"; done
+  # 一个文件一行，带上这次装前的快照目录和 MANIFEST sha256，方便对上 backup.sh 的快照
+  rec="$STATE/install-records.tsv"
+  [ -f "$rec" ] || printf 'time\tmachine\tsnapshot_dir\tmanifest_sha256\tpath\tsha256\n' > "$rec"
+  now=$(date +%Y-%m-%dT%H:%M:%S%z)
+  for f in "$BIN/ops-v5-sampler" "$BIN/ops-v5-sample-replay" "$PLIST" "$CONF"; do
+    h=$(sha "$f")
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$now" "$MACHINE" "$(printf '%s' "$SNAP_LINE" | cut -f4)" \
+      "$(printf '%s' "$SNAP_LINE" | cut -f5)" "$f" "$h" >> "$rec"
+    say sha256 "$h  $f"
+  done
+  say 记录 "${rec}（追加 4 行）"
 fi
 
 # ---------------------------------------------------------------- 数据
@@ -271,7 +271,7 @@ if [ "$MODE" = dry ]; then
   host=$MACHINE
   say 运行后 "采样器自己会建：${STATE}/samples/${host}/YYYY-MM-DD.jsonl、YYYY-MM-DD.sessions.jsonl"
   say 运行后 "${STATE}/ops-v5-sampler.lock、ops-v5-sampler.status、ops-v5-sampler.log、ops-v5-sampler.launchd.log、log-archive/"
-  say 运行后 "${ARCH}/p2-sampler-installed-<时间>.tsv，install-log.tsv 追加 2 行（backup.sh 一行、安装记录一行）"
+  say 运行后 "${STATE}/install-records.tsv 追加 4 行（已装文件和 sha256）；${ILOG} 只由 backup.sh 追加 1 行"
 fi
 [ "$MODE" = install ] && echo "完成。核对：$0 --check（装完 3 分钟后再跑，应有连续 3 个分钟的记录）"
 exit 0

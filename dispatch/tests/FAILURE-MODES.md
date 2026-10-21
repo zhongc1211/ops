@@ -45,7 +45,8 @@
 
 | # | 失败方式 | 期望行为 | 用例 |
 |---|---|---|---|
-| F22 | 装之前没有快照，没法回滚 | `--install` 先跑 `~/ops-archive/per126-v5-backup-1021/<机器>/tools/backup.sh --label p2-sampler`，核对 install-log.tsv 多一行、label 对，打印快照目录和 MANIFEST sha256；装完追加已装文件和 sha256 的记录 | install |
+| F22 | 装之前没有快照，没法回滚 | `--install` 先跑 `~/ops-archive/per126-v5-backup-1021/<机器>/tools/backup.sh --label p2-sampler`，核对 install-log.tsv 多一行、label 对，打印快照目录和 MANIFEST sha256；装完把已装文件和 sha256 追加到 `~/.local/state/ops-v5/install-records.tsv` | install |
+| F22b | install.sh 往 install-log.tsv 写自己的行，rollback 找最新快照时找错 | install-log.tsv 只由 backup.sh 写；install.sh 只读它核对 | install |
 | F23 | backup.sh 不在、失败、没写 install-log、写的 label 不对 | 退出非 0，什么都不装 | install_backup_fail |
 | F24 | 卸载时误删文件 | `--uninstall` 先 bootout，再把 plist、脚本、配置挪到 `removed-<时间>/`，不删；数据目录默认保留，`--move-data` 才挪 | uninstall |
 | F25 | 不在 macOS 或没有 dscl | 退出 2 并说明原因，不静默退出 127 | install_not_macos |
