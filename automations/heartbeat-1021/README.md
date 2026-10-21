@@ -323,5 +323,5 @@ PATH 里放了只记录调用的假 curl。lock-held-alert 不看 `--dry-run`：
 `127.0.0.1:9` 的假地址），PATH 里的假 curl 记下请求体、回 200。锁文件和 lock-held-alert 的状态文件都在临时目录里，
 不碰 `~/.orca-state/heartbeat-watch/` 下的真文件（S10 核对）；precheck 里的 `~/.orca-state/bin/lock-held-alert` 换成仓库里那份的临时副本。
 S14 的 kill、term、crash 只给演练自己起的那个 lockf 发 SIGKILL、SIGTERM、SIGSEGV，发之前核对 pid、ppid 和命令名。
-crash 每跑一次，macOS 在那台机器的 `~/Library/Logs/DiagnosticReports/` 多写一份 lockf 的崩溃报告（`lockf-<日期>-<时间>.ips`）；
-两台「共享 Mac 分析」都关着，报告只留在本机，演练不删（FAILURE-MODES F36）。不发叫醒，不建、不改任何自动任务。
+crash 每跑一次，macOS 在那台机器多写一份 lockf 的崩溃报告（`lockf-<日期>-<时间>.ips`）：iMac 上在 `~/Library/Logs/DiagnosticReports/`，
+MBA 上在 `/Library/Logs/DiagnosticReports/`；两台「共享 Mac 分析」都关着，报告只留在本机，演练不删（FAILURE-MODES F36、F37）。不发叫醒，不建、不改任何自动任务。

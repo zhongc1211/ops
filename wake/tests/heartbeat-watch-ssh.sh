@@ -12,7 +12,8 @@
 # PATH 里的假 curl 只记下请求体、回 200，不连网络。
 # lockf 的锁文件和 lock-held-alert 的状态文件都放在临时目录里，不碰 ~/.orca-state/heartbeat-watch/ 下的真文件。
 # S14 的 kill、term、crash 核对 pid、ppid、命令名以后，只给演练自己起的 lockf 发 SIGKILL、SIGTERM、SIGSEGV。
-# crash 每跑一次，macOS 在那台机器的 ~/Library/Logs/DiagnosticReports/ 多写一份 lockf 的崩溃报告，演练不删（FAILURE-MODES F36）。
+# crash 每跑一次，macOS 在那台机器多写一份 lockf 的崩溃报告（iMac 上在 ~/Library/Logs/DiagnosticReports/，
+# MBA 上在 /Library/Logs/DiagnosticReports/），演练不删（FAILURE-MODES F36、F37）。
 # orca 只用 automations list / show / runs；不往 ~/.orca-state/bin 装文件；MBA 上只用 mktemp -d 建的临时目录，跑完删掉。
 # 替身：S1、S3 用回放（假 HB_ORCA，S1 还固定时钟），S5 用假 ssh，S8 用假 orca，S12 用 ssh 替身（远端命令换成 sleep 110），
 # S13 用 ssh、orca 替身（A 那轮每次调用先等 30 秒），S14 的 held、nodir、timeout 第一轮用 ssh / orca 替身，
@@ -156,8 +157,14 @@ lockf_child() {
     echo "$c"
 }
 
-# DiagnosticReports 里 lockf 开头的文件有几个（S14.crash 前后各数一次，只看文件名）
-crashes() { find "$HOME/Library/Logs/DiagnosticReports" -maxdepth 1 -name 'lockf*' 2>/dev/null | wc -l | tr -d ' '; }
+# lockf 开头的崩溃报告有几个：先数 ~/Library/Logs/DiagnosticReports，再数 /Library/Logs/DiagnosticReports（MBA 的写在这里，
+# FAILURE-MODES F37），一行两个数，读不了的目录记 ?。S14.crash 前后各数一次，只看文件名
+crashes() {
+    local d
+    for d in "$HOME/Library/Logs/DiagnosticReports" /Library/Logs/DiagnosticReports; do
+        if [ -r "$d" ] && [ -x "$d" ]; then find "$d" -maxdepth 1 -name 'lockf*' | wc -l | tr -d ' '; else echo '?'; fi
+    done | paste -s -d ' ' -
+}
 
 # S14（FAILURE-MODES.md A31、A33–A35、A52、A54）：lockf 本身，MBA、iMac 各跑一遍，锁文件都在 <工作目录> 下。
 # s14 <mini|inherit> <工作目录> <输出目录> <precheck，锁目录写成 @LOCKDIR@> <锁文件名> <替身名，空格隔开> <第二轮的超时>
@@ -199,7 +206,7 @@ s14() {
     done
     # kill、term、crash：只用 lockf。lockf … sleep 8 拿住锁，探一次；核对 pid、ppid、命令名以后只给这个 lockf 发信号（kill 发 SIGKILL，
     # term 发 SIGTERM，crash 发 SIGSEGV 模拟崩溃），马上再探一次，再看锁文件还在不在（-k 不删它）。
-    # 它起的 sleep 不发信号，最多等 15 秒让它自己结束。crash 前后各数一次 DiagnosticReports 里 lockf 开头的文件。
+    # 它起的 sleep 不发信号，最多等 15 秒让它自己结束。crash 前后各数一次两个 DiagnosticReports 目录里 lockf 开头的文件。
     for k in kill:KILL term:TERM crash:SEGV; do
         sig=${k#*:}
         k=${k%%:*}
@@ -1066,12 +1073,13 @@ for k, sig, code in (("kill", "KILL", "137"), ("term", "TERM", "143"), ("crash",
     lf = rd(k + ".lockfile").strip()
     ok = (p1 == "75" and sent.startswith("kill -%s " % sig) and hrc == code and p2 == "0" and lf == "有"
           and len(child) >= 2 and child[1] == "1" and end.startswith("没了"))
-    crash = ("；DiagnosticReports 里 lockf 开头的文件：发信号前 %s 个，之后 %s 个" % (
-        rd("crash.reports-before").strip() or "?", rd("crash.reports-after").strip() or "?")) if k == "crash" else ""
+    crash = ("；lockf 开头的崩溃报告（~/Library/Logs/DiagnosticReports、/Library/Logs/DiagnosticReports）：发信号前 %s，之后 %s" % (
+        "、".join((rd("crash.reports-before").split() + ["?", "?"])[:2]),
+        "、".join((rd("crash.reports-after").split() + ["?", "?"])[:2]))) if k == "crash" else ""
     res("S14.%s.%s" % (m, k), ok,
         "%s 上只用 lockf：lockf -k -t 0 <锁> sleep 8 拿住锁，探一次退出 75；核对 pid、ppid、命令名以后只给这个 lockf 发 SIG%s%s，"
         "它退出 %s；马上再探一次退出 0；锁文件还在（-k）；它起的 sleep ppid 1，之后自己结束%s" % (
-            m, sig, "（模拟崩溃）" if k == "crash" else "", code, "；前后各数一次 DiagnosticReports 里 lockf 开头的文件" if k == "crash" else ""),
+            m, sig, "（模拟崩溃）" if k == "crash" else "", code, "；前后各数一次两个 DiagnosticReports 目录里 lockf 开头的文件，只记不判" if k == "crash" else ""),
         "第一次探退出 %s（%s）；%s；它退出 %s；第二次探退出 %s；锁文件%s；发信号以后它起的 sleep：%s；%s%s" % (
             p1, head(rd(k + ".probe1.err"), 80), sent, hrc, p2, lf or "?", " ".join(child) or "没有", end, crash))
 o1, o2 = orca("timeout-1"), orca("timeout-2")
@@ -1706,8 +1714,8 @@ L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "S12.old、S14 的 timeout 第一轮到超时时，演练脚本照 Orca 的做法给它自己起的预检进程组发 SIGTERM、2 秒后 SIGKILL；"
      "S14 的 kill、term、crash 核对 pid、ppid（演练的 shell）、命令名（lockf）以后，只给演练自己起的 lockf 发 SIGKILL、SIGTERM、SIGSEGV，"
      "它起的 sleep 不发信号、等它自己结束。没有给演练以外的进程发过信号。"
-     "crash 让 macOS 给 lockf 写一份崩溃报告（`~/Library/Logs/DiagnosticReports/lockf-<日期>-<时间>.ips`），每台每跑一次多一份；"
-     "两台「共享 Mac 分析」都关着，报告只留在本机；演练不删它（FAILURE-MODES F36）。"
+     "crash 让 macOS 给 lockf 写一份崩溃报告 `lockf-<日期>-<时间>.ips`，每台每跑一次多一份：iMac 上在 `~/Library/Logs/DiagnosticReports/`，"
+     "MBA 上在 `/Library/Logs/DiagnosticReports/`；两台「共享 Mac 分析」都关着，报告只留在本机；演练不删它（FAILURE-MODES F36、F37）。"
      "orca 只用 `automations list / show / runs`；不往 `~/.orca-state/bin/` 装文件；MBA 上只用 `mktemp -d` 的临时目录，跑完删掉。", "",
      "## 这次运行", ""] + ["- " + cell(l) for l in env] + ["", "## 场景", "",
      "| 编号 | 场景 | 在哪跑 | 真机还是替身 |", "|---|---|---|---|"] + \
@@ -1753,8 +1761,9 @@ L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "HB_STATE_DIR 指向的目录有没有被建出来（`.probe`）、held 之后锁文件旁边的状态文件（`held.skips.json`）；"
      "kill、term、crash 每项的进程检查（`<项>.holder-ps`、`<项>.child-after-signal`，是 `ps -o pid,ppid,rss,etime,comm` 的输出）、"
      "发出的信号（`<项>.sent`）、两次探锁的结果（`<项>.probe1.*`、`<项>.probe2.*`）、lockf 的退出码（`<项>.holder-rc`）、锁文件还在不在（`<项>.lockfile`）、"
-     "它起的 sleep 什么时候没的（`<项>.child-end`）；crash 前后 DiagnosticReports 里 lockf 开头的文件数（`crash.reports-before`、`crash.reports-after`；"
-     "after 是等它起的 sleep 结束以后数的，报告写得更晚时会数漏，所以只记不判，F36）；"
+     "它起的 sleep 什么时候没的（`<项>.child-end`）；crash 前后 lockf 开头的崩溃报告数（`crash.reports-before`、`crash.reports-after`，"
+     "两个数依次是 `~/Library/Logs/DiagnosticReports/`、`/Library/Logs/DiagnosticReports/` 里的，读不了的目录记 `?`；"
+     "after 是等它起的 sleep 结束以后数的，报告写得更晚时会数漏，所以只记不判，F36、F37）；"
      "timeout 探锁的结果和探锁前后的时间（`timeout.probe.*`）、两轮的预检结果（`timeout-1.*`、`timeout-2.*`）。",
      "- `raw/mba/S15/`、`raw/S15-imac/`：每一轮（主线 `r1`–`r6`，`45a`、`45b`，`bad-a`、`bad-b`）的 precheck（`.cmd`）、stdout、stderr、"
      "预检结果（`.orca.json`）、HB_STATE_DIR 有没有被建出来（`.probe`）、到这轮为止假 curl 几次（`.curls`）、这轮之后锁文件旁边的状态文件（`.skips.json`，没有就是没了）；"
