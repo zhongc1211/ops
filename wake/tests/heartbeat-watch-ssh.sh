@@ -309,7 +309,7 @@ chmod +x "$T/s1bin/curl"
 s1() {
     local c=$1 spec=$2 seed=$3 v s kv e
     shift 3
-    echo "$spec" >"$OUT/raw/S1/$c.env"
+    echo "$spec" >"$OUT/raw/S1/$c.vars"
     { printf 'heartbeat-watch.sh'; printf ' "%s"' "$@"; echo; } >"$OUT/raw/S1/$c.cmd"
     [ "$seed" = - ] || echo "$seed" >"$OUT/raw/S1/$c.seed.json"
     for v in $VERS; do
@@ -779,7 +779,7 @@ L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "", "## 文件", "",
      "- `results.tsv`：每项一行（编号、结果、期望、实际），`README.md` 由它生成。",
      "- `env.txt`：时间、commit、两台机器的系统和工具版本。",
-     "- `raw/S0/`：三版的 sha256 和 diff。`raw/S1/`：每个例子的参数（`.cmd`）、回放设置（`.env`）、种的状态（`.seed.json`），"
+     "- `raw/S0/`：三版的 sha256 和 diff。`raw/S1/`：每个例子的参数（`.cmd`）、回放设置（`.vars`，不用 `.env`：仓库的 .gitignore 不收 `*.env`）、种的状态（`.seed.json`），"
      "三版各自的 stdout、stderr、退出码和假 orca 收到的调用。",
      "- `raw/S5-imac/`：iMac 上包装每条用例的命令、退出码、stderr、假 ssh 收到的参数。",
      "- `raw/S6/`、`raw/S6b/`：iMac 上的命令和原始输出。`raw/S8/`：register.sh 每次的参数和输出。`raw/S9/`：只读 show / list 摘下来的字段。",
