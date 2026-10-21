@@ -1,0 +1,1 @@
+/usr/local/bin/bash scripts/ws-cleanup.sh --execute --only-from reports/ws-cleanup-exec-1021/imac/run2-only-from/worktrees.tsv --no-issue-reviews reports/no-issue-review --out reports/ws-cleanup-exec-1021/imac/run2  # started 2026-10-21 11:01:36 only-from sha256 07aa032bc7ac
