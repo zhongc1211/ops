@@ -37,7 +37,7 @@ real_home_check() {
 
 {
   echo "host $HOST"
-  echo "mode ${SSH:+ssh $SSH}${SSH:-local}"
+  if [ -n "$SSH" ]; then echo "mode ssh $SSH"; else echo "mode local"; fi
   echo "commit $(git -C "$REPO" rev-parse HEAD)"
   echo "uncommitted_in_dispatch $(git -C "$REPO" status --porcelain -- dispatch | wc -l | tr -d " ")"
   echo "sampler_sha256 $(shasum -a 256 "$SAMPLER" | cut -d' ' -f1)"
