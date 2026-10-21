@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import ast, sys; s = open(sys.argv[1], encoding="utf-8").read(); assert s.strip(); ast.parse(s)
+                                                                            ~~~~~~~^^
+AssertionError

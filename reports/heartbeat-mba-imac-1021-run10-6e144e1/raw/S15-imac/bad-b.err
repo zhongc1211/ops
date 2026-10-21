@@ -1,0 +1,2 @@
+lockf: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-drill.vxH0uMZzZR/s15/bad/lock/5c2d0575.lock: already locked
+2026-10-22 02:56:33 SGT lock-held-alert：出错（退出码照旧 75）：IsADirectoryError: [Errno 21] Is a directory: '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-drill.vxH0uMZzZR/s15/bad/lock/5c2d0575.lock.skips.json.61341.tmp' -> '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-drill.vxH0uMZzZR/s15/bad/lock/5c2d0575.lock.skips.json'

@@ -1,0 +1,1 @@
+kill -SEGV 95518（pid 95518、ppid 85009 是演练的 shell、命令名 /usr/bin/lockf）
