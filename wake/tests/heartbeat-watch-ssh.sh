@@ -8,11 +8,16 @@
 # 场景编号和要防的失败方式见 automations/heartbeat-1021/FAILURE-MODES.md；结果和期望写进产物目录的 README.md。
 # 安全：heartbeat-watch 都用临时 HB_STATE_DIR，除 S12、S13 外都带 --dry-run、用假 webhook 目录（127.0.0.1:9 的假地址），不发叫醒、不读真凭据。
 # S12、S13 不带 --dry-run（要看写下的 state.json 和 @@HB）：webhook 目录是空的，PATH 里有只记录调用的假 curl。
-# lockf 的锁文件都放在临时目录里，不碰 ~/.orca-state/heartbeat-watch/ 下的真锁。S14.kill 核对 pid、ppid、命令名以后，只给演练自己起的 lockf 发 SIGKILL。
+# S15 的 lock-held-alert 不看 --dry-run，要真发告警：发给假 webhook 目录（STUCK_FORCE_BOT=ops-system，127.0.0.1:9 的假地址），
+# PATH 里的假 curl 只记下请求体、回 200，不连网络。
+# lockf 的锁文件和 lock-held-alert 的状态文件都放在临时目录里，不碰 ~/.orca-state/heartbeat-watch/ 下的真文件。
+# S14 的 kill、term、crash 核对 pid、ppid、命令名以后，只给演练自己起的 lockf 发 SIGKILL、SIGTERM、SIGSEGV。
+# crash 每跑一次，macOS 在那台机器的 ~/Library/Logs/DiagnosticReports/ 多写一份 lockf 的崩溃报告，演练不删（FAILURE-MODES F36）。
 # orca 只用 automations list / show / runs；不往 ~/.orca-state/bin 装文件；MBA 上只用 mktemp -d 建的临时目录，跑完删掉。
 # 替身：S1、S3 用回放（假 HB_ORCA，S1 还固定时钟），S5 用假 ssh，S8 用假 orca，S12 用 ssh 替身（远端命令换成 sleep 110），
-# S13 用 ssh、orca 替身（A 那轮每次调用先等 30 秒），S14 的 held、nodir、timeout 第一轮用 ssh / orca 替身，这几个不算 E2E。
-# S2、S4、S5b、S6、S6b、S7、S9、S10、S14.kill 是真机器、真 ssh、真 Orca（只读）、真 lockf。
+# S13 用 ssh、orca 替身（A 那轮每次调用先等 30 秒），S14 的 held、nodir、timeout 第一轮用 ssh / orca 替身，
+# S15 用假 curl、改短的阈值和演练写的状态文件，这几个不算 E2E。
+# S2、S4、S5b、S6、S6b、S7、S9、S10、S14 的 kill、term、crash 是真机器、真 ssh、真 Orca（只读）、真 lockf。
 # 内部用法：--mba-side <MBA 上的临时目录> <标记>，由 iMac 这边拷到 MBA 上跑 MBA 的场景。
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
@@ -31,11 +36,13 @@ CANARY=
 
 rssh() { ssh -o BatchMode=yes -o ConnectTimeout=10 mba "$@"; }
 
-# 真路径的现状：MBA 上这六个都不该有，iMac 上两个锁文件不该有；主检出的 HEAD 前后要一样（只读 rev-parse）。
+# 真路径的现状：MBA 上这九个都不该有，iMac 上两个锁文件、lock-held-alert 和它的两个状态文件不该有；主检出的 HEAD 前后要一样（只读 rev-parse）。
 real_paths() {
     local p
-    for p in .orca-state/bin/heartbeat-watch.sh .orca-state/bin/orca-via-ssh .orca-state/heartbeat-watch \
-        .orca-state/heartbeat-watch/mba-hb-watch.lock .orca-state/heartbeat-watch/5c2d0575.lock orca/workspaces/ops/scripts/orca-via-ssh; do
+    for p in .orca-state/bin/heartbeat-watch.sh .orca-state/bin/orca-via-ssh .orca-state/bin/lock-held-alert .orca-state/heartbeat-watch \
+        .orca-state/heartbeat-watch/mba-hb-watch.lock .orca-state/heartbeat-watch/5c2d0575.lock \
+        .orca-state/heartbeat-watch/mba-hb-watch.lock.skips.json .orca-state/heartbeat-watch/5c2d0575.lock.skips.json \
+        orca/workspaces/ops/scripts/orca-via-ssh; do
         if [ -e "$HOME/$p" ]; then echo "有 ~/$p"; else echo "没有 ~/$p"; fi
     done
     echo "主检出 HEAD $(git -C "$HOME/orca/workspaces/ops" rev-parse HEAD 2>&1)"
@@ -133,8 +140,8 @@ s14_run() {
         env -i HOME="$HOME" PATH="$stub:$MINPATH" LANG=en_US.UTF-8 PYTHONDONTWRITEBYTECODE=1 HB_DRILL_CANARY="$CANARY" \
             HB_STATE_DIR="$st" STUCK_WEBHOOK_DIR="$hooks" "$@"
     else
-        env -u STUCK_FORCE_BOT -u HB_ORCA -u ORCA_SSH_HOST PATH="$stub:$PATH" PYTHONDONTWRITEBYTECODE=1 HB_DRILL_CANARY="$CANARY" \
-            HB_STATE_DIR="$st" STUCK_WEBHOOK_DIR="$hooks" "$@"
+        env -u STUCK_FORCE_BOT -u HB_ORCA -u ORCA_SSH_HOST -u HB_LOCK_ALERT_MIN PATH="$stub:$PATH" PYTHONDONTWRITEBYTECODE=1 \
+            HB_DRILL_CANARY="$CANARY" HB_STATE_DIR="$st" STUCK_WEBHOOK_DIR="$hooks" "$@"
     fi
 }
 
@@ -149,14 +156,17 @@ lockf_child() {
     echo "$c"
 }
 
-# S14（FAILURE-MODES.md A31、A33–A35）：lockf 本身，MBA、iMac 各跑一遍，锁文件都在 <工作目录> 下。
+# DiagnosticReports 里 lockf 开头的文件有几个（S14.crash 前后各数一次，只看文件名）
+crashes() { find "$HOME/Library/Logs/DiagnosticReports" -maxdepth 1 -name 'lockf*' 2>/dev/null | wc -l | tr -d ' '; }
+
+# S14（FAILURE-MODES.md A31、A33–A35、A52、A54）：lockf 本身，MBA、iMac 各跑一遍，锁文件都在 <工作目录> 下。
 # s14 <mini|inherit> <工作目录> <输出目录> <precheck，锁目录写成 @LOCKDIR@> <锁文件名> <替身名，空格隔开> <第二轮的超时>
 #     <orca-precheck.py> <webhook 目录>
 # 替身：log/ 里的只记录调用（pid、时间、替身名、参数）、退出 1；slow/ 里的记下 pid、时间、替身名后 exec sleep 60。
-# 要在主 shell 里调（不放进 $( ) 或后台）：kill 那步核对 lockf 的 ppid 是 $$。只 wait 自己起的 pid，不碰后台的 S12。
+# 要在主 shell 里调（不放进 $( ) 或后台）：kill、term、crash 那步核对 lockf 的 ppid 是 $$。只 wait 自己起的 pid，不碰后台的 S12。
 s14() {
-    local mode=$1 d=$2 o=$3 pc=$4 lk=$5 stubs=$6 lim2=$7 op=$8 hooks=$9 s k L hp c i pid ppid comm
-    mkdir -p "$o" "$d/log" "$d/slow" "$d/none" "$d/held/lock" "$d/kill/lock" "$d/timeout/lock"
+    local mode=$1 d=$2 o=$3 pc=$4 lk=$5 stubs=$6 lim2=$7 op=$8 hooks=$9 s k sig L hp c i pid ppid comm
+    mkdir -p "$o" "$d/log" "$d/slow" "$d/none" "$d/held/lock" "$d/timeout/lock"
     for s in $stubs; do
         printf '#!/bin/sh\necho "$$ $(date +%%s) %s $*" >>"%s"\nexit 1\n' "$s" "$d/log.calls" >"$d/log/$s"
         printf '#!/bin/sh\necho "$$ $(date +%%s) %s" >>"%s"\nexec /bin/sleep 60\n' "$s" "$d/slow.calls" >"$d/slow/$s"
@@ -164,6 +174,7 @@ s14() {
     done
     # held：lockf … sleep 6 先拿住锁（等到它起的 sleep 出现），再照 defs 原文跑 precheck。nodir：锁文件放在不存在的目录里
     # （漏了 README 第 1 步的 mkdir）。HB_STATE_DIR 都指向不存在的目录：heartbeat-watch 一起来就会建它（第 63 行，读 state 之前）。
+    # 跑完把 lock-held-alert 记在锁文件旁边的状态文件（<锁文件>.skips.json）拷出来。
     for k in held nodir; do
         L=$d/held/lock
         [ "$k" = nodir ] && L=$d/nodir/no-such-dir
@@ -180,39 +191,49 @@ s14() {
         echo $? >"$o/$k.rc"
         if [ -e "$d/$k/probe" ]; then echo 有; else echo 没有; fi >"$o/$k.probe"
         cp "$d/log.calls" "$o/$k.calls"
+        if [ -f "$L/$lk.skips.json" ]; then cp "$L/$lk.skips.json" "$o/$k.skips.json"; fi
         if [ -n "$hp" ]; then
             wait "$hp"
             echo $? >"$o/held.holder-rc"
         fi
     done
-    # kill：只用 lockf。lockf … sleep 8 拿住锁，探一次；核对 pid、ppid、命令名以后只给这个 lockf 发 SIGKILL，再探一次。
-    # 它起的 sleep 不发信号，最多等 15 秒让它自己结束。
-    L=$d/kill/lock/$lk
-    /usr/bin/lockf -k -t 0 "$L" /bin/sleep 8 &
-    hp=$!
-    c=$(lockf_child "$hp")
-    /usr/bin/lockf -k -t 0 "$L" /usr/bin/true 2>"$o/kill.probe1.err"
-    echo $? >"$o/kill.probe1.rc"
-    ps -o pid,ppid,rss,etime,comm -p "$hp" | sed 1d >"$o/kill.holder-ps"
-    read -r pid ppid _ _ comm <"$o/kill.holder-ps"
-    case "${pid:-}:${ppid:-}:${comm:-}" in
-        "$hp:$$:"*lockf)
-            kill -KILL "$hp"
-            echo "kill -KILL ${hp}（pid ${pid}、ppid ${ppid} 是演练的 shell、命令名 ${comm}）" >"$o/kill.sent" ;;
-        *) echo "没发：pid、ppid、命令名对不上（${pid:-空} ${ppid:-空} ${comm:-空}，期望 ${hp} $$ lockf）" >"$o/kill.sent" ;;
-    esac
-    wait "$hp"
-    echo $? >"$o/kill.holder-rc"
-    /usr/bin/lockf -k -t 0 "$L" /usr/bin/true 2>"$o/kill.probe2.err"
-    echo $? >"$o/kill.probe2.rc"
-    if [ -n "$c" ]; then ps -o pid,ppid,rss,etime,comm -p "$c" | sed 1d; else echo "没等到它起的 sleep"; fi >"$o/kill.child-after-kill"
-    i=0
-    while [ -n "$c" ] && ps -o pid,ppid,rss,etime,comm -p "$c" >/dev/null && [ $i -lt 150 ]; do
-        sleep 0.1
-        i=$((i + 1))
+    # kill、term、crash：只用 lockf。lockf … sleep 8 拿住锁，探一次；核对 pid、ppid、命令名以后只给这个 lockf 发信号（kill 发 SIGKILL，
+    # term 发 SIGTERM，crash 发 SIGSEGV 模拟崩溃），马上再探一次，再看锁文件还在不在（-k 不删它）。
+    # 它起的 sleep 不发信号，最多等 15 秒让它自己结束。crash 前后各数一次 DiagnosticReports 里 lockf 开头的文件。
+    for k in kill:KILL term:TERM crash:SEGV; do
+        sig=${k#*:}
+        k=${k%%:*}
+        mkdir -p "$d/$k/lock"
+        L=$d/$k/lock/$lk
+        if [ "$k" = crash ]; then crashes >"$o/crash.reports-before"; fi
+        /usr/bin/lockf -k -t 0 "$L" /bin/sleep 8 &
+        hp=$!
+        c=$(lockf_child "$hp")
+        /usr/bin/lockf -k -t 0 "$L" /usr/bin/true 2>"$o/$k.probe1.err"
+        echo $? >"$o/$k.probe1.rc"
+        ps -o pid,ppid,rss,etime,comm -p "$hp" | sed 1d >"$o/$k.holder-ps"
+        read -r pid ppid _ _ comm <"$o/$k.holder-ps"
+        case "${pid:-}:${ppid:-}:${comm:-}" in
+            "$hp:$$:"*lockf)
+                kill -"$sig" "$hp"
+                echo "kill -${sig} ${hp}（pid ${pid}、ppid ${ppid} 是演练的 shell、命令名 ${comm}）" >"$o/$k.sent" ;;
+            *) echo "没发：pid、ppid、命令名对不上（${pid:-空} ${ppid:-空} ${comm:-空}，期望 ${hp} $$ lockf）" >"$o/$k.sent" ;;
+        esac
+        wait "$hp"
+        echo $? >"$o/$k.holder-rc"
+        /usr/bin/lockf -k -t 0 "$L" /usr/bin/true 2>"$o/$k.probe2.err"
+        echo $? >"$o/$k.probe2.rc"
+        if [ -f "$L" ]; then echo 有; else echo 没有; fi >"$o/$k.lockfile"
+        if [ -n "$c" ]; then ps -o pid,ppid,rss,etime,comm -p "$c" | sed 1d; else echo "没等到它起的 sleep"; fi >"$o/$k.child-after-signal"
+        i=0
+        while [ -n "$c" ] && ps -o pid,ppid,rss,etime,comm -p "$c" >/dev/null && [ $i -lt 150 ]; do
+            sleep 0.1
+            i=$((i + 1))
+        done
+        if [ -n "$c" ] && ps -o pid,ppid,rss,etime,comm -p "$c" >/dev/null; then echo 还在; else echo "没了（发信号以后约 $((i / 10)) 秒）"; fi \
+            >"$o/$k.child-end"
+        if [ "$k" = crash ]; then crashes >"$o/crash.reports-after"; fi
     done
-    if [ -n "$c" ] && ps -o pid,ppid,rss,etime,comm -p "$c" >/dev/null; then echo 还在; else echo "没了（kill 以后约 $((i / 10)) 秒）"; fi \
-        >"$o/kill.child-end"
     # timeout：第一轮照 Orca 的做法起，超时 12 秒，替身换成 slow/ 里的；替身起来 3 秒后探一次锁，前后各记一次时间（判断时和第一轮的
     # 起止时间比，FAILURE-MODES.md C15）。第一轮被杀以后看替身还在不在，紧接着用真的 ssh / orca 起第二轮（none/ 是空目录），
     # 超时取 defs。两轮都加 --dry-run。
@@ -238,6 +259,95 @@ s14() {
     done >"$o/timeout.stub-after"
     cp "$d/slow.calls" "$o/timeout.stub-calls"
     s14_run "$mode" "$d/none" "$d/timeout/state" "$hooks" /usr/bin/python3 -I "$op" "$lim2" "$o/timeout-2" "$(cat "$o/timeout.cmd")"
+}
+
+# S15（FAILURE-MODES.md A41–A47、C17–C19）：锁一直被占着。MBA、iMac 各跑一遍，锁文件都在 <工作目录> 下。
+# s15 <mini|inherit> <工作目录> <输出目录> <precheck，锁目录写成 @LOCKDIR@> <锁文件名> <超时> <orca-precheck.py>
+#     <webhook 目录（里面是 ops-system.env 假配置）>
+# 每轮照 Orca 的做法起，加 --dry-run，STUCK_FORCE_BOT=ops-system。PATH 最前面只有假 curl：记下请求体（一行一个）、回 200，不连网络。
+# main：外部用 lockf … sleep 32 拿住锁，阈值改成 0.25 分钟，第 1–4 轮在第 1 轮开始后约 0、6、18、24 秒起；sleep 结束以后起第 5、6 轮。
+# 45：不设阈值（默认 45 分钟），外部拿住锁，状态文件写成「44 分钟前起跳过 9 轮」「46 分钟前起跳过 9 轮」，各跑一轮。
+# bad：外部拿住锁，状态文件是乱码、状态文件的路径是个目录，各跑一轮。
+# 每轮之后记下 HB_STATE_DIR 有没有被建出来、假 curl 累计几次、锁文件旁边的状态文件。要在主 shell 里调：只 wait 自己起的 lockf。
+s15() {
+    local mode=$1 d=$2 o=$3 pc=$4 lk=$5 lim=$6 op=$7 hooks=$8 L cl hp n at
+    mkdir -p "$o" "$d/bin" "$d/main/lock" "$d/45/lock" "$d/bad/lock"
+    cat >"$d/bin/curl" <<'EOF'
+#!/bin/sh
+# S15 的假 curl：记下 --data-binary @文件 的请求体；配置从 stdin 读，只看 url 是不是演练的假地址，不记 KEY
+body=''
+while [ $# -gt 0 ]; do
+    [ "$1" = --data-binary ] && body=${2#@}
+    shift
+done
+case $(cat) in *'url = "http://127.0.0.1:9/'*) to=假地址 ;; *) to=别的地址 ;; esac
+{ printf '%s ' "$to"; tr -d '\n' <"$body"; echo; } >>"$S15_CURL_LOG"
+printf 200
+EOF
+    chmod +x "$d/bin/curl"
+    hostname -s >"$o/host"
+    echo "$lk" >"$o/lockname"
+    # s15_round <名字> <HB_STATE_DIR> <额外环境变量...>：锁目录是 $L，假 curl 记到 $cl
+    s15_round() {
+        local n=$1 st=$2
+        shift 2
+        printf '%s\n' "${pc//@LOCKDIR@/$L} --dry-run" >"$o/$n.cmd"
+        s14_run "$mode" "$d/bin" "$st" "$hooks" env S15_CURL_LOG="$cl" STUCK_FORCE_BOT=ops-system "$@" \
+            /usr/bin/python3 -I "$op" "$lim" "$o/$n" "$(cat "$o/$n.cmd")"
+        if [ -e "$st" ]; then echo 有; else echo 没有; fi >"$o/$n.probe"
+        wc -l <"$cl" | tr -d ' ' >"$o/$n.curls"
+        if [ -f "$L/$lk.skips.json" ]; then cp "$L/$lk.skips.json" "$o/$n.skips.json"; fi
+    }
+    L=$d/main/lock
+    cl=$o/main.curl-bodies
+    : >"$cl"
+    /usr/bin/lockf -k -t 0 "$L/$lk" /bin/sleep 32 &
+    hp=$!
+    lockf_child "$hp" >"$o/main.holder-child"
+    /usr/bin/python3 -I -c 'import time; print("%.3f" % time.time())' >"$o/t0"
+    for n in 1:0 2:6 3:18 4:24; do
+        at=${n#*:}
+        n=${n%%:*}
+        /usr/bin/python3 -I -c 'import sys, time; time.sleep(max(0.0, float(sys.argv[1]) + float(sys.argv[2]) - time.time()))' \
+            "$(cat "$o/t0")" "$at"
+        s15_round "r$n" "$d/main/probe" HB_LOCK_ALERT_MIN=0.25
+    done
+    wait "$hp"
+    echo $? >"$o/main.holder-rc"
+    /usr/bin/python3 -I -c 'import time; print("%.3f" % time.time())' >"$o/main.holder-end"
+    s15_round r5 "$d/main/state" HB_LOCK_ALERT_MIN=0.25
+    s15_round r6 "$d/main/state" HB_LOCK_ALERT_MIN=0.25
+    L=$d/45/lock
+    cl=$o/45.curl-bodies
+    : >"$cl"
+    /usr/bin/lockf -k -t 0 "$L/$lk" /bin/sleep 8 &
+    hp=$!
+    lockf_child "$hp" >"$o/45.holder-child"
+    for n in 45a:44 45b:46; do
+        at=${n#*:}
+        n=${n%%:*}
+        /usr/bin/python3 -I -c 'import json, sys, time
+t = time.time()
+json.dump({"first": t - float(sys.argv[2]) * 60, "last": t - 300, "skips": 9}, open(sys.argv[1], "w"))' "$L/$lk.skips.json" "$at"
+        cp "$L/$lk.skips.json" "$o/$n.seed.json"
+        s15_round "$n" "$d/45/probe"
+    done
+    wait "$hp"
+    echo $? >"$o/45.holder-rc"
+    L=$d/bad/lock
+    cl=$o/bad.curl-bodies
+    : >"$cl"
+    /usr/bin/lockf -k -t 0 "$L/$lk" /bin/sleep 8 &
+    hp=$!
+    lockf_child "$hp" >"$o/bad.holder-child"
+    printf '{"first": 不是 JSON {{\n' >"$L/$lk.skips.json"
+    cp "$L/$lk.skips.json" "$o/bad-a.seed"
+    s15_round bad-a "$d/bad/probe"
+    rm -f "$L/$lk.skips.json"
+    mkdir "$L/$lk.skips.json"
+    s15_round bad-b "$d/bad/probe"
+    wait "$hp"
+    echo $? >"$o/bad.holder-rc"
 }
 
 # ---------- MBA 这边（iMac 拷过来的临时目录 $1 里跑，输出写 $1/out，iMac 再拷回去判断）----------
@@ -312,8 +422,9 @@ EOF
     # A 的替身起来 3 秒后起 B，A 结束后起 C。新代码只经 ssh；回退测试里 base 的 MBA precheck 直接调 orca（F30），PATH 里找不到 orca 时
     # heartbeat-watch 用 /Applications/Orca.app/Contents/Resources/bin/orca，orca 替身 exec 的也是它。
     # B 前后各记一次状态目录里每个文件的 sha256。webhook 目录是空的，PATH 里有只记录调用的假 curl。
+    # B 之后拷一份锁文件旁边 lock-held-alert 的状态文件（A44），C 之后看它还在不在。
     s13() {
-        local d=$R/s13 n hp i=0
+        local d=$R/s13 n hp i=0 sk=$R/s13/lock/mba-hb-watch.lock.skips.json
         mkdir -p "$d/bin" "$d/state" "$d/hooks" "$d/lock"
         cat >"$d/bin/ssh" <<'EOF'
 #!/bin/sh
@@ -339,8 +450,10 @@ EOF
         s13_state >"$O/S13-B.state-before"
         s13_one B 0
         s13_state >"$O/S13-B.state-after"
+        if [ -f "$sk" ]; then cp "$sk" "$O/S13-B.skips.json"; fi
         wait "$hp"
         s13_one C 0
+        if [ -e "$sk" ]; then echo 有; else echo 没有; fi >"$O/S13-C.skips-after"
         cp "$d/curl.log" "$O/S13.curl-calls"
         (cd "$d/state" && find . -type f | sort) >"$O/S13.statefiles"
         if [ -f "$d/state/state.json" ]; then cp "$d/state/state.json" "$O/S13.state.json"; fi
@@ -431,6 +544,9 @@ PY
     s14 mini "$R/s14" "$O/S14" "$(cat "$R/s14-precheck.txt")" mba-hb-watch.lock "ssh orca" "$(cat "$R/mba-timeout.txt")" \
         "$R/orca-precheck.py" "$R/hooks"
     echo "MBA S14 跑完"
+    s15 mini "$R/s15" "$O/S15" "$(cat "$R/s14-precheck.txt")" mba-hb-watch.lock "$(cat "$R/mba-timeout.txt")" \
+        "$R/orca-precheck.py" "$R/hooks-s15"
+    echo "MBA S15 跑完"
     wait
     # S12、S13 不是 dry-run，状态写在它们自己的临时目录里，不算。
     find "$R" -path '*/state/*' -type f ! -path "$R/s12*" ! -path "$R/s13*" | sed "s|^$R/||" | sort >"$O/S10-statefiles.txt"
@@ -490,8 +606,12 @@ mkdir -p "$OUT/raw"
 : >"$OUT/.hb-drill"
 : >"$OUT/results.tsv"
 CANARY=hbcanary-$(od -An -N6 -tx1 /dev/urandom | tr -d ' \n')
-mkdir -p "$T/hooks"
+mkdir -p "$T/hooks" "$T/hooks-s15"
 printf 'URL=http://127.0.0.1:9/hb-drill\nKEY=hb-drill-dummy-key\n' >"$T/hooks/coding-assistant.env"
+# S15 的 lock-held-alert 真发告警：STUCK_FORCE_BOT=ops-system，发给这个假配置，PATH 里的假 curl 接住
+printf 'URL=http://127.0.0.1:9/hb-drill-s15\nKEY=hb-drill-dummy-key\n' >"$T/hooks-s15/ops-system.env"
+# lock-held-alert 的临时副本，precheck 里的 ~/.orca-state/bin/lock-held-alert 换成它（回退测试的 base 里没有它，现网版 defs 也不引用它）
+if [ -f "$root/scripts/lock-held-alert" ]; then cp "$root/scripts/lock-held-alert" "$T/lock-held-alert"; fi
 
 oneline() { printf '%s' "$1" | tr '\t\n' '  '; }
 res() {  # res <编号> <PASS|FAIL> <期望> <实际>
@@ -783,21 +903,21 @@ s8 mba-stage 2 mba --stage final
 s8 box 2 box
 s8 stage-novalue 2 imac --stage
 s8 unknown-flag 2 imac --force
-PC_MBA="'HB_ORCA=\$HOME/.orca-state/bin/orca-via-ssh ORCA_SSH_HOST=imac /usr/bin/lockf -k -t 0 \$HOME/.orca-state/heartbeat-watch/mba-hb-watch.lock \$HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target \"iMac ops · 01 卡住工作检查||${WATCHED}|20\"'"
+PC_MBA="'HB_ORCA=\$HOME/.orca-state/bin/orca-via-ssh ORCA_SSH_HOST=imac \$HOME/.orca-state/bin/lock-held-alert /usr/bin/lockf -k -t 0 \$HOME/.orca-state/heartbeat-watch/mba-hb-watch.lock \$HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target \"iMac ops · 01 卡住工作检查||${WATCHED}|20\"'"
 TB="--target \"box ops · 29 卡住检查心跳|grok-bot|${BOX}|20\""
 TM="--target \"MBA ops · 29 心跳互查|mba|${FAKEID}|20\""
-expect S8.mba "mba：create 带 --disabled、--fresh-session、每 5 分钟、超时 330、grace 720，precheck 是 defs 原文（外面套 lockf，锁文件 mba-hb-watch.lock）" "$T/s8-mba.cmdline" 0 "$OUT/raw/S8/mba.rc" \
+expect S8.mba "mba：create 带 --disabled、--fresh-session、每 5 分钟、超时 330、grace 720，precheck 是 defs 原文（外面套 lockf，锁文件 mba-hb-watch.lock；lockf 前面是 ~/.orca-state/bin/lock-held-alert）" "$T/s8-mba.cmdline" 0 "$OUT/raw/S8/mba.rc" \
     "orca automations create --name 'ops · 29 心跳互查 MBA（盯 iMac ops · 01）'" "--trigger '*/5 * * * *'" "--precheck $PC_MBA" \
     "--precheck-timeout 330" "--missed-run-grace-minutes 720" "--fresh-session" "--disabled"
 cat "$OUT/raw/S8/imac.out" >"$T/s8-imac.all"
 expect S8.imac-noid "imac 没给 --mba-id：命令里是占位，并提示不能照抄" "$T/s8-imac.all" 0 "$OUT/raw/S8/imac.rc" "没给 --mba-id" "|mba|<MBA 新任务 id>|20"
-expect S8.parallel "parallel：外面套 lockf（锁文件 5c2d0575.lock），保留 box 目标在前、加 MBA 目标，不改名，超时 600（两个目标最坏 572 秒）" "$T/s8-imac-parallel.cmdline" 0 "$OUT/raw/S8/imac-parallel.rc" \
-    "orca automations edit ${IMAC_WATCH} --precheck '/usr/bin/lockf -k -t 0 \$HOME/.orca-state/heartbeat-watch/5c2d0575.lock \$HOME/.orca-state/bin/heartbeat-watch.sh --precheck ${TB} ${TM}' --precheck-timeout 600" "!--name" "!<MBA 新任务 id>"
-expect S8.final "final：只剩 MBA 目标，改名「盯 MBA ops · 29」，超时 300（一个目标最坏 286 秒），没套 lockf" "$T/s8-imac-final.cmdline" 0 "$OUT/raw/S8/imac-final.rc" \
-    "orca automations edit ${IMAC_WATCH} --name 'ops · 29 心跳互查（盯 MBA ops · 29）' --precheck '\$HOME/.orca-state/bin/heartbeat-watch.sh --precheck ${TM}' --precheck-timeout 300" "!box ops · 29 卡住检查心跳" "!lockf"
+expect S8.parallel "parallel：外面套 lockf（锁文件 5c2d0575.lock）、lockf 前面是 ~/.orca-state/bin/lock-held-alert，保留 box 目标在前、加 MBA 目标，不改名，超时 600（两个目标最坏 572 秒）" "$T/s8-imac-parallel.cmdline" 0 "$OUT/raw/S8/imac-parallel.rc" \
+    "orca automations edit ${IMAC_WATCH} --precheck '\$HOME/.orca-state/bin/lock-held-alert /usr/bin/lockf -k -t 0 \$HOME/.orca-state/heartbeat-watch/5c2d0575.lock \$HOME/.orca-state/bin/heartbeat-watch.sh --precheck ${TB} ${TM}' --precheck-timeout 600" "!--name" "!<MBA 新任务 id>"
+expect S8.final "final：只剩 MBA 目标，改名「盯 MBA ops · 29」，超时 300（一个目标最坏 286 秒），没套 lockf 和 lock-held-alert" "$T/s8-imac-final.cmdline" 0 "$OUT/raw/S8/imac-final.rc" \
+    "orca automations edit ${IMAC_WATCH} --name 'ops · 29 心跳互查（盯 MBA ops · 29）' --precheck '\$HOME/.orca-state/bin/heartbeat-watch.sh --precheck ${TM}' --precheck-timeout 300" "!box ops · 29 卡住检查心跳" "!lockf" "!lock-held-alert"
 LIVE=$(cat "$OUT/raw/S9/live-5c2d0575-precheck.txt" 2>/dev/null)
-expect S8.rollback "rollback：还原成现网 5c2d0575 的名字和 precheck（S9 读到的原文），没套 lockf" "$T/s8-imac-rollback.cmdline" 0 "$OUT/raw/S8/imac-rollback.rc" \
-    "orca automations edit ${IMAC_WATCH} --name 'ops · 29 心跳互查（盯 box ops · 29）' --precheck '${LIVE:-S9 没读到}' --precheck-timeout 240" "!lockf"
+expect S8.rollback "rollback：还原成现网 5c2d0575 的名字和 precheck（S9 读到的原文），没套 lockf 和 lock-held-alert" "$T/s8-imac-rollback.cmdline" 0 "$OUT/raw/S8/imac-rollback.rc" \
+    "orca automations edit ${IMAC_WATCH} --name 'ops · 29 心跳互查（盯 box ops · 29）' --precheck '${LIVE:-S9 没读到}' --precheck-timeout 240" "!lockf" "!lock-held-alert"
 v=PASS
 bad=''
 for n in bad-id mba-stage box stage-novalue unknown-flag; do
@@ -818,12 +938,13 @@ cat "$OUT/raw/S6/run.out" "$OUT/raw/S6/run.err" >"$T/s6.all"
 expect S6 "iMac 经 environment mba 读到 MBA ops · 09 的运行记录：不是「查不到」，有运行记录和最新一次运行时间（它不打 @@HB，所以结论是没有心跳行）" \
     "$T/s6.all" 0 "$OUT/raw/S6/run.rc" "MBA ops · 09 内存与 CPU 负载清理：中断：最近 " "次运行记录里没有心跳行（@@HB），最新一次运行在 " "!运行记录查不到" "!最新一次运行在 从没有" "!最近 0 次"
 # before-base：现网 5c2d0575 的 precheck（defs 里 before 的原文）用 base 版跑，紧接着并行版，给 S6b.box 当同一时刻的 base 对照。
-# 锁目录换成临时目录（并行版套了 lockf）。
+# 锁目录换成临时目录（并行版套了 lockf），lock-held-alert 换成临时副本。
 for stage in parallel before-base final; do
     mkdir -p "$T/s6b-$stage/state" "$T/s6b-$stage/lock"
     sv=$V/new.sh
     [ "$stage" = before-base ] && sv=$V/base.sh
-    python3 -I - "$root/automations/heartbeat-1021/defs.json" "$stage" "$sv" "$STANDIN" "$T/s6b-$stage/lock/" >"$OUT/raw/S6b/$stage.cmd" <<'PY'
+    python3 -I - "$root/automations/heartbeat-1021/defs.json" "$stage" "$sv" "$STANDIN" "$T/s6b-$stage/lock/" "$T/lock-held-alert" \
+        >"$OUT/raw/S6b/$stage.cmd" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1], encoding="utf-8"))
 if sys.argv[2] == "before-base":
@@ -831,9 +952,9 @@ if sys.argv[2] == "before-base":
 else:
     p = next(x for x in d["edit"] if x["stage"] == sys.argv[2])["set"]["precheck"]
     assert p.count("<MBA 新任务 id>") <= 1  # 回退测试的现网版 defs 没有 MBA 目标
-old, lockdir = "$HOME/.orca-state/bin/heartbeat-watch.sh", "$HOME/.orca-state/heartbeat-watch/"
-assert p.count(old) == 1 and p.count(lockdir) <= 1  # 回退测试的现网版 defs 没有 lockf
-p = p.replace(old, sys.argv[3]).replace(lockdir, sys.argv[5]).replace("<MBA 新任务 id>", sys.argv[4])
+old, lockdir, guard = "$HOME/.orca-state/bin/heartbeat-watch.sh", "$HOME/.orca-state/heartbeat-watch/", "$HOME/.orca-state/bin/lock-held-alert"
+assert p.count(old) == 1 and p.count(lockdir) <= 1 and p.count(guard) <= 1  # 回退测试的现网版 defs 没有 lockf 和 lock-held-alert
+p = p.replace(old, sys.argv[3]).replace(guard, sys.argv[6]).replace(lockdir, sys.argv[5]).replace("<MBA 新任务 id>", sys.argv[4])
 assert ".orca-state" not in p  # 演练不碰真锁
 print(p + " --dry-run")
 PY
@@ -859,9 +980,9 @@ PY
 order=$(grep -n -e 'box ops · 29 卡住检查心跳：' -e 'MBA ops · 29 心跳互查：' "$T/s6b-parallel.all" | head -2 | cut -d' ' -f4 | cut -c1-3 | tr -d '\n')
 XTRA="；box 那行：$(snip "$T/s6b-parallel.all" "box ops · 29 卡住检查心跳：")"
 [ "$order" = boxMBA ] || { XFAIL=1; XTRA="${XTRA}；顺序不对（${order}）"; }
-expect S6b.parallel "5c2d0575 并行版 precheck（defs 原文，MBA 新任务 id 用 ops · 09 代替，锁目录换成临时目录）：box 目标在前、出一行结论，MBA 目标读到运行记录，没有脚本出错" \
+expect S6b.parallel "5c2d0575 并行版 precheck（defs 原文，MBA 新任务 id 用 ops · 09 代替，锁目录换成临时目录，lock-held-alert 换成临时副本）：box 目标在前、出一行结论，MBA 目标读到运行记录，没有脚本出错；锁空着、没有状态文件，lock-held-alert 什么都不打" \
     "$T/s6b-parallel.all" 1 "$OUT/raw/S6b/parallel.rc" "MBA ops · 29 心跳互查：中断：最近 " "box ops · 29 卡住检查心跳：" \
-    "!MBA ops · 29 心跳互查：运行记录查不到" "!最近 0 次" "!脚本出错"
+    "!MBA ops · 29 心跳互查：运行记录查不到" "!最近 0 次" "!脚本出错" "!lock-held-alert："
 XTRA=''
 has "$T/s6b-parallel.all" "box ops · 29 卡住检查心跳：正常（最新心跳" || XTRA="；本次 box 那行：$(snip "$T/s6b-parallel.all" "box ops · 29 卡住检查心跳：")"
 XTRA="${XTRA}；紧接着用 base 版跑现网 precheck（raw/S6b/before-base.*）：$(snip "$T/s6b-before-base.all" "box ops · 29 卡住检查心跳：")"
@@ -871,7 +992,7 @@ expect S6b.box "并行版里的 box 目标正常。要 iMac 到 box 的 grok-bot
 expect S6b.final "5c2d0575 最终版 precheck：只查 MBA 目标，读到运行记录" \
     "$T/s6b-final.all" 1 "$OUT/raw/S6b/final.rc" "MBA ops · 29 心跳互查：中断：最近 " "!box ops · 29" "!运行记录查不到" "!最近 0 次"
 
-# S14 的判断（FAILURE-MODES.md A31–A35、C15），MBA、iMac 共用。s14_judge <输出目录> <机器> <第二轮第一个目标的结论行开头>
+# S14 的判断（FAILURE-MODES.md A31–A35、A52、A54、C15、C20），MBA、iMac 共用。s14_judge <输出目录> <机器> <第二轮第一个目标的结论行开头>
 s14_judge() {
     python3 -I - "$1" "$2" "$3" "$OUT/results.tsv" "$CANARY" <<'PY'
 import json, os, re, sys
@@ -908,27 +1029,51 @@ def names(text):  # 替身记下的每行：pid 时间 替身名 …
     return "（%s）" % "、".join("%s %d 次" % (s, n.count(s)) for s in sorted(set(n))) if n else ""
 
 
+def skips(name):  # lock-held-alert 记在锁文件旁边的状态文件（演练拷出来的那份）
+    try:
+        v = json.loads(rd(name))
+    except ValueError:
+        return None
+    return v if isinstance(v, dict) else None
+
+
 stub = "ssh 和 orca" if m == "MBA" else "orca 和 orca-ide"
 for k, code, word, how in (("held", "75", "already locked", "锁先被 lockf … sleep 6 拿住"),
                            ("nodir", "73", "cannot open", "锁文件放在不存在的目录里（漏了 README 第 1 步的 mkdir）")):
     out, err, rc, probe = rd(k + ".out"), rd(k + ".err"), rd(k + ".rc").strip(), rd(k + ".probe").strip()
     calls = len(rd(k + ".calls").splitlines())
-    ok = rc == code and not out and word in err and probe == "没有" and calls == 0 and canary not in out + err
+    lines, st = [l for l in out.splitlines() if l.strip()], skips(k + ".skips.json")
+    if k == "held":  # A30、A44：stdout 只有 lock-held-alert 的一行；状态文件记 1 次、没有报过
+        out_ok = (len(lines) == 1 and "lock-held-alert：" in lines[0] and "已连续跳过 1 轮" in lines[0] and "@@HB" not in out
+                  and bool(st) and st.get("skips") == 1 and "alerted" not in st)
+        swant = "stdout 只有 lock-held-alert 的一行「…已连续跳过 1 轮…」、没有 @@HB，锁文件旁边的状态文件记 1 次、没有报过"
+    else:  # A35、A54：73 不计数，stdout 空，没有状态文件
+        out_ok = not out and st is None and not os.path.exists(os.path.join(d, k + ".skips.json"))
+        swant = "stdout 空，没有状态文件（lock-held-alert 不计 73）"
+    ok = rc == code and out_ok and word in err and probe == "没有" and calls == 0 and canary not in out + err
     extra = "；持锁的 lockf 起的 sleep：%s，lockf 退出 %s" % (rd("held.holder-child").strip(), rd("held.holder-rc").strip()) if k == "held" else ""
     res("S14.%s.%s" % (m, k), ok,
-        "%s 上照 defs 原文跑 precheck（锁文件换到临时目录，加 --dry-run，HB_STATE_DIR 指向不存在的目录，PATH 最前面是记录调用的 %s 替身），"
-        "%s：退出 %s，stdout 空，stderr 有 %s；那个目录没被建出来（heartbeat-watch 没起）；替身 0 次" % (m, stub, how, code, word),
-        "退出 %s，stdout %d 字节，stderr：%s；目录%s；替身 %d 次%s%s" % (rc, len(out.encode()), head(err), probe or "?", calls,
-                                                                 names(rd(k + ".calls")), extra))
-p1, p2, hrc = rd("kill.probe1.rc").strip(), rd("kill.probe2.rc").strip(), rd("kill.holder-rc").strip()
-sent, child, end = rd("kill.sent").strip(), rd("kill.child-after-kill").split(), rd("kill.child-end").strip()
-ok = (p1 == "75" and sent.startswith("kill -KILL ") and hrc == "137" and p2 == "0" and len(child) >= 2 and child[1] == "1"
-      and end.startswith("没了"))
-res("S14.%s.kill" % m, ok,
-    "%s 上只用 lockf：lockf -k -t 0 <锁> sleep 8 拿住锁，探一次退出 75；核对 pid、ppid、命令名以后只给这个 lockf 发 SIGKILL，"
-    "它退出 137；再探一次退出 0；它起的 sleep 还在、ppid 1，之后自己结束" % m,
-    "第一次探退出 %s（%s）；%s；它退出 %s；第二次探退出 %s；kill 以后它起的 sleep：%s；%s" % (
-        p1, head(rd("kill.probe1.err"), 80), sent, hrc, p2, " ".join(child) or "没有", end))
+        "%s 上照 defs 原文跑 precheck（锁文件换到临时目录，lock-held-alert 换成临时副本，加 --dry-run，HB_STATE_DIR 指向不存在的目录，"
+        "PATH 最前面是记录调用的 %s 替身），%s：退出 %s，stderr 有 %s，%s；那个目录没被建出来（heartbeat-watch 没起）；替身 0 次" % (
+            m, stub, how, code, word, swant),
+        "退出 %s，stdout %d 字节，stderr：%s；目录%s；替身 %d 次%s%s；stdout：%s；状态文件：%s" % (
+            rc, len(out.encode()), head(err), probe or "?", calls, names(rd(k + ".calls")), extra, head(out),
+            json.dumps(st, sort_keys=True) if st else "没有"))
+# A52、C20：持锁的 lockf 被 SIGKILL、SIGTERM、SIGSEGV（模拟崩溃）以后锁马上放开，-k 留下的锁文件不挡下一次
+for k, sig, code in (("kill", "KILL", "137"), ("term", "TERM", "143"), ("crash", "SEGV", "139")):
+    p1, p2, hrc = rd(k + ".probe1.rc").strip(), rd(k + ".probe2.rc").strip(), rd(k + ".holder-rc").strip()
+    sent, child, end = rd(k + ".sent").strip(), rd(k + ".child-after-signal").split(), rd(k + ".child-end").strip()
+    lf = rd(k + ".lockfile").strip()
+    ok = (p1 == "75" and sent.startswith("kill -%s " % sig) and hrc == code and p2 == "0" and lf == "有"
+          and len(child) >= 2 and child[1] == "1" and end.startswith("没了"))
+    crash = ("；DiagnosticReports 里 lockf 开头的文件：发信号前 %s 个，之后 %s 个" % (
+        rd("crash.reports-before").strip() or "?", rd("crash.reports-after").strip() or "?")) if k == "crash" else ""
+    res("S14.%s.%s" % (m, k), ok,
+        "%s 上只用 lockf：lockf -k -t 0 <锁> sleep 8 拿住锁，探一次退出 75；核对 pid、ppid、命令名以后只给这个 lockf 发 SIG%s%s，"
+        "它退出 %s；马上再探一次退出 0；锁文件还在（-k）；它起的 sleep ppid 1，之后自己结束%s" % (
+            m, sig, "（模拟崩溃）" if k == "crash" else "", code, "；前后各数一次 DiagnosticReports 里 lockf 开头的文件" if k == "crash" else ""),
+        "第一次探退出 %s（%s）；%s；它退出 %s；第二次探退出 %s；锁文件%s；发信号以后它起的 sleep：%s；%s%s" % (
+            p1, head(rd(k + ".probe1.err"), 80), sent, hrc, p2, lf or "?", " ".join(child) or "没有", end, crash))
 o1, o2 = orca("timeout-1"), orca("timeout-2")
 prc, perr = rd("timeout.probe.rc").strip(), rd("timeout.probe.err")
 stubs, after = len(rd("timeout.stub-calls").splitlines()), rd("timeout.stub-after").strip()
@@ -959,29 +1104,200 @@ res("S14.%s.timeout" % m, ok,
 PY
 }
 
-# ---------- S14 iMac：lockf 实测（MBA 那边在 MBA 上跑同一套）。照 defs 里 5c2d0575 并行版的 precheck，锁目录换成临时目录 ----------
+# S15 的判断（FAILURE-MODES.md A41–A47、C17–C19），MBA、iMac 共用。
+# s15_judge <输出目录> <机器> <第 5 轮第一个目标「正常」那行的开头> <告警里要有的目标名...>
+s15_judge() {
+    python3 -I - "$OUT/results.tsv" "$CANARY" "$@" <<'PY'
+import json, os, re, sys
+tsv, canary, d, m, okline = sys.argv[1:6]
+targets = sys.argv[6:]
+
+
+def rd(name):
+    try:
+        return open(os.path.join(d, name), encoding="utf-8", errors="replace").read()
+    except OSError:
+        return ""
+
+
+def js(name):
+    try:
+        v = json.loads(rd(name))
+    except ValueError:
+        return None
+    return v if isinstance(v, dict) else None
+
+
+def num(name):
+    try:
+        return float(rd(name).strip())
+    except ValueError:
+        return None
+
+
+def res(cid, ok, want, got):
+    got = got.replace("\t", " ").replace("\n", " ")
+    open(tsv, "a", encoding="utf-8").write("%s\t%s\t%s\t%s\n" % (cid, "PASS" if ok else "FAIL", want, got))
+    print("%-4s %-16s %s" % ("PASS" if ok else "FAIL", cid, got))
+
+
+def rnd(n):
+    """一轮：预检结果、stdout 不空的行、lock-held-alert 的行、HB_STATE_DIR 有没有被建、到这轮为止假 curl 几次、这轮之后的状态文件"""
+    o = js(n + ".orca.json") or {}
+    out, err = rd(n + ".out"), rd(n + ".err")
+    lines = [re.sub(r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d SGT ", "", l) for l in out.splitlines() if l.strip()]
+    c = rd(n + ".curls").strip()
+    return {"o": o, "rc": "没有结果" if not o else "超时" if o.get("timedOut") else o.get("exitCode"), "out": out, "err": err,
+            "lines": lines, "guard": [l for l in lines if l.startswith("lock-held-alert：")], "probe": rd(n + ".probe").strip(),
+            "curls": int(c) if c.isdigit() else -1, "st": js(n + ".skips.json"),
+            "has_st": os.path.exists(os.path.join(d, n + ".skips.json"))}
+
+
+def bodies(name):  # 假 curl 记下的：每行「假地址 请求体」
+    b = []
+    for l in rd(name).splitlines():
+        to, _, body = l.partition(" ")
+        try:
+            b.append((to, json.loads(body)))
+        except ValueError:
+            b.append((to, {}))
+    return b
+
+
+def skipped(x, n):  # 跳过的一轮：退出 75，stderr 有 already locked，stdout 只有 lock-held-alert 的一行「已连续跳过 n 轮」，HB_STATE_DIR 没建
+    return (x["rc"] == 75 and "already locked" in x["err"] and len(x["lines"]) == 1 and len(x["guard"]) == 1
+            and "已连续跳过 %d 轮" % n in x["guard"][0] and "@@HB" not in x["out"] and x["probe"] == "没有")
+
+
+def brief(x):  # 一轮的 stdout：lock-held-alert 的行去掉括号里的时间和锁文件，没有就是第一行
+    if x["guard"]:
+        return re.sub(r"（从 [^）]*）|（锁文件 [^）]*）", "", x["guard"][0].replace("lock-held-alert：", ""))[:150]
+    return (x["lines"][0][:80] + "…") if x["lines"] else "空"
+
+
+def body(b):
+    return "kind %s、status %s、source %s、bot %s、发到%s" % (
+        b[1].get("kind"), b[1].get("status"), b[1].get("source"), b[1].get("bot"), b[0]) if b else "没有"
+
+
+canary_ok = all(canary not in rd(f) for f in os.listdir(d) if os.path.isfile(os.path.join(d, f))) if os.path.isdir(d) else False
+host, lk = rd("host").strip(), rd("lockname").strip()
+R = {n: rnd(n) for n in ("r1", "r2", "r3", "r4", "r5", "r6", "45a", "45b", "bad-a", "bad-b")}
+
+# 主线（A41–A44、A46）：外部拿住锁，阈值 0.25 分钟
+r = [R["r%d" % i] for i in range(1, 7)]
+main = bodies("main.curl-bodies")
+t0, hend = num("t0"), num("main.holder-end")
+offs = [x["o"]["start"] - t0 if t0 is not None and "start" in x["o"] else None for x in r]
+timing = (all(f is not None and t <= f <= t + 2 for t, f in zip((0, 6, 18, 24), offs)) and hend is not None
+          and r[3]["o"].get("end", hend) < hend <= r[4]["o"].get("start", 0))
+note = (main[0][1].get("note") or "") if main else ""
+alert_ok = (len(main) >= 1 and main[0][0] == "假地址" and main[0][1].get("kind") == "heartbeat_stale"
+            and main[0][1].get("status") == "stuck" and main[0][1].get("source") == "lock-held-alert"
+            and main[0][1].get("bot") == "ops-system" and bool(host) and host in note and bool(lk) and lk in note
+            and all(t in note for t in targets))
+recov_ok = (len(main) == 2 and main[1][0] == "假地址" and main[1][1].get("kind") == "heartbeat_recovered"
+            and main[1][1].get("status") == "recovered" and main[1][1].get("source") == "lock-held-alert"
+            and main[1][1].get("bot") == "ops-system")
+r5g = r[4]["guard"][0] if r[4]["guard"] else ""
+ok = (all(skipped(r[i], i + 1) for i in range(4)) and timing
+      and "才报" in r[0]["guard"][0] and "才报" in r[1]["guard"][0]
+      and "报警：POST heartbeat_stale → ops-system → 200" in r[2]["guard"][0] and bool(r[2]["st"]) and "alerted" in r[2]["st"]
+      and "已报过，不重复报" in r[3]["guard"][0]
+      and r[4]["rc"] == 1 and "already locked" not in r[4]["err"] and okline in r[4]["out"] and len(r[4]["guard"]) == 1
+      and "锁拿到了，之前连续跳过 4 轮" in r5g and "已报恢复：POST heartbeat_recovered → ops-system → 200" in r5g
+      and not r[4]["has_st"]
+      and r[5]["rc"] == 1 and not r[5]["guard"]
+      and [x["curls"] for x in r] == [0, 0, 1, 1, 2, 2] and alert_ok and recov_ok and canary_ok)
+nskip = sum(x["rc"] == 75 for x in r[:4])
+ok_line5 = next((l for l in r[4]["lines"] if okline in l), "（没有「%s」那行）" % okline)
+res("S15.%s" % m, ok,
+    "%s 上照 defs 原文跑 precheck（锁文件换到临时目录，lock-held-alert 换成临时副本，加 --dry-run，STUCK_FORCE_BOT=ops-system，"
+    "HB_LOCK_ALERT_MIN=0.25），外部 lockf … sleep 32 拿住锁，照 Orca 的做法在第 1 轮开始后约 0、6、18、24 秒起 4 轮：都退出 75，"
+    "stderr 有 already locked，stdout 只有 lock-held-alert 的一行「已连续跳过 N 轮」（N 是 1–4），HB_STATE_DIR 没被建出来；"
+    "第 1、2 轮假 curl 0 次；第 3 轮假 curl 1 次，kind heartbeat_stale、status stuck、source lock-held-alert、bot ops-system，"
+    "note 里有主机名、锁文件名和目标名（%s），状态文件记了报过的时间；第 4 轮写「已报过」，假 curl 还是 1 次；"
+    "sleep 结束以后第 5 轮（真的 ssh / orca）退出 1，没有 already locked，有「%s」，stdout 有「锁拿到了，之前连续跳过 4 轮」"
+    "和已报恢复，假 curl 2 次，第 2 次 kind heartbeat_recovered、status recovered，状态文件没了；第 6 轮退出 1，"
+    "lock-held-alert 什么都不打，假 curl 还是 2 次" % (m, "、".join("「%s」" % t for t in targets), okline),
+    "第 1–4 轮退出 %s（跳过 %d 轮），开始于第 1 轮后 %s 秒，第 1 轮后状态目录%s；第 1–4 轮 stdout：%s；"
+    "第 3 轮后状态文件%s；第 1 条告警：%s，note 里%s主机名「%s」、%s锁文件名、目标名%s；持锁的 sleep 在第 1 轮后 %s 秒结束（lockf 退出 %s）；"
+    "第 5 轮：退出 %s，%s，%s；lock-held-alert：%s；第 2 条：%s；第 5 轮后状态文件%s；"
+    "第 6 轮：退出 %s，lock-held-alert 的行 %d 行；假 curl 每轮之后累计 %s，共 %d 次" % (
+        "、".join(str(x["rc"]) for x in r[:4]), nskip, "、".join("?" if f is None else "%.1f" % f for f in offs[:4]),
+        r[0]["probe"] or "?", " / ".join("%d「%s」" % (i + 1, brief(x)) for i, x in enumerate(r[:4])),
+        "记了报过的时间" if r[2]["st"] and "alerted" in r[2]["st"] else "没记报过（%s）" % json.dumps(r[2]["st"]),
+        body(main[0] if main else None), "有" if host and host in note else "没有", host or "?",
+        "有" if lk and lk in note else "没有", "都有" if all(t in note for t in targets) else "缺了",
+        "?" if hend is None or t0 is None else "%.1f" % (hend - t0), rd("main.holder-rc").strip() or "?",
+        r[4]["rc"], "有 already locked" if "already locked" in r[4]["err"] else "没有 already locked", ok_line5[:100],
+        brief(r[4]) if r[4]["guard"] else "没有它的行", body(main[1] if len(main) >= 2 else None),
+        "还在" if r[4]["has_st"] else "没了", r[5]["rc"], len(r[5]["guard"]),
+        "、".join(str(x["curls"]) for x in r), len(main)))
+
+# 45（A45、C17）：不设阈值，状态文件是演练写的
+a, b = R["45a"], R["45b"]
+b45 = bodies("45.curl-bodies")
+seeds = [js(n + ".seed.json") or {} for n in ("45a", "45b")]
+ok = (skipped(a, 10) and "到 45 分钟才报" in a["guard"][0] and a["curls"] == 0
+      and skipped(b, 10) and "到了 45 分钟，报警：POST heartbeat_stale → ops-system → 200" in b["guard"][0] and b["curls"] == 1
+      and len(b45) == 1 and b45[0][1].get("kind") == "heartbeat_stale" and b45[0][1].get("status") == "stuck"
+      and b45[0][1].get("bot") == "ops-system" and bool(b["st"]) and "alerted" in b["st"] and canary_ok)
+res("S15.%s.45" % m, ok,
+    "%s 上不设 HB_LOCK_ALERT_MIN（默认 45 分钟），外部拿住锁：状态文件写成「44 分钟前起、已跳过 9 轮」跑一轮，退出 75，「已连续跳过 10 轮」，"
+    "假 curl 0 次；再写成「46 分钟前起、已跳过 9 轮」跑一轮，退出 75，假 curl 1 次，kind heartbeat_stale、status stuck、bot ops-system，"
+    "状态文件记了报过的时间" % m,
+    "44 分钟：退出 %s，stdout：%s，假 curl %d 次；46 分钟：退出 %s，stdout：%s，假 curl %d 次（%s），之后状态文件%s；"
+    "演练写的状态文件：%s / %s" % (
+        a["rc"], brief(a), a["curls"], b["rc"], brief(b), b["curls"], body(b45[0] if b45 else None),
+        "记了报过的时间" if b["st"] and "alerted" in b["st"] else "没记报过",
+        json.dumps(seeds[0], sort_keys=True), json.dumps(seeds[1], sort_keys=True)))
+
+# bad（A47）：状态文件坏了，退出码照旧
+a, b = R["bad-a"], R["bad-b"]
+nbad = len(bodies("bad.curl-bodies"))
+ok = (skipped(a, 1) and bool(a["st"]) and a["st"].get("skips") == 1 and "lock-held-alert：出错" not in a["err"]
+      and b["rc"] == 75 and "already locked" in b["err"] and "lock-held-alert：出错（退出码照旧 75）" in b["err"]
+      and b["probe"] == "没有" and nbad == 0 and canary_ok)
+errline = next((re.sub(r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d SGT ", "", l) for l in b["err"].splitlines() if "lock-held-alert：" in l),
+               "（stderr 没有 lock-held-alert 的行）")
+res("S15.%s.bad" % m, ok,
+    "%s 上外部拿住锁：状态文件内容是乱码时当成没有记录，这一轮算第 1 次跳过，退出 75，状态文件换成记 1 次；状态文件的路径是个目录、写不进去时，"
+    "退出还是 75，stderr 有 lock-held-alert 的报错；假 curl 0 次" % m,
+    "乱码：退出 %s，stdout：%s，之后状态文件 %s；目录：退出 %s，stdout：%s，stderr：%s；假 curl %d 次" % (
+        a["rc"], brief(a), json.dumps(a["st"], sort_keys=True) if a["st"] else "没有", b["rc"], brief(b), errline[:200], nbad))
+PY
+}
+
+# ---------- S14、S15 iMac：lockf 实测、锁一直被占着（MBA 那边在 MBA 上跑同一套）。照 defs 里 5c2d0575 并行版的 precheck，
+# 锁目录换成临时目录，lock-held-alert 换成临时副本 ----------
 write_orca_precheck "$T/orca-precheck.py"
-python3 -I - "$root/automations/heartbeat-1021/defs.json" "$V/new.sh" "$STANDIN" "$T/s14-imac" <<'PY'
+python3 -I - "$root/automations/heartbeat-1021/defs.json" "$V/new.sh" "$STANDIN" "$T/s14-imac" "$T/lock-held-alert" <<'PY'
 import json, sys
 e = next(x for x in json.load(open(sys.argv[1], encoding="utf-8"))["edit"] if x["stage"] == "parallel")
 p, old, lockdir = e["set"]["precheck"], "$HOME/.orca-state/bin/heartbeat-watch.sh", "$HOME/.orca-state/heartbeat-watch/"
-assert p.count(old) == 1 and p.count(lockdir) <= 1 and p.count("<MBA 新任务 id>") <= 1  # 回退测试的现网版 defs 没有 lockf
-p = p.replace(old, sys.argv[2]).replace(lockdir, "@LOCKDIR@/").replace("<MBA 新任务 id>", sys.argv[3])
-assert ".orca-state" not in p  # 演练不碰真锁
+guard = "$HOME/.orca-state/bin/lock-held-alert"
+# 回退测试的现网版 defs 没有 lockf 和 lock-held-alert
+assert p.count(old) == 1 and p.count(lockdir) <= 1 and p.count(guard) <= 1 and p.count("<MBA 新任务 id>") <= 1
+p = p.replace(old, sys.argv[2]).replace(guard, sys.argv[5]).replace(lockdir, "@LOCKDIR@/").replace("<MBA 新任务 id>", sys.argv[3])
+assert ".orca-state" not in p  # 演练不碰真锁、不用装好的 lock-held-alert
 open(sys.argv[4] + "-precheck.txt", "w", encoding="utf-8").write(p)
 open(sys.argv[4] + "-timeout.txt", "w").write("%d\n" % e["set"]["precheckTimeout"])
 PY
 if [ -s "$T/s14-imac-precheck.txt" ]; then
     s14 inherit "$T/s14" "$OUT/raw/S14-imac" "$(cat "$T/s14-imac-precheck.txt")" 5c2d0575.lock "orca orca-ide" \
         "$(cat "$T/s14-imac-timeout.txt")" "$T/orca-precheck.py" "$T/hooks"
+    s15 inherit "$T/s15" "$OUT/raw/S15-imac" "$(cat "$T/s14-imac-precheck.txt")" 5c2d0575.lock "$(cat "$T/s14-imac-timeout.txt")" \
+        "$T/orca-precheck.py" "$T/hooks-s15"
 fi
 s14_judge "$OUT/raw/S14-imac" iMac "box ops · 29 卡住检查心跳："
+s15_judge "$OUT/raw/S15-imac" iMac "box ops · 29 卡住检查心跳：正常（最新心跳" "box ops · 29 卡住检查心跳" "MBA ops · 29 心跳互查"
 
-# ---------- MBA 这边：S2、S3、S4、S4b、S5、S5b、S7、S12、S13、S14、S10 ----------
+# ---------- MBA 这边：S2、S3、S4、S4b、S5、S5b、S7、S12、S13、S14、S15、S10 ----------
 WEIRD="hb'drill \"q\" \$(echo HBX) \`echo HBY\` ; echo HBZ && echo HBW * \\ \$HOME 中文 · |
 第二行"
 M=$OUT/raw/mba
-mkdir -p "$M" "$T/bundle/hooks" "$T/bundle/hb-replay"
+mkdir -p "$M" "$T/bundle/hooks" "$T/bundle/hooks-s15" "$T/bundle/hb-replay"
 R=$(rssh 'mktemp -d -t hb-drill' 2>"$T/mktemp.err")
 case $R in
     /*/hb-drill.*) case $R in *[!A-Za-z0-9/._-]*) R= ;; esac ;;
@@ -992,14 +1308,17 @@ if [ -z "$R" ]; then
 else
     echo "MBA 临时目录 $R" >"$M/tmpdir.txt"
     cp "$root/scripts/heartbeat-watch.sh" "$root/scripts/orca-via-ssh" "$T/bundle/"
+    if [ -f "$T/lock-held-alert" ]; then cp "$T/lock-held-alert" "$T/bundle/"; fi
     git -C "$root" show "$OLDWRAP:scripts/orca-via-ssh" >"$T/bundle/orca-via-ssh.7ac1220"
     chmod +x "$T/bundle/orca-via-ssh.7ac1220"
     cp "$here/heartbeat-watch-ssh.sh" "$T/bundle/drill.sh"
     cp -R "$here/hb-replay/." "$T/bundle/hb-replay/"
     cp "$T/hooks/coding-assistant.env" "$T/bundle/hooks/"
+    cp "$T/hooks-s15/ops-system.env" "$T/bundle/hooks-s15/"
     printf '%s' "$WEIRD" >"$T/bundle/weird.txt"
-    # 照 defs 里 MBA 新任务的 precheck 拼：两个脚本路径换成临时副本，锁目录换成各场景自己的临时目录（S14 写成 @LOCKDIR@，在 s14 里换）。
-    # S2 加 --dry-run；S12、S13 不加。超时取 defs 的 precheckTimeout；S12.old 的超时取 7ac1220 那版 defs（第四轮的方案 1：钉在 240）。
+    # 照 defs 里 MBA 新任务的 precheck 拼：三个脚本路径换成临时副本，锁目录换成各场景自己的临时目录（S14、S15 写成 @LOCKDIR@，
+    # 在 s14、s15 里换）。S2 加 --dry-run；S12、S13 不加。超时取 defs 的 precheckTimeout；S12.old 的超时取 7ac1220 那版 defs
+    # （第四轮的方案 1：钉在 240）。
     git -C "$root" show "$OLDWRAP:automations/heartbeat-1021/defs.json" >"$T/defs-7ac1220.json"
     python3 -I - "$root/automations/heartbeat-1021/defs.json" "$R" "$T/bundle" "$T/defs-7ac1220.json" <<'PY'
 import json, sys
@@ -1012,10 +1331,11 @@ def mba(f):
 c = mba(sys.argv[1])
 p, r, b = c["precheck"], sys.argv[2], sys.argv[3]
 lockdir = "$HOME/.orca-state/heartbeat-watch/"
-# 包装路径、锁目录最多一处：回退测试（heartbeat-watch-ssh-rollback.sh）的现网版 defs 不经包装、没有 lockf
+# 包装路径、lock-held-alert、锁目录最多一处：回退测试（heartbeat-watch-ssh-rollback.sh）的现网版 defs 不经包装、没有 lockf 和 lock-held-alert
 assert p.count("$HOME/.orca-state/bin/heartbeat-watch.sh") == 1 and p.count("$HOME/.orca-state/bin/orca-via-ssh") <= 1
-assert p.count(lockdir) <= 1
+assert p.count(lockdir) <= 1 and p.count("$HOME/.orca-state/bin/lock-held-alert") <= 1
 for old, new in (("$HOME/.orca-state/bin/orca-via-ssh", r + "/orca-via-ssh"),
+                 ("$HOME/.orca-state/bin/lock-held-alert", r + "/lock-held-alert"),
                  ("$HOME/.orca-state/bin/heartbeat-watch.sh", r + "/heartbeat-watch.sh")):
     p = p.replace(old, new)
 for name, lock, tail in (("s2", r + "/s2/lock/", " --dry-run"), ("s12", r + "/s12/lock/", ""), ("s13", r + "/s13/lock/", ""),
@@ -1036,8 +1356,8 @@ fi
 if [ -n "$R" ]; then
     for sh in sh zsh; do
         cat "$M/S2-$sh.out" "$M/S2-$sh.err" >"$T/S2-$sh.all" 2>/dev/null
-        expect "S2.$sh" "MBA 上经 /bin/${sh} 跑 defs 原文（env -i 最少环境，只换两个脚本路径和锁目录，加 --dry-run）：经 ssh 读 iMac ops · 01，结果正常" \
-            "$T/S2-$sh.all" 1 "$M/S2-$sh.rc" "iMac ops · 01 卡住工作检查：正常（最新心跳" "!运行记录查不到" "!脚本出错" "!将 POST 给"
+        expect "S2.$sh" "MBA 上经 /bin/${sh} 跑 defs 原文（env -i 最少环境，只换三个脚本路径和锁目录，加 --dry-run）：经 ssh 读 iMac ops · 01，结果正常；锁空着、没有状态文件，lock-held-alert 什么都不打" \
+            "$T/S2-$sh.all" 1 "$M/S2-$sh.rc" "iMac ops · 01 卡住工作检查：正常（最新心跳" "!运行记录查不到" "!脚本出错" "!将 POST 给" "!lock-held-alert："
     done
     cat "$M/S3.out" "$M/S3.err" >"$T/S3.all" 2>/dev/null
     expect S3 "MBA 上回放 30 分钟前的心跳：出 heartbeat_stale 待发内容，收件人 coding-assistant（STUCK_FORCE_BOT 没设）" \
@@ -1139,16 +1459,17 @@ for n, cid in (("S12", "S12"), ("S12-old", "S12.old")):
               and "iMac ops · 01 卡住工作检查：运行记录查不到（JSONDecodeError），已连续 0 分钟" in out
               and hb is not None and hb.get("rc") == 0 and fs_ok
               and len(t) == 3 and all(75 <= g <= 85 for g in gaps) and not first.strip() and not after.strip()
-              and not curl and "POST" not in allout and "webhook 配置" not in allout and canary not in allout)
+              and not curl and "POST" not in allout and "webhook 配置" not in allout and "lock-held-alert：" not in allout
+              and canary not in allout)
         got = "%s，用时 %s 秒，退出 %s；%s；@@HB %s；state.json 的 fail_since %s；%s；假 curl %d 次" % (
             ("超时被杀" if o.get("timedOut") else "没超时") if o else "没有预检结果", o.get("durationS"), o.get("exitCode"),
             line[:240], "rc %s" % hb.get("rc") if hb else "没有",
             ("在运行期间（开始后 %.1f 秒）" % (fs - o["start"]) if fs_ok else "不在运行期间（%s）" % fs) if fs is not None else "没有",
             common, len(curl.splitlines()))
-        want = ("MBA 上照 defs 原文跑 precheck（只换两个脚本路径和锁目录，不带 --dry-run），ssh 替身让 iMac 那边不回（sleep 110），"
+        want = ("MBA 上照 defs 原文跑 precheck（只换三个脚本路径和锁目录，不带 --dry-run），ssh 替身让 iMac 那边不回（sleep 110），"
                 "照 Orca 的做法起、超时 %s 秒：没超时、自己结束、退出 1；有「运行记录查不到（JSONDecodeError），已连续 0 分钟」；"
                 "@@HB rc 0；state.json 的 fail_since 在这次运行期间；ssh 3 次，相邻开始隔 75–85 秒；第二次起来时第一次的 ssh 已经没了，"
-                "跑完都没了；假 curl 0 次，输出里没有 POST 和 webhook 配置" % limit)
+                "跑完都没了；假 curl 0 次，输出里没有 POST 和 webhook 配置；锁空着、没有状态文件，lock-held-alert 什么都不打" % limit)
     else:
         lim = o.get("timeoutSeconds")
         ok = (o.get("timedOut") is True and o.get("exitCode") is None and lim == 240 and str(lim) == oldlimit
@@ -1166,11 +1487,12 @@ for n, cid in (("S12", "S12"), ("S12-old", "S12.old")):
     open(tsv, "a", encoding="utf-8").write("%s\t%s\t%s\t%s\n" % (cid, "PASS" if ok else "FAIL", want, got))
     print("%-4s %-16s %s" % ("PASS" if ok else "FAIL", cid, got))
 PY
-    # S13 的判断（FAILURE-MODES.md A30、A32、A37、C15）
+    # S13 的判断（FAILURE-MODES.md A30、A32、A37、A44、A46、C15）
     python3 -I - "$M" "$OUT/results.tsv" "$CANARY" <<'PY'
 import json, os, re, sys
 m, tsv, canary = sys.argv[1:4]
 OK_LINE = "iMac ops · 01 卡住工作检查：正常（最新心跳"
+GUARD = "lock-held-alert："
 
 
 def rd(name):
@@ -1217,38 +1539,61 @@ def desc(x):
         x["o"].get("exitCode"), line(x), "rc %s" % x["hb"].get("rc") if x["hb"] else "没有", x["ssh"], x["orca"])
 
 
+def guard(x):  # lock-held-alert 打的行，去掉开头的时间戳
+    return [re.sub(r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d SGT ", "", l) for l in x["out"].splitlines() if GUARD in l]
+
+
+try:
+    bst = json.loads(rd("S13-B.skips.json"))
+except ValueError:
+    bst = None
+bst = bst if isinstance(bst, dict) else None
 ao, bo, co = a["o"], b["o"], c["o"]
 inside = bool(ao and bo) and ao["start"] < bo["start"] and bo["end"] < ao["end"]
 after = bool(ao and co) and co["start"] >= ao["end"]
 same = rd("S13-B.state-before") == rd("S13-B.state-after")
 curl = rd("S13.curl-calls").strip()
 alltext = "".join(x["out"] + x["err"] for x in (a, b, c))
+blines = [l for l in b["out"].splitlines() if l.strip()]
+cg = guard(c)
+c_after = rd("S13-C.skips-after").strip()
+# A44、A46：B 的 stdout 只有 lock-held-alert 的一行，状态文件记 1 次、没有报过；A 不打它的行；C 打「之前连续跳过 1 轮」，之后状态文件没了
+gok = (len(blines) == 1 and len(guard(b)) == 1 and "已连续跳过 1 轮" in blines[0] and "@@HB" not in b["out"]
+       and bool(bst) and bst.get("skips") == 1 and "alerted" not in bst
+       and not guard(a) and len(cg) == 1 and "锁拿到了，之前连续跳过 1 轮" in cg[0] and c_after == "没有")
 ok = (normal(a) and inside and bo.get("timedOut") is False and bo.get("exitCode") == 75
       and bo.get("durationS") is not None and bo["durationS"] <= 3
-      and not b["out"] and "already locked" in b["err"] and b["ssh"] == 0 and b["orca"] == 0 and same
-      and after and normal(c) and not curl and "POST" not in alltext and "webhook 配置" not in alltext and canary not in alltext)
+      and "already locked" in b["err"] and b["ssh"] == 0 and b["orca"] == 0 and same
+      and after and normal(c) and gok and not curl and "POST" not in alltext and "webhook 配置" not in alltext
+      and canary not in alltext)
 got = "A：%s；B：A 开始后 %s 秒开始、A 结束前 %s 秒结束（%s），%s，用时 %s 秒，退出 %s，stdout %d 字节，stderr：%s，" \
-      "ssh %d 次、orca %d 次，状态目录前后%s；C：A 结束后 %s 秒开始，%s；假 curl %d 次；状态文件：%s" % (
+      "ssh %d 次、orca %d 次，状态目录前后%s；C：A 结束后 %s 秒开始，%s；假 curl %d 次；状态文件：%s；" \
+      "lock-held-alert：A 的 stdout 里%s它的行；B 的 stdout：%s；B 之后锁文件旁边的状态文件：%s；C：%s；C 之后状态文件%s" % (
           desc(a), since(b, "start", a, "start"), since(a, "end", b, "end"), "在 A 跑的期间" if inside else "不在 A 跑的期间",
           ("超时被杀" if bo.get("timedOut") else "没超时") if bo else "没有预检结果", bo.get("durationS"), bo.get("exitCode"),
           len(b["out"].encode()), (b["err"].strip().splitlines() or ["空"])[0][:120], b["ssh"], b["orca"],
           "一样" if same else "不一样",
-          since(c, "start", a, "end"), desc(c), len(curl.splitlines()), " ".join(rd("S13.statefiles").split()) or "没有")
-want = ("MBA 上照 defs 原文跑 MBA 新任务的 precheck（只换两个脚本路径和锁目录，不带 --dry-run），照 Orca 的做法起三轮，"
+          since(c, "start", a, "end"), desc(c), len(curl.splitlines()), " ".join(rd("S13.statefiles").split()) or "没有",
+          "有" if guard(a) else "没有", (re.sub(r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d SGT ", "", blines[0]) if blines else "空")[:200],
+          json.dumps(bst, sort_keys=True) if bst else "没有", (cg[0] if cg else "没有它的行")[:200], c_after or "?")
+want = ("MBA 上照 defs 原文跑 MBA 新任务的 precheck（只换三个脚本路径和锁目录，不带 --dry-run），照 Orca 的做法起三轮，"
         "共用状态目录和锁文件；ssh、orca 替身记下每次调用再 exec 真的，A 那轮每次先等 30 秒，A 的替身起来 3 秒后起 B，A 结束后起 C："
-        "A 退出 1、正常、@@HB rc 0；B 在 A 跑的期间开始和结束，3 秒内退出 75，stdout 空，stderr 有 already locked，ssh、orca 都是 0 次，"
-        "B 前后状态目录一样；C 在 A 结束以后开始，退出 1、正常、@@HB rc 0；假 curl 0 次，输出里没有 POST 和 webhook 配置")
+        "A 退出 1、正常、@@HB rc 0，lock-held-alert 什么都不打；B 在 A 跑的期间开始和结束，3 秒内退出 75，stdout 只有 lock-held-alert 的一行"
+        "「…已连续跳过 1 轮…」、没有 @@HB，stderr 有 already locked，ssh、orca 都是 0 次，B 前后状态目录一样，锁文件旁边的状态文件记 1 次、没有报过；"
+        "C 在 A 结束以后开始，退出 1、正常、@@HB rc 0，stdout 有「锁拿到了，之前连续跳过 1 轮」，C 之后状态文件没了；"
+        "假 curl 0 次，输出里没有 POST 和 webhook 配置")
 got = got.replace("\t", " ").replace("\n", " ")
 open(tsv, "a", encoding="utf-8").write("S13\t%s\t%s\t%s\n" % ("PASS" if ok else "FAIL", want, got))
 print("%-4s %-16s %s" % ("PASS" if ok else "FAIL", "S13", got))
 PY
     s14_judge "$M/S14" MBA "iMac ops · 01 卡住工作检查："
+    s15_judge "$M/S15" MBA "iMac ops · 01 卡住工作检查：正常（最新心跳" "iMac ops · 01 卡住工作检查"
     v=PASS
     cmp -s "$M/S10-before.txt" "$M/S10-after.txt" || v=FAIL
-    [ "$(grep -c '^没有 ' "$M/S10-after.txt")" = 6 ] || v=FAIL
+    [ "$(grep -c '^没有 ' "$M/S10-after.txt")" = 9 ] || v=FAIL
     [ "$(cat "$M/S10-statefiles.txt")" = s4b/state/state.json ] || v=FAIL
     grep -q '^删掉了' "$M/tmpdir-cleanup.txt" || v=FAIL
-    res S10.MBA "$v" "MBA 演练前后：~/.orca-state/bin/heartbeat-watch.sh、~/.orca-state/bin/orca-via-ssh、~/.orca-state/heartbeat-watch 和它下面的 mba-hb-watch.lock、5c2d0575.lock、主检出的 scripts/orca-via-ssh 都没有，主检出 HEAD 不变；临时状态目录里只有 S4b 种的 state.json（S12、S13 不是 dry-run，它们的状态目录不算）；临时目录删掉了" \
+    res S10.MBA "$v" "MBA 演练前后：~/.orca-state/bin/ 下的 heartbeat-watch.sh、orca-via-ssh、lock-held-alert，~/.orca-state/heartbeat-watch 和它下面的 mba-hb-watch.lock、5c2d0575.lock 和两个锁旁边的状态文件（.skips.json），主检出的 scripts/orca-via-ssh 都没有，主检出 HEAD 不变；临时状态目录里只有 S4b 种的 state.json（S12、S13 不是 dry-run，它们的状态目录不算）；临时目录删掉了" \
         "$(tr '\n' ' ' <"$M/S10-after.txt")；状态文件：$(tr '\n' ' ' <"$M/S10-statefiles.txt")；临时目录$(cat "$M/tmpdir-cleanup.txt")"
 fi
 
@@ -1259,21 +1604,23 @@ IMAC_AFTER=$(shasum -a 256 "$HOME/.orca-state/bin/heartbeat-watch.sh" 2>&1 | cut
 v=PASS
 [ "$IMAC_BEFORE" = "$IMAC_AFTER" ] || v=FAIL
 cmp -s "$T/imac-paths-before.txt" "$T/imac-paths-after.txt" || v=FAIL
-grep -q '^没有 ~/orca/workspaces/ops/scripts/orca-via-ssh' "$T/imac-paths-after.txt" || v=FAIL
-grep -q '^没有 ~/.orca-state/heartbeat-watch/mba-hb-watch.lock' "$T/imac-paths-after.txt" || v=FAIL
-grep -q '^没有 ~/.orca-state/heartbeat-watch/5c2d0575.lock' "$T/imac-paths-after.txt" || v=FAIL
+for p in orca/workspaces/ops/scripts/orca-via-ssh .orca-state/bin/lock-held-alert .orca-state/heartbeat-watch/mba-hb-watch.lock \
+    .orca-state/heartbeat-watch/5c2d0575.lock .orca-state/heartbeat-watch/mba-hb-watch.lock.skips.json \
+    .orca-state/heartbeat-watch/5c2d0575.lock.skips.json; do
+    grep -qFx "没有 ~/$p" "$T/imac-paths-after.txt" || v=FAIL
+done
 for c in c05 c07 c10; do
     for x in $VERS; do
         cmp -s "$OUT/raw/S1/$c.seed.json" "$T/s1/$c-$x/state/state.json" || v=FAIL
     done
 done
 [ "$(grep -vc -e '/s1/c05-' -e '/s1/c07-' -e '/s1/c10-' "$OUT/raw/S10-imac-statefiles.txt")" = 0 ] || v=FAIL
-res S10.iMac "$v" "iMac 演练前后：~/.orca-state/bin/heartbeat-watch.sh 的 sha256 不变，主检出没有 scripts/orca-via-ssh、HEAD 不变，~/.orca-state/heartbeat-watch/ 下没有 mba-hb-watch.lock、5c2d0575.lock（演练的锁都在临时目录）；所有临时状态目录里只有种进去的 state.json，内容没变（dry-run 不写 state.json、watch.log、heartbeat.json）" \
+res S10.iMac "$v" "iMac 演练前后：~/.orca-state/bin/heartbeat-watch.sh 的 sha256 不变，没有 ~/.orca-state/bin/lock-held-alert，主检出没有 scripts/orca-via-ssh、HEAD 不变，~/.orca-state/heartbeat-watch/ 下没有 mba-hb-watch.lock、5c2d0575.lock 和它们旁边的状态文件（.skips.json；演练的锁和状态文件都在临时目录）；所有临时状态目录里只有种进去的 state.json，内容没变（dry-run 不写 state.json、watch.log、heartbeat.json）" \
     "已装版 ${IMAC_BEFORE:0:16} → ${IMAC_AFTER:0:16}；$(tr '\n' ' ' <"$T/imac-paths-after.txt")；状态文件 $(wc -l <"$OUT/raw/S10-imac-statefiles.txt" | tr -d ' ') 个"
 
 # ---------- S11 静态：bash 3.2 语法、UTF-8 lint、shellcheck、包装最后一步是 perl 加 70 秒上限再 exec ssh ----------
 mkdir -p "$OUT/raw/S11"
-SH_FILES="scripts/orca-via-ssh automations/heartbeat-1021/register.sh wake/tests/heartbeat-watch-ssh.sh wake/tests/hb-replay/orca"
+SH_FILES="scripts/orca-via-ssh scripts/lock-held-alert automations/heartbeat-1021/register.sh wake/tests/heartbeat-watch-ssh.sh wake/tests/hb-replay/orca"
 v=PASS
 for f in $SH_FILES; do
     /bin/bash -n "$root/$f" >>"$OUT/raw/S11/bash-n.txt" 2>&1 || v=FAIL
@@ -1287,11 +1634,15 @@ fi
 for f in wake/tests/hb-replay/replay.py wake/tests/hb-replay/clock/sitecustomize.py; do
     python3 -I -c 'import ast, sys; ast.parse(open(sys.argv[1], encoding="utf-8").read())' "$root/$f" >>"$OUT/raw/S11/python-ast.txt" 2>&1 || v=FAIL
 done
+# lock-held-alert 里 exec "$PY" - "$@" <<'PYEOF' 和 PYEOF 之间的 Python
+sed -n '/^exec "\$PY" - "\$@" <<.PYEOF.$/,/^PYEOF$/p' "$root/scripts/lock-held-alert" 2>/dev/null | sed '1d;$d' >"$T/lock-held-alert.py"
+python3 -I -c 'import ast, sys; s = open(sys.argv[1], encoding="utf-8").read(); assert s.strip(); ast.parse(s)' "$T/lock-held-alert.py" \
+    >>"$OUT/raw/S11/python-ast.txt" 2>&1 || v=FAIL
 L1=$(grep -v '^[[:space:]]*$' "$root/scripts/orca-via-ssh" 2>/dev/null | tail -2 | sed -n 1p)
 L2=$(grep -v '^[[:space:]]*$' "$root/scripts/orca-via-ssh" 2>/dev/null | tail -1)
 case $L1 in "exec /usr/bin/perl -e 'alarm shift; exec { \$ARGV[0] } @ARGV"*"' 70 \\") ;; *) v=FAIL ;; esac
 case $L2 in "    ssh -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=2 "*) ;; *) v=FAIL ;; esac
-res S11 "$v" "4 个 shell 文件 /bin/bash 3.2 -n、lint-bash32-utf8、shellcheck -S warning 都过；2 个 Python 文件能解析；orca-via-ssh 最后一步是 exec /usr/bin/perl -e 'alarm shift; exec …' 70 ssh -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=2（每次 ssh 最多 70 秒；heartbeat-watch 超时杀的也是 ssh 本身）" \
+res S11 "$v" "5 个 shell 文件 /bin/bash 3.2 -n、lint-bash32-utf8、shellcheck -S warning 都过；2 个 Python 文件和 lock-held-alert 里的 Python 能解析；orca-via-ssh 最后一步是 exec /usr/bin/perl -e 'alarm shift; exec …' 70 ssh -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=2（每次 ssh 最多 70 秒；heartbeat-watch 超时杀的也是 ssh 本身）" \
     "bash -n $(wc -c <"$OUT/raw/S11/bash-n.txt" | tr -d ' ') 字节输出；lint $(wc -l <"$OUT/raw/S11/lint-bash32-utf8.txt" | tr -d ' ') 行；shellcheck $(wc -l <"$OUT/raw/S11/shellcheck.txt" | tr -d ' ') 行；最后一步：${L1:0:60}… ${L2:0:100}…"
 
 # ---------- 报告 ----------
@@ -1320,13 +1671,21 @@ scen = [
     ("S12", "ssh 连上了、iMac 那边不回：照 defs 原文跑 MBA 的 precheck，看超时以前有没有写下 fail_since 和 @@HB；"
      "S12.old 换成 7ac1220 的包装（ssh 没有上限）、超时钉在 7ac1220 那版 defs 的 240 秒对照", "MBA → ssh iMac",
      "替身：ssh 替身把远端命令换成 sleep 110；ssh 客户端、包装、heartbeat-watch 和 iMac 是真的。预检进程照 Orca 的做法起，不是 Orca 起的"),
-    ("S13", "两轮同时跑：照 defs 原文跑 MBA 新任务的 precheck（套着 lockf），A 还在跑时起 B，A 结束后起 C，三轮共用状态目录和锁文件",
+    ("S13", "两轮同时跑：照 defs 原文跑 MBA 新任务的 precheck（套着 lock-held-alert 和 lockf），A 还在跑时起 B，A 结束后起 C，"
+     "三轮共用状态目录和锁文件",
      "MBA → ssh iMac",
-     "替身：ssh、orca 替身记下每次调用，A 那轮每次调用先等 30 秒再 exec 真的；lockf、包装、heartbeat-watch、ssh 客户端和 iMac 是真的。"
-     "三轮都是演练脚本照 Orca 的做法起的，不是 Orca 起的"),
-    ("S14", "lockf 实测：拿不到锁时（held）、锁目录不存在时（nodir）、持锁的 lockf 被 kill 以后（kill）、一轮被超时杀掉以后（timeout）",
+     "替身：ssh、orca 替身记下每次调用，A 那轮每次调用先等 30 秒再 exec 真的；lock-held-alert、lockf、包装、heartbeat-watch、"
+     "ssh 客户端和 iMac 是真的。三轮都是演练脚本照 Orca 的做法起的，不是 Orca 起的"),
+    ("S14", "lockf 实测：拿不到锁时（held）、锁目录不存在时（nodir）、持锁的 lockf 被 SIGKILL、SIGTERM、SIGSEGV 以后（kill、term、crash）、"
+     "一轮被超时杀掉以后（timeout）",
      "MBA、iMac 各一遍",
-     "kill 只用 lockf 和 sleep，是真的；held、nodir 用记录调用的 ssh / orca 替身；timeout 第一轮用 sleep 60 的替身、超时 12 秒，第二轮是真的"),
+     "kill、term、crash 只用 lockf 和 sleep，是真的（crash 是从外面发 SIGSEGV 模拟的）；held、nodir 用记录调用的 ssh / orca 替身；"
+     "timeout 第一轮用 sleep 60 的替身、超时 12 秒，第二轮是真的"),
+    ("S15", "锁一直被占着：外部 lockf 拿住锁，precheck 每轮跳过，到阈值时 lock-held-alert 报警一次，锁放开后报恢复；"
+     "默认阈值 45 分钟（.45）；状态文件坏了（.bad）",
+     "MBA、iMac 各一遍",
+     "替身：假 curl（记下请求体、回 200）、阈值改成 0.25 分钟、.45 的状态文件是演练写的；lock-held-alert、lockf、heartbeat-watch 是真的，"
+     "第 5、6 轮读真的 iMac ops · 01 / box、MBA。预检进程是演练脚本照 Orca 的做法起的"),
 ]
 L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "B1（ops 审计）。代码和上线步骤见 [`automations/heartbeat-1021/`](../../automations/heartbeat-1021/README.md)，"
@@ -1340,15 +1699,20 @@ L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "S12、S13 不带 `--dry-run`（要看写下的 state.json 和 `@@HB`）：webhook 目录是空的，PATH 里放了只记录调用的假 curl。"
      "S12 第一次查不到时 heartbeat-watch 走 `continue`，到不了发告警那步；S13 读的是真的 ops · 01，正常时不发告警，"
      "万一判中断，没有 webhook 配置、curl 也是假的，发不出去。"
-     "lockf 的锁文件都放在临时目录里，没碰 `~/.orca-state/heartbeat-watch/` 下的真锁（S10 核对）。"
+     "lockf 的锁文件、lock-held-alert 的状态文件都放在临时目录里，没碰 `~/.orca-state/heartbeat-watch/` 下的真文件（S10 核对）；"
+     "precheck 里的 `~/.orca-state/bin/lock-held-alert` 换成了仓库里 `scripts/lock-held-alert` 的临时副本。"
+     "lock-held-alert 不看 `--dry-run`：S15 里它真发告警，发给假 webhook 配置（`STUCK_FORCE_BOT=ops-system`，`127.0.0.1:9` 的假地址），"
+     "PATH 里的假 curl 记下请求体、回 200，不连网络；别的场景到不了它发告警的那一步（没到 45 分钟）。"
      "S12.old、S14 的 timeout 第一轮到超时时，演练脚本照 Orca 的做法给它自己起的预检进程组发 SIGTERM、2 秒后 SIGKILL；"
-     "S14 的 kill 核对 pid、ppid（演练的 shell）、命令名（lockf）以后，只给演练自己起的 lockf 发 SIGKILL，它起的 sleep 不发信号、等它自己结束。"
-     "没有给演练以外的进程发过信号。"
+     "S14 的 kill、term、crash 核对 pid、ppid（演练的 shell）、命令名（lockf）以后，只给演练自己起的 lockf 发 SIGKILL、SIGTERM、SIGSEGV，"
+     "它起的 sleep 不发信号、等它自己结束。没有给演练以外的进程发过信号。"
+     "crash 让 macOS 给 lockf 写一份崩溃报告（`~/Library/Logs/DiagnosticReports/lockf-<日期>-<时间>.ips`），每台每跑一次多一份；"
+     "两台「共享 Mac 分析」都关着，报告只留在本机；演练不删它（FAILURE-MODES F36）。"
      "orca 只用 `automations list / show / runs`；不往 `~/.orca-state/bin/` 装文件；MBA 上只用 `mktemp -d` 的临时目录，跑完删掉。", "",
      "## 这次运行", ""] + ["- " + cell(l) for l in env] + ["", "## 场景", "",
      "| 编号 | 场景 | 在哪跑 | 真机还是替身 |", "|---|---|---|---|"] + \
     ["| %s | %s | %s | %s |" % s for s in scen] + [
-     "", "S1、S3、S5、S8、S12、S13 和 S14 的 held、nodir、timeout 用了测试替身，不算 E2E。S2 是从 iMac `ssh mba` 起的进程，不是 Orca 在 MBA 上跑的预检；"
+     "", "S1、S3、S5、S8、S12、S13、S15 和 S14 的 held、nodir、timeout 用了测试替身，不算 E2E。S2 是从 iMac `ssh mba` 起的进程，不是 Orca 在 MBA 上跑的预检；"
      "Orca 预检环境里能不能连 ssh，要到上线卡 ② 第一次真实运行才算证实。", "",
      "## 期望和实际", "", "| 编号 | 期望 | 实际 | 结果 |", "|---|---|---|---|"] + \
     ["| %s | %s | %s | %s |" % (r[0], cell(r[2]), cell(r[3]), "PASS" if r[1] == "PASS" else "**%s**" % r[1]) for r in rows] + [
@@ -1368,6 +1732,11 @@ L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "（`/bin/sh -c`、新进程组、到时先 TERM 后 KILL）。",
      "- ssh 连接半路断了（ServerAlive 起作用）：没演练。",
      "- MBA 那条的少见情况：还没见过心跳、心跳又过期，而且 runs 前两次各卡满 70 秒，再加一次 list，最坏 296 秒，加起动约 4 秒，在 330 秒的超时以内。没演练。",
+     "- lock-held-alert 真等 45 分钟：没跑。S15 主线把阈值改成 0.25 分钟；默认的 45 分钟由 S15 的 .45 看，状态文件是演练写的（FAILURE-MODES C17）。",
+     "- lock-held-alert 的告警发不出去（没有 webhook 配置、POST 失败）、「已恢复」发不出去：没演练，S15 只走了发成功的路（假 curl 回 200，A51）。",
+     "- 两个 lock-held-alert 同时写状态文件：没演练（A50）。",
+     "- 收件方（Coding助手）怎么处理 `source` 是 `lock-held-alert` 的 `heartbeat_stale`、`heartbeat_recovered`：没验证，告警只发给了假 curl（C18）。",
+     "- lockf 自己真的段错误：没有。S14 的 crash 是从外面给 lockf 发 SIGSEGV 模拟的（C20）。",
      "", "## 文件", "",
      "- `results.tsv`：每项一行（编号、结果、期望、实际），`README.md` 由它生成。",
      "- `env.txt`：时间、commit、两台机器的系统和工具版本。",
@@ -1375,13 +1744,22 @@ L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "三版各自的 stdout、stderr、退出码和假 orca 收到的调用。",
      "- `raw/S5-imac/`：iMac 上包装每条用例的命令、退出码、stderr、假 ssh 收到的参数。",
      "- `raw/S6/`、`raw/S6b/`：iMac 上的命令和原始输出。`raw/S8/`：register.sh 每次的参数和输出。`raw/S9/`：只读 show / list 摘下来的字段。",
-     "- `raw/mba/`：MBA 那边的原始输出（S2、S3、S4、S4b、S5、S5b、S7 摘要、S10、S12、S13、S14）。S7 只留摘要，不留运行记录原文。",
+     "- `raw/mba/`：MBA 那边的原始输出（S2、S3、S4、S4b、S5、S5b、S7 摘要、S10、S12、S13、S14、S15）。S7 只留摘要，不留运行记录原文。",
      "- `raw/mba/S13.cmd`、`raw/mba/S13-A.*`、`S13-B.*`、`S13-C.*`：precheck；三轮各自的 stdout、stderr、预检结果（`.orca.json`）、"
      "ssh、orca 替身记下的调用（`.calls`：pid、时间、替身名）；`S13-B.state-before`、`S13-B.state-after`：B 前后状态目录里每个文件的 sha256；"
+     "`S13-B.skips.json`：B 之后锁文件旁边 lock-held-alert 的状态文件；`S13-C.skips-after`：C 之后它还在不在；"
      "`S13.curl-calls`、`S13.statefiles`、`S13.state.json`：假 curl 的调用、三轮跑完后状态目录里的文件和 state.json。",
      "- `raw/mba/S14/`、`raw/S14-imac/`：S14 每一步的 precheck（`.cmd`）、退出码、stdout、stderr、替身的调用（`.calls`、`timeout.stub-calls`：pid、时间、替身名）、"
-     "HB_STATE_DIR 指向的目录有没有被建出来（`.probe`）；kill 那步的进程检查（`kill.holder-ps`、`kill.child-after-kill`，"
-     "是 `ps -o pid,ppid,rss,etime,comm` 的输出）、发出的信号（`kill.sent`）、两次探锁的结果；timeout 探锁的结果和探锁前后的时间（`timeout.probe.*`）、两轮的预检结果（`timeout-1.*`、`timeout-2.*`）。",
+     "HB_STATE_DIR 指向的目录有没有被建出来（`.probe`）、held 之后锁文件旁边的状态文件（`held.skips.json`）；"
+     "kill、term、crash 每项的进程检查（`<项>.holder-ps`、`<项>.child-after-signal`，是 `ps -o pid,ppid,rss,etime,comm` 的输出）、"
+     "发出的信号（`<项>.sent`）、两次探锁的结果（`<项>.probe1.*`、`<项>.probe2.*`）、lockf 的退出码（`<项>.holder-rc`）、锁文件还在不在（`<项>.lockfile`）、"
+     "它起的 sleep 什么时候没的（`<项>.child-end`）；crash 前后 DiagnosticReports 里 lockf 开头的文件数（`crash.reports-before`、`crash.reports-after`；"
+     "after 是等它起的 sleep 结束以后数的，报告写得更晚时会数漏，所以只记不判，F36）；"
+     "timeout 探锁的结果和探锁前后的时间（`timeout.probe.*`）、两轮的预检结果（`timeout-1.*`、`timeout-2.*`）。",
+     "- `raw/mba/S15/`、`raw/S15-imac/`：每一轮（主线 `r1`–`r6`，`45a`、`45b`，`bad-a`、`bad-b`）的 precheck（`.cmd`）、stdout、stderr、"
+     "预检结果（`.orca.json`）、HB_STATE_DIR 有没有被建出来（`.probe`）、到这轮为止假 curl 几次（`.curls`）、这轮之后锁文件旁边的状态文件（`.skips.json`，没有就是没了）；"
+     "假 curl 记下的请求体（`main.curl-bodies`、`45.curl-bodies`、`bad.curl-bodies`，每行「假地址 请求体」）；演练写的状态文件（`45a.seed.json`、`45b.seed.json`、`bad-a.seed`）；"
+     "第 1 轮开始的时间（`t0`）、持锁的 sleep 的 pid 和它结束的时间、lockf 的退出码（`main.holder-*`、`45.holder-*`、`bad.holder-*`）；主机名（`host`）、锁文件名（`lockname`）。",
      "- `raw/mba/S12.*`、`raw/mba/S12-old.*`：precheck（`.cmd`）、stdout、stderr、预检结果（`.orca.json`：超时、是否超时、退出码、用时、起止时间）、"
      "每次 ssh 的 pid 和开始时间（`.ssh-starts`）、ssh 收到的参数（`.ssh-args`）、进程检查（`.first-alive-at-second`、`.alive-after`，"
      "是 `ps -o pid,ppid,rss,etime,comm` 的输出，空 = 进程已经没了）、假 curl 的调用（`.curl-calls`）、状态目录里的文件和内容。",
