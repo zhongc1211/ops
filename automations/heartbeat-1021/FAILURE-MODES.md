@@ -166,3 +166,62 @@ base 还是 `f828d452`，回退的做法不变。新加的两项：
 
 - 回退测试的现网版 defs 把 MBA 那条的 precheck 和超时都换成 box `94e4b0bc` 的原文（`wake/tests/heartbeat-watch-ssh-rollback.sh` 第 39 行），超时还是 240，S12、S12.old 的期望不变。
 - S8 在旧代码上该挂，原因是 base 没有 register.sh；期望值从 240 改成 330 不影响。要再核一遍第二轮回退报告里 S8 六项的实际输出，确认挂的原因是这个。
+
+## 第五轮：precheck 外面套 lockf（2026-10-21 23:5x，写代码之前）
+
+第四轮读 `scripts/heartbeat-watch.sh` 发现，两轮预检重叠时会同时写状态文件（F27），停下来报给 Zack。Zack 选了方案 1：MBA 新任务和
+`5c2d0575` 并行版的 precheck 外面套 `/usr/bin/lockf -k -t 0 <锁文件>`，锁文件放在 `~/.orca-state/heartbeat-watch/` 下，每个任务一个。
+heartbeat-watch.sh 本身不改，它内部加锁、临时文件按进程取名留作后续。S12.old 按第四轮的方案 1：超时钉在 7ac1220 那版 defs 的 240。
+上面几张表不改，新的写在这里。
+
+### 新查到的事实
+
+| # | 事实 | 怎么查到的 | 影响 |
+|---|---|---|---|
+| F23 | 两台的 `/usr/bin/lockf` 是同一个文件（sha256 `e15de85e…`）。用法 `lockf [-knsw] [-t 秒] 文件 命令 [参数…]`：先拿锁，拿到了再起命令、等它结束；`-t 0` 拿不到锁时不起命令，退出 75（EX_TEMPFAIL），stderr 是 `lockf: <文件>: already locked`；锁文件打不开（比如目录不存在）退出 73（EX_CANTCREAT）；命令自己退出时原样返回它的退出码，命令被信号杀掉时退出 70；`-k` 跑完不删锁文件。锁是 flock(2)，持锁的进程退出或被杀，锁就放开 | `man lockf`；iMac 上在临时目录里试过：拿不到锁退出 75、stdout 空；目录不存在退出 73；命令 `exit 3` 时返回 3；命令被 SIGTERM 杀掉时返回 70 | 上一轮还在跑时，这一轮立刻退出 75：heartbeat-watch 不起，不读也不写状态，也不打 `@@HB`。正常的一轮 heartbeat-watch 退出 1，lockf 原样返回 1 |
+| F24 | MBA 上还没有 `~/.orca-state/heartbeat-watch/`（F3）。heartbeat-watch 第一次跑时会自己建这个目录（第 63 行），但 lockf 在它起来之前就要打开锁文件 | `ssh mba ls`；F23 | README 第 1 步先 `mkdir -p ~/.orca-state/heartbeat-watch`。漏了这一步，每轮退出 73、没有 `@@HB`：卡 ② 第 3 步的核对（exitCode 1、有 `@@HB`）过不了；到卡 ③ 以后，iMac 20 分钟后报 MBA 那条中断。iMac 上这个目录已经有了（现网 `5c2d0575` 一直在写） |
+| F25 | 预检退出码不是 0，Orca 就记 `skipped_precheck`，不起模型。iMac 的 Orca 1.4.235 和 MBA 的 1.4.229 判断预检通过的代码一样：有结果、没超时、没出错、退出码是 0，四条都满足才算过；不过就记 `skipped_precheck`，错误文字是「Precheck exited with code N.」。只读的运行记录里，iMac 755 条（10-11 到 10-21）、MBA 200 条（10-18 到 10-21），退出码 1、2、255 和超时都记成了 `skipped_precheck`。没有退出码 75 的记录 | 两台 app.asar 里预检那段代码；`orca automations runs --json`（只读） | 75 会记成 `skipped_precheck`，依据是代码和别的退出码的记录，没在真机上验证：要让 Orca 真跑一轮带锁的预检，就得建任务或者改现网任务，任务书禁止。卡 ② 启用以后，可以手动拿住锁一轮来看（README 卡 ②） |
+| F26 | 锁只在 lockf 进程手里，它起的命令不持锁。Orca 超时时给整个进程组发信号（F14），lockf、heartbeat-watch、ssh 一起没了，锁跟着放开。只杀 lockf 一个进程时，锁也放开，但它起的命令还在跑（ppid 变成 1），下一轮拿到锁，会和它同时跑 | iMac 上在临时目录里试过：`kill -KILL` lockf 以后马上能拿到锁，它起的 sleep 还在；给整个进程组发 SIGTERM 以后也马上能拿到锁 | Orca 自己不会只杀 lockf，有人手动只杀 lockf 才会这样。写进已知限制 |
+| F27 | 第四轮读代码的结论：两轮重叠时，两个进程各读一份旧状态（第 189 行），各写回整份（第 256 行）；`save_json` 不加锁，临时文件名固定是 `state.json.tmp`（第 90–96 行）。后存的一轮盖掉先存的：同一次中断报两次、漏报一次中断、「已恢复」不发、45 分钟的计时偏；两轮恰好同时写时，state.json 可能被写坏，下一轮按空状态从头算，所有目标的记录一起丢 | `scripts/heartbeat-watch.sh`；第四轮的 RESULT.md | F21 写的「最坏是同一时刻发两条告警」不全，README 和 PR 描述的已知限制按这一条改。套上 lockf 以后，同一个任务的两轮不会同时进到 heartbeat-watch |
+| F28 | 在两台现装的 Orca 上重读了两轮会不会重叠。iMac 上的 Orca 10-21 23:15 前后自己升级到了 1.4.235（前几轮记的是 1.4.224），MBA 还是 1.4.229。调度每 60 秒看一次哪些运行到点了，建好运行、发给界面进程就往下走，不等预检；界面进程每收到一个就跑一次预检，不排队，也没有「上一轮没完就不起下一轮」。1.4.235 加了按任务排队（`runInAutomationLane`），排的只是「发给界面进程」这一步，不包括预检；1.4.229 没有这个队列 | 两台 app.asar 里的 `evaluateDueRuns`、界面进程处理 `automations:dispatchRequested` 的代码、`runInAutomationLane` | 结论和 F21 一样：一轮预检超过 300 秒时，下一轮会和它同时跑。没在真机上验证。Orca 升级不是本 PR 动的 |
+| F29 | wake-tla 这次跑不了：两台都没有 Java 17 和 tla2tools（iMac 只有 Java 8，MBA 没有 Java）；`wake/tla/check.sh` 用 `free` 和 `/proc/loadavg`，只能在 Linux 上跑；`SOURCES.sha256` 里 `scripts/stuck-check.sh`、`scripts/heartbeat-watch.sh` 两项和现在的代码对不上，按 skill 第 3 步要先更新模型，结果才有意义；模型里还是 box 盯 iMac，没有 lockf，`wake/tla/README.md` 的假设 4（Orca 不会让同一个自动任务的 precheck 重叠运行）和 F21、F28 不符。TLC 只读 `wake/tla/` 下的文件，本 PR 在那里只改了 README 的文字 | `/usr/libexec/java_home -V`；`check.sh`；`shasum -a 256 -c wake/tla/SOURCES.sha256`；`.claude/skills/wake-tla-verify` | 不跑，PR 里写没跑和原因。被 lockf 跳过的那一轮没有 `@@HB`，盯它的一方看到的心跳间隔最长 10 分钟，后续 wake-tla 批次建模时要算进去 |
+
+### 要防的失败方式
+
+| # | 失败方式 | 场景 | 期望 |
+|---|---|---|---|
+| A30 | 锁没起作用：上一轮还在跑，下一轮照常进到 heartbeat-watch，两轮同时读写状态 | S13 | MBA 上照 defs 原文跑 MBA 新任务的 precheck（只换两个脚本路径和锁文件目录；不带 `--dry-run`；临时状态目录、空的 webhook 目录、PATH 里放假 curl），照 Orca 的做法起三轮，共用状态目录和锁文件。PATH 最前面的 ssh 替身记下每次调用，再 exec 真 ssh；A 的替身先等 30 秒。A 的 ssh 起来 3 秒后起 B，A 结束后起 C。期望：A 退出 1，有「iMac ops · 01 卡住工作检查：正常（最新心跳」，`@@HB` rc 0；B 在 A 跑的期间开始、也在这期间结束，3 秒内退出 75，stdout 空，stderr 有 `already locked`，B 的 ssh 0 次，B 前后状态目录一样；C 在 A 结束以后开始，退出 1，正常，`@@HB` rc 0；假 curl 0 次，输出里没有「POST」和「webhook 配置」 |
+| A31 | 拿不到锁的那一轮还是起了 heartbeat-watch，读写了状态 | S14.MBA.held、S14.iMac.held | 先用 `lockf -k -t 0 <锁文件> sleep 6` 拿住锁（等到它起的 sleep 出现），再照 defs 原文跑 precheck：MBA 用 MBA 新任务的，iMac 用 `5c2d0575` 并行版的（MBA 新任务 id 用 ops · 09 代替）；锁文件换到临时目录，加 `--dry-run`；HB_STATE_DIR 指向一个不存在的目录，heartbeat-watch 一起来就会建它（第 63 行，在读 state 之前）；PATH 最前面放只记录调用、退出 1 的替身（MBA 替 ssh，iMac 替 orca 和 orca-ide）。期望：退出 75，stdout 空，stderr 有 `already locked`，那个目录没被建出来，替身 0 次 |
+| A32 | 拿不到锁时的退出码不是 75 | S13、S14.MBA.held、S14.iMac.held | 75 |
+| A33 | 持锁的进程被杀以后锁不放开 | S14.MBA.kill、S14.iMac.kill | 只用 lockf：`lockf -k -t 0 <锁文件> sleep 8` 拿住锁；探一次（`lockf -k -t 0 <锁文件> true`），退出 75；核对这个 lockf 的 pid 是演练刚起的、ppid 是演练的 shell、命令名是 lockf，只给它一个发 SIGKILL；它退出 137；再探一次，退出 0；它起的 sleep 还在、ppid 1（F26），之后自己结束 |
+| A34 | 被超时杀掉以后锁不放开，下一轮拿不到 | S14.MBA.timeout、S14.iMac.timeout | 第一轮照 Orca 的做法起，超时 12 秒，加 `--dry-run`，PATH 最前面的替身（MBA 替 ssh，iMac 替 orca 和 orca-ide）记下 pid 后 exec `sleep 60`。替身起来 3 秒后探一次锁：退出 75。第一轮到 12 秒被杀（timedOut，用时 12–27 秒），替身的进程没了。紧接着照 Orca 的做法起第二轮：用真的 ssh / orca，超时取 defs（330、600），加 `--dry-run`。期望：没超时，退出 1，没有 `already locked`，有第一个目标的结论行（MBA「iMac ops · 01 卡住工作检查：」，iMac「box ops · 29 卡住检查心跳：」） |
+| A35 | 锁目录不存在（MBA 漏了第 1 步的 mkdir） | S14.MBA.nodir、S14.iMac.nodir | 锁文件放在不存在的目录里，其余同 held：退出 73，stdout 空，stderr 有 `cannot open`，那个目录没被建出来，替身 0 次。这就是 F24：每轮 73、没有 `@@HB` |
+| A36 | 演练在真目录里建了锁文件，或者拿了真的锁 | S10 | 真路径多查两个：`~/.orca-state/heartbeat-watch/mba-hb-watch.lock`、`~/.orca-state/heartbeat-watch/5c2d0575.lock`。MBA 上 6 个真路径演练前后都没有；iMac 上这两个演练后没有，其余照旧。演练里拼 precheck 时，`$HOME/.orca-state/heartbeat-watch/` 最多出现一次，换成临时目录 |
+| A37 | 套了 lockf 以后，正常的一轮变了（输出、退出码、用时） | S2、S6b、S12、S13 | 期望不变：S2 两项正常、退出 1；S6b 三项照旧；S12 照 A18、A28（ssh 3 次、自己结束、退出 1、写下 fail_since 和 `@@HB`）；S13 的 A、C 退出 1 |
+| A38 | register.sh 打印的 precheck 没带 lockf，或者 final、rollback 也被套上了 | S8 | S8.mba 的 `--precheck` 是 `'HB_ORCA=$HOME/.orca-state/bin/orca-via-ssh ORCA_SSH_HOST=imac /usr/bin/lockf -k -t 0 $HOME/.orca-state/heartbeat-watch/mba-hb-watch.lock $HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target "…"'`，超时 330；S8.parallel 是 `'/usr/bin/lockf -k -t 0 $HOME/.orca-state/heartbeat-watch/5c2d0575.lock $HOME/.orca-state/bin/heartbeat-watch.sh --precheck …'`，超时 600；S8.final、S8.rollback 和上一轮一样，没有 lockf |
+| A39 | S12.old 的超时跟着 defs 变，就不再是旧包装的对照了 | S12.old | 第四轮的方案 1：超时取 7ac1220 那版 defs.json 里 MBA 新任务的 precheckTimeout，判断时核对它是 240。期望同 A19：到 240 秒被杀，没有 `@@HB`，状态目录是空的，ssh 相邻两次开始隔 95–105 秒 |
+| A40 | 这一轮挡不住、也不演练的 | 不演练 | 写进 README 已知限制：final（超时 300）和 rollback（240）没套 lockf，这次只要求套 MBA 新任务和并行版；锁按任务分，两个任务用同一个状态目录时互相挡不住（现在每台只有一个任务用 heartbeat-watch：iMac 的 `5c2d0575`，MBA 上还没有）；只杀 lockf 一个进程时，它起的 heartbeat-watch 不受锁保护（F26）。heartbeat-watch 自己加锁、临时文件按进程取名留作后续，这次不改 heartbeat-watch.sh |
+
+### 演练本身可能骗人的地方
+
+| # | 风险 | 处理 |
+|---|---|---|
+| C11 | S13 的三轮是演练脚本照 Orca 的做法起的，A 用 ssh 替身拖慢了 30 秒 | Orca 自己会不会让两轮重叠，只读了代码（F28），没在真机上看到。拖慢 A 是为了让 B 一定落在 A 跑的期间；ssh 客户端、包装、lockf、heartbeat-watch 和 iMac 都是真的。用了替身，不叫 E2E |
+| C12 | S14 的 held、kill 用 `lockf … sleep` 拿锁，不是一轮真的 heartbeat-watch；kill 要给演练自己起的 lockf 发 SIGKILL | held、kill 看的是锁本身。一轮真的 heartbeat-watch 拿着锁的情况在 S13（A 拿着锁时 B 被挡）和 S14.timeout（第一轮拿着锁时探针被挡）。kill 之前核对 pid、ppid 和命令名，只给这一个进程发信号；它起的 sleep 不发信号，让它自己结束 |
+| C13 | S14.timeout 的超时是 12 秒，替身把 ssh / orca 换成 `sleep 60` | 真的超时是 330、600 秒，等不起。被杀的方式和 Orca 一样（给整个进程组先发 TERM，2 秒后发 KILL），和超时多长无关。用了替身，不叫 E2E |
+| C14 | Orca 把 75 记成 `skipped_precheck` 没验证 | 见 F25。卡 ② 启用以后可以手动验证一次 |
+
+### 回退测试的期望（第五轮）
+
+base 还是 `f828d452`，回退的做法不变：现网版 defs 里，MBA 那条用现网 box `94e4b0bc` 的 precheck，`5c2d0575` 各阶段用它自己的现网
+precheck，都没有 lockf。新加的 9 项：
+
+- 该挂的 7 项（该挂的从 20 项变成 27 项）：
+  - S13：现网版 precheck 没套 lockf，B 照常跑，退出不是 75。
+  - S14.MBA.held、S14.iMac.held：heartbeat-watch 照常起来，建出了那个不存在的目录，退出不是 75。
+  - S14.MBA.nodir、S14.iMac.nodir：没有锁文件这一步，照常跑，退出不是 73。
+  - S14.MBA.timeout、S14.iMac.timeout：第一轮跑的时候，探针拿得到锁（退出 0）。
+- 照样过的 2 项（该过的从 27 项变成 29 项）：S14.MBA.kill、S14.iMac.kill。它们只用 lockf 本身，和 defs、代码都无关。
+- S12.old 照样过：超时取 7ac1220 那版 defs 的 240，和以前一样。
+
+共 56 项。新代码上 56 项都该过。
