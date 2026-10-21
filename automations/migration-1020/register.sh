@@ -4,7 +4,8 @@
 # --missed-run-grace-minutes 120; enabling, disabling the old box tasks and deleting stay manual (README §上线顺序).
 # --apply runs them through `orca` on this machine; it needs Zack's approval first (BRIEF: creating or editing
 # automations is his call) and refuses to run on a machine other than the one named.
-# box is not a target since B2a (PER-146): no new task runs on box and the plan changes none of box's tasks.
+# box is not a target since B2a (PER-146): the plan creates no box task and changes no box task's definition;
+# the rollout cards disable the old box tasks being replaced: disable only, never delete (README §上线顺序).
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 m=${1:-}; apply=no; [ "${2:-}" = --apply ] && apply=yes

@@ -45,7 +45,7 @@ box 本机的任务（清理、哨兵、EverOS 采集等）不在本方案里，
 - iMac `17 */3`「vllm · 17 上游 PR 监控 iMac」，替代 box 的 349967f6。
 
 夜审都是 `--model opus --effort high`；看守和防睡是 `--model sonnet --effort low`（它们的预检总是退出 1，模型不会起）。
-box 上不新建、不修改任何任务。box 的「心月 · 19 夜审兜底」（27383c07，00:30）怎么处理见「上线顺序」第 5 步。
+本方案不新建 box 任务，也不改 box 任务定义；上线卡里停用被替代的 box 旧任务，只停用不删除。box 的「心月 · 19 夜审兜底」（27383c07，00:30）怎么处理见「上线顺序」第 5 步。
 
 ## 一晚怎么走（`night-review-gate.sh`）
 
@@ -123,22 +123,67 @@ box 上不新建、不修改任何任务。box 的「心月 · 19 夜审兜底�
 ## 上线顺序（一步一张 Zack 卡；上一步的第一次真实运行过了再走下一步）
 
 每一步在当天夜审之前做完：**同一步里停用被替代的 box 旧任务、启用新任务**，第二天早上按「第一次真实运行要留的证据」看。
-两边同时开会在同一晚跑两次 opus、EverOS 写两遍（box 旧提示词不去重）。
+两边同时开会在同一晚跑两次 opus、EverOS 写两遍（box 旧提示词不去重）。下面每张卡都要 Zack 本人批。
 
-0. 合并到 main 后：MBA、iMac 的 `~/orca/workspaces/ops` 各自 `git pull`。box 上不用动（没有 box 任务调用这些脚本）。
-1. **卡 1：iMac 两个任务。** 先把 box 的 `~/.orca-state/vllm-upstream/`（seen.sha 和最新的 report-*.md）只读拷到 iMac
-   （iMac 上那份停在 10-14）。在 iMac 上 `bash automations/migration-1020/register.sh imac` 看打印的 10 条，批了以后 `--apply`
-   （都以停用状态创建）。停用 box 的 bc9ee42b、349967f6，启用「ops · 12 Linear 状态对齐 iMac」「vllm · 17 上游 PR 监控 iMac」。
-2. **卡 2：vllm。** 在 MBA 上 `register.sh mba` 看打印的 9 条，批了以后 `--apply`（停用状态）。停用 box 的 c392a743，
-   启用 vllm · 22 的 4 个新任务（MBA 主跑、MBA 补跑、iMac 看守、iMac 备用）和「ops · 夜审防睡 MBA」。
+**合并卡（本 PR）**：
+
+- 合并本身不改现网：没有现网任务调用本 PR 改的脚本，box 上的检出也不拉。回滚是 `git revert` 合并时的那个 squash 提交。
+- 卡上锁定 head sha 和 PR 正文的 updatedAt。squash 的提交信息不带 Co-Authored-By，也不带测试结果。只由 Zack 本人在卡上批，agent 不自己合并。
+- 卡上写明两处方案变化：一个项目一张卡、同一步停旧启新，第一晚就没有 box 兜底，出问题第二天回滚；MBA 和 iMac 都没跑成时没有任务报警，
+  这是新接受的残余（见「一晚怎么走」）。
+- 合并之前 Zack 先定 #65（PER-117，vllm · 17 留在 box）关掉还是保留：它和本方案方向相反，两个都合会互相打架。
+
+**总前提**：卡 1 在 PR #75（B1）合并、它的卡 ② 验收过（MBA 的新任务已经在盯 iMac 的 ops · 01）之后再做；卡 2 起最好在 #75 的卡 ④
+（停用 box 的 94e4b0bc）之后。
+
+**每张上线卡的做法**：
+
+- 改之前导出到 `~/ops-archive/b2b-<项目>-<日期>/`（卡 1 的 `<项目>` 写 `card1`）：在 box 上只读跑 `orca automations show --id <旧 id> --json`，
+  每个要停的旧任务一份；两台 Mac 各自的 `orca automations list --json`。卡 1、卡 2 把 `register.sh` 打印的内容也存进去。
+- 按「注册（建成停用）→ 停用 box 旧任务（只停用，不删除）→ 启用新任务」的顺序一次做完，赶在新任务第一次该跑之前。
+  `--apply` 只在卡 1（iMac）和卡 2（MBA）跑；卡 3–5 的任务那时已经建好，只核对它们还在、还是停用。
+- 最后在 box 上只读看一次旧任务的 runs（`orca automations runs --id <旧 id> --limit 5 --json`），确认它没有按 720 分钟的补跑窗口马上补跑。
+- 第二天早上按「第一次真实运行要留的证据」核对，过了才弹下一张。有失败按「回滚」做。
+
+1. **卡 1：拉主检出，iMac 两个任务。**
+   - 先拉主检出。这是现网改动：新任务的预检从两台 Mac 的主检出 `~/orca/workspaces/ops` 跑，现网任务也从这里跑脚本
+     （比如 iMac 的 ops · 01 每分钟跑 `scripts/stuck-check.sh`）。MBA、iMac 各做一遍，box 上的检出不拉：
+     1. 在 `main` 上（`git branch --show-current`）。
+     2. `git status --porcelain --untracked-files=no`：MBA 应为空，iMac 只允许那一行已知的 ` M orca-projects.md`。有别的就停下。
+     3. 记一次 `git rev-parse HEAD`。
+     4. `git fetch`，把这次会一起带进来的已合并 PR 列到卡上（`git log --oneline --first-parent HEAD..origin/main`）。
+        `git diff --name-only HEAD origin/main` 里不能有 `orca-projects.md`；里面有现网任务的预检或提示词用到的文件（对照导出的任务清单），
+        也列到卡上。
+     5. `git merge --ff-only origin/main`，再记一次 `git rev-parse HEAD`，应和 `git rev-parse origin/main` 相同。
+
+     2026-10-22 看的时候，两台 Mac 的主检出和 origin/main 都在 `f828d452`，main 上还没有别的已合并 PR。按「总前提」，卡 1 时至少还会带进
+     #75：它改 `scripts/heartbeat-watch.sh`、新加 `scripts/orca-via-ssh`，10-22 的现网任务都不从主检出调用这两个
+     （iMac 的 5c2d0575 用 `~/.orca-state/bin/` 里的副本）。
+   - 在 iMac 上 `bash automations/migration-1020/register.sh imac` 看打印的 10 条，批了以后 `--apply`（都以停用状态创建）。
+   - 停用 box 的 bc9ee42b、349967f6。再把 box 的 `~/.orca-state/vllm-upstream/`（seen.sha 和最新的 report-*.md）只读拷到 iMac
+     （iMac 上那份停在 10-14），seen.sha 里的值记到卡上。停用以后再拷，box 那条就不会在拷完之后又跑一次。
+   - 启用「ops · 12 Linear 状态对齐 iMac」「vllm · 17 上游 PR 监控 iMac」。
+2. **卡 2：vllm。**
+   - 前置：
+     - MBA、iMac 上 `ssh -o BatchMode=yes box 'test -d ~/xinyue-deploy/nightly-review'` 都通过。
+     - MBA、iMac 各跑一次清单同步（box 只读），`<临时目录>/dst/vllm-omni/<昨天>/SYNC-STATUS` 应是 `ok`：
+       `SYNC_DST_ROOT=<临时目录>/dst SYNC_STAGE_ROOT=<临时目录>/stage scripts/sync-manifests-from-box.sh vllm-omni <昨天> <mba|imac>`。
+       脚本只往 `SYNC_DST_ROOT` 下面写。暂存目录指到空目录，本机那份 transcript 也从 box 拉，会比真跑慢。
+     - MBA 接着电源。MBA 的两条 pmset（「待 Zack 卡」）还没定的话，卡上照实写。
+     - 卡上写明：两台都没跑成时没有任务报警，靠每天早上人工看 ops-system 有没有收到当晚的 done。
+   - 在 MBA 上 `register.sh mba` 看打印的 9 条，批了以后 `--apply`（停用状态）。停用 box 的 c392a743，
+     启用 vllm · 22 的 4 个新任务（MBA 主跑、MBA 补跑、iMac 看守、iMac 备用）和「ops · 夜审防睡 MBA」。
 3. **卡 3：广告。** 停用 box 的 9b5c20e7，启用 dv广告 · 21 的 4 个新任务。
 4. **卡 4：官网。** 停用 box 的 43c55a22，启用 dv运维 · 20 官网的 4 个新任务。
-5. **卡 5：心月。** 停用 box 的 75b324a4，启用心月 · 18 的 4 个新任务。27383c07（box 00:30 查心月摘要）这一步要一起定：
+5. **卡 5：心月。** 停用 box 的 75b324a4，启用心月 · 18 的 4 个新任务。27383c07（box 00:30 查心月摘要）由 Zack 在这张卡上定：
    - 和 75b324a4 一起停用（推荐）：MBA 23:40 开始，结果拷到 box 可能晚于 00:30，留着会误报；停了以后两台都没跑成时没人报（见上面的已知情况）。
    - 改到 01:00：这是一次 box edit，等于保留一个 box 看守，和 B2a 的方向相反。
    - 不动：接受误报。
 
-旧任务停用后先留着，替代任务连续 5 次成功后，Zack 批了再删。
+**删旧任务和 box 下线（都另开卡）**：
+
+- 旧任务停用后先留着，替代任务连续 5 次成功后，Zack 批了再删。删之前回滚要用 box 旧任务，box 得在。
+- 存放位置和清单来源还是默认的 box 时，box 的 4 个 EverOS 会话采集不能停，box 也不能下线。要先做「切换到 iMac 存放」（另开 PR、另一张卡）。
 
 ## 第一次真实运行要留的证据
 
@@ -155,6 +200,8 @@ box 上不新建、不修改任何任务。box 的「心月 · 19 夜审兜底�
 ## 回滚
 
 迁移期：停用新任务，重新启用 box 旧任务。box 旧任务的提示词、时间、grace 都没改过，启用就回到迁移前。逐个项目做，不影响别的。
+回滚前也按「每张上线卡的做法」导出一次。重新启用 box 旧任务以后看一次它的 runs：grace 还是 720 分钟，停用期间错过的那一次可能马上补跑；
+补跑了就记到卡上，当晚新任务已经写过 EverOS 的话会写重。
 
 | 任务 | 回滚 |
 |---|---|
