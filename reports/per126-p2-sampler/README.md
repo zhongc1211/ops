@@ -39,3 +39,8 @@
 - `install-dryrun-imac-live.txt`：`dispatch/install.sh --dry-run`，即安装会先跑的 backup.sh、会新建的路径和会执行的 `launchctl bootstrap`。
 - 这两次把 launchctl 换成了 `dispatch/tests/stubs/launchctl`（`print` 一律答「未加载」），因为这轮不允许调 launchctl。所以「未加载」那一行不是真机读数，其余各行是真实 HOME 下的读数。
 - MBA 没跑 `install.sh`（要仓库目录）。真实 HOME 下 5 个路径不存在，见 `e2e-mba/real-home-*.txt`。
+
+## 6. 回退测试（第一轮代码 + 本轮桩测）
+
+- `rollback-test-cbccc9d.txt`：用临时副本（不改分支）把 `dispatch/bin/ops-v5-sampler` 和 `dispatch/install.sh` 换回 cbccc9d 的版本，跑本轮 `dispatch/tests/sampler-stub.sh`。
+- 结果：通过 66，失败 50。新用例 max_days、size_cap、log_cap、install、install_backup_fail、uninstall、install_not_macos 都挂，说明它们能抓到旧行为。normal 等几项是因为数据格式改了。文件开头有按用例的统计和原因。
