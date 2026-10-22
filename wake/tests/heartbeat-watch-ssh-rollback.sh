@@ -120,7 +120,7 @@ WHY_RE = {"S13": r"；B：[^；]*（在 A 跑的期间），没超时，用时 [
           "S15.iMac.45": r"^44 分钟：退出 (?!75，)\d+，.*，假 curl 0 次；46 分钟：退出 (?!75，)\d+，.*，假 curl 0 次",
           "S15.MBA.bad": r"^乱码：退出 (?!75，)\d+，.*；目录：退出 (?!75，)\d+，",
           "S15.iMac.bad": r"^乱码：退出 (?!75，)\d+，.*；目录：退出 (?!75，)\d+，"}
-WHY_RE.update({"S0.bot": r'本分支 BOT = "coding-assistant"',
+WHY_RE.update({"S0.bot": r'本分支第 33 行 BOT = "coding-assistant"',
                "S1.bot": r'「将 POST 给 ops-system」0 行',
                "S3": r'dry-run，将 POST 给 coding-assistant',
                **{i: r'退出 (?!75，)\d+，.*；假 curl 每轮之后累计 [^；]*，共 0 次$'
