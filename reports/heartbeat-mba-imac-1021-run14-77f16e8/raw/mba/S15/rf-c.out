@@ -1,0 +1,1 @@
+2026-10-22 10:28:01 SGT lock-held-alert：锁被占着，这一轮没起 heartbeat-watch.sh；已连续跳过 1 轮（从 10-22 10:28:01 起 0.0 分钟，锁文件 /var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.SboDn29124/s15/rf/lock/mba-hb-watch.lock）；10-22 10:27:52 报过锁被占着，10-22 10:28:01 拿到过锁、「已恢复」没发出去，补发也没发出去（POST heartbeat_recovered → ops-system → 500），下一次拿到锁再发；到 45 分钟才报
