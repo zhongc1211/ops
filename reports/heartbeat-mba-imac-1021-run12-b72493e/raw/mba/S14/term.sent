@@ -1,0 +1,1 @@
+kill -TERM 31222（pid 31222、ppid 28885 是演练的 shell、命令名 /usr/bin/lockf）

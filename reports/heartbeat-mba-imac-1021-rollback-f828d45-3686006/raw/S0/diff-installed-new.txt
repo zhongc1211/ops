@@ -1,0 +1,4 @@
+17c17
+< # webhook：~/.config/grokbot/webhooks/<bot>.env（URL、KEY）。演练用 STUCK_FORCE_BOT=test（所有消息改发 test），
+---
+> # webhook：~/.config/grokbot/webhooks/<bot>.env（URL、KEY）。演练用 STUCK_FORCE_BOT=ops-system（所有消息改发 ops-system；只换收件 bot，task 不加「[演练 叫醒通路]」，那是手动 notify-run 演练的前缀），

@@ -1,0 +1,14 @@
+旧代码：f828d452345f16898d6c9d133984e170d98d9f83（git clone --shared 后 checkout --detach）
+测试取自：77f16e848317d0ee4692eddb0680fef65f2bdb62
+没有 scripts/orca-via-ssh
+没有 scripts/lock-held-alert
+没有 automations/heartbeat-1021/register.sh
+有 scripts/heartbeat-watch.sh（sha256 a408563a6a3cd0d0）
+base 之外放进去的（git status --porcelain --untracked-files=all）：
+?? automations/heartbeat-1021/defs.json
+?? wake/tests/hb-replay/clock/sitecustomize.py
+?? wake/tests/hb-replay/fixtures/list-imac.json
+?? wake/tests/hb-replay/fixtures/runs-439cd438.json
+?? wake/tests/hb-replay/orca
+?? wake/tests/hb-replay/replay.py
+?? wake/tests/heartbeat-watch-ssh.sh
