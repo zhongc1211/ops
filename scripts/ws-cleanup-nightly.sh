@@ -14,7 +14,10 @@ import select
 import signal
 import subprocess
 import sys
+import time
 import uuid
+
+SIGNALS = (signal.SIGTERM, signal.SIGINT, signal.SIGHUP)
 
 
 def now():
@@ -48,28 +51,52 @@ def worker(args, run_dir):
     def interrupted(signum, frame):
         raise SystemExit(128 + signum)
 
+    def stop_group(process):
+        def send(sig):
+            try:
+                os.killpg(process.pid, sig)
+                return True
+            except ProcessLookupError:
+                return False
+
+        send(signal.SIGTERM)
+        deadline = time.monotonic() + 10
+        while send(0) and time.monotonic() < deadline:
+            process.poll()  # Reap the direct child as soon as it exits.
+            time.sleep(0.05)
+        if send(0):
+            send(signal.SIGKILL)
+        process.wait()
+        # Keep the lock until the entire owned group is gone, including descendants.
+        while send(0):
+            time.sleep(0.05)
+
     def stage(name, command, cwd):
         nonlocal child
         result[name + '_started_at'] = now()
         with (run_dir / (name + '.log')).open('wb') as log:
             try:
                 child = subprocess.Popen(command, cwd=cwd, stdin=subprocess.DEVNULL,
-                                         stdout=log, stderr=subprocess.STDOUT, close_fds=True)
-                code = child.wait()
+                                         # Keep our lock alive if the supervisor is SIGKILLed mid-stage.
+                                         stdout=log, stderr=subprocess.STDOUT, close_fds=True,
+                                         pass_fds=(lock.fileno(),), start_new_session=True)
+                child.wait()
             finally:
-                if child is not None and child.poll() is None:
-                    child.terminate()
-                    try:
-                        child.wait(timeout=10)
-                    except subprocess.TimeoutExpired:
-                        child.kill()
-                        child.wait()
-                child = None
-                result[name + '_finished_at'] = now()
-        result[name + '_rc'] = code
-        return code
+                for sig in SIGNALS:
+                    signal.signal(sig, signal.SIG_IGN)
+                try:
+                    if child is not None:
+                        if sys.exc_info()[0] is not None or child.poll() != 0:
+                            stop_group(child)
+                        result[name + '_rc'] = child.returncode
+                    child = None
+                    result[name + '_finished_at'] = now()
+                finally:
+                    for sig in SIGNALS:
+                        signal.signal(sig, interrupted)
+        return result[name + '_rc']
 
-    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+    for sig in SIGNALS:
         signal.signal(sig, interrupted)
     try:
         os.chdir(args.workspace)
@@ -128,7 +155,7 @@ def worker(args, run_dir):
         print(now(), 'failed', type(exc).__name__, flush=True)
     finally:
         # Ignore further catchable termination while publishing the final record.
-        for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        for sig in SIGNALS:
             signal.signal(sig, signal.SIG_IGN)
         result['finished_at'] = now()
         try:
