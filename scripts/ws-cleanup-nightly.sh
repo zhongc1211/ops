@@ -4,7 +4,7 @@
 PY=$(command -v python3)
 [ -z "$WS_NIGHTLY_PYTHON" ] || PY=$WS_NIGHTLY_PYTHON
 [ -n "$PY" ] || exit 1
-exec "$PY" -I - "$0" "$@" <<'PYEOF'
+"$PY" -I - "$0" "$@" <<'PYEOF'
 import argparse
 import csv
 import datetime
@@ -406,3 +406,4 @@ except Exception as exc:
     print('ws-cleanup-nightly: trigger_failed', type(exc).__name__, file=sys.stderr)
     sys.exit(1)
 PYEOF
+exit 1
