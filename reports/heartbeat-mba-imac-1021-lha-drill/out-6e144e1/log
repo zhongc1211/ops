@@ -1,0 +1,15 @@
+2026-10-22 08:56:14 SGT lock-held-alert：锁被占着，这一轮没起 true；已连续跳过 10 轮（从 10-22 08:10:12 起 46.0 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/x.lock）；到了 45 分钟，报警：POST heartbeat_stale → ops-system → 200
+2026-10-22 08:56:14 SGT lock-held-alert：锁被占着，这一轮没起 true；已连续跳过 11 轮（从 10-22 08:10:12 起 46.0 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/x.lock）；10-22 08:56:14 已报过，不重复报
+2026-10-22 08:56:15 SGT lock-held-alert：锁拿到了，之前连续跳过 11 轮（从 10-22 08:10:12 起 46.1 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/x.lock）；这一轮 true 退出 0；10-22 08:56:14 报过的锁被占着，「已恢复」没发出去（POST heartbeat_recovered → ops-system → 500），下一次拿到锁再发
+2026-10-22 08:56:15 SGT lock-held-alert：锁被占着，这一轮没起 true；已连续跳过 1 轮（从 10-22 08:56:15 起 0.0 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/x.lock）；10-22 08:56:14 已报过，不重复报
+2026-10-22 08:56:15 SGT lock-held-alert：锁被占着，这一轮没起 true；已连续跳过 2 轮（从 10-22 08:10:12 起 46.1 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/x.lock）；10-22 08:56:14 已报过，不重复报
+2026-10-22 08:56:15 SGT lock-held-alert：锁被占着，这一轮没起 true；已连续跳过 2 轮（从 10-19 08:56:12 起 4320.1 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/x.lock）；到了 45 分钟，报警：POST heartbeat_stale → ops-system → 200
+lock-held-alert：起不了 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/bin/lockf：[Errno 2] No such file or directory: '/var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/bin/lockf'
+2026-10-22 08:56:16 SGT lock-held-alert：锁被占着，这一轮没起 true；已连续跳过 1 轮（从 10-22 08:56:16 起 0.0 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/x.lock）；到 45 分钟才报
+2026-10-22 08:56:16 SGT lock-held-alert：锁被占着，这一轮没起 true；已连续跳过 1 轮（从 10-22 08:56:16 起 0.0 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/x.lock）；到 45 分钟才报
+2026-10-22 08:56:16 SGT lock-held-alert：锁被占着，这一轮没起 true；已连续跳过 2 轮（从 10-22 08:56:16 起 0.0 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/x.lock）；到 45 分钟才报
+2026-10-22 08:56:16 SGT lock-held-alert：锁被占着，这一轮没起 true；已连续跳过 2 轮（从 10-22 08:56:16 起 0.0 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/x.lock）；到 45 分钟才报
+2026-10-22 08:56:16 SGT lock-held-alert：锁被占着，这一轮没起 true；已连续跳过 3 轮（从 10-22 08:56:16 起 0.0 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/x.lock）；到 45 分钟才报
+2026-10-22 08:56:16 SGT lock-held-alert：锁被占着，这一轮没起 true；已连续跳过 4 轮（从 10-22 08:56:16 起 0.0 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/x.lock）；到 45 分钟才报
+2026-10-22 08:56:16 SGT lock-held-alert：锁被占着，这一轮没起 true；已连续跳过 4 轮（从 10-22 08:56:16 起 0.0 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/x.lock）；到 45 分钟才报
+2026-10-22 08:56:16 SGT lock-held-alert：锁被占着，这一轮没起 true；已连续跳过 5 轮（从 10-22 08:56:16 起 0.0 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/tmp.tns5rDojhH/x.lock）；到 45 分钟才报

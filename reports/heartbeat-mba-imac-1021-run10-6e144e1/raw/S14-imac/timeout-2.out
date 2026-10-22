@@ -1,0 +1,3 @@
+2026-10-22 02:55:13 SGT box ops · 29 卡住检查心跳：正常（最新心跳 10-22 02:50，4.8 分钟前，rc 0，上次扫描 5 分钟前）
+2026-10-22 02:55:20 SGT MBA ops · 29 心跳互查：中断：最近 101 次运行记录里没有心跳行（@@HB），最新一次运行在 10-22 02:37
+2026-10-22 02:55:20 SGT dry-run，将 POST 给 coding-assistant：{"task": "检查任务没在跑：MBA ops · 29 心跳互查", "worktree": "mba", "status": "stuck", "kind": "heartbeat_stale", "machine": "mba", "source": "heartbeat-watch", "note": "最近 101 次运行记录里没有心跳行（@@HB），最新一次运行在 10-22 02:37。自动任务 id 62d18b16-74ca-4c7f-a670-04197e7652fe。去那台机器看 Orca 是否开着、自动任务是否启用、`orca automations runs --id 62d18b16-74ca-4c7f-a670-04197e7652fe` 最近几次的结果。", "bot": "coding-assistant"}

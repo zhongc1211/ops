@@ -1,0 +1,1 @@
+2026-10-22 09:33:26 SGT lock-held-alert：锁被占着，这一轮没起 heartbeat-watch.sh；已连续跳过 10 轮（从 10-22 08:49:26 起 44.0 分钟，锁文件 /var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.8LxzgI9vTg/s15/45/lock/mba-hb-watch.lock）；到 45 分钟才报

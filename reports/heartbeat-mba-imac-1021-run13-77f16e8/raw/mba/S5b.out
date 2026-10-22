@@ -1,0 +1,58 @@
+{
+  "id": "local",
+  "ok": false,
+  "error": {
+    "code": "invalid_argument",
+    "message": "Unknown Orca server in --environment hb'drill \"q\" $(echo HBX) `echo HBY` ; echo HBZ && echo HBW * \\ $HOME 中文 · |\n第二行: no paired Orca server is named or has id hb'drill \"q\" $(echo HBX) `echo HBY` ; echo HBZ && echo HBW * \\ $HOME 中文 · |\n第二行.",
+    "data": {
+      "knownEnvironments": [
+        {
+          "id": "3b6f4e92-3a82-410b-a813-420eb041e410",
+          "name": "grok-bot"
+        },
+        {
+          "id": "8d650fd5-7575-4638-a66c-bd90d9e695ef",
+          "name": "mba"
+        }
+      ],
+      "knownSshTargets": [
+        {
+          "id": "ssh-1791164883256-wujqlu",
+          "label": "rf",
+          "generation": 1,
+          "connected": false
+        },
+        {
+          "id": "ssh-1791164883256-amfw9z",
+          "label": "shoptender",
+          "generation": 2,
+          "connected": false
+        },
+        {
+          "id": "ssh-1791164883256-52zhav",
+          "label": "hr-pro",
+          "generation": 3,
+          "connected": false
+        },
+        {
+          "id": "ssh-1791164883256-3a37eg",
+          "label": "site",
+          "generation": 4,
+          "connected": false
+        },
+        {
+          "id": "ssh-1792309585422-3c87on",
+          "label": "box",
+          "generation": 5,
+          "connected": false
+        }
+      ],
+      "nextSteps": [
+        "Run `orca host list` to see every machine you can target and the flag for each."
+      ]
+    }
+  },
+  "_meta": {
+    "runtimeId": null
+  }
+}

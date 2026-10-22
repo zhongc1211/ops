@@ -1,0 +1,14 @@
+MBA S12 跑完
+MBA S2 跑完
+MBA S3 跑完
+MBA S4 跑完
+MBA S5 跑完
+MBA S7 跑完
+MBA S13 跑完
+/var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.Y9ghPwgOva/drill.sh: line 231: 42289 Killed: 9               /usr/bin/lockf -k -t 0 "$L" /bin/sleep 8
+/var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.Y9ghPwgOva/drill.sh: line 231: 42442 Terminated: 15          /usr/bin/lockf -k -t 0 "$L" /bin/sleep 8
+/var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.Y9ghPwgOva/drill.sh: line 231: 42616 Segmentation fault: 11  /usr/bin/lockf -k -t 0 "$L" /bin/sleep 8
+MBA S12-old 跑完
+MBA S14 跑完
+MBA S15 跑完
+MBA 那边退出 0

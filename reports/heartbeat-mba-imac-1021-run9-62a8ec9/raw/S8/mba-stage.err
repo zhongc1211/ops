@@ -1,0 +1,1 @@
+用法：register.sh mba|imac [--stage parallel|final|rollback] [--mba-id <id>] [--apply]

@@ -1,0 +1,52 @@
+{
+ "command": "orca automations list --environment mba --json",
+ "tries": 1,
+ "error": null,
+ "automations": [
+  {
+   "id": "679f7c06-363c-462d-b097-92e843c6e053",
+   "name": "dv广告 · 26 EverOS 广告会话采集 MBA",
+   "enabled": true
+  },
+  {
+   "id": "25ec90b7-4171-4aa1-96c5-25f1a9252fde",
+   "name": "dv运维 · 14 EverOS 官网会话采集 MBA",
+   "enabled": true
+  },
+  {
+   "id": "62d18b16-74ca-4c7f-a670-04197e7652fe",
+   "name": "ops · 09 内存与 CPU 负载清理 MBA",
+   "enabled": true
+  },
+  {
+   "id": "56357524-b0e2-4a0e-803f-077740ab8701",
+   "name": "ops · 10 内存与 CPU 日常清理 MBA",
+   "enabled": true
+  },
+  {
+   "id": "ed1add9a-bafe-4812-af5d-e78ca9bc59db",
+   "name": "ops · 11 Orca 工作区夜间清理 MBA",
+   "enabled": true
+  },
+  {
+   "id": "bd1c94e9-312f-48eb-a46c-9a62a0de6ba1",
+   "name": "ops · 24 未推送扫描 MBA",
+   "enabled": true
+  },
+  {
+   "id": "fc1dd06a-de08-40a2-9f26-19106f6cd3ba",
+   "name": "vllm · 27 EverOS 会话采集 MBA",
+   "enabled": true
+  },
+  {
+   "id": "5a9491fe-32f0-4a73-950d-58197a13b12e",
+   "name": "心月 · 13 EverOS 会话采集 MBA",
+   "enabled": true
+  },
+  {
+   "id": "03d57d73-a345-4b52-b081-4cb2f87ecd83",
+   "name": "心月 · PER-115 testing 日计数重置提醒（一次性）MBA",
+   "enabled": false
+  }
+ ]
+}

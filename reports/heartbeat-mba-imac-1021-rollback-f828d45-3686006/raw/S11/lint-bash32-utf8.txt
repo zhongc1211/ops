@@ -1,0 +1,4 @@
+find: scripts/orca-via-ssh: No such file or directory
+find: scripts/lock-held-alert: No such file or directory
+find: automations/heartbeat-1021/register.sh: No such file or directory
+lint-bash32-utf8: ok

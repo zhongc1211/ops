@@ -22,6 +22,9 @@ Orca 项目和工作区清单见 [orca-projects.md](orca-projects.md)。
 | [`scripts/stuck-check.sh`](scripts/stuck-check.sh) | 卡住工作检查（Orca 自动化每分钟 precheck，约 15 分钟扫一次），兜底补叫醒；也查 ops 主目录里的 agent 和没包 notify-run 的 agent；依赖 orca-wake 的 `sent/` 状态。扫描时长防护（单项超时、整轮时限、scan-history.json、scan_slow 告警，PER-82）见脚本开头，演练 `wake/tests/stuck-check-scan-guard.sh` |
 | [`scripts/agent-probe`](scripts/agent-probe) | 列出本机 agent 和 notify-run 进程，给卡住检查用 |
 | [`scripts/heartbeat-watch.sh`](scripts/heartbeat-watch.sh) | 盯另一台机器上卡住检查的心跳（自动任务运行记录里的 `@@HB`），太久没有就报警、恢复报一次 |
+| [`scripts/orca-via-ssh`](scripts/orca-via-ssh) | 经 ssh 在另一台机器上跑 `orca automations runs` 或 `orca automations list`（只放行这两个只读命令），给 heartbeat-watch 的 `HB_ORCA` 用：MBA 的 Orca 没有 iMac 的 environment |
+| [`scripts/lock-held-alert`](scripts/lock-held-alert) | 写在 heartbeat-watch 的 precheck 里 `lockf` 前面：退出码照 lockf 的交出去；锁一直被占着、连续跳过满 45 分钟时告警一次，锁放开后报恢复（B1，见 `automations/heartbeat-1021/README.md`） |
+| [`automations/heartbeat-1021/`](automations/heartbeat-1021/) | B1：盯 iMac ops · 01 的跨机看守从 box 挪到 MBA↔iMac。定义文件、注册脚本（默认 dry-run）、上线顺序、回滚和失败方式清单；演练 `wake/tests/heartbeat-watch-ssh.sh`，回退测试 `wake/tests/heartbeat-watch-ssh-rollback.sh` |
 | [`wake/bin/orca-agent-launch`](wake/bin/orca-agent-launch) | 统一的起 agent 入口，强制经 notify-run；带 `--issue` 时给 Linear 卡写负责 bot 和 due（`--eta`） |
 | [`wake/bin/agent-stop`](wake/bin/agent-stop) | 主动停 agent：先写「主动停止」标记再发信号，卡住检查看到标记就不报 agent_gone |
 | [`scripts/automation-reaper.sh`](scripts/automation-reaper.sh) | 关掉做完不退出的 Orca 自动任务 agent（已写结果、空闲超过 2 小时），没写结果的不动 |

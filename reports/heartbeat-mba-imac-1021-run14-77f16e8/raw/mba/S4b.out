@@ -1,0 +1,3 @@
+2026-10-22 10:25:31 SGT iMac ops · 01 卡住工作检查：运行记录查不到（JSONDecodeError），已连续 50 分钟
+2026-10-22 10:25:31 SGT iMac ops · 01 卡住工作检查：中断：连不上 本机 的 Orca，50 分钟查不到「iMac ops · 01 卡住工作检查」的运行记录（JSONDecodeError），心跳没法确认
+2026-10-22 10:25:31 SGT dry-run，将 POST 给 ops-system：{"task": "检查任务没在跑：iMac ops · 01 卡住工作检查", "worktree": "本机", "status": "stuck", "kind": "heartbeat_stale", "machine": "本机", "source": "heartbeat-watch", "note": "连不上 本机 的 Orca，50 分钟查不到「iMac ops · 01 卡住工作检查」的运行记录（JSONDecodeError），心跳没法确认。自动任务 id 439cd438-cffe-44dd-bd2b-23b07bfa3d61。去那台机器看 Orca 是否开着、自动任务是否启用、`orca automations runs --id 439cd438-cffe-44dd-bd2b-23b07bfa3d61` 最近几次的结果。", "bot": "ops-system"}

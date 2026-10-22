@@ -1,0 +1,53 @@
+{
+  "heartbeat-mba-imac-1021-run11-fab9219": {
+    "sha256_files": 992,
+    "results": {
+      "PASS": 71
+    },
+    "recorded_counts_match": true,
+    "canary_files": 0
+  },
+  "heartbeat-mba-imac-1021-run12-b72493e": {
+    "sha256_files": 992,
+    "results": {
+      "PASS": 70,
+      "FAIL": 1
+    },
+    "recorded_counts_match": true,
+    "canary_files": 0
+  },
+  "heartbeat-mba-imac-1021-run13-77f16e8": {
+    "sha256_files": 992,
+    "results": {
+      "PASS": 69,
+      "FAIL": 2
+    },
+    "recorded_counts_match": true,
+    "canary_files": 0
+  },
+  "heartbeat-mba-imac-1021-rollback-f828d45-3686006": {
+    "sha256_files": 990,
+    "results": {
+      "FAIL": 40,
+      "PASS": 31
+    },
+    "recorded_counts_match": true,
+    "rollback_consistent": 71,
+    "rollback_mismatches": [],
+    "canary_files": 0
+  },
+  "heartbeat-mba-imac-1021-rollback-f828d45-77f16e8": {
+    "sha256_files": 990,
+    "results": {
+      "FAIL": 40,
+      "PASS": 31
+    },
+    "recorded_counts_match": true,
+    "rollback_consistent": 71,
+    "rollback_mismatches": [],
+    "canary_files": 0
+  },
+  "heartbeat-mba-imac-1021-lha-drill": {
+    "sha256_files": 8
+  }
+}

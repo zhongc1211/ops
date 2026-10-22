@@ -1,0 +1,3 @@
+[-o][BatchMode=yes][-o][ConnectTimeout=10][imac][zsh -lc 'orca '\''automations'\'' '\''runs'\'' '\''--id'\'' '\''439cd438-cffe-44dd-bd2b-23b07bfa3d61'\'' '\''--json'\''']
+[-o][BatchMode=yes][-o][ConnectTimeout=10][imac][zsh -lc 'orca '\''automations'\'' '\''runs'\'' '\''--id'\'' '\''439cd438-cffe-44dd-bd2b-23b07bfa3d61'\'' '\''--json'\''']
+[-o][BatchMode=yes][-o][ConnectTimeout=10][imac][zsh -lc 'orca '\''automations'\'' '\''runs'\'' '\''--id'\'' '\''439cd438-cffe-44dd-bd2b-23b07bfa3d61'\'' '\''--json'\''']

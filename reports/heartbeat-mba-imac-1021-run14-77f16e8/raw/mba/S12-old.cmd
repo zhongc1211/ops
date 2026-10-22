@@ -1,0 +1,1 @@
+HB_ORCA='/var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.SboDn29124/orca-via-ssh.7ac1220' ORCA_SSH_HOST=imac '/var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.SboDn29124/heartbeat-watch.sh' --precheck --target 'iMac ops · 01 卡住工作检查||439cd438-cffe-44dd-bd2b-23b07bfa3d61|20'

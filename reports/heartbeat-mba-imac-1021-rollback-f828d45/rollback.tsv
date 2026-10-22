@@ -1,0 +1,46 @@
+编号	回退后期望	实际	和期望	为什么该挂	演练的「实际」一栏	raw/ 里的输出原文
+S0.diff	FAIL	FAIL	一致	base 和「本分支」是同一份，没有第 13 行的改动		（raw/S0/diff-base-new.txt 没有内容）
+S0.same	PASS	PASS	一致		base=0748576996d2 installed=0748576996d2 new=0748576996d2 	
+S0.bot	PASS	PASS	一致		BOT = "coding-assistant"	
+S1.c01	PASS	PASS	一致		iMac ops · 01 卡住工作检查：正常（最新心跳 10-21 19:58，2.0 分钟前，rc 1，上次扫描 11 分钟前）；退出 1；三版一致	
+S1.c02	PASS	PASS	一致		iMac ops · 01 卡住工作检查：中断：最新心跳在 10-21 19:30，已 30 分钟没有新的（阈值 20 分钟）：Orca 调度器停了或脚本没在跑；退出 1；三版一致	
+S1.c03	PASS	PASS	一致		iMac ops · 01 卡住工作检查：中断：心跳还在（10-21 19:59），但上次跑完的扫描在 10-21 19:20，已 40 分钟没跑完：扫描每次超时被杀或每次出错；退出 1；三版一致	
+S1.c04	PASS	PASS	一致		iMac ops · 01 卡住工作检查：中断：最近 101 次运行记录里没有心跳行（@@HB），最新一次运行在 10-21 19:57；退出 1；三版一致	
+S1.c05	PASS	PASS	一致		iMac ops · 01 卡住工作检查：已恢复，报过一次；退出 1；三版一致	
+S1.c06	PASS	PASS	一致		iMac ops · 01 卡住工作检查：运行记录查不到（JSONDecodeError），已连续 0 分钟；退出 1；三版一致	
+S1.c07	PASS	PASS	一致		iMac ops · 01 卡住工作检查：中断：连不上 本机 的 Orca，50 分钟查不到「iMac ops · 01 卡住工作检查」的运行记录（JSONDecodeError），心跳没法确认；退出 1；三版一致	
+S1.c08	PASS	PASS	一致		iMac ops · 01 卡住工作检查：运行记录查不到（JSONDecodeError），已连续 0 分钟；退出 1；三版一致	
+S1.c09	PASS	PASS	一致		iMac ops · 01 卡住工作检查：自动任务建好 5 分钟（不到 20 分钟），还没有心跳，这次不判断；退出 1；三版一致	
+S1.c10	PASS	PASS	一致		iMac ops · 01 卡住工作检查：还在中断（10-21 19:50 起已报过，不重复报）：最新心跳在 10-21 19:30，已 30 分钟没有新的（阈值 20 分钟）：Orca 调度器停了或脚本没在跑；退出 1；三版一致	
+S1.c11	PASS	PASS	一致		用法：heartbeat-watch.sh --target "名字|environment|自动任务 id|N 分钟" [--target ...] [--precheck] [--dry-run]；退出 2；三版一致	
+S1.c12	PASS	PASS	一致		iMac ops · 01 卡住工作检查：运行记录查不到（{"code": "automation_not_found", "message": "Automation not found: 439cd438-cffe-44dd-bd2b-23b07bfa3d61"}），已连续 0 分钟；退出 1；三版一致	
+S1.c13	PASS	PASS	一致		MBA ops · 29 心跳互查：中断：最新心跳在 10-21 19:30，已 30 分钟没有新的（阈值 20 分钟）：Orca 调度器停了或脚本没在跑；退出 1；三版一致	
+S1.c14	PASS	PASS	一致		iMac ops · 01 卡住工作检查：正常（最新心跳 10-21 19:58，2.0 分钟前，rc 1，上次扫描 11 分钟前）；退出 0；三版一致	
+S1.curl	PASS	PASS	一致		假 curl 被调用 0 次	
+S5.iMac	FAIL	FAIL	一致	没有 scripts/orca-via-ssh	0/14 条符合；不符： allow-list(退出 127，ssh 0 次) allow-runs(退出 127，ssh 0 次) create(退出 127，ssh 0 次) edit-id(退出 127，ssh 0 次) edit(退出 127，ssh 0 次) host-empty(退出 127，ssh 0 次) host-option(退出 127，ssh 0 次) host-unset(退出 127，ssh 0 次) no-args(退出 127，ssh 0 次) only-automations(退出 127，ssh 0 次) other-group(退出 127，ssh 0 次) remove(退出 127，ssh 0 次) run(退出 127，ssh 0 次) show(退出 127，ssh 0 次)；edit 那条：env: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-rollback.kFGNs0Sm47/tree/scripts/orca-via-ssh: No such file or directory	env: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-rollback.kFGNs0Sm47/tree/scripts/orca-via-ssh: No such file or directory
+S9.5c2d0575	PASS	PASS	一致		名字「ops · 29 心跳互查（盯 box ops · 29）」、超时 240、启用 True、precheck 等于 defs	
+S9.94e4b0bc	PASS	PASS	一致		名字「ops · 29 卡住检查心跳（盯 iMac ops · 01）」、rrule */5 * * * *、超时 240、grace 720、启用 True、precheck 等于 defs	
+S9.439cd438	PASS	PASS	一致		名字「ops · 01 卡住工作检查」、超时 600、启用 True、rrule * * * * *	
+S9.mba	PASS	PASS	一致		9 个自动任务，同名的 0 个，ops · 09：ops · 09 内存与 CPU 负载清理 MBA	
+S8.mba	FAIL	FAIL	一致	没有 register.sh	；退出 127	/bin/bash: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-rollback.kFGNs0Sm47/tree/automations/heartbeat-1021/register.sh: No such file or directory
+S8.imac-noid	FAIL	FAIL	一致	没有 register.sh	；退出 127	/bin/bash: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-rollback.kFGNs0Sm47/tree/automations/heartbeat-1021/register.sh: No such file or directory
+S8.parallel	FAIL	FAIL	一致	没有 register.sh	；退出 127	/bin/bash: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-rollback.kFGNs0Sm47/tree/automations/heartbeat-1021/register.sh: No such file or directory
+S8.final	FAIL	FAIL	一致	没有 register.sh	；退出 127	/bin/bash: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-rollback.kFGNs0Sm47/tree/automations/heartbeat-1021/register.sh: No such file or directory
+S8.rollback	FAIL	FAIL	一致	没有 register.sh	；退出 127	/bin/bash: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-rollback.kFGNs0Sm47/tree/automations/heartbeat-1021/register.sh: No such file or directory
+S8.refuse	FAIL	FAIL	一致	没有 register.sh	退出码不是 2 的： bad-id mba-stage box stage-novalue unknown-flag；假 orca 被调用 0 次；--apply 没跑（任务书禁止）	/bin/bash: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-rollback.kFGNs0Sm47/tree/automations/heartbeat-1021/register.sh: No such file or directory
+S6	PASS	PASS	一致		MBA ops · 09 内存与 CPU 负载清理：中断：最近 100 次运行记录里没有心跳行（@@HB），最新一次运行在 10-21 20:07；退出 0	
+S6b.parallel	FAIL	FAIL	一致	现网 5c2d0575 只有 box 目标，没有 MBA 目标	；退出 1；box 那行：box ops · 29 卡住检查心跳：正常（最新心跳 10-21 20:31，0.6 分钟前，rc 0，上次扫描 1 分钟前）；顺序不对（box）	box ops · 29 卡住检查心跳：正常（最新心跳 10-21 20:31，0.6 分钟前，rc 0，上次扫描 1 分钟前）
+S6b.box	PASS	PASS	一致		box ops · 29 卡住检查心跳：正常（最新心跳 10-21 20:31，0.6 分钟前，rc 0，上次扫描 1 分钟前）；退出 1；紧接着用 base 版跑现网 precheck（raw/S6b/before-base.*）：box ops · 29 卡住检查心跳：正常（最新心跳 10-21 20:31，0.7 分钟前，rc 0，上次扫描 1 分钟前）；现网 5c2d0575 最近几次对 box 的结论：20:30 box ops · 29 卡住检查心跳：正常（最新心跳 10-21 20:26，4.2 分钟前，rc 0，上次扫描 4 分钟前） 20:25 box ops · 29 卡住检查心跳：运行记录查不到（{"code": "remote_runtime_unavailable", "message": "Could not connect to the remote Orca runt 20:20 box ops · 29 卡住检查心跳：运行记录查不到（{"code": "remote_runtime_unavailable", "message": "Could not connect to the remote Orca runt 20:15 box ops · 29 卡住检查心跳：正常（最新心跳 10-21 20:10，4.7 分钟前，rc 0，上次扫描 5 分钟前） 	
+S6b.final	FAIL	FAIL	一致	现网 5c2d0575 只有 box 目标，没有 MBA 目标	；退出 1	box ops · 29 卡住检查心跳：正常（最新心跳 10-21 20:31，0.7 分钟前，rc 0，上次扫描 1 分钟前）
+S2.sh	FAIL	FAIL	一致	现网版 precheck 在 MBA 上读不到 iMac ops · 01：MBA 的 Orca 没有 environment iMac	；退出 1	iMac ops · 01 卡住工作检查：运行记录查不到（{"code": "invalid_argument", "message": "Unknown Orca server in --environment iMac: no paired Orca server is named or has id iMac.", "data": {"knownEnvironments": [], "knownSshTargets": [], "nextSteps），已连续 0 分钟
+S2.zsh	FAIL	FAIL	一致	现网版 precheck 在 MBA 上读不到 iMac ops · 01：MBA 的 Orca 没有 environment iMac	；退出 1	iMac ops · 01 卡住工作检查：运行记录查不到（{"code": "invalid_argument", "message": "Unknown Orca server in --environment iMac: no paired Orca server is named or has id iMac.", "data": {"knownEnvironments": [], "knownSshTargets": [], "nextSteps），已连续 0 分钟
+S3	PASS	PASS	一致		dry-run，将 POST 给 coding-assistant：{"task": "检查任务没在跑：iMac ops · 01 卡住工作检查", "worktree": "本机", "status": "stuck", "kind": "heartbeat_stale", "machine": "本机", "source": "heartbeat-watch", "note": "最新心跳在 10-21 20:02，已 30 分钟没有新的（阈值 20 分钟）：Orca 调…；退出 1	
+S4	FAIL	FAIL	一致	没有包装，heartbeat-watch 报的是 FileNotFoundError，不是 ssh 连不上的 JSONDecodeError	；退出 1；用时 16 秒	iMac ops · 01 卡住工作检查：运行记录查不到（FileNotFoundError），已连续 0 分钟
+S4.wrapper	FAIL	FAIL	一致	没有 scripts/orca-via-ssh	退出 127，stdout 0 字节，stderr：env: /var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.qZ6OVpSC63/orca-via-ssh: No such file or directory	env: /var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.qZ6OVpSC63/orca-via-ssh: No such file or directory
+S4b	FAIL	FAIL	一致	没有包装，heartbeat-watch 报的是 FileNotFoundError，不是 ssh 连不上的 JSONDecodeError	；退出 1；state.json 没被改	iMac ops · 01 卡住工作检查：运行记录查不到（FileNotFoundError），已连续 50 分钟 ⏎ iMac ops · 01 卡住工作检查：中断：连不上 本机 的 Orca，50 分钟查不到「iMac ops · 01 卡住工作检查」的运行记录（FileNotFoundError），心跳没法确认
+S5.MBA	FAIL	FAIL	一致	没有 scripts/orca-via-ssh	0/14 条符合；不符： allow-list(退出 127，ssh 0 次) allow-runs(退出 127，ssh 0 次) create(退出 127，ssh 0 次) edit-id(退出 127，ssh 0 次) edit(退出 127，ssh 0 次) host-empty(退出 127，ssh 0 次) host-option(退出 127，ssh 0 次) host-unset(退出 127，ssh 0 次) no-args(退出 127，ssh 0 次) only-automations(退出 127，ssh 0 次) other-group(退出 127，ssh 0 次) remove(退出 127，ssh 0 次) run(退出 127，ssh 0 次) show(退出 127，ssh 0 次)；edit 那条：env: /var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.qZ6OVpSC63/orca-via-ssh: No such file or directory	env: /var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.qZ6OVpSC63/orca-via-ssh: No such file or directory
+S5b	FAIL	FAIL	一致	没有 scripts/orca-via-ssh	stdout 不是 JSON；ok=-；orca 收到的值不是原样；error.message：；退出 127	env: /var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.qZ6OVpSC63/orca-via-ssh: No such file or directory
+S7	FAIL	FAIL	一致	没有 scripts/orca-via-ssh	runs 退出 127、None 条运行记录、None 行 @@HB，最新心跳 None 分钟前（rc None）；list 退出 127、None 个自动任务，439cd438「None」createdAt None	env: /var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.qZ6OVpSC63/orca-via-ssh: No such file or directory
+S10.MBA	PASS	PASS	一致		没有 ~/.orca-state/bin/heartbeat-watch.sh 没有 ~/.orca-state/heartbeat-watch 没有 ~/orca/workspaces/ops/scripts/orca-via-ssh 主检出 HEAD f828d452345f16898d6c9d133984e170d98d9f83 ；状态文件：s4b/state/state.json ；临时目录删掉了	
+S10.iMac	PASS	PASS	一致		已装版 a36d3dc8a88702a8 → a36d3dc8a88702a8；有 ~/.orca-state/bin/heartbeat-watch.sh 有 ~/.orca-state/heartbeat-watch 没有 ~/orca/workspaces/ops/scripts/orca-via-ssh 主检出 HEAD f828d452345f16898d6c9d133984e170d98d9f83 ；状态文件 9 个	
+S11	FAIL	FAIL	一致	orca-via-ssh、register.sh 不存在	bash -n 290 字节输出；lint 3 行；shellcheck 2 行；最后一步：…	/bin/bash: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-rollback.kFGNs0Sm47/tree/scripts/orca-via-ssh: No such file or directory ⏎ /bin/bash: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-rollback.kFGNs0Sm47/tree/automations/heartbeat-1021/register.sh: No such file or directory

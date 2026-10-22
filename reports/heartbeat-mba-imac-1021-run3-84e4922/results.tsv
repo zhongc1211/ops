@@ -1,0 +1,45 @@
+S0.diff	PASS	和 base 比只改了第 13 行（一处 13c13）	13c13 
+S0.same	PASS	base installed new 三版的 Python 部分、去掉 # 注释行后的全文 sha256 都一样	base=0748576996d2 installed=0748576996d2 new=0748576996d2 
+S0.bot	PASS	第 33 行仍是 BOT = "coding-assistant"	BOT = "coding-assistant"
+S1.c01	PASS	正常：心跳 2 分钟前，不发；三版一致；退出 1	iMac ops · 01 卡住工作检查：正常（最新心跳 10-21 19:58，2.0 分钟前，rc 1，上次扫描 11 分钟前）；退出 1；三版一致
+S1.c02	PASS	心跳过期 30 分钟：报 heartbeat_stale 给 coding-assistant；三版一致；退出 1	iMac ops · 01 卡住工作检查：中断：最新心跳在 10-21 19:30，已 30 分钟没有新的（阈值 20 分钟）：Orca 调度器停了或脚本没在跑；退出 1；三版一致
+S1.c03	PASS	心跳还在、扫描 40 分钟没跑完：报 heartbeat_stale；三版一致；退出 1	iMac ops · 01 卡住工作检查：中断：心跳还在（10-21 19:59），但上次跑完的扫描在 10-21 19:20，已 40 分钟没跑完：扫描每次超时被杀或每次出错；退出 1；三版一致
+S1.c04	PASS	运行记录里没有 @@HB：报 heartbeat_stale；三版一致；退出 1	iMac ops · 01 卡住工作检查：中断：最近 101 次运行记录里没有心跳行（@@HB），最新一次运行在 10-21 19:57；退出 1；三版一致
+S1.c05	PASS	之前报过中断、现在心跳正常：报一次 heartbeat_recovered；三版一致；退出 1	iMac ops · 01 卡住工作检查：已恢复，报过一次；退出 1；三版一致
+S1.c06	PASS	连不上（ssh 退出 255、stdout 空）：记「查不到」，45 分钟内不报；三版一致；退出 1	iMac ops · 01 卡住工作检查：运行记录查不到（JSONDecodeError），已连续 0 分钟；退出 1；三版一致
+S1.c07	PASS	50 分钟前起就查不到：报 heartbeat_stale「连不上 本机 的 Orca」；三版一致；退出 1	iMac ops · 01 卡住工作检查：中断：连不上 本机 的 Orca，50 分钟查不到「iMac ops · 01 卡住工作检查」的运行记录（JSONDecodeError），心跳没法确认；退出 1；三版一致
+S1.c08	PASS	输出不是 JSON：记「查不到」，不报；三版一致；退出 1	iMac ops · 01 卡住工作检查：运行记录查不到（JSONDecodeError），已连续 0 分钟；退出 1；三版一致
+S1.c09	PASS	新建 5 分钟、还没有运行记录：不判断；三版一致；退出 1	iMac ops · 01 卡住工作检查：自动任务建好 5 分钟（不到 20 分钟），还没有心跳，这次不判断；退出 1；三版一致
+S1.c10	PASS	还在中断、已经报过：不重复报；三版一致；退出 1	iMac ops · 01 卡住工作检查：还在中断（10-21 19:50 起已报过，不重复报）：最新心跳在 10-21 19:30，已 30 分钟没有新的（阈值 20 分钟）：Orca 调度器停了或脚本没在跑；退出 1；三版一致
+S1.c11	PASS	目标写错：用法错误；三版一致；退出 2	用法：heartbeat-watch.sh --target "名字|environment|自动任务 id|N 分钟" [--target ...] [--precheck] [--dry-run]；退出 2；三版一致
+S1.c12	PASS	orca 回 ok:false：记「查不到」，不报；三版一致；退出 1	iMac ops · 01 卡住工作检查：运行记录查不到（{"code": "automation_not_found", "message": "Automation not found: 439cd438-cffe-44dd-bd2b-23b07bfa3d61"}），已连续 0 分钟；退出 1；三版一致
+S1.c13	PASS	两个目标（5c2d0575 并行版的样子）：box 正常、MBA 那条过期只报 MBA；三版一致；退出 1	MBA ops · 29 心跳互查：中断：最新心跳在 10-21 19:30，已 30 分钟没有新的（阈值 20 分钟）：Orca 调度器停了或脚本没在跑；退出 1；三版一致
+S1.c14	PASS	不带 --precheck、正常：退出 0；三版一致；退出 0	iMac ops · 01 卡住工作检查：正常（最新心跳 10-21 19:58，2.0 分钟前，rc 1，上次扫描 11 分钟前）；退出 0；三版一致
+S1.curl	PASS	S1 全部 --dry-run：PATH 里的假 curl 一次都没被调用	假 curl 被调用 0 次
+S5.iMac	PASS	iMac：edit / run / create / remove / show、别的命令组、参数不全、ORCA_SSH_HOST 没设 / 空 / 以 - 开头，共 12 条都退出 2、假 ssh 0 次；放行的 runs、list 两条对照假 ssh 各记到 1 次；输出里没有标记环境变量	14/14 条符合；edit 那条：orca-via-ssh: 只放行 automations runs 和 automations list，拒绝：automations edit
+S9.5c2d0575	PASS	iMac 5c2d0575 现网的名字、precheck、超时和 defs.json 的 before 一样（回滚就还原成这个），启用中	名字「ops · 29 心跳互查（盯 box ops · 29）」、超时 240、启用 True、precheck 等于 defs
+S9.94e4b0bc	PASS	box 94e4b0bc（经 grok-bot）现网的名字、precheck、超时 240 和 defs.json 一样，启用中；每 5 分钟、grace 720（MBA 新任务照抄）	名字「ops · 29 卡住检查心跳（盯 iMac ops · 01）」、rrule */5 * * * *、超时 240、grace 720、启用 True、precheck 等于 defs
+S9.439cd438	PASS	iMac ops · 01 439cd438 启用中，名字和 precheck 超时（600）和 defs.json 一样	名字「ops · 01 卡住工作检查」、超时 600、启用 True、rrule * * * * *
+S9.mba	PASS	MBA 上还没有「ops · 29 心跳互查 MBA（盯 iMac ops · 01）」（本 PR 没建任务）；S6 用的 ops · 09 62d18b16 在	9 个自动任务，同名的 0 个，ops · 09：ops · 09 内存与 CPU 负载清理 MBA
+S8.mba	PASS	mba：create 带 --disabled、--fresh-session、每 5 分钟、超时 240、grace 720，precheck 是 defs 原文；退出 0	orca automations create --name 'ops · 29 心跳互查 MBA（盯 iMac ops · 01）' --trigger '*/5 * * * *' --timezone Asia/Singapore --provider claude '--extra-agent-args=--model haiku --effort low' --workspace path:/Users/jiawenwang/orca/workspaces/ops -…；退出 0
+S8.imac-noid	PASS	imac 没给 --mba-id：命令里是占位，并提示不能照抄；退出 0	# 没给 --mba-id：下面的命令里是占位「<MBA 新任务 id>」，不能照抄执行；退出 0
+S8.parallel	PASS	parallel：保留 box 目标在前、加 MBA 目标，不改名；退出 0	orca automations edit 5c2d0575-dddc-4d5c-8f73-e47b26ea9a11 --precheck '$HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target "box ops · 29 卡住检查心跳|grok-bot|94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80|20" --target "MBA ops · 29 心跳互查|mba|11111…；退出 0
+S8.final	PASS	final：只剩 MBA 目标，改名「盯 MBA ops · 29」；退出 0	orca automations edit 5c2d0575-dddc-4d5c-8f73-e47b26ea9a11 --name 'ops · 29 心跳互查（盯 MBA ops · 29）' --precheck '$HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target "MBA ops · 29 心跳互查|mba|11111111-2222-3333-4444-555555555555|20"' --pr…；退出 0
+S8.rollback	PASS	rollback：还原成现网 5c2d0575 的名字和 precheck（S9 读到的原文）；退出 0	orca automations edit 5c2d0575-dddc-4d5c-8f73-e47b26ea9a11 --name 'ops · 29 心跳互查（盯 box ops · 29）' --precheck '$HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target "box ops · 29 卡住检查心跳|grok-bot|94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80|20…；退出 0
+S8.refuse	PASS	参数错（id 不完整、mba 带 --stage、机器名不对、--stage 没值、不认识的参数）都退出 2；整个 S8 假 orca 0 次调用（dry-run 不调 orca）	退出码不是 2 的：没有；假 orca 被调用 0 次；--apply 没跑（任务书禁止）
+S6	PASS	iMac 经 environment mba 读到 MBA ops · 09 的运行记录：不是「查不到」，有运行记录和最新一次运行时间（它不打 @@HB，所以结论是没有心跳行）；退出 0	MBA ops · 09 内存与 CPU 负载清理：中断：最近 100 次运行记录里没有心跳行（@@HB），最新一次运行在 10-21 20:07；退出 0
+S6b.parallel	PASS	5c2d0575 并行版 precheck（defs 原文，MBA 新任务 id 用 ops · 09 代替）：box 目标在前、出一行结论，MBA 目标读到运行记录，没有脚本出错；退出 1	MBA ops · 29 心跳互查：中断：最近 100 次运行记录里没有心跳行（@@HB），最新一次运行在 10-21 20:07；退出 1；box 那行：box ops · 29 卡住检查心跳：正常（最新心跳 10-21 20:26，4.0 分钟前，rc 0，上次扫描 4 分钟前）
+S6b.box	PASS	并行版里的 box 目标正常。要 iMac 到 box 的 grok-bot 隧道当时是通的；没过时对照同一时刻 base 版跑现网 precheck 的结论和现网 5c2d0575 的运行记录（都在实际一栏）；退出 1	box ops · 29 卡住检查心跳：正常（最新心跳 10-21 20:26，4.0 分钟前，rc 0，上次扫描 4 分钟前）；退出 1；紧接着用 base 版跑现网 precheck（raw/S6b/before-base.*）：box ops · 29 卡住检查心跳：正常（最新心跳 10-21 20:26，4.1 分钟前，rc 0，上次扫描 4 分钟前）；现网 5c2d0575 最近几次对 box 的结论：20:25 box ops · 29 卡住检查心跳：运行记录查不到（{"code": "remote_runtime_unavailable", "message": "Could not connect to the remote Orca runt 20:20 box ops · 29 卡住检查心跳：运行记录查不到（{"code": "remote_runtime_unavailable", "message": "Could not connect to the remote Orca runt 20:15 box ops · 29 卡住检查心跳：正常（最新心跳 10-21 20:10，4.7 分钟前，rc 0，上次扫描 5 分钟前） 20:10 box ops · 29 卡住检查心跳：正常（最新心跳 10-21 20:07，2.7 分钟前，rc 0，上次扫描 3 分钟前） 
+S6b.final	PASS	5c2d0575 最终版 precheck：只查 MBA 目标，读到运行记录；退出 1	MBA ops · 29 心跳互查：中断：最近 100 次运行记录里没有心跳行（@@HB），最新一次运行在 10-21 20:07；退出 1
+S2.sh	PASS	MBA 上经 /bin/sh 跑 defs 原文（env -i 最少环境，只换两个脚本路径，加 --dry-run）：经 ssh 读 iMac ops · 01，结果正常；退出 1	iMac ops · 01 卡住工作检查：正常（最新心跳 10-21 20:30，0.0 分钟前，rc 1，上次扫描 5 分钟前）；退出 1
+S2.zsh	PASS	MBA 上经 /bin/zsh 跑 defs 原文（env -i 最少环境，只换两个脚本路径，加 --dry-run）：经 ssh 读 iMac ops · 01，结果正常；退出 1	iMac ops · 01 卡住工作检查：正常（最新心跳 10-21 20:30，0.1 分钟前，rc 1，上次扫描 5 分钟前）；退出 1
+S3	PASS	MBA 上回放 30 分钟前的心跳：出 heartbeat_stale 待发内容，收件人 coding-assistant（STUCK_FORCE_BOT 没设）；退出 1	dry-run，将 POST 给 coding-assistant：{"task": "检查任务没在跑：iMac ops · 01 卡住工作检查", "worktree": "本机", "status": "stuck", "kind": "heartbeat_stale", "machine": "本机", "source": "heartbeat-watch", "note": "最新心跳在 10-21 20:00，已 30 分钟没有新的（阈值 20 分钟）：Orca 调…；退出 1
+S4	PASS	ORCA_SSH_HOST=no-such-host.invalid：记「运行记录查不到」、不报、不算脚本出错，--precheck 退出 1；退出 1	iMac ops · 01 卡住工作检查：运行记录查不到（JSONDecodeError），已连续 0 分钟；退出 1；用时 16 秒
+S4.wrapper	PASS	包装连不上时退出 255（ssh 的）、stdout 空	退出 255，stdout 0 字节，stderr：ssh: Could not resolve hostname no-such-host.invalid: nodename nor servname provided, or not known
+S4b	PASS	state 里记着 50 分钟前起查不到：报 heartbeat_stale「连不上 本机 的 Orca」给 coding-assistant；dry-run 不改 state；退出 1	iMac ops · 01 卡住工作检查：中断：连不上 本机 的 Orca，50 分钟查不到「iMac ops · 01 卡住工作检查」的运行记录（JSONDecodeError），心跳没法确认；退出 1；state.json 没被改
+S5.MBA	PASS	MBA：edit / run / create / remove / show、别的命令组、参数不全、ORCA_SSH_HOST 没设 / 空 / 以 - 开头，共 12 条都退出 2、假 ssh 0 次；放行的 runs、list 两条对照假 ssh 各记到 1 次；输出里没有标记环境变量	14/14 条符合；edit 那条：orca-via-ssh: 只放行 automations runs 和 automations list，拒绝：automations edit
+S5b	PASS	MBA 经包装真 ssh 到 iMac：--environment 的值带单双引号、$(…)、反引号、;、&&、*、反斜杠、$HOME 变量、中文、换行，orca 的报错里原样带回（没被展开或执行），stdout 只有一个 JSON	stdout 是一个 JSON；ok=False；orca 收到的值是原样；error.message：Unknown Orca server in --environment hb'drill "q" $(echo HBX) `echo HBY` ; echo HBZ && echo HBW * \ $HOME 中文 · |⏎第二行: no paired Orca server is named or has id hb'drill "q" $(echo HBX) `echo HBY` ; ech；退出 1
+S7	PASS	MBA 上直接跑 orca-via-ssh automations runs / list：ok，读到 ops · 01 的运行记录和 @@HB，list 里有 439cd438 和 createdAt	runs 退出 0、101 条运行记录、101 行 @@HB，最新心跳 0.8 分钟前（rc 1）；list 退出 0、16 个自动任务，439cd438「ops · 01 卡住工作检查」createdAt 1791804522369
+S10.MBA	PASS	MBA 演练前后：~/.orca-state/bin/heartbeat-watch.sh、~/.orca-state/heartbeat-watch、主检出的 scripts/orca-via-ssh 都没有，主检出 HEAD 不变；临时状态目录里只有 S4b 种的 state.json；临时目录删掉了	没有 ~/.orca-state/bin/heartbeat-watch.sh 没有 ~/.orca-state/heartbeat-watch 没有 ~/orca/workspaces/ops/scripts/orca-via-ssh 主检出 HEAD f828d452345f16898d6c9d133984e170d98d9f83 ；状态文件：s4b/state/state.json ；临时目录删掉了
+S10.iMac	PASS	iMac 演练前后：~/.orca-state/bin/heartbeat-watch.sh 的 sha256 不变，主检出没有 scripts/orca-via-ssh、HEAD 不变；所有临时状态目录里只有种进去的 state.json，内容没变（dry-run 不写 state.json、watch.log、heartbeat.json）	已装版 a36d3dc8a88702a8 → a36d3dc8a88702a8；有 ~/.orca-state/bin/heartbeat-watch.sh 有 ~/.orca-state/heartbeat-watch 没有 ~/orca/workspaces/ops/scripts/orca-via-ssh 主检出 HEAD f828d452345f16898d6c9d133984e170d98d9f83 ；状态文件 9 个
+S11	PASS	4 个 shell 文件 /bin/bash 3.2 -n、lint-bash32-utf8、shellcheck -S warning 都过；2 个 Python 文件能解析；orca-via-ssh 最后一步是 exec ssh（heartbeat-watch 超时杀的就是 ssh，不留孤儿）	bash -n 0 字节输出；lint 1 行；shellcheck 0 行；最后一步：exec ssh -o BatchMode=yes -o ConnectTime…

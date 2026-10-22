@@ -1,0 +1,9 @@
+base 整个文件                    a408563a6a3cd0d0d893541a55b3140fa084f46756169cae9bec2f70ccc7eb86
+base Python 部分（BOT 换成占位）  fc59716e01d29b0e69d278d12e23e188d535f09e6b68616649a1abb188aaac40
+base 去掉注释行（BOT 换成占位）   bcb33bc08af686dd4144eb99f8b1b88372b2c82e5f196a902f028feabca42dea
+installed 整个文件                    a36d3dc8a88702a825e25ceb55e556450e5deb5649b2a051e34d910cd0aef678
+installed Python 部分（BOT 换成占位）  fc59716e01d29b0e69d278d12e23e188d535f09e6b68616649a1abb188aaac40
+installed 去掉注释行（BOT 换成占位）   bcb33bc08af686dd4144eb99f8b1b88372b2c82e5f196a902f028feabca42dea
+new 整个文件                    f7fd401cc68536d25287ffad1d8847dad0696b642f932f7ccb8b0acebb18aac2
+new Python 部分（BOT 换成占位）  fc59716e01d29b0e69d278d12e23e188d535f09e6b68616649a1abb188aaac40
+new 去掉注释行（BOT 换成占位）   bcb33bc08af686dd4144eb99f8b1b88372b2c82e5f196a902f028feabca42dea

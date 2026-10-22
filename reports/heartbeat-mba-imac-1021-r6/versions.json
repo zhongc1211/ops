@@ -1,0 +1,13 @@
+{
+  "tested_commit": "77f16e848317d0ee4692eddb0680fef65f2bdb62",
+  "source_sha256": {
+    "scripts/lock-held-alert": "f1852259fcd57cf2e7b5c1be538a1c0638b54b7948dd377d9963671960f98cc5",
+    "scripts/heartbeat-watch.sh": "f7fd401cc68536d25287ffad1d8847dad0696b642f932f7ccb8b0acebb18aac2",
+    "scripts/orca-via-ssh": "6543a55523f760007a3b28c9f628db6af2a07eeda90ee405fe5da6458bec9efc",
+    "automations/heartbeat-1021/defs.json": "84fdedfe47f001cf5480b85f1a4519154f519acb2616aa1ab4863a300012ddb4",
+    "wake/tests/heartbeat-watch-ssh.sh": "a9c496b2d76258e4518c965ccf0182fe75c63dc9e67a68b955f49699f83e12aa",
+    "wake/tests/heartbeat-watch-ssh-rollback.sh": "4e481959ec768ad927999773d142ce25cca8ed712c5612fde693b8eeb1cd27d8"
+  },
+  "takeover_head": "90c6b90a33f3232970e7ef517655740248d84de1",
+  "base": "f828d452345f16898d6c9d133984e170d98d9f83"
+}

@@ -1,0 +1,4 @@
+13c13
+< # 部署：box 上的自动任务盯 iMac 的「ops · 01 卡住工作检查」；iMac 上的自动任务盯 box 上这个脚本自己（它每次也打 @@HB）。
+---
+> # 部署：MBA 的自动任务盯 iMac 的「ops · 01 卡住工作检查」（HB_ORCA=scripts/orca-via-ssh 经 ssh 读 iMac 的运行记录）；iMac 的自动任务盯 MBA 这条（它每次也打 @@HB）。上线顺序见 automations/heartbeat-1021/。

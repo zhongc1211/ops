@@ -1,0 +1,3 @@
+/bin/bash: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-rollback.GNaRn2DxAI/tree/scripts/orca-via-ssh: No such file or directory
+/bin/bash: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-rollback.GNaRn2DxAI/tree/scripts/lock-held-alert: No such file or directory
+/bin/bash: /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-rollback.GNaRn2DxAI/tree/automations/heartbeat-1021/register.sh: No such file or directory
