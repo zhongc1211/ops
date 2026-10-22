@@ -400,3 +400,9 @@ base 还是 `f828d452`，回退的做法不变。新加 5 项，另有 2 项从�
 | A68 | 补发时 stdout 的写法定下来（A55）：被挡的一轮补发出去是「补发了：POST heartbeat_recovered → ops-system → 200」，没发出去是「补发也没发出去（POST heartbeat_recovered → ops-system → 500）」；拿到锁的一轮补发是「<拿到锁的时间> 拿到锁时「已恢复」没发出去，这次补发，已报恢复：POST heartbeat_recovered → ops-system → 200」，「已报恢复：POST …」这一段和不是补发时一样 | 演练按这些原文核对 |
 
 写完 lock-held-alert 以后，在临时目录用假 lockf、假 curl 照 rf、old 的顺序和复审的 L1–L7 各跑过一次（自查，只看逻辑，不叫 E2E，输出不进报告）：rf 每轮之后假 curl 累计 1、2、3、4、5、6 次，old 累计 0、0、1、1、2、2、3 次，L1、L3–L6 PASS。
+
+### 第六轮续跑：耗时计时器（修正前记录）
+
+- C24：3686006 的最终整轮为70 PASS、1 FAIL（S12.old）。原文：「超时 240 秒，超时被杀（timedOut），用时 239.9 秒；@@HB 没有；状态目录里什么都没有；ssh 起了 3 次，相邻开始隔 97、97 秒」。产物 run12-b72493e/raw/mba/S12-old.orca.json 的 start=1792632631.6496232、end=1792632871.588238。当前模拟预检起动器用 time.time() 的墙钟差报告durationS，而 subprocess超时使用单调时钟；墙钟差不适合验证等待耗时。本次未记录单调时钟，具体校时原因未知。
+- 同一用例在 base f828d452、测试取自3686006的整轮回退中为PASS，timedOut=true、durationS=240.1；输出在 rollback-f828d45-3686006/raw/mba/S12-old.orca.json。不把本次239.9当成正确值或挑重跑。
+- A69（先定期望再改起动器）：保留240秒超时和现有durationS>=240断言；start/end继续记录墙钟，便于跨进程比对，durationS改由time.monotonic()计算，并在原始JSON额外记durationClock=monotonic。SIGTERM后2秒再KILL的等待也用单调时钟。S12/S12.old/S13/S14/S15场景、断言、信号范围和阈值不变。旧失败产物保留，新提交重新整轮正向与对base的回退，不只重跑S12.old。
