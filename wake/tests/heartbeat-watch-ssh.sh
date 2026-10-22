@@ -107,28 +107,30 @@ def killpg(pg, sig):
 
 
 start = time.time()
+started = time.monotonic()  # 耗时不用会被校时调整的墙钟（FAILURE-MODES C24/A69）
 p = subprocess.Popen(["/bin/sh", "-c", cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
 timed_out = False
 try:
     out, err = p.communicate(timeout=limit)
-    end = time.time()
+    end, ended = time.time(), time.monotonic()
 except subprocess.TimeoutExpired:
     timed_out = True
     killpg(p.pid, signal.SIGTERM)
-    kill_at = time.time() + 2
+    kill_at = time.monotonic() + 2
     try:
         out, err = p.communicate(timeout=2)
-        end = time.time()
-        time.sleep(max(0.0, kill_at - time.time()))
+        end, ended = time.time(), time.monotonic()
+        time.sleep(max(0.0, kill_at - time.monotonic()))
         killpg(p.pid, signal.SIGKILL)
     except subprocess.TimeoutExpired:
         killpg(p.pid, signal.SIGKILL)
         out, err = p.communicate(timeout=10)
-        end = time.time()
+        end, ended = time.time(), time.monotonic()
 open(prefix + ".out", "wb").write(out)
 open(prefix + ".err", "wb").write(err)
 json.dump({"timeoutSeconds": limit, "timedOut": timed_out, "exitCode": None if timed_out else p.returncode,
-           "durationS": round(end - start, 1), "start": start, "end": end}, open(prefix + ".orca.json", "w"))
+           "durationS": round(ended - started, 1), "durationClock": "monotonic", "start": start, "end": end},
+          open(prefix + ".orca.json", "w"))
 PY
 }
 
