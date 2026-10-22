@@ -324,3 +324,69 @@ base 还是 `f828d452`，回退的做法不变。base 的 precheck 没有 lockf�
 - 已有的 56 项期望不变。S13 B 的 stdout 现在有 lock-held-alert 的一行，base 上没有这一层，S13 照样按「回退测试的期望（第五轮补）」挂。
 
 共 66 项，新代码上 66 项都该过。新加的 6 项该挂的，演练「实际」一栏要对得上上面的原因，对不上算不一致。
+
+## 第六轮：dr eggbot 复审 6f6266ca 以后（2026-10-22 08:1x，写代码之前）
+
+dr eggbot 复审 `6f6266ca`（box 上 `/workspace/ops/reports/pr75-review-dreggbot-1021.md`「## 复审 @6f6266ca」，复现演练 `r3/lha-drill.sh`）
+和 ops bot 的第六轮任务书要改 6 处：lock-held-alert 漏报（L3）和误报（L4）；最终版也套锁；PR 正文删两行；收件人按 Zack 01:46 定的 D2
+改成 ops-system；README 卡 ② 的锁验证改成必做。可选的一条（`5c2d0575` 碰到 71、73 也按 45 分钟报）这次不做，原因见 A65。
+iMac 的 Orca 已由 ops 升到 1.4.237。上面几张表不改，新的写在这里。
+
+### 新查到的事实
+
+| # | 事实 | 怎么查到的 | 影响 |
+|---|---|---|---|
+| F38 | 复审的 L3、L4 在 iMac 上复现了。复审脚本原样存下，改三处才能在 macOS 上跑：仓库路径和 commit 改成参数，输出目录按 commit 分开，假 curl 存请求体的文件名不用 `date +%s%N`（BSD `date` 没有 `%N`）。对 `6e144e16` 的 lock-held-alert：L1、L5、L6 PASS，L3、L4 FAIL，L2、L7 只记不判，和复审一样。原因：拿到锁的一轮「已恢复」没发出去时只留下 `{"alerted": …}`（第 183 行）；下一轮被挡时，`skipped` 把它当第一次跳过，但见到 alerted 就写「已报过，不重复报」（第 140–141 行），之后一直不报，直到哪一轮拿到锁、把「已恢复」发出去。`skipped` 只看 first（第 134 行），last 记了从来不用：几天前留下的状态文件，第一次被挡就按几天算，马上报警 | 复审脚本（假 lockf、假 curl，只在临时目录里跑）；读代码 | 必改 1、2（A55–A57） |
+| F39 | 会留下旧状态文件的情况：任务停用、机器睡着或 Orca 没跑之前，最后一轮是被挡的；回滚到不带锁的版本以后，状态文件还在锁目录里，之后再改回来；锁卡住、报了警，中间停了很久，回来时锁又被占着 | 复审 L4；读代码 | 被挡时看上一次跳过（last）离现在多久，超过 3 个间隔就当新的一串（A56、A57） |
+| F40 | 收件人：Zack 10-22 01:46 定的 D2，ops 的告警发给 ops-system。现在 heartbeat-watch.sh 和 lock-held-alert 都在第 33 行写死 `BOT = "coding-assistant"`。两台的 `~/.config/grokbot/webhooks/` 下 `ops-system.env`、`coding-assistant.env` 都在（10-22 07:5x 只用 `test -f` 看在不在，没读内容） | 任务书；`test -f` | 两个脚本都改成 ops-system，本 PR 一起改，每个脚本只改这一行和讲收件人的注释。改不到的：box 94e4b0bc 用 box 自己装的那份，到卡 ④ 停用以前一直发 coding-assistant；iMac 现网 `5c2d0575` 用的已装版，到卡 ③ 换成本分支这版以前也发 coding-assistant。所以并行那一晚，box 那条发 coding-assistant，iMac、MBA 的发 ops-system（A62） |
+| F41 | 最终版的时间：一个目标，heartbeat-watch 最坏 286 秒（F9），加上起 lockf、lock-held-alert 约 4 秒（defs 里 MBA 那条的算法），约 290 秒，超时 300。拿到锁的一轮如果之前报过锁被占着，heartbeat-watch 跑完还要发「已恢复」，curl 最多 20 秒（lock-held-alert 第 124 行），最坏约 310 秒，过了 300。MBA 新任务 296 + 4 + 20 = 320，小于 330；并行版 572 + 4 + 20 = 596，小于 600 | F9；defs.json；lock-held-alert | 复审定了最终版超时 300 不改。过了 300 时 Orca 给整个进程组发信号，「已恢复」可能没发完，那一次记成超时。lock-held-alert 改成先把「拿到过锁、「已恢复」还没发」写进状态文件再发（A55），被杀了下一轮也会补发。写进已知限制（A64） |
+| F42 | Orca 1.4.237 怎么记退出 75：复审读了 1.4.237（两台现在都是这一版），预检不通过一律 `updateRun(status: skipped_precheck)`，不按退出码分。75 在真机上的样子挪到卡 ② 去看，不挡合并 | 复审原文 | README 卡 ② 的锁验证改成必做（A63） |
+| F43 | 仓库里还写着 heartbeat-watch 发 Coding助手 的地方：`automations/heartbeat-1021/prompts/noop.prompt.md`（本 PR 新加的 MBA 任务提示词）；`wake/tla/README.md`（P3 等几条性质的前提；它的部署那行也还没写 lock-held-alert）；`docs/handover/ops-system-HANDOFF.md` 第 50 行（交接单，原样收录） | `git grep` | noop.prompt.md 本 PR 一起改。wake/tla/README.md 留给 B10（复审已经说了 B10 改部署那行）；交接单原样收录，不改。两处写进 PR 的后续 |
+
+### 要防的失败方式
+
+| # | 失败方式 | 场景 | 期望 |
+|---|---|---|---|
+| A55 | 「已恢复」没发出去以后，锁又被占着，满 45 分钟也不报（L3） | S15.MBA.rf、S15.iMac.rf | lock-held-alert：拿到锁的一轮要发「已恢复」时，先把状态文件写成 `{"alerted": 报警的时间, "recovered": 这一轮拿到锁的时间}`（没有 first），再发；发出去了删掉状态文件。之后拿到锁的一轮：照旧发「已恢复」，note 写明是补发。之后被挡的一轮：先补发一次「已恢复」（`kind` `heartbeat_recovered`，note 写明哪一次拿到过锁、当时没发出去、现在锁又被占着、从这一轮重新计时），再把这一轮当新一串的第 1 次跳过；补发出去了，状态文件里不再有 alerted；补发也没发出去，alerted 留着，不挡新的一串（A57），下一次拿到锁再发。stdout 还是只有一行。演练外部用 `lockf … sleep` 拿住锁，不设阈值和间隔（默认 45、15 分钟），状态文件由演练写或改，假 curl 回的码由 `S15_CURL_HTTP` 定（默认 200）：(1) rf-a：状态文件写成「46 分钟前起、已跳过 9 轮、最后一次 5 分钟前」，被挡：退出 75，「已连续跳过 10 轮」，报警 → 200，假 curl 1 次，状态文件有 alerted。(2) 放开锁，rf-b（回 500）：拿到锁，真的 ssh / orca 跑完，退出 1，stdout 有「锁拿到了，之前连续跳过 10 轮」和「「已恢复」没发出去（POST heartbeat_recovered → ops-system → 500）」，假 curl 2 次，第 2 次是 heartbeat_recovered，状态文件只剩 alerted、recovered。(3) 再拿住锁，rf-c（回 500）：被挡，退出 75，「已连续跳过 1 轮」，补发没发出去（→ 500），「到 45 分钟才报」；假 curl 3 次，第 3 次是 heartbeat_recovered、note 里有「补发」；之后状态文件 skips 1，alerted 还是 rf-a 那一次，没有 recovered。(4) rf-d：演练把 first 改成 46 分钟前，别的不动；被挡：退出 75，「已连续跳过 2 轮」，报警 → 200，没有「已报过」，假 curl 4 次，第 4 次是 heartbeat_stale。这就是复审要的「恢复没发出去 → 再卡 45 分钟 → 必须报」。(5) rf-e：状态文件写成「60 分钟前报过、10 分钟前拿到过锁、「已恢复」没发出去」，被挡：退出 75，「已连续跳过 1 轮」，补发 → 200，假 curl 5 次，第 5 次是 heartbeat_recovered；之后状态文件只有 first、last、skips（1），没有 alerted、recovered。(6) 放开锁，rf-f：状态文件同 rf-e 那样写，拿到锁，真的 ssh / orca 跑完，退出 1，stdout「锁拿到了」「已报恢复：POST heartbeat_recovered → ops-system → 200」，假 curl 6 次，第 6 次是 heartbeat_recovered、note 里有「补发」，状态文件没了。被挡的每一轮 stderr 有 `already locked`、stdout 只有 lock-held-alert 的一行、HB_STATE_DIR 没被建出来；6 条请求体都发到假地址，`bot` 都是 ops-system |
+| A56 | 很久以前留下的状态文件，第一次被挡就报警（L4） | S15.MBA.old、S15.iMac.old | 被挡时，上一次跳过（last；没有 last 就用 first）离现在超过 `HB_LOCK_GAP_MIN`（默认 15，3 个间隔）分钟，上一串就算断了：这一轮当新一串的第 1 次跳过，从这一轮重新算 45 分钟；stdout 那一行写上一串停在什么时候、隔了多少分钟。`HB_LOCK_GAP_MIN` 不是大于 0 的数时按 15，stderr 写一行（这一条不演练）。演练（外部拿住锁，不设阈值和间隔）：old-a：状态文件写成「3 天前跳过 1 轮」（first、last 都是 3 天前），被挡：退出 75，「已连续跳过 1 轮」，有「隔了」和「当新的一串」，「到 45 分钟才报」，假 curl 0 次，之后状态文件 skips 1、first 不早于这一轮开始。old-b：「50 分钟前起、已跳过 7 轮、最后一次 16 分钟前」：新的一串，「已连续跳过 1 轮」，假 curl 还是 0 次。old-c：「50 分钟前起、已跳过 7 轮、最后一次 14 分钟前」：同一串，「已连续跳过 8 轮」，报警 → 200，假 curl 1 次 |
+| A57 | 上一串报过警、还没报「已恢复」，新的一串被它挡住不报 | S15.*.rf（rf-c、rf-d）、S15.*.old（old-d–old-g） | 「已报过，不重复报」只在 alerted 不早于这一串的 first 时才算数。早于 first 的 alerted 是上一串的，不挡这一串，满 45 分钟照报；它留在状态文件里，下一次拿到锁时报「已恢复」。上一串断了（A56）而且报过警时，不补发「已恢复」（锁这时还被占着），stdout 写上一串报过、还没报恢复、下一次拿到锁时报。演练接着 old-c，同一把外部锁：old-d：状态文件写成「3 天前起跳过 9 轮、3 天前报过」，被挡：新的一串，「已连续跳过 1 轮」，假 curl 还是 1 次，之后状态文件 skips 1、alerted 还是 3 天前那次。old-e：演练把 first 改成 46 分钟前：「已连续跳过 2 轮」，报警 → 200，没有「已报过」，假 curl 2 次。old-f：再写成「3 天前起跳过 9 轮、3 天前报过」，被挡：新的一串，假 curl 还是 2 次。放开锁，old-g：拿到锁，真的 ssh / orca 跑完，退出 1，stdout「锁拿到了，之前连续跳过 1 轮」「已报恢复：POST heartbeat_recovered → ops-system → 200」，假 curl 3 次，状态文件没了 |
+| A58 | 改了以后原来的路走不通：一直被挡的一串、偶尔一轮重叠、默认 45 分钟、状态文件坏了 | S13、S14.*.held、S15.MBA、S15.iMac、S15.*.45、S15.*.bad | 期望不变。主线 4 轮相隔 6–12 秒，.45 的状态文件最后一次是 5 分钟前，都不到 15 分钟，还是同一串 |
+| A59 | 最终版没套锁：两轮重叠时同时读写 state.json（F27），最终版又只剩约 10 秒余量（F41） | S8.final、S6b.final | defs 最终版 precheck：`$HOME/.orca-state/bin/lock-held-alert /usr/bin/lockf -k -t 0 $HOME/.orca-state/heartbeat-watch/5c2d0575.lock $HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target "MBA ops · 29 心跳互查\|mba\|<MBA 新任务 id>\|20"`，和并行版用同一个锁文件，超时还是 300，改名照旧。S8.final 照这个原文核对，没有 box 目标。S6b.final 照 defs 原文跑（MBA 新任务 id 用 ops · 09 代替，锁目录换成临时目录，lock-held-alert 换成临时副本，加 `--dry-run`）：只查 MBA 目标、读到运行记录，锁空着、没有状态文件，lock-held-alert 什么都不打。S8.rollback 不变：回滚版是现网原文，没有锁 |
+| A60 | 收件人没改成 ops-system；或者改收件人时顺手改了别的 | S0.diff、S0.same、S0.bot、S1.c01–c14、S1.bot、S3、S4b、S15 各项 | heartbeat-watch.sh 和 base 比改三行：第 7 行注释、第 13 行注释（上一轮就有）、第 33 行 `BOT = "ops-system"`。S0.diff：`7c7`、`13c13`、`33c33` 三处。S0.same：`BOT = "…"` 那一行换成同一个占位以后再比（Python 部分、去掉注释行后的全文 sha256）。S0.bot：本分支第 33 行是 `BOT = "ops-system"`，base 的是 `BOT = "coding-assistant"`（已装版只记不判）。S1：三版的 stdout、stderr 里两个收件人的名字都换成「<收件人>」以后逐字节一致（原来是直接比）；各用例里查的「dry-run，将 POST 给 」不再带名字；c02 原来查 `"bot": "coding-assistant"`，挪到新加的 S1.bot：14 个用例里本分支这版的 stdout、stderr 都没有 coding-assistant，「dry-run，将 POST 给 ops-system」的行数和 base 里「dry-run，将 POST 给 coding-assistant」的一样多、大于 0。假 webhook 目录里两个名字的假配置都放（地址都是 127.0.0.1:9）。S3、S4b：「dry-run，将 POST 给 ops-system」、`"bot": "ops-system"`（STUCK_FORCE_BOT 没设）。S15 各项不再设 STUCK_FORCE_BOT：假配置只有 ops-system.env，告警照样发出去、`bot` 是 ops-system，说明默认收件人改了 |
+| A61 | 演练在真目录里留下东西，或者真发了告警 | S10、全部 | 不变。新加的 rf、old 都在临时锁目录、临时状态目录里跑，告警只发给假 curl |
+| A62 | 并行那一晚两个收件人：box 94e4b0bc 发 coding-assistant，iMac、MBA 的发 ops-system；卡 ③ 换 iMac 的 heartbeat-watch.sh 时，现网 `5c2d0575` 的收件人当场变 | 不演练 | README 卡 ③：先装 lock-held-alert 和 heartbeat-watch.sh，两个都比 sha256；写明换上以后 `5c2d0575` 的告警改发 ops-system。卡 ④ 早上核对时两个收件人都看。写进已知限制 |
+| A63 | 卡 ② 的锁验证不做、看错，或者 75 以外的退出码混进来没人发现 | 不演练 | README 卡 ② 改成必做：拿住 `mba-hb-watch.lock` 6 分钟，要看到一次 `skipped_precheck`、`exitCode` 75、stdout 有 lock-held-alert 的一行；放开以后下一轮「锁拿到了」、`.skips.json` 没了；别的样子就停下报告。整晚 `exitCode` 只能是 1 和偶尔的 75，出现 73、71、127 就停。写明锁卡住约 50 分钟才报警（从卡住到第一次被挡最多 5 分钟，再满 45 分钟，是第 10 或 11 次被挡；中间机器睡着或 Orca 停了超过 15 分钟，从回来以后重新算），收件人 ops-system。卡 ④ 写明最终版带锁，记两条任务整晚 75 的次数和最长 `durationMs`；`5c2d0575` 没人盯，锁卡住时只有它自己的 lock-held-alert 会报 |
+| A64 | 最终版拿到锁的一轮要发「已恢复」时超过 300 秒（F41） | 不演练 | 写进已知限制：最坏约 310 秒，Orca 杀掉这一轮，那一次记成超时；「已恢复」可能没发完，状态文件已经先记下，下一轮补发（A55） |
+| A65 | （可选，不做）`5c2d0575` 每轮退出 71 或 73，没人报 | 不演练 | 73 是锁文件的目录没了，状态文件也写不进去，要把状态放到别处、多装一处；71 是起不了 `/usr/bin/lockf`；127（lock-held-alert 没装）它自己报不了。iMac 上这个目录现网一直在写。这次不做，写进已知限制：`5c2d0575` 每轮 71、73 没人报，卡 ③、卡 ④ 看 `exitCode` |
+
+另外，上面几条跟着变：A10 的期望改成 ops-system（S3）；A38、A40 里「final 没套 lockf」作废（A59）；A41 的收件人改成 ops-system；
+A51 的「「已恢复」发不出去…没演练」作废（A55）；F10 的 `coding-assistant.env` 对本分支这版是 `ops-system.env`。
+
+### 演练本身可能骗人的地方
+
+| # | 风险 | 处理 |
+|---|---|---|
+| C21 | S15 的 rf、old 大多用演练写的状态文件：rf-a、rf-e、rf-f、old-a–old-d、old-f 是演练写的，rf-d、old-e 是演练改了 first；「已恢复」没发出去是假 curl 回 500 | 代码自己写下、下一轮接着用的状态文件只有 rf-b 之后（rf-c 用）、rf-c 之后（rf-d 用，只改了 first）、old-d 之后（old-e 用，只改了 first）、old-f 之后（old-g 用）。用了伪造的状态和替身，不叫 E2E |
+| C22 | 复审脚本 `lha-drill.sh` 用假 lockf（按 `FAKE_RC` 退出，不起命令）和假 curl | 只看 lock-held-alert 自己的逻辑，不叫 E2E。在 iMac 上对 `6e144e16` 和本轮的新 commit 各跑一次，脚本和输出放在 `reports/heartbeat-mba-imac-1021-lha-drill/`，结果写进 PR 和 RESULT，不进演练的 results.tsv |
+| C23 | 收件人只在假 webhook 配置和假 curl 上看 | ops-system 收到 heartbeat-watch 或 lock-held-alert（`source` 是 `lock-held-alert`）的 `heartbeat_stale`、`heartbeat_recovered` 以后怎么处理，没验证。写进已知限制 |
+
+### 新代码上的期望（第六轮）
+
+已有 66 项的期望照上面改（S0.diff、S0.same、S0.bot、S1、S3、S4b、S6b.final、S8.final、S15 各项），再加 5 项：S1.bot、S15.MBA.rf、
+S15.iMac.rf、S15.MBA.old、S15.iMac.old。共 71 项，新代码上 71 项都该过。
+
+### 回退测试的期望（第六轮）
+
+base 还是 `f828d452`，回退的做法不变。新加 5 项，另有 2 项从该过变成该挂：
+
+- 该挂的从 33 项变成 40 项：
+  - S0.bot（原来该过）：base 的第 33 行是 `BOT = "coding-assistant"`。
+  - S1.bot（新）：回退测试里「本分支这版」就是 base，发给谁的地方都是 coding-assistant，「将 POST 给 ops-system」0 行。
+  - S3（原来该过）：base 的收件人是 coding-assistant，「dry-run，将 POST 给 coding-assistant」。
+  - S15.MBA.rf、S15.iMac.rf、S15.MBA.old、S15.iMac.old（新）：现网版 precheck 没有 lockf 和 lock-held-alert，外部拿着的锁没人用，
+    每轮照常跑 heartbeat-watch，退出不是 75，假 curl 0 次（没有告警、恢复和补发）。
+- 该过的从 33 项变成 31 项（少了 S0.bot、S3）。S1.c01–c14 照样过：先把收件人的名字换成占位再比，回退测试里三版都是 base 那份。
+- S0.diff 还是挂，原因改成「base 和本分支是同一份，没有第 7、13、33 行的改动」。
+- 上面 7 项挂的原因要在演练「实际」一栏里对得上（加进 `WHY_RE`），对不上算不一致。
+
+共 71 项。
