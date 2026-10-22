@@ -74,9 +74,9 @@ python3 -I - "$OUT" "$base" "$head" <<'PY'
 import json, os, re, sys
 out, base, head = sys.argv[1:4]
 # 照抄 automations/heartbeat-1021/FAILURE-MODES.md「回退测试的期望」「回退测试的期望（第二轮）」「回退测试的期望（第五轮）」
-# 「回退测试的期望（第五轮补）」「回退测试的期望（第五轮补充）」：本 PR 会改变结果的 33 项该挂，其余 33 项照样过
+# 「回退测试的期望（第五轮补）」「回退测试的期望（第五轮补充）」：第六轮本 PR 会改变结果的 40 项该挂，其余 31 项照样过
 FAIL = {}
-for ids, why in (("S0.diff", "base 和「本分支」是同一份，没有第 13 行的改动"),
+for ids, why in (("S0.diff", "base 和「本分支」是同一份，没有第 7、13、33 行的改动"),
                  ("S2.sh S2.zsh", "现网版 precheck 在 MBA 上读不到 iMac ops · 01：MBA 的 Orca 没有 environment iMac"),
                  ("S4 S4b", "没有包装，heartbeat-watch 报的是 FileNotFoundError，不是 ssh 连不上的 JSONDecodeError"),
                  ("S4.wrapper S5.iMac S5.MBA S5b S7", "没有 scripts/orca-via-ssh"),
@@ -99,7 +99,14 @@ for ids, why in (("S0.diff", "base 和「本分支」是同一份，没有第 13
 PASS = ("S0.same S0.bot " + " ".join("S1.c%02d" % n for n in range(1, 15)) + " S1.curl S3 S6 S6b.box "
         "S9.5c2d0575 S9.94e4b0bc S9.439cd438 S9.mba S10.MBA S10.iMac S12.old "
         "S14.MBA.kill S14.MBA.term S14.MBA.crash S14.iMac.kill S14.iMac.term S14.iMac.crash").split()
-assert len(FAIL) == 33 and len(PASS) == 33
+for i, why in {"S0.bot": 'base 收件人仍是 coding-assistant',
+               "S1.bot": '本分支这版是 base，ops-system 待发行数为 0',
+               "S3": 'base 的待发告警发给 coding-assistant',
+               **{i: '现网版没有 lockf 和 lock-held-alert，每轮照常跑，假 curl 0 次'
+                  for i in ("S15.MBA.rf", "S15.iMac.rf", "S15.MBA.old", "S15.iMac.old")}}.items():
+    FAIL[i] = why
+PASS = [i for i in PASS if i not in FAIL]
+assert len(FAIL) == 40 and len(PASS) == 31
 # 第五轮新加的 7 项、第五轮补充新加的 6 项该挂的，挂的原因要在演练的「实际」一栏里对得上
 # （FAILURE-MODES.md C15、「回退测试的期望（第五轮补）」「回退测试的期望（第五轮补充）」）
 S15_RE = r"^第 1–4 轮退出 (?!75、)\d+、\d+、\d+、\d+（跳过 0 轮），[^；]*第 1 轮后状态目录有；.*；假 curl 每轮之后累计 [^；]*，共 0 次$"
@@ -113,7 +120,12 @@ WHY_RE = {"S13": r"；B：[^；]*（在 A 跑的期间），没超时，用时 [
           "S15.iMac.45": r"^44 分钟：退出 (?!75，)\d+，.*，假 curl 0 次；46 分钟：退出 (?!75，)\d+，.*，假 curl 0 次",
           "S15.MBA.bad": r"^乱码：退出 (?!75，)\d+，.*；目录：退出 (?!75，)\d+，",
           "S15.iMac.bad": r"^乱码：退出 (?!75，)\d+，.*；目录：退出 (?!75，)\d+，"}
-assert len(WHY_RE) == 13 and set(WHY_RE) <= set(FAIL)
+WHY_RE.update({"S0.bot": r'本分支 BOT = "coding-assistant"',
+               "S1.bot": r'「将 POST 给 ops-system」0 行',
+               "S3": r'dry-run，将 POST 给 coding-assistant',
+               **{i: r'退出 (?!75，)\d+，.*；假 curl 每轮之后累计 [^；]*，共 0 次$'
+                  for i in ("S15.MBA.rf", "S15.iMac.rf", "S15.MBA.old", "S15.iMac.old")}})
+assert len(WHY_RE) == 20 and set(WHY_RE) <= set(FAIL)
 rows = [l.rstrip("\n").split("\t") for l in open(os.path.join(out, "results.tsv"), encoding="utf-8") if l.strip()]
 got = {r[0]: r for r in rows}
 # 该挂的每项从 raw/ 里取输出原文（前两行，去掉开头的时间戳）：演练的「实际」一栏只摘期望子串所在的那行，挂了常常是空的。
@@ -132,6 +144,9 @@ RAW = {"S0.diff": "S0/diff-base-new.txt", "S2.sh": "mba/S2-sh.out mba/S2-sh.err"
        "S15.MBA": "mba/S15/r1.out mba/S15/r1.err", "S15.iMac": "S15-imac/r1.out S15-imac/r1.err",
        "S15.MBA.45": "mba/S15/45a.out mba/S15/45a.err", "S15.iMac.45": "S15-imac/45a.out S15-imac/45a.err",
        "S15.MBA.bad": "mba/S15/bad-a.out mba/S15/bad-a.err", "S15.iMac.bad": "S15-imac/bad-a.out S15-imac/bad-a.err"}
+RAW.update({"S0.bot": "S0/diff-base-new.txt", "S1.bot": "S1/c02.new.out", "S3": "mba/S3.out mba/S3.err",
+            "S15.MBA.rf": "mba/S15/rf-a.out mba/S15/rf-a.err", "S15.iMac.rf": "S15-imac/rf-a.out S15-imac/rf-a.err",
+            "S15.MBA.old": "mba/S15/old-a.out mba/S15/old-a.err", "S15.iMac.old": "S15-imac/old-a.out S15-imac/old-a.err"})
 assert set(RAW) == set(FAIL)
 
 
@@ -176,9 +191,9 @@ L = ["# B1 回退测试：旧代码（base %s）上跑同一套演练" % base[:7
      % (len(tab), len(tab) - bad, bad, len(FAIL), nf, len(PASS), np_), "",
      "把本 PR 的代码换回 base `%s`，用本分支 `%s` 的演练脚本和回放数据整轮跑 `wake/tests/heartbeat-watch-ssh.sh`。" % (base, head),
      "期望先写在 `automations/heartbeat-1021/FAILURE-MODES.md`「回退测试的期望」「回退测试的期望（第二轮）」「回退测试的期望（第五轮）」"
-     "「回退测试的期望（第五轮补）」「回退测试的期望（第五轮补充）」五节，再跑。第五轮新加的 7 项该挂的（S13、S14 的 held、nodir、timeout）"
+     "「回退测试的期望（第五轮补）」「回退测试的期望（第五轮补充）」「回退测试的期望（第六轮）」六节，再跑。第五轮新加的 7 项该挂的（S13、S14 的 held、nodir、timeout）"
      "和第五轮补充新加的 6 项该挂的（S15、S15 的 .45、.bad），还要在演练的「实际」一栏里对上挂的原因（回退脚本里的 `WHY_RE`），"
-     "对不上记「不一致（挂了，但原因对不上）」。这个文件由回退脚本生成。", "",
+     "第六轮另有 7 项核对原因，共 20 项；对不上记「不一致（挂了，但原因对不上）」。这个文件由回退脚本生成。", "",
      "## 怎么重跑", "", "在 iMac 的仓库根目录：", "", "```bash", "wake/tests/heartbeat-watch-ssh-rollback.sh", "```", "",
      "要求和 `wake/tests/heartbeat-watch-ssh.sh` 一样。整个目录会被重写（有 `.hb-drill` 标记才清空）。", "",
      "## 旧代码怎么放回去", "",
@@ -194,7 +209,7 @@ L = ["# B1 回退测试：旧代码（base %s）上跑同一套演练" % base[:7
      "## 这次运行", ""] + ["- " + cell(l) for l in env] + ["",
      "## 期望挂的 %d 项（本 PR 会改变结果）" % len(FAIL), "",
      "「raw/ 里的输出原文」：冒号前是 `raw/` 下的文件，冒号后是这些文件里不空的前两行（去掉开头的时间戳，⏎ 隔开）。", "",
-     "| 编号 | 为什么该挂 | 实际 | 和期望 | raw/ 里的输出原文（截到 240 字） | 演练的「实际」一栏（截到 160 字；核对原因的 13 项截到 600 字） |",
+     "| 编号 | 为什么该挂 | 实际 | 和期望 | raw/ 里的输出原文（截到 240 字） | 演练的「实际」一栏（截到 160 字；核对原因的 20 项截到 600 字） |",
      "|---|---|---|---|---|---|"]
 L += ["| %s | %s | %s | %s | %s：%s | %s |" % (t[0], cell(t[4]), t[2], t[3], "、".join(RAW[t[0]].split()), cell(t[6], 240),
                                              cell(t[5], 600 if t[0] in WHY_RE else 160)) for t in tab if t[1] == "FAIL"]

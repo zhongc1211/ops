@@ -4,7 +4,7 @@
 # 「@@HB {"ts","mode","rc","last_scan"}」，Orca 自动任务的运行记录会存 precheck 的 stdout；这里用
 # `orca automations runs --id <id> --environment <env>` 读最新的心跳：
 #   - 超过 N 分钟（默认 20）没有新心跳（Orca 调度器停了、脚本没在跑），或者心跳里的 last_scan（上次跑完的扫描）超过
-#     N + STUCK_INTERVAL_MIN（默认 15）分钟没变（扫描每次超时被杀或每次出错），报警给 coding-assistant（kind heartbeat_stale）。
+#     N + STUCK_INTERVAL_MIN（默认 15）分钟没变（扫描每次超时被杀或每次出错），报警给 ops-system（kind heartbeat_stale）。
 #     同一次中断只报一次。
 #   - 恢复后报一次「已恢复」（kind heartbeat_recovered）。
 #   - 运行记录查不到（连不上那台 Orca）连续 HB_UNREACH_MIN（默认 45）分钟，也按中断报一次（隧道常断几分钟，所以阈值放宽）。
@@ -30,7 +30,7 @@ PRECHECK = "--precheck" in ARGS
 STATE_DIR = os.environ.get("HB_STATE_DIR") or os.path.join(HOME, ".orca-state/heartbeat-watch")
 WEBHOOK_DIR = os.environ.get("STUCK_WEBHOOK_DIR") or os.path.join(HOME, ".config/grokbot/webhooks")
 FORCE_BOT = os.environ.get("STUCK_FORCE_BOT")
-BOT = "coding-assistant"
+BOT = "ops-system"
 UNREACH_MIN = float(os.environ.get("HB_UNREACH_MIN", "45"))
 INTERVAL_MIN = float(os.environ.get("STUCK_INTERVAL_MIN", "15"))
 SGT = datetime.timezone(datetime.timedelta(hours=8))

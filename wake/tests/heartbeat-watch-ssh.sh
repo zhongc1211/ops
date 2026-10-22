@@ -8,8 +8,8 @@
 # 场景编号和要防的失败方式见 automations/heartbeat-1021/FAILURE-MODES.md；结果和期望写进产物目录的 README.md。
 # 安全：heartbeat-watch 都用临时 HB_STATE_DIR，除 S12、S13 外都带 --dry-run、用假 webhook 目录（127.0.0.1:9 的假地址），不发叫醒、不读真凭据。
 # S12、S13 不带 --dry-run（要看写下的 state.json 和 @@HB）：webhook 目录是空的，PATH 里有只记录调用的假 curl。
-# S15 的 lock-held-alert 不看 --dry-run，要真发告警：发给假 webhook 目录（STUCK_FORCE_BOT=ops-system，127.0.0.1:9 的假地址），
-# PATH 里的假 curl 只记下请求体、回 200，不连网络。
+# S15 的 lock-held-alert 不看 --dry-run，要真发告警：发给假 webhook 目录（不设 STUCK_FORCE_BOT，默认收件人 ops-system，127.0.0.1:9 的假地址），
+# PATH 里的假 curl 只记下请求体、回 200（S15 的 rf 有两轮回 500），不连网络。
 # lockf 的锁文件和 lock-held-alert 的状态文件都放在临时目录里，不碰 ~/.orca-state/heartbeat-watch/ 下的真文件。
 # S14 的 kill、term、crash 核对 pid、ppid、命令名以后，只给演练自己起的 lockf 发 SIGKILL、SIGTERM、SIGSEGV。
 # crash 每跑一次，macOS 在那台机器多写一份 lockf 的崩溃报告（iMac 上在 ~/Library/Logs/DiagnosticReports/，
@@ -17,7 +17,7 @@
 # orca 只用 automations list / show / runs；不往 ~/.orca-state/bin 装文件；MBA 上只用 mktemp -d 建的临时目录，跑完删掉。
 # 替身：S1、S3 用回放（假 HB_ORCA，S1 还固定时钟），S5 用假 ssh，S8 用假 orca，S12 用 ssh 替身（远端命令换成 sleep 110），
 # S13 用 ssh、orca 替身（A 那轮每次调用先等 30 秒），S14 的 held、nodir、timeout 第一轮用 ssh / orca 替身，
-# S15 用假 curl、改短的阈值和演练写的状态文件，这几个不算 E2E。
+# S15 用假 curl、改短的阈值和演练写或改的状态文件，这几个不算 E2E。
 # S2、S4、S5b、S6、S6b、S7、S9、S10、S14 的 kill、term、crash 是真机器、真 ssh、真 Orca（只读）、真 lockf。
 # 内部用法：--mba-side <MBA 上的临时目录> <标记>，由 iMac 这边拷到 MBA 上跑 MBA 的场景。
 set -u
@@ -141,7 +141,7 @@ s14_run() {
         env -i HOME="$HOME" PATH="$stub:$MINPATH" LANG=en_US.UTF-8 PYTHONDONTWRITEBYTECODE=1 HB_DRILL_CANARY="$CANARY" \
             HB_STATE_DIR="$st" STUCK_WEBHOOK_DIR="$hooks" "$@"
     else
-        env -u STUCK_FORCE_BOT -u HB_ORCA -u ORCA_SSH_HOST -u HB_LOCK_ALERT_MIN PATH="$stub:$PATH" PYTHONDONTWRITEBYTECODE=1 \
+        env -u STUCK_FORCE_BOT -u HB_ORCA -u ORCA_SSH_HOST -u HB_LOCK_ALERT_MIN -u HB_LOCK_GAP_MIN PATH="$stub:$PATH" PYTHONDONTWRITEBYTECODE=1 \
             HB_DRILL_CANARY="$CANARY" HB_STATE_DIR="$st" STUCK_WEBHOOK_DIR="$hooks" "$@"
     fi
 }
@@ -268,17 +268,23 @@ s14() {
     s14_run "$mode" "$d/none" "$d/timeout/state" "$hooks" /usr/bin/python3 -I "$op" "$lim2" "$o/timeout-2" "$(cat "$o/timeout.cmd")"
 }
 
-# S15（FAILURE-MODES.md A41–A47、C17–C19）：锁一直被占着。MBA、iMac 各跑一遍，锁文件都在 <工作目录> 下。
+# S15（FAILURE-MODES.md A41–A47、A55–A57、A66–A68、C17–C19、C21）：锁一直被占着。MBA、iMac 各跑一遍，锁文件都在 <工作目录> 下。
 # s15 <mini|inherit> <工作目录> <输出目录> <precheck，锁目录写成 @LOCKDIR@> <锁文件名> <超时> <orca-precheck.py>
 #     <webhook 目录（里面是 ops-system.env 假配置）>
-# 每轮照 Orca 的做法起，加 --dry-run，STUCK_FORCE_BOT=ops-system。PATH 最前面只有假 curl：记下请求体（一行一个）、回 200，不连网络。
+# 每轮照 Orca 的做法起，加 --dry-run，不设 STUCK_FORCE_BOT（默认收件人 ops-system）。PATH 最前面只有假 curl：记下请求体（一行一个）、
+# 回 S15_CURL_HTTP（默认 200），不连网络。
 # main：外部用 lockf … sleep 32 拿住锁，阈值改成 0.25 分钟，第 1–4 轮在第 1 轮开始后约 0、6、18、24 秒起；sleep 结束以后起第 5、6 轮。
 # 45：不设阈值（默认 45 分钟），外部拿住锁，状态文件写成「44 分钟前起跳过 9 轮」「46 分钟前起跳过 9 轮」，各跑一轮。
 # bad：外部拿住锁，状态文件是乱码、状态文件的路径是个目录，各跑一轮。
+# rf：「已恢复」没发出去以后锁又被占着（A55）。不设阈值和间隔。外部拿住锁跑 rf-a（状态文件写成 46 分钟前起跳过 9 轮），放开后跑 rf-b
+#     （假 curl 回 500）；再拿住锁跑 rf-c（回 500）、rf-d（演练只把 first 改成 46 分钟前）、rf-e（状态文件写成 60 分钟前报过、
+#     10 分钟前拿到过锁、「已恢复」没发出去）；放开后跑 rf-f（状态文件同 rf-e）。
+# old：很久以前留下的状态文件，上一串报过、还没报恢复（A56、A57）。不设阈值和间隔，外部一直拿着锁跑 old-a–old-f（状态文件演练写，
+#     old-e 只把 first 改成 46 分钟前），放开后跑 old-g。
 # 每轮之后记下 HB_STATE_DIR 有没有被建出来、假 curl 累计几次、锁文件旁边的状态文件。要在主 shell 里调：只 wait 自己起的 lockf。
 s15() {
     local mode=$1 d=$2 o=$3 pc=$4 lk=$5 lim=$6 op=$7 hooks=$8 L cl hp n at
-    mkdir -p "$o" "$d/bin" "$d/main/lock" "$d/45/lock" "$d/bad/lock"
+    mkdir -p "$o" "$d/bin" "$d/main/lock" "$d/45/lock" "$d/bad/lock" "$d/rf/lock" "$d/old/lock"
     cat >"$d/bin/curl" <<'EOF'
 #!/bin/sh
 # S15 的假 curl：记下 --data-binary @文件 的请求体；配置从 stdin 读，只看 url 是不是演练的假地址，不记 KEY
@@ -289,7 +295,7 @@ while [ $# -gt 0 ]; do
 done
 case $(cat) in *'url = "http://127.0.0.1:9/'*) to=假地址 ;; *) to=别的地址 ;; esac
 { printf '%s ' "$to"; tr -d '\n' <"$body"; echo; } >>"$S15_CURL_LOG"
-printf 200
+printf '%s' "${S15_CURL_HTTP:-200}"
 EOF
     chmod +x "$d/bin/curl"
     hostname -s >"$o/host"
@@ -299,11 +305,29 @@ EOF
         local n=$1 st=$2
         shift 2
         printf '%s\n' "${pc//@LOCKDIR@/$L} --dry-run" >"$o/$n.cmd"
-        s14_run "$mode" "$d/bin" "$st" "$hooks" env S15_CURL_LOG="$cl" STUCK_FORCE_BOT=ops-system "$@" \
+        s14_run "$mode" "$d/bin" "$st" "$hooks" env S15_CURL_LOG="$cl" "$@" \
             /usr/bin/python3 -I "$op" "$lim" "$o/$n" "$(cat "$o/$n.cmd")"
         if [ -e "$st" ]; then echo 有; else echo 没有; fi >"$o/$n.probe"
         wc -l <"$cl" | tr -d ' ' >"$o/$n.curls"
         if [ -f "$L/$lk.skips.json" ]; then cp "$L/$lk.skips.json" "$o/$n.skips.json"; fi
+    }
+    # s15_seed <名字> <键=值...>：演练写锁文件旁边的状态文件（skips 是次数，别的键是相对现在的秒数），存一份 <名字>.seed.json
+    s15_seed() {
+        local n=$1
+        shift
+        /usr/bin/python3 -I -c 'import json, sys, time
+t = time.time()
+json.dump({k: int(v) if k == "skips" else t + float(v) for k, v in (a.split("=", 1) for a in sys.argv[2:])}, open(sys.argv[1], "w"))' \
+            "$L/$lk.skips.json" "$@"
+        cp "$L/$lk.skips.json" "$o/$n.seed.json"
+    }
+    # s15_first46 <名字>：演练只把状态文件里的 first 改成 46 分钟前，别的不动，存一份 <名字>.seed.json
+    s15_first46() {
+        /usr/bin/python3 -I -c 'import json, sys, time
+d = json.load(open(sys.argv[1]))
+d["first"] = time.time() - 46 * 60
+json.dump(d, open(sys.argv[1], "w"))' "$L/$lk.skips.json"
+        cp "$L/$lk.skips.json" "$o/$1.seed.json"
     }
     L=$d/main/lock
     cl=$o/main.curl-bodies
@@ -355,6 +379,50 @@ json.dump({"first": t - float(sys.argv[2]) * 60, "last": t - 300, "skips": 9}, o
     s15_round bad-b "$d/bad/probe"
     wait "$hp"
     echo $? >"$o/bad.holder-rc"
+    L=$d/rf/lock
+    cl=$o/rf.curl-bodies
+    : >"$cl"
+    /usr/bin/lockf -k -t 0 "$L/$lk" /bin/sleep 6 &
+    hp=$!
+    lockf_child "$hp" >"$o/rf.holder1-child"
+    s15_seed rf-a first=-2760 last=-300 skips=9
+    s15_round rf-a "$d/rf/probe"
+    wait "$hp"
+    echo $? >"$o/rf.holder1-rc"
+    s15_round rf-b "$d/rf/state" S15_CURL_HTTP=500
+    /usr/bin/lockf -k -t 0 "$L/$lk" /bin/sleep 15 &
+    hp=$!
+    lockf_child "$hp" >"$o/rf.holder2-child"
+    s15_round rf-c "$d/rf/probe" S15_CURL_HTTP=500
+    s15_first46 rf-d
+    s15_round rf-d "$d/rf/probe"
+    s15_seed rf-e alerted=-3600 recovered=-600
+    s15_round rf-e "$d/rf/probe"
+    wait "$hp"
+    echo $? >"$o/rf.holder2-rc"
+    s15_seed rf-f alerted=-3600 recovered=-600
+    s15_round rf-f "$d/rf/state"
+    L=$d/old/lock
+    cl=$o/old.curl-bodies
+    : >"$cl"
+    /usr/bin/lockf -k -t 0 "$L/$lk" /bin/sleep 20 &
+    hp=$!
+    lockf_child "$hp" >"$o/old.holder-child"
+    s15_seed old-a first=-259200 last=-259200 skips=1
+    s15_round old-a "$d/old/probe"
+    s15_seed old-b first=-3000 last=-960 skips=7
+    s15_round old-b "$d/old/probe"
+    s15_seed old-c first=-3000 last=-840 skips=7
+    s15_round old-c "$d/old/probe"
+    s15_seed old-d first=-259200 last=-259200 skips=9 alerted=-259200
+    s15_round old-d "$d/old/probe"
+    s15_first46 old-e
+    s15_round old-e "$d/old/probe"
+    s15_seed old-f first=-259200 last=-259200 skips=9 alerted=-259200
+    s15_round old-f "$d/old/probe"
+    wait "$hp"
+    echo $? >"$o/old.holder-rc"
+    s15_round old-g "$d/old/state"
 }
 
 # ---------- MBA 这边（iMac 拷过来的临时目录 $1 里跑，输出写 $1/out，iMac 再拷回去判断）----------
@@ -615,7 +683,9 @@ mkdir -p "$OUT/raw"
 CANARY=hbcanary-$(od -An -N6 -tx1 /dev/urandom | tr -d ' \n')
 mkdir -p "$T/hooks" "$T/hooks-s15"
 printf 'URL=http://127.0.0.1:9/hb-drill\nKEY=hb-drill-dummy-key\n' >"$T/hooks/coding-assistant.env"
-# S15 的 lock-held-alert 真发告警：STUCK_FORCE_BOT=ops-system，发给这个假配置，PATH 里的假 curl 接住
+# 本分支这版发给 ops-system，base 和已装版发给 coding-assistant（S0、S1 比三版）：两个名字的假配置都放（FAILURE-MODES A60）
+cp "$T/hooks/coding-assistant.env" "$T/hooks/ops-system.env"
+# S15 的 lock-held-alert 真发告警：不设 STUCK_FORCE_BOT，默认收件人 ops-system，发给这个假配置，PATH 里的假 curl 接住
 printf 'URL=http://127.0.0.1:9/hb-drill-s15\nKEY=hb-drill-dummy-key\n' >"$T/hooks-s15/ops-system.env"
 # lock-held-alert 的临时副本，precheck 里的 ~/.orca-state/bin/lock-held-alert 换成它（回退测试的 base 里没有它，现网版 defs 也不引用它）
 if [ -f "$root/scripts/lock-held-alert" ]; then cp "$root/scripts/lock-held-alert" "$T/lock-held-alert"; fi
@@ -674,7 +744,7 @@ BASE=$(git -C "$root" merge-base HEAD origin/main)
 IMAC_BEFORE=$(shasum -a 256 "$HOME/.orca-state/bin/heartbeat-watch.sh" 2>&1 | cut -d' ' -f1)
 real_paths >"$T/imac-paths-before.txt"
 
-# ---------- S0 静态：三版 heartbeat-watch 只差注释 ----------
+# ---------- S0 静态：三版 heartbeat-watch 只差注释和收件人 ----------
 V=$T/versions
 mkdir -p "$V" "$OUT/raw/S0"
 git -C "$root" show "$BASE:scripts/heartbeat-watch.sh" >"$V/base.sh"
@@ -685,26 +755,29 @@ if [ -f "$HOME/.orca-state/bin/heartbeat-watch.sh" ]; then
     VERS="base installed new"
 fi
 chmod +x "$V"/*.sh
+# 收件人那一行（第 33 行 BOT = "…"）换成同一个占位以后再比 Python 部分和去掉注释行的全文（A60）
 for v in $VERS; do
-    printf '%s 整个文件      %s\n' "$v" "$(shasum -a 256 <"$V/$v.sh" | cut -d' ' -f1)"
-    printf '%s Python 部分   %s\n' "$v" "$(sed -n '/^exec "\$PY" - "\$@" <<.PYEOF.$/,/^PYEOF$/p' "$V/$v.sh" | shasum -a 256 | cut -d' ' -f1)"
-    printf '%s 去掉注释行    %s\n' "$v" "$(grep -v '^[[:space:]]*#' "$V/$v.sh" | shasum -a 256 | cut -d' ' -f1)"
+    sed -E 's/^BOT = "[^"]*"$/BOT = "<收件人>"/' "$V/$v.sh" >"$V/$v.norm"
+    printf '%s 整个文件                    %s\n' "$v" "$(shasum -a 256 <"$V/$v.sh" | cut -d' ' -f1)"
+    printf '%s Python 部分（BOT 换成占位）  %s\n' "$v" "$(sed -n '/^exec "\$PY" - "\$@" <<.PYEOF.$/,/^PYEOF$/p' "$V/$v.norm" | shasum -a 256 | cut -d' ' -f1)"
+    printf '%s 去掉注释行（BOT 换成占位）   %s\n' "$v" "$(grep -v '^[[:space:]]*#' "$V/$v.norm" | shasum -a 256 | cut -d' ' -f1)"
 done >"$OUT/raw/S0/sha256.txt"
 diff "$V/base.sh" "$V/new.sh" >"$OUT/raw/S0/diff-base-new.txt"
 [ -f "$V/installed.sh" ] && diff "$V/installed.sh" "$V/new.sh" >"$OUT/raw/S0/diff-installed-new.txt"
 v=PASS
-[ "$(grep -c '^[0-9]' "$OUT/raw/S0/diff-base-new.txt")" = 1 ] && [ "$(head -1 "$OUT/raw/S0/diff-base-new.txt")" = 13c13 ] || v=FAIL
-res S0.diff "$v" "和 base 比只改了第 13 行（一处 13c13）" "$(grep '^[0-9]' "$OUT/raw/S0/diff-base-new.txt" | tr '\n' ' ')"
+[ "$(grep '^[0-9]' "$OUT/raw/S0/diff-base-new.txt" | tr '\n' ' ')" = "7c7 13c13 33c33 " ] || v=FAIL
+res S0.diff "$v" "和 base 比改了三行：第 7 行注释（收件人）、第 13 行注释（部署）、第 33 行收件人（7c7、13c13、33c33）" "$(grep '^[0-9]' "$OUT/raw/S0/diff-base-new.txt" | tr '\n' ' ')"
 v=PASS
 for k in "Python 部分" "去掉注释行"; do
     [ "$(grep -F "$k" "$OUT/raw/S0/sha256.txt" | awk '{print $NF}' | sort -u | wc -l | tr -d ' ')" = 1 ] || v=FAIL
 done
-res S0.same "$v" "${VERS} 三版的 Python 部分、去掉 # 注释行后的全文 sha256 都一样" "$(grep -F 'Python 部分' "$OUT/raw/S0/sha256.txt" | awk '{print $1 "=" substr($NF,1,12)}' | tr '\n' ' ')"
+res S0.same "$v" "${VERS} 三版的 Python 部分、去掉 # 注释行后的全文 sha256 都一样（第 33 行 BOT = \"…\" 先换成同一个占位）" "$(grep -F 'Python 部分' "$OUT/raw/S0/sha256.txt" | awk '{print $1 "=" substr($NF,1,12)}' | tr '\n' ' ')"
 v=PASS
-[ "$(sed -n 33p "$V/new.sh")" = 'BOT = "coding-assistant"' ] && [ "$(sed -n 33p "$V/base.sh")" = 'BOT = "coding-assistant"' ] || v=FAIL
-res S0.bot "$v" '第 33 行仍是 BOT = "coding-assistant"' "$(sed -n 33p "$V/new.sh")"
+[ "$(sed -n 33p "$V/new.sh")" = 'BOT = "ops-system"' ] && [ "$(sed -n 33p "$V/base.sh")" = 'BOT = "coding-assistant"' ] || v=FAIL
+res S0.bot "$v" '本分支第 33 行是 BOT = "ops-system"，base 的是 BOT = "coding-assistant"（已装版只记不判）' \
+    "本分支第 33 行 $(sed -n 33p "$V/new.sh")；base $(sed -n 33p "$V/base.sh")；已装版 $(if [ -f "$V/installed.sh" ]; then sed -n 33p "$V/installed.sh"; else echo 没有; fi)"
 
-# ---------- S1 回放：三版对同一份录好的数据输出逐字节一致（替身：假 HB_ORCA + 固定时钟）----------
+# ---------- S1 回放：三版对同一份录好的数据输出逐字节一致（收件人的名字换成占位以后；替身：假 HB_ORCA + 固定时钟）----------
 mkdir -p "$OUT/raw/S1" "$T/s1bin" "$T/s1home"
 printf '#!/bin/sh\necho "$*" >>"%s"\nexit 7\n' "$T/curl-calls" >"$T/s1bin/curl"
 chmod +x "$T/s1bin/curl"
@@ -729,15 +802,18 @@ s1() {
         echo $? >"$OUT/raw/S1/$c.$v.rc"
     done
 }
-# s1_check <例子> <期望> <期望退出码> <子串...>：先比三版的 stdout、stderr、退出码，再看本分支这版的输出。
+# 收件人：本分支这版是 ops-system，base 和已装版是 coding-assistant（A60）。比三版的 stdout、stderr 之前两个名字都换成「<收件人>」
+s1_norm() { sed -e 's/coding-assistant/<收件人>/g' -e 's/ops-system/<收件人>/g' "$1"; }
+# s1_check <例子> <期望> <期望退出码> <子串...>：先比三版的 stdout、stderr（换过收件人）、退出码，再看本分支这版的输出。
 s1_check() {
     local c=$1 want=$2 wrc=$3 x k same=三版一致 f=$OUT/raw/S1/$1.new
     shift 3
     for x in $VERS; do
         [ "$x" = new ] && continue
-        for k in out err rc; do
-            cmp -s "$OUT/raw/S1/$c.$x.$k" "$f.$k" || same="和 ${x} 不一致（${k}）"
+        for k in out err; do
+            cmp -s <(s1_norm "$OUT/raw/S1/$c.$x.$k") <(s1_norm "$f.$k") || same="和 ${x} 不一致（${k}）"
         done
+        cmp -s "$OUT/raw/S1/$c.$x.rc" "$f.rc" || same="和 ${x} 不一致（rc）"
     done
     cat "$f.out" "$f.err" >"$T/s1-$c.all"
     XTRA="；${same}"
@@ -763,24 +839,33 @@ s1 c13 "HB_REPLAY_AGE_S_94e4b0bc=60 HB_REPLAY_AGE_S_62d18b16=1800" - --precheck 
     --target "box ops · 29 卡住检查心跳|grok-bot|${BOX}|20" --target "MBA ops · 29 心跳互查|mba|${STANDIN}|20"
 s1 c14 "HB_REPLAY_AGE_S=120" - --dry-run --target "$TARGET"
 ST='"kind": "heartbeat_stale"'
-TO="dry-run，将 POST 给 coding-assistant："
+TO_ANY="dry-run，将 POST 给 "
+TO="dry-run，将 POST 给 ops-system："
 s1_check c01 "正常：心跳 2 分钟前，不发" 1 "iMac ops · 01 卡住工作检查：正常（最新心跳" "!将 POST 给"
-s1_check c02 "心跳过期 30 分钟：报 heartbeat_stale 给 coding-assistant" 1 "：中断：最新心跳在" "已 30 分钟没有新的（阈值 20 分钟）" "$TO" "$ST" '"bot": "coding-assistant"'
-s1_check c03 "心跳还在、扫描 40 分钟没跑完：报 heartbeat_stale" 1 "：中断：心跳还在" "已 40 分钟没跑完" "$TO" "$ST"
-s1_check c04 "运行记录里没有 @@HB：报 heartbeat_stale" 1 "次运行记录里没有心跳行（@@HB）" "$TO" "$ST"
-s1_check c05 "之前报过中断、现在心跳正常：报一次 heartbeat_recovered" 1 "已恢复，报过一次" "：正常（最新心跳" "$TO" '"kind": "heartbeat_recovered"'
+s1_check c02 "心跳过期 30 分钟：报 heartbeat_stale（发给谁看 S1.bot）" 1 "：中断：最新心跳在" "已 30 分钟没有新的（阈值 20 分钟）" "$TO_ANY" "$ST"
+s1_check c03 "心跳还在、扫描 40 分钟没跑完：报 heartbeat_stale" 1 "：中断：心跳还在" "已 40 分钟没跑完" "$TO_ANY" "$ST"
+s1_check c04 "运行记录里没有 @@HB：报 heartbeat_stale" 1 "次运行记录里没有心跳行（@@HB）" "$TO_ANY" "$ST"
+s1_check c05 "之前报过中断、现在心跳正常：报一次 heartbeat_recovered" 1 "已恢复，报过一次" "：正常（最新心跳" "$TO_ANY" '"kind": "heartbeat_recovered"'
 s1_check c06 "连不上（ssh 退出 255、stdout 空）：记「查不到」，45 分钟内不报" 1 "：运行记录查不到（JSONDecodeError），已连续 0 分钟" "!将 POST 给" "!脚本出错"
-s1_check c07 "50 分钟前起就查不到：报 heartbeat_stale「连不上 本机 的 Orca」" 1 "：中断：连不上 本机 的 Orca，50 分钟查不到「iMac ops · 01 卡住工作检查」的运行记录（JSONDecodeError）" "$TO" "$ST"
+s1_check c07 "50 分钟前起就查不到：报 heartbeat_stale「连不上 本机 的 Orca」" 1 "：中断：连不上 本机 的 Orca，50 分钟查不到「iMac ops · 01 卡住工作检查」的运行记录（JSONDecodeError）" "$TO_ANY" "$ST"
 s1_check c08 "输出不是 JSON：记「查不到」，不报" 1 "：运行记录查不到（JSONDecodeError），已连续 0 分钟" "!将 POST 给" "!脚本出错"
 s1_check c09 "新建 5 分钟、还没有运行记录：不判断" 1 "：自动任务建好 5 分钟（不到 20 分钟），还没有心跳，这次不判断" "!将 POST 给"
 s1_check c10 "还在中断、已经报过：不重复报" 1 "：还在中断（" "起已报过，不重复报）" "!将 POST 给"
 s1_check c11 "目标写错：用法错误" 2 "用法：heartbeat-watch.sh" "!将 POST 给"
 s1_check c12 "orca 回 ok:false：记「查不到」，不报" 1 '：运行记录查不到（{"code": "automation_not_found"' "!将 POST 给" "!脚本出错"
-s1_check c13 "两个目标（5c2d0575 并行版的样子）：box 正常、MBA 那条过期只报 MBA" 1 "MBA ops · 29 心跳互查：中断：最新心跳在" "box ops · 29 卡住检查心跳：正常（最新心跳" "$TO" "检查任务没在跑：MBA ops · 29 心跳互查" "!检查任务没在跑：box"
+s1_check c13 "两个目标（5c2d0575 并行版的样子）：box 正常、MBA 那条过期只报 MBA" 1 "MBA ops · 29 心跳互查：中断：最新心跳在" "box ops · 29 卡住检查心跳：正常（最新心跳" "$TO_ANY" "检查任务没在跑：MBA ops · 29 心跳互查" "!检查任务没在跑：box"
 s1_check c14 "不带 --precheck、正常：退出 0" 0 "：正常（最新心跳" "!将 POST 给"
 v=PASS
 [ -s "$T/curl-calls" ] && v=FAIL
 res S1.curl "$v" "S1 全部 --dry-run：PATH 里的假 curl 一次都没被调用" "假 curl 被调用 $(wc -l <"$T/curl-calls" | tr -d ' ') 次"
+# S1.bot（A60）：本分支这版发给 ops-system，base 发给 coding-assistant
+nb=$(cat "$OUT"/raw/S1/*.new.out "$OUT"/raw/S1/*.new.err | grep -c 'coding-assistant')
+nto=$(cat "$OUT"/raw/S1/*.new.out "$OUT"/raw/S1/*.new.err | grep -c 'dry-run，将 POST 给 ops-system')
+bto=$(cat "$OUT"/raw/S1/*.base.out "$OUT"/raw/S1/*.base.err | grep -c 'dry-run，将 POST 给 coding-assistant')
+v=PASS
+[ "$nb" = 0 ] && [ "$nto" = "$bto" ] && [ "$nto" -gt 0 ] || v=FAIL
+res S1.bot "$v" "14 个用例里本分支这版的 stdout、stderr 没有 coding-assistant；「dry-run，将 POST 给 ops-system」的行数和 base 里「dry-run，将 POST 给 coding-assistant」的一样多、大于 0" \
+    "本分支这版 coding-assistant 出现 ${nb} 行，「将 POST 给 ops-system」${nto} 行；base「将 POST 给 coding-assistant」${bto} 行"
 
 # ---------- S5 包装拒绝（iMac 这边；MBA 那边在 MBA 上跑同一套）----------
 s5 "$root/scripts/orca-via-ssh" "$T/s5-imac"
@@ -920,8 +1005,8 @@ cat "$OUT/raw/S8/imac.out" >"$T/s8-imac.all"
 expect S8.imac-noid "imac 没给 --mba-id：命令里是占位，并提示不能照抄" "$T/s8-imac.all" 0 "$OUT/raw/S8/imac.rc" "没给 --mba-id" "|mba|<MBA 新任务 id>|20"
 expect S8.parallel "parallel：外面套 lockf（锁文件 5c2d0575.lock）、lockf 前面是 ~/.orca-state/bin/lock-held-alert，保留 box 目标在前、加 MBA 目标，不改名，超时 600（两个目标最坏 572 秒）" "$T/s8-imac-parallel.cmdline" 0 "$OUT/raw/S8/imac-parallel.rc" \
     "orca automations edit ${IMAC_WATCH} --precheck '\$HOME/.orca-state/bin/lock-held-alert /usr/bin/lockf -k -t 0 \$HOME/.orca-state/heartbeat-watch/5c2d0575.lock \$HOME/.orca-state/bin/heartbeat-watch.sh --precheck ${TB} ${TM}' --precheck-timeout 600" "!--name" "!<MBA 新任务 id>"
-expect S8.final "final：只剩 MBA 目标，改名「盯 MBA ops · 29」，超时 300（一个目标最坏 286 秒），没套 lockf 和 lock-held-alert" "$T/s8-imac-final.cmdline" 0 "$OUT/raw/S8/imac-final.rc" \
-    "orca automations edit ${IMAC_WATCH} --name 'ops · 29 心跳互查（盯 MBA ops · 29）' --precheck '\$HOME/.orca-state/bin/heartbeat-watch.sh --precheck ${TM}' --precheck-timeout 300" "!box ops · 29 卡住检查心跳" "!lockf" "!lock-held-alert"
+expect S8.final "final：只剩 MBA 目标，改名「盯 MBA ops · 29」，超时 300（一个目标最坏 286 秒，加起动约 290 秒），和并行版一样套 lockf、用同一个锁文件 5c2d0575.lock，lockf 前面是 ~/.orca-state/bin/lock-held-alert" "$T/s8-imac-final.cmdline" 0 "$OUT/raw/S8/imac-final.rc" \
+    "orca automations edit ${IMAC_WATCH} --name 'ops · 29 心跳互查（盯 MBA ops · 29）' --precheck '\$HOME/.orca-state/bin/lock-held-alert /usr/bin/lockf -k -t 0 \$HOME/.orca-state/heartbeat-watch/5c2d0575.lock \$HOME/.orca-state/bin/heartbeat-watch.sh --precheck ${TM}' --precheck-timeout 300" "!box ops · 29 卡住检查心跳"
 LIVE=$(cat "$OUT/raw/S9/live-5c2d0575-precheck.txt" 2>/dev/null)
 expect S8.rollback "rollback：还原成现网 5c2d0575 的名字和 precheck（S9 读到的原文），没套 lockf 和 lock-held-alert" "$T/s8-imac-rollback.cmdline" 0 "$OUT/raw/S8/imac-rollback.rc" \
     "orca automations edit ${IMAC_WATCH} --name 'ops · 29 心跳互查（盯 box ops · 29）' --precheck '${LIVE:-S9 没读到}' --precheck-timeout 240" "!lockf" "!lock-held-alert"
@@ -945,7 +1030,7 @@ cat "$OUT/raw/S6/run.out" "$OUT/raw/S6/run.err" >"$T/s6.all"
 expect S6 "iMac 经 environment mba 读到 MBA ops · 09 的运行记录：不是「查不到」，有运行记录和最新一次运行时间（它不打 @@HB，所以结论是没有心跳行）" \
     "$T/s6.all" 0 "$OUT/raw/S6/run.rc" "MBA ops · 09 内存与 CPU 负载清理：中断：最近 " "次运行记录里没有心跳行（@@HB），最新一次运行在 " "!运行记录查不到" "!最新一次运行在 从没有" "!最近 0 次"
 # before-base：现网 5c2d0575 的 precheck（defs 里 before 的原文）用 base 版跑，紧接着并行版，给 S6b.box 当同一时刻的 base 对照。
-# 锁目录换成临时目录（并行版套了 lockf），lock-held-alert 换成临时副本。
+# 锁目录换成临时目录（并行版、最终版都套了 lockf），lock-held-alert 换成临时副本。
 for stage in parallel before-base final; do
     mkdir -p "$T/s6b-$stage/state" "$T/s6b-$stage/lock"
     sv=$V/new.sh
@@ -996,8 +1081,8 @@ XTRA="${XTRA}；紧接着用 base 版跑现网 precheck（raw/S6b/before-base.*�
 XTRA="${XTRA}；现网 5c2d0575 最近几次对 box 的结论：$(tr '\n' ' ' <"$OUT/raw/S6b/live-5c2d0575-box.txt")"
 expect S6b.box "并行版里的 box 目标正常。要 iMac 到 box 的 grok-bot 隧道当时是通的；没过时对照同一时刻 base 版跑现网 precheck 的结论和现网 5c2d0575 的运行记录（都在实际一栏）" \
     "$T/s6b-parallel.all" 1 "$OUT/raw/S6b/parallel.rc" "box ops · 29 卡住检查心跳：正常（最新心跳"
-expect S6b.final "5c2d0575 最终版 precheck：只查 MBA 目标，读到运行记录" \
-    "$T/s6b-final.all" 1 "$OUT/raw/S6b/final.rc" "MBA ops · 29 心跳互查：中断：最近 " "!box ops · 29" "!运行记录查不到" "!最近 0 次"
+expect S6b.final "5c2d0575 最终版 precheck（defs 原文，MBA 新任务 id 用 ops · 09 代替，锁目录换成临时目录，lock-held-alert 换成临时副本）：只查 MBA 目标，读到运行记录；锁空着、没有状态文件，lock-held-alert 什么都不打" \
+    "$T/s6b-final.all" 1 "$OUT/raw/S6b/final.rc" "MBA ops · 29 心跳互查：中断：最近 " "!box ops · 29" "!运行记录查不到" "!最近 0 次" "!lock-held-alert："
 
 # S14 的判断（FAILURE-MODES.md A31–A35、A52、A54、C15、C20），MBA、iMac 共用。s14_judge <输出目录> <机器> <第二轮第一个目标的结论行开头>
 s14_judge() {
@@ -1112,7 +1197,7 @@ res("S14.%s.timeout" % m, ok,
 PY
 }
 
-# S15 的判断（FAILURE-MODES.md A41–A47、C17–C19），MBA、iMac 共用。
+# S15 的判断（FAILURE-MODES.md A41–A47、A55–A57、A66–A68、C17–C19、C21），MBA、iMac 共用。
 # s15_judge <输出目录> <机器> <第 5 轮第一个目标「正常」那行的开头> <告警里要有的目标名...>
 s15_judge() {
     python3 -I - "$OUT/results.tsv" "$CANARY" "$@" <<'PY'
@@ -1177,10 +1262,19 @@ def skipped(x, n):  # 跳过的一轮：退出 75，stderr 有 already locked，
             and "已连续跳过 %d 轮" % n in x["guard"][0] and "@@HB" not in x["out"] and x["probe"] == "没有")
 
 
-def brief(x):  # 一轮的 stdout：lock-held-alert 的行去掉括号里的时间和锁文件，没有就是第一行
+def brief(x, n=150):  # 一轮的 stdout：lock-held-alert 的行去掉括号里的时间和锁文件，没有就是第一行
     if x["guard"]:
-        return re.sub(r"（从 [^）]*）|（锁文件 [^）]*）", "", x["guard"][0].replace("lock-held-alert：", ""))[:150]
+        return re.sub(r"（从 [^）]*）|（锁文件 [^）]*）", "", x["guard"][0].replace("lock-held-alert：", ""))[:n]
     return (x["lines"][0][:80] + "…") if x["lines"] else "空"
+
+
+def stdesc(x, a=None, who=""):  # 一轮之后的状态文件：键（skips 带次数），等于 a 的 alerted、prev_alerted 标上 who
+    if not x["has_st"]:
+        return "没了"
+    if x["st"] is None:
+        return "读不了"
+    return "{%s}" % "、".join("skips %s" % v if k == "skips" else "%s（%s）" % (k, who) if a and v == a and k in ("alerted", "prev_alerted")
+                              else k for k, v in sorted(x["st"].items()))
 
 
 def body(b):
@@ -1190,7 +1284,9 @@ def body(b):
 
 canary_ok = all(canary not in rd(f) for f in os.listdir(d) if os.path.isfile(os.path.join(d, f))) if os.path.isdir(d) else False
 host, lk = rd("host").strip(), rd("lockname").strip()
-R = {n: rnd(n) for n in ("r1", "r2", "r3", "r4", "r5", "r6", "45a", "45b", "bad-a", "bad-b")}
+RF = ["rf-" + c for c in "abcdef"]
+OLD = ["old-" + c for c in "abcdefg"]
+R = {n: rnd(n) for n in ["r1", "r2", "r3", "r4", "r5", "r6", "45a", "45b", "bad-a", "bad-b"] + RF + OLD}
 
 # 主线（A41–A44、A46）：外部拿住锁，阈值 0.25 分钟
 r = [R["r%d" % i] for i in range(1, 7)]
@@ -1220,7 +1316,7 @@ ok = (all(skipped(r[i], i + 1) for i in range(4)) and timing
 nskip = sum(x["rc"] == 75 for x in r[:4])
 ok_line5 = next((l for l in r[4]["lines"] if okline in l), "（没有「%s」那行）" % okline)
 res("S15.%s" % m, ok,
-    "%s 上照 defs 原文跑 precheck（锁文件换到临时目录，lock-held-alert 换成临时副本，加 --dry-run，STUCK_FORCE_BOT=ops-system，"
+    "%s 上照 defs 原文跑 precheck（锁文件换到临时目录，lock-held-alert 换成临时副本，加 --dry-run，不设 STUCK_FORCE_BOT（默认收件人 ops-system），"
     "HB_LOCK_ALERT_MIN=0.25），外部 lockf … sleep 32 拿住锁，照 Orca 的做法在第 1 轮开始后约 0、6、18、24 秒起 4 轮：都退出 75，"
     "stderr 有 already locked，stdout 只有 lock-held-alert 的一行「已连续跳过 N 轮」（N 是 1–4），HB_STATE_DIR 没被建出来；"
     "第 1、2 轮假 curl 0 次；第 3 轮假 curl 1 次，kind heartbeat_stale、status stuck、source lock-held-alert、bot ops-system，"
@@ -1274,6 +1370,108 @@ res("S15.%s.bad" % m, ok,
     "退出还是 75，stderr 有 lock-held-alert 的报错；假 curl 0 次" % m,
     "乱码：退出 %s，stdout：%s，之后状态文件 %s；目录：退出 %s，stdout：%s，stderr：%s；假 curl %d 次" % (
         a["rc"], brief(a), json.dumps(a["st"], sort_keys=True) if a["st"] else "没有", b["rc"], brief(b), errline[:200], nbad))
+
+
+def got(x):  # 拿到锁的一轮：没有 already locked，lock-held-alert 一行
+    return "already locked" not in x["err"] and len(x["guard"]) == 1
+
+
+def g(x):
+    return x["guard"][0] if x["guard"] else ""
+
+
+def st(x):
+    return x["st"] or {}
+
+
+def lifted(xs, rcs):  # 实际一栏：每轮的退出码、stdout、之后的状态文件
+    return "；".join("%s：退出 %s，%s，之后状态文件 %s" % (n, R[n]["rc"], brief(R[n], 240), d) for n, d in zip(xs, rcs))
+
+
+# rf（A55、A66–A68）：「已恢复」没发出去以后锁又被占着。不设阈值和间隔，假 curl 按 S15_CURL_HTTP 回码
+x = {n: R[n] for n in RF}
+rfb = bodies("rf.curl-bodies")
+A = st(x["rf-a"]).get("alerted")  # rf-a 报警的时间
+stale, recov = "heartbeat_stale", "heartbeat_recovered"
+rf_bodies_ok = (len(rfb) == 6 and all(b[0] == "假地址" and b[1].get("bot") == "ops-system" and b[1].get("source") == "lock-held-alert"
+                                      for b in rfb)
+                and [b[1].get("kind") for b in rfb] == [stale, recov, recov, stale, recov, recov]
+                and all("补发" in (rfb[i][1].get("note") or "") for i in (2, 4, 5)) and "补发" not in (rfb[1][1].get("note") or ""))
+ok = (skipped(x["rf-a"], 10) and "到了 45 分钟，报警：POST heartbeat_stale → ops-system → 200" in g(x["rf-a"]) and bool(A)
+      and x["rf-b"]["rc"] == 1 and got(x["rf-b"]) and "锁拿到了，之前连续跳过 10 轮" in g(x["rf-b"])
+      and "「已恢复」没发出去（POST heartbeat_recovered → ops-system → 500）" in g(x["rf-b"])
+      and sorted(st(x["rf-b"])) == ["alerted", "recovered"] and st(x["rf-b"]).get("alerted") == A
+      and skipped(x["rf-c"], 1) and "补发也没发出去（POST heartbeat_recovered → ops-system → 500）" in g(x["rf-c"])
+      and "到 45 分钟才报" in g(x["rf-c"])
+      and sorted(st(x["rf-c"])) == ["first", "last", "prev_alerted", "skips"] and st(x["rf-c"]).get("prev_alerted") == A
+      and st(x["rf-c"]).get("skips") == 1
+      and skipped(x["rf-d"], 2) and "到了 45 分钟，报警：POST heartbeat_stale → ops-system → 200" in g(x["rf-d"])
+      and "已报过" not in g(x["rf-d"]) and "alerted" in st(x["rf-d"]) and st(x["rf-d"]).get("prev_alerted") == A
+      and skipped(x["rf-e"], 1) and "补发了：POST heartbeat_recovered → ops-system → 200" in g(x["rf-e"])
+      and "到 45 分钟才报" in g(x["rf-e"]) and sorted(st(x["rf-e"])) == ["first", "last", "skips"] and st(x["rf-e"]).get("skips") == 1
+      and x["rf-f"]["rc"] == 1 and got(x["rf-f"]) and "锁拿到了" in g(x["rf-f"])
+      and "这次补发，已报恢复：POST heartbeat_recovered → ops-system → 200" in g(x["rf-f"]) and not x["rf-f"]["has_st"]
+      and [x[n]["curls"] for n in RF] == [1, 2, 3, 4, 5, 6] and rf_bodies_ok and canary_ok)
+res("S15.%s.rf" % m, ok,
+    "%s 上不设阈值和间隔（默认 45、15 分钟），状态文件由演练写或改，假 curl 按 S15_CURL_HTTP 回码（默认 200）："
+    "rf-a（外部拿住锁，状态文件写成 46 分钟前起、已跳过 9 轮、最后一次 5 分钟前）退出 75，「已连续跳过 10 轮」，报警 → 200；"
+    "rf-b（放开锁，回 500）退出 1，「锁拿到了，之前连续跳过 10 轮」「「已恢复」没发出去（POST heartbeat_recovered → ops-system → 500）」，"
+    "之后状态文件只有 alerted（rf-a 报的）、recovered；rf-c（再拿住锁，回 500）退出 75，「已连续跳过 1 轮」"
+    "「补发也没发出去（POST heartbeat_recovered → ops-system → 500）」「到 45 分钟才报」，之后状态文件 prev_alerted 是 rf-a 报的，"
+    "没有 alerted、recovered，skips 1；rf-d（演练只把 first 改成 46 分钟前）退出 75，「已连续跳过 2 轮」，报警 → 200，没有「已报过」；"
+    "rf-e（状态文件写成 60 分钟前报过、10 分钟前拿到过锁、「已恢复」没发出去）退出 75，「已连续跳过 1 轮」"
+    "「补发了：POST heartbeat_recovered → ops-system → 200」，之后状态文件只有 first、last、skips 1；rf-f（放开锁，状态文件同 rf-e）退出 1，"
+    "「这次补发，已报恢复：POST heartbeat_recovered → ops-system → 200」，状态文件没了。被挡的每轮 stderr 有 already locked、"
+    "stdout 只有 lock-held-alert 的一行、HB_STATE_DIR 没被建出来；假 curl 每轮之后累计 1–6 次，依次是 stale、recovered、"
+    "recovered（补发）、stale、recovered（补发）、recovered（补发），都发到假地址，bot ops-system，source lock-held-alert" % m,
+    "%s；请求体：%s；假 curl 每轮之后累计 %s，共 %d 次" % (
+        lifted(RF, [stdesc(x[n], A, "rf-a 报的") for n in RF]),
+        " / ".join("%s%s、bot %s、发到%s" % (b[1].get("kind"), "（补发）" if "补发" in (b[1].get("note") or "") else "", b[1].get("bot"), b[0])
+                   for b in rfb) or "没有",
+        "、".join(str(x[n]["curls"]) for n in RF), len(rfb)))
+
+# old（A56、A57、A66、A67）：很久以前留下的状态文件；上一串报过、还没报恢复。不设阈值和间隔，外部一直拿着锁
+y = {n: R[n] for n in OLD}
+ob = bodies("old.curl-bodies")
+D = (js("old-d.seed.json") or {}).get("alerted")  # 演练写的「3 天前报过」
+F = (js("old-f.seed.json") or {}).get("alerted")
+
+
+def fresh(n):  # 新的一串
+    return "隔了" in g(y[n]) and "当新的一串" in g(y[n])
+
+
+old_bodies_ok = (len(ob) == 3 and all(b[0] == "假地址" and b[1].get("bot") == "ops-system" and b[1].get("source") == "lock-held-alert"
+                                      for b in ob)
+                 and [b[1].get("kind") for b in ob] == [stale, stale, recov])
+start_a = y["old-a"]["o"].get("start")
+ok = (skipped(y["old-a"], 1) and fresh("old-a") and "到 45 分钟才报" in g(y["old-a"]) and st(y["old-a"]).get("skips") == 1
+      and start_a is not None and st(y["old-a"]).get("first", 0) >= start_a
+      and skipped(y["old-b"], 1) and fresh("old-b") and st(y["old-b"]).get("skips") == 1
+      and skipped(y["old-c"], 8) and not fresh("old-c") and "到了 45 分钟，报警：POST heartbeat_stale → ops-system → 200" in g(y["old-c"])
+      and "alerted" in st(y["old-c"])
+      and skipped(y["old-d"], 1) and fresh("old-d") and "还没报恢复，下一次拿到锁时报" in g(y["old-d"]) and "到 45 分钟才报" in g(y["old-d"])
+      and bool(D) and st(y["old-d"]).get("prev_alerted") == D and "alerted" not in st(y["old-d"]) and st(y["old-d"]).get("skips") == 1
+      and skipped(y["old-e"], 2) and "到了 45 分钟，报警：POST heartbeat_stale → ops-system → 200" in g(y["old-e"])
+      and "已报过" not in g(y["old-e"]) and "alerted" in st(y["old-e"]) and st(y["old-e"]).get("prev_alerted") == D
+      and skipped(y["old-f"], 1) and fresh("old-f") and bool(F) and st(y["old-f"]).get("prev_alerted") == F
+      and "alerted" not in st(y["old-f"])
+      and y["old-g"]["rc"] == 1 and got(y["old-g"]) and "锁拿到了，之前连续跳过 1 轮" in g(y["old-g"])
+      and "已报恢复：POST heartbeat_recovered → ops-system → 200" in g(y["old-g"]) and not y["old-g"]["has_st"]
+      and [y[n]["curls"] for n in OLD] == [0, 0, 1, 1, 2, 2, 3] and old_bodies_ok and canary_ok)
+res("S15.%s.old" % m, ok,
+    "%s 上不设阈值和间隔（默认 45、15 分钟），外部一直拿着锁，状态文件由演练写或改：old-a（3 天前跳过 1 轮）退出 75，「已连续跳过 1 轮」，"
+    "有「隔了」「当新的一串」，「到 45 分钟才报」，之后 skips 1、first 不早于这一轮开始；old-b（50 分钟前起跳过 7 轮、最后一次 16 分钟前）"
+    "新的一串，「已连续跳过 1 轮」；old-c（50 分钟前起跳过 7 轮、最后一次 14 分钟前）同一串，「已连续跳过 8 轮」，报警 → 200；"
+    "old-d（3 天前起跳过 9 轮、3 天前报过）新的一串，写上一串报过、还没报恢复，「到 45 分钟才报」，之后 prev_alerted 是 3 天前那次、"
+    "没有 alerted；old-e（演练只把 first 改成 46 分钟前）「已连续跳过 2 轮」，报警 → 200，没有「已报过」；old-f（同 old-d）新的一串；"
+    "放开锁，old-g 退出 1，「锁拿到了，之前连续跳过 1 轮」「已报恢复：POST heartbeat_recovered → ops-system → 200」，状态文件没了；"
+    "被挡的每轮 stderr 有 already locked、stdout 只有 lock-held-alert 的一行、HB_STATE_DIR 没被建出来；"
+    "假 curl 每轮之后累计 0、0、1、1、2、2、3 次，依次是 stale、stale、recovered，都发到假地址，bot ops-system，source lock-held-alert" % m,
+    "%s；请求体：%s；假 curl 每轮之后累计 %s，共 %d 次" % (
+        lifted(OLD, [stdesc(y[n], D if n in ("old-d", "old-e") else F, "演练写的 3 天前") for n in OLD]),
+        " / ".join("%s、bot %s、发到%s" % (b[1].get("kind"), b[1].get("bot"), b[0]) for b in ob) or "没有",
+        "、".join(str(y[n]["curls"]) for n in OLD), len(ob)))
 PY
 }
 
@@ -1321,7 +1519,7 @@ else
     chmod +x "$T/bundle/orca-via-ssh.7ac1220"
     cp "$here/heartbeat-watch-ssh.sh" "$T/bundle/drill.sh"
     cp -R "$here/hb-replay/." "$T/bundle/hb-replay/"
-    cp "$T/hooks/coding-assistant.env" "$T/bundle/hooks/"
+    cp "$T/hooks/coding-assistant.env" "$T/hooks/ops-system.env" "$T/bundle/hooks/"
     cp "$T/hooks-s15/ops-system.env" "$T/bundle/hooks-s15/"
     printf '%s' "$WEIRD" >"$T/bundle/weird.txt"
     # 照 defs 里 MBA 新任务的 precheck 拼：三个脚本路径换成临时副本，锁目录换成各场景自己的临时目录（S14、S15 写成 @LOCKDIR@，
@@ -1368,8 +1566,8 @@ if [ -n "$R" ]; then
             "$T/S2-$sh.all" 1 "$M/S2-$sh.rc" "iMac ops · 01 卡住工作检查：正常（最新心跳" "!运行记录查不到" "!脚本出错" "!将 POST 给" "!lock-held-alert："
     done
     cat "$M/S3.out" "$M/S3.err" >"$T/S3.all" 2>/dev/null
-    expect S3 "MBA 上回放 30 分钟前的心跳：出 heartbeat_stale 待发内容，收件人 coding-assistant（STUCK_FORCE_BOT 没设）" \
-        "$T/S3.all" 1 "$M/S3.rc" "$TO" "：中断：最新心跳在" "已 30 分钟没有新的" "$ST" '"bot": "coding-assistant"' '"machine": "本机"'
+    expect S3 "MBA 上回放 30 分钟前的心跳：出 heartbeat_stale 待发内容，收件人 ops-system（STUCK_FORCE_BOT 没设）" \
+        "$T/S3.all" 1 "$M/S3.rc" "$TO_ANY" "$TO" "：中断：最新心跳在" "已 30 分钟没有新的" "$ST" '"bot": "ops-system"' '"machine": "本机"'
     cat "$M/S4.out" "$M/S4.err" >"$T/S4.all" 2>/dev/null
     XTRA="；用时 $(cat "$M/S4.secs" 2>/dev/null) 秒"
     expect S4 "ORCA_SSH_HOST=no-such-host.invalid：记「运行记录查不到」、不报、不算脚本出错，--precheck 退出 1" \
@@ -1380,8 +1578,8 @@ if [ -n "$R" ]; then
     cat "$M/S4b.out" "$M/S4b.err" >"$T/S4b.all" 2>/dev/null
     XTRA="；state.json 没被改"
     cmp -s "$M/S4b.state-before" "$M/S4b.state-after" || { XTRA="；state.json 被改了"; XFAIL=1; }
-    expect S4b "state 里记着 50 分钟前起查不到：报 heartbeat_stale「连不上 本机 的 Orca」给 coding-assistant；dry-run 不改 state" \
-        "$T/S4b.all" 1 "$M/S4b.rc" "：中断：连不上 本机 的 Orca，50 分钟查不到「iMac ops · 01 卡住工作检查」的运行记录（JSONDecodeError）" "$TO" "$ST"
+    expect S4b "state 里记着 50 分钟前起查不到：报 heartbeat_stale「连不上 本机 的 Orca」给 ops-system；dry-run 不改 state" \
+        "$T/S4b.all" 1 "$M/S4b.rc" "：中断：连不上 本机 的 Orca，50 分钟查不到「iMac ops · 01 卡住工作检查」的运行记录（JSONDecodeError）" "$TO" "$ST" '"bot": "ops-system"'
     s5_judge "$M/S5" MBA
     python3 -I - "$M/S5b.out" "$T/bundle/weird.txt" "$M/S5b.rc" "$CANARY" "$OUT/results.tsv" <<'PY'
 import json, sys

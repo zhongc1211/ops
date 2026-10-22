@@ -1,16 +1,20 @@
 #!/bin/bash
 # lock-held-alert /usr/bin/lockf -k -t 0 <锁文件> <命令> [参数...]
 # 给 heartbeat-watch 的 precheck 用（B1，automations/heartbeat-1021/）：照原样跑后面的 lockf 命令，退出码照 lockf 的交出去；
-# 另外看着「锁一直被占着」（FAILURE-MODES.md A41–A54）：
+# 另外看着「锁一直被占着」（FAILURE-MODES.md A41–A57）：
 #   - lockf 退出 75（锁被上一轮或别的进程拿着，这一轮没起命令）：在锁文件旁边的 <锁文件>.skips.json 记下这一串跳过的
-#     第一次时间和次数。从第一次跳过起满 HB_LOCK_ALERT_MIN（默认 45）分钟的那一轮报警一次（kind heartbeat_stale），之后不重复报。
+#     第一次、最后一次时间和次数。从第一次跳过起满 HB_LOCK_ALERT_MIN（默认 45）分钟的那一轮报警一次（kind heartbeat_stale），之后不重复报。
+#     上一次跳过离现在超过 HB_LOCK_GAP_MIN（默认 15，3 个间隔）分钟，上一串就算断了，这一轮当新的一串，重新计时。
 #   - 拿到锁的那一轮跑完：清掉它开始以前就有的记录，报过警的再报一次「已恢复」（kind heartbeat_recovered）。
 #     它开始以后才有的记录（它拿着锁时被挡下的几轮）不动，留给下一个拿到锁的。
+#     「已恢复」先记进状态文件再发，没发出去（或者发的时候被杀）下一轮补发：拿到锁照常发；被挡先补发一次，再当新的一串。
+#     上一串报过警、还没报恢复的，新的一串开始时记成 prev_alerted，不挡这一串报警，下一次拿到锁时报恢复。
 #   - 跳过的、清掉记录的那一轮在 stdout 打一行；锁空着、没有记录时什么都不打。
 #     不打 @@HB：跳过的一轮打了 @@HB，对面的 heartbeat-watch 会当这边还活着（F34）。
-# 收件 bot 和 heartbeat-watch 一样是 coding-assistant；STUCK_FORCE_BOT、STUCK_WEBHOOK_DIR 照样生效。URL 和 KEY 只经 stdin 交给 curl。
-# 每轮只发一次（curl 最多 20 秒），没发出去下一轮再发：heartbeat-watch 的重试最长要等 65 秒，拿到锁的那一轮放不下
-# （MBA 那条最坏约 296 秒，超时 330）。不看 --dry-run，那是给 heartbeat-watch 的。
+# 收件 bot 和 heartbeat-watch 一样是 ops-system；STUCK_FORCE_BOT、STUCK_WEBHOOK_DIR 照样生效。URL 和 KEY 只经 stdin 交给 curl。
+# 每条只发一次、不重试（curl 最多 20 秒），没发出去下一轮再发：heartbeat-watch 的重试最长要等 65 秒，拿到锁的那一轮放不下
+# （MBA 那条最坏约 296 + 20 秒，超时 330；5c2d0575 最终版约 290 + 20 秒，超过 300，FAILURE-MODES.md F41）。
+# 不看 --dry-run，那是给 heartbeat-watch 的。
 # 退出码：lockf 的（75 拿不到锁、73 打不开锁文件、其余是命令的；lockf 被信号杀掉时 128 + 信号）；用法错 64；起不了 lockf 71。
 # 自己出错（状态文件读写、发告警）只在 stderr 写一行，退出码还是 lockf 的。73、64、71 不计数也不清记录：锁文件打不开时状态文件也写不了。
 set -u
@@ -30,7 +34,7 @@ WHAT = os.path.basename(ARGS[5])
 TARGETS = [ARGS[i + 1].split("|")[0] for i in range(5, len(ARGS) - 1) if ARGS[i] == "--target"]
 WEBHOOK_DIR = os.environ.get("STUCK_WEBHOOK_DIR") or os.path.join(HOME, ".config/grokbot/webhooks")
 FORCE_BOT = os.environ.get("STUCK_FORCE_BOT")
-BOT = "coding-assistant"
+BOT = "ops-system"
 HOST = socket.gethostname().split(".")[0] or "本机"
 SGT = datetime.timezone(datetime.timedelta(hours=8))
 SECRETS = []
@@ -43,19 +47,20 @@ def say(msg, err=False):
           file=sys.stderr if err else sys.stdout, flush=True)
 
 
-def alert_min():
-    v = os.environ.get("HB_LOCK_ALERT_MIN")
+def env_min(name, default, zero_ok):
+    v = os.environ.get(name)
     try:
-        m = float(v) if v else 45.0
+        m = float(v) if v else default
     except ValueError:
         m = -1.0
-    if not m >= 0:  # 也挡住 nan
-        say("HB_LOCK_ALERT_MIN=%s 不能用，按 45 分钟" % v, err=True)
-        m = 45.0
+    if not (m >= 0 if zero_ok else m > 0):  # 也挡住 nan
+        say("%s=%s 不能用，按 %g 分钟" % (name, v, default), err=True)
+        m = default
     return m
 
 
-ALERT_MIN = alert_min()
+ALERT_MIN = env_min("HB_LOCK_ALERT_MIN", 45.0, True)
+GAP_MIN = env_min("HB_LOCK_GAP_MIN", 15.0, False)
 
 
 def fmt(t):
@@ -71,7 +76,8 @@ def load_state():
     if not isinstance(d, dict):
         return {}
     return {k: v for k, v in d.items()
-            if k in ("first", "last", "skips", "alerted") and isinstance(v, (int, float)) and not isinstance(v, bool)}
+            if k in ("first", "last", "skips", "alerted", "prev_alerted", "recovered")
+            and isinstance(v, (int, float)) and not isinstance(v, bool)}
 
 
 def save_state(st):
@@ -130,14 +136,48 @@ def post(payload):
     return bool(re.fullmatch(r"2\d\d", code or "")), "POST %s → %s → %s" % (payload["kind"], to, code or "无响应")
 
 
+def got_before(st):
+    return fmt(st["recovered"]) + " " if st.get("recovered") else "之前"
+
+
+def post_recovered(a, st, head):
+    """发一次「已恢复」。a 是报警的时间，head 是 note 的头一句（这一轮怎样）；状态里没有 first 时是补发（got_lock 留下的，A55）。"""
+    note = head + "%s 报过锁一直被占着。" % fmt(a)
+    if not st.get("first"):
+        note += "%s拿到过锁，当时「已恢复」没发出去，这是补发。" % got_before(st)
+    elif st.get("skips"):
+        note += "拿到锁之前从 %s 起连续跳过 %d 轮。" % (fmt(st["first"]), st["skips"])
+    return post({"task": "检查任务已恢复：%s 上的 %s（锁放开了）" % (HOST, WHAT), "worktree": HOST,
+                 "status": "recovered", "kind": "heartbeat_recovered", "machine": HOST, "source": "lock-held-alert",
+                 "note": note})
+
+
 def skipped(st, now):
+    more = ""
+    a = st.get("alerted") or st.get("prev_alerted")
+    if a and not st.get("first"):
+        # 拿到过锁、「已恢复」没发出去（got_lock 留下的）：先补发一次，再当新的一串（A55）。
+        # 补发也没发出去，记成 prev_alerted：不挡这一串报警（A57），下一次拿到锁再发
+        ok, how = post_recovered(a, st, "%s 上 %s 的锁 %s 现在又被占着，从这一轮起重新计时，满 %g 分钟再报。" % (
+            HOST, WHAT, SHOW, ALERT_MIN))
+        more = "；%s 报过锁被占着，%s拿到过锁、「已恢复」没发出去，%s" % (
+            fmt(a), got_before(st), "补发了：%s" % how if ok else "补发也没发出去（%s），下一次拿到锁再发" % how)
+        st = {} if ok else {"prev_alerted": a}
+    elif st.get("first") and now - (st.get("last") or st["first"]) > GAP_MIN * 60:
+        # 上一次跳过离现在超过 GAP_MIN 分钟（任务停过、机器睡过、留下的旧状态文件）：上一串断了，这一轮当新的一串（A56）。
+        # 上一串报过警的不补发「已恢复」（锁这时还被占着），记成 prev_alerted，下一次拿到锁时报（A57）
+        last = st.get("last") or st["first"]
+        more = "；上一串（从 %s 起跳过 %d 轮）最后一次在 %s，隔了 %.1f 分钟（超过 %g 分钟），这一轮当新的一串%s" % (
+            fmt(st["first"]), int(st.get("skips") or 0), fmt(last), (now - last) / 60.0, GAP_MIN,
+            "；%s 报过的锁被占着还没报恢复，下一次拿到锁时报" % fmt(a) if a else "")
+        st = {"prev_alerted": a} if a else {}
     st["first"] = st.get("first") or now
     st["skips"] = int(st.get("skips") or 0) + 1
     st["last"] = now
     mins = (now - st["first"]) / 60.0
-    msg = "锁被占着，这一轮没起 %s；已连续跳过 %d 轮（从 %s 起 %.1f 分钟，锁文件 %s）" % (
-        WHAT, st["skips"], fmt(st["first"]), mins, SHOW)
-    if st.get("alerted"):
+    msg = "锁被占着，这一轮没起 %s；已连续跳过 %d 轮（从 %s 起 %.1f 分钟，锁文件 %s）%s" % (
+        WHAT, st["skips"], fmt(st["first"]), mins, SHOW, more)
+    if st.get("alerted"):  # 只有这一串报过的；上一串报过、还没报恢复的是 prev_alerted，不挡（A57）
         msg += "；%s 已报过，不重复报" % fmt(st["alerted"])
     elif mins >= ALERT_MIN:
         ok, how = post({"task": "检查任务没在跑：%s 上的 %s（锁一直被占着）" % (HOST, WHAT), "worktree": HOST,
@@ -165,22 +205,21 @@ def got_lock(st, rc, now, start):
             st["skips"], fmt(st.get("first") or now), (now - (st.get("first") or now)) / 60.0, SHOW, WHAT, rc)
     else:
         msg = "锁拿到了（锁文件 %s）；这一轮 %s 退出 %d" % (SHOW, WHAT, rc)
-    if not st.get("alerted"):
+    a = st.get("alerted") or st.get("prev_alerted")
+    if not a:
         say(msg)
         remove_state()
         return
-    ok, how = post({"task": "检查任务已恢复：%s 上的 %s（锁放开了）" % (HOST, WHAT), "worktree": HOST,
-                    "status": "recovered", "kind": "heartbeat_recovered", "machine": HOST, "source": "lock-held-alert",
-                    "note": "%s 上 %s 的锁 %s 拿到了，这一轮退出 %d。%s 报过锁一直被占着%s。" % (
-                        HOST, WHAT, SHOW, rc, fmt(st["alerted"]),
-                        "（从 %s 起连续跳过 %d 轮）" % (fmt(st["first"]), st["skips"]) if st.get("skips") and st.get("first")
-                        else "")})
+    # 先记下「拿到过锁、「已恢复」还没发」再发：没发出去，或者发的时候被 Orca 超时杀掉（FAILURE-MODES.md F41），
+    # 下一轮拿到锁时照常发，被挡时先补发（A55）
+    save_state({"alerted": a, "recovered": st.get("recovered") or now})
+    ok, how = post_recovered(a, st, "%s 上 %s 的锁 %s 拿到了，这一轮退出 %d。" % (HOST, WHAT, SHOW, rc))
+    again = "" if st.get("first") else "%s拿到锁时「已恢复」没发出去，这次补发，" % got_before(st)
     if ok:
-        say(msg + "；%s 报过的锁被占着，已报恢复：%s" % (fmt(st["alerted"]), how))
+        say(msg + "；%s 报过的锁被占着，%s已报恢复：%s" % (fmt(a), again, how))
         remove_state()
     else:
-        say(msg + "；%s 报过的锁被占着，「已恢复」没发出去（%s），下一次拿到锁再发" % (fmt(st["alerted"]), how))
-        save_state({"alerted": st["alerted"]})
+        say(msg + "；%s 报过的锁被占着，%s「已恢复」没发出去（%s），下一轮补发" % (fmt(a), again, how))
 
 
 start = time.time()

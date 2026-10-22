@@ -38,7 +38,7 @@ MBA 新任务和 box `94e4b0bc` 一样：每 5 分钟、grace 720、`--fresh-ses
 330 秒按最坏情况定：ssh 每次最多 70 秒，查一次运行记录最多 3 次、中间等 2 × 8 秒，共 226 秒；少见情况再查一次 list，共 296 秒，
 加起动约 4 秒（见「已知限制」）。
 330 秒比 5 分钟的间隔长，所以 precheck 外面套了 `/usr/bin/lockf -k -t 0 $HOME/.orca-state/heartbeat-watch/mba-hb-watch.lock`：
-上一轮还没跑完时，这一轮拿不到锁，立刻退出 75，不起 heartbeat-watch。`5c2d0575` 的并行版（超时 600）也套了，锁文件是 `5c2d0575.lock`。
+上一轮还没跑完时，这一轮拿不到锁，立刻退出 75，不起 heartbeat-watch。`5c2d0575` 的并行版（超时 600）和最终版（超时 300）也套了，两阶段用同一个 `5c2d0575.lock`。
 锁一直被占着时每一轮都退出 75，这条看守就停了，所以 lockf 前面再写一层 `~/.orca-state/bin/lock-held-alert`（仓库里的 `scripts/lock-held-alert`）：
 它照原样跑后面的 lockf 命令，退出码不变；连续跳过时在锁文件旁边的 `<锁文件>.skips.json` 记次数，从第一次跳过起满 45 分钟告警一次，
 锁放开后报一次恢复（见「已知限制」里的「锁一直被占着」）。
@@ -68,7 +68,7 @@ MBA 新任务和 box `94e4b0bc` 一样：每 5 分钟、grace 720、`--fresh-ses
 
 前提：
 - MBA 桌面登录着、接着电源。
-- `test -f ~/.config/grokbot/webhooks/coding-assistant.env && echo ok` 输出 `ok`（只测存在，不读内容）。
+- `test -f ~/.config/grokbot/webhooks/ops-system.env && echo ok` 输出 `ok`（只测存在，不读内容）。
 - 这张卡期间 box `94e4b0bc` 保持启用。
 
 **0. 拉代码（只在 MBA）。** 本 PR 合并到 main 以后：
@@ -83,8 +83,8 @@ git rev-parse HEAD > ~/ops-archive/heartbeat-1021/mba-ops-head.after.txt
 ```
 不在 main、有已跟踪文件的改动、或者不能快进，就停下来报给 Zack；不切分支、不 stash、不合并。
 
-iMac 不拉代码。iMac 用的是已装的 `~/.orca-state/bin/heartbeat-watch.sh`，和 main 只差注释，不用换；本 PR 的文件里 iMac 只用到
-lock-held-alert，卡 ③ 第 4 步从浅克隆装。iMac 主检出里有 ops · 01 每分钟都读的未提交文件（`orca-projects.md`），在那里 pull 属于没有卡片的现网改动。
+iMac 不拉代码。卡 ③ 第 4 步从浅克隆装 heartbeat-watch.sh 和 lock-held-alert；换上 heartbeat-watch.sh 后，
+现网 `5c2d0575` 的告警收件人就改为 ops-system。iMac 主检出里有 ops · 01 每分钟都读的未提交文件（`orca-projects.md`），在那里 pull 属于没有卡片的现网改动。
 iMac 上要跑 `register.sh` 时（卡 ③、卡 ④、回滚），每张卡开头把 main 浅克隆到备份目录，在那里跑，不碰主检出：
 ```bash
 M=~/ops-archive/heartbeat-1021/main-$(date +%Y%m%d-%H%M%S)
@@ -108,7 +108,7 @@ for f in heartbeat-watch.sh orca-via-ssh lock-held-alert; do shasum -a 256 scrip
 核对：每个文件的两行 sha256 一样。再照 precheck 的写法（经 lock-held-alert 和 lockf）跑一次 `--dry-run`（临时状态目录和假 webhook 目录，
 不发叫醒、不读真凭据）：
 ```bash
-T=$(mktemp -d); mkdir -p "$T/hooks"; printf 'URL=http://127.0.0.1:9/hb-drill\nKEY=hb-drill-dummy-key\n' > "$T/hooks/coding-assistant.env"
+T=$(mktemp -d); mkdir -p "$T/hooks"; printf 'URL=http://127.0.0.1:9/hb-drill\nKEY=hb-drill-dummy-key\n' > "$T/hooks/ops-system.env"
 HB_STATE_DIR="$T/state" STUCK_WEBHOOK_DIR="$T/hooks" HB_ORCA=$HOME/.orca-state/bin/orca-via-ssh ORCA_SSH_HOST=imac \
   ~/.orca-state/bin/lock-held-alert /usr/bin/lockf -k -t 0 ~/.orca-state/heartbeat-watch/mba-hb-watch.lock \
   ~/.orca-state/bin/heartbeat-watch.sh --precheck --dry-run --target "iMac ops · 01 卡住工作检查||439cd438-cffe-44dd-bd2b-23b07bfa3d61|20"
@@ -140,9 +140,11 @@ orca automations edit $MBA_ID --enabled
 以后偶尔有一次 `exitCode` 75、stderr 是 `lockf: …: already locked`、stdout 只有 lock-held-alert 的一行「锁被占着，这一轮没起
 heartbeat-watch.sh；已连续跳过 1 轮…」，是上一轮还没跑完、这一轮被跳过（见「已知限制」）；下一次拿到锁的那一轮 stdout 多一行
 「锁拿到了，之前连续跳过 1 轮…」。连着出现就是有一轮卡住了，用 `pgrep -l lockf` 看一下，不要杀进程，报给 Zack。
-连续跳过满 45 分钟，lock-held-alert 给 Coding助手 发一条 `heartbeat_stale`（`source` 是 `lock-held-alert`），锁放开后发一条 `heartbeat_recovered`。
+整晚 `exitCode` 只能是 1 和偶尔的 75；出现 73、71、127 或 `timedOut` 就停下来报告。
+从第一次跳过起满 45 分钟才报警，算上之前持锁的一轮，锁卡住约 50 分钟才报；收件人是 ops-system。
+连续跳过满 45 分钟，lock-held-alert 给 ops-system 发一条 `heartbeat_stale`（`source` 是 `lock-held-alert`），锁放开后发一条 `heartbeat_recovered`。
 
-可选：验证 Orca 把退出 75 记成 `skipped_precheck`（演练没法验证，见「已知限制」）。第 3 步启用以后，在 MBA 上拿住锁 6 分钟：
+必做：验证 Orca 把退出 75 记成 `skipped_precheck`（演练没法验证，见「已知限制」）。第 3 步启用以后，在 MBA 上拿住锁 6 分钟：
 ```bash
 /usr/bin/lockf -k -t 0 ~/.orca-state/heartbeat-watch/mba-hb-watch.lock sleep 360   # 前台跑，Ctrl-C 提前结束
 ```
@@ -150,6 +152,7 @@ heartbeat-watch.sh；已连续跳过 1 轮…」，是上一轮还没跑完、�
 这期间的那一轮应该是 `status` `skipped_precheck`、`exitCode` 75、错误文字「Precheck exited with code 75.」、没有 `@@HB`，
 stdout 只有 lock-held-alert 那一行「…已连续跳过 1 轮…；到 45 分钟才报」；放开以后的下一轮 stdout 有「锁拿到了，之前连续跳过 1 轮…」，
 `~/.orca-state/heartbeat-watch/mba-hb-watch.lock.skips.json` 没了。6 分钟到不了 45 分钟，不会告警。
+看到别的 status、退出码、stdout，或放开后下一轮没恢复，就停下来报告。
 这时 box `94e4b0bc` 还在盯 ops · 01，MBA 新任务要到卡 ③ 才有人盯，少一轮 `@@HB` 不会引起告警。
 
 卡 ② 的回滚：停用 MBA 新任务，装上的三个文件和 `~/.orca-state/heartbeat-watch/` 挪走（回滚表「第 2、3 步」）。
@@ -159,9 +162,9 @@ stdout 只有 lock-held-alert 那一行「…已连续跳过 1 轮…；到 45 �
 前提：卡 ② 的核对里已经看到 MBA 新任务的 `@@HB`。没看到就先别做：这时做这一步，`5c2d0575` 看到「建好超过 20 分钟、还没有心跳」
 会报「MBA ops · 29 心跳互查」中断。
 
-会动的：iMac `~/.orca-state/bin/lock-held-alert`（新装）、`5c2d0575` 的预检和超时。
+会动的：iMac `~/.orca-state/bin/lock-held-alert`（新装）、`~/.orca-state/bin/heartbeat-watch.sh`（默认收件人改为 ops-system）、`5c2d0575` 的预检和超时。
 
-**4. 装 lock-held-alert，加 MBA 目标（iMac）。** 先照第 0 步把 main 浅克隆到 `$M`。并行版的 precheck 经 `~/.orca-state/bin/lock-held-alert` 起，
+**4. 装 heartbeat-watch.sh 和 lock-held-alert，加 MBA 目标（iMac）。** 先照第 0 步把 main 浅克隆到 `$M`。并行版的 precheck 经 `~/.orca-state/bin/lock-held-alert` 起，
 没装就每轮退出 127，两个目标都没人查，所以先装、试跑，再改任务。
 ```bash
 B=~/ops-archive/heartbeat-1021/5c2d0575-dddc-4d5c-8f73-e47b26ea9a11.before.json
@@ -169,10 +172,12 @@ orca automations show --id 5c2d0575-dddc-4d5c-8f73-e47b26ea9a11 --json > "$B"
 python3 -c 'import json,sys; a=json.load(open(sys.argv[1]))["result"]["automation"]; d=next(e for e in json.load(open(sys.argv[2]))["edit"] if e["stage"]=="parallel")["before"]; print(a["name"]==d["name"], a["precheck"]["command"]==d["precheck"], a["precheck"]["timeoutSeconds"]==d["precheckTimeout"])' \
   "$B" "$M/automations/heartbeat-1021/defs.json"   # 要三个 True
 ls -la ~/.orca-state/bin/ > ~/ops-archive/heartbeat-1021/imac-bin.before.txt 2>&1   # 10-22 时没有 lock-held-alert
-[ -f ~/.orca-state/bin/lock-held-alert ] && cp -p ~/.orca-state/bin/lock-held-alert ~/ops-archive/heartbeat-1021/lock-held-alert.imac.before
-install -m 755 "$M/scripts/lock-held-alert" ~/.orca-state/bin/lock-held-alert
-shasum -a 256 "$M/scripts/lock-held-alert" ~/.orca-state/bin/lock-held-alert   # 两行一样
-T=$(mktemp -d); mkdir -p "$T/hooks"; printf 'URL=http://127.0.0.1:9/hb-drill\nKEY=hb-drill-dummy-key\n' > "$T/hooks/coding-assistant.env"
+for f in heartbeat-watch.sh lock-held-alert; do
+  [ -f ~/.orca-state/bin/$f ] && cp -p ~/.orca-state/bin/$f ~/ops-archive/heartbeat-1021/$f.imac.before
+  install -m 755 "$M/scripts/$f" ~/.orca-state/bin/$f
+  shasum -a 256 "$M/scripts/$f" ~/.orca-state/bin/$f   # 每个文件两行一样
+done
+T=$(mktemp -d); mkdir -p "$T/hooks"; printf 'URL=http://127.0.0.1:9/hb-drill\nKEY=hb-drill-dummy-key\n' > "$T/hooks/ops-system.env"
 HB_STATE_DIR="$T/state" STUCK_WEBHOOK_DIR="$T/hooks" \
   ~/.orca-state/bin/lock-held-alert /usr/bin/lockf -k -t 0 ~/.orca-state/heartbeat-watch/5c2d0575.lock \
   ~/.orca-state/bin/heartbeat-watch.sh --precheck --dry-run --target "box ops · 29 卡住检查心跳|grok-bot|94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80|20" \
@@ -182,18 +187,20 @@ bash "$M/automations/heartbeat-1021/register.sh" imac --mba-id $MBA_ID          
 bash "$M/automations/heartbeat-1021/register.sh" imac --mba-id $MBA_ID --apply
 ```
 不是三个 True（之前有人改过）就停下来报给 Zack。试跑不是 `rc=1`、两行「正常」，也停下来，先别 `--apply`。
+并行版换最终版之间不能清 `state.json`：最终版依靠并行阶段留下的 `last_hb`，避免重新走 created_at 的最长路径。
+`5c2d0575.lock.skips.json` 可以留着或清掉；距离最后一次跳过超过 15 分钟会重新计时。
 试跑在 `~/.orca-state/heartbeat-watch/` 里留一个空的 `5c2d0575.lock`，不用管；状态用的是临时目录，不碰 `5c2d0575` 的真状态。
 核对（10 分钟后）：`orca automations runs --id 5c2d0575-dddc-4d5c-8f73-e47b26ea9a11 --json` 最新一次没有 `timedOut`，stdout 有两行：
 「box ops · 29 卡住检查心跳：正常」「MBA ops · 29 心跳互查：正常」。box 目标排在前面，和现在一样先查。
 
-卡 ③ 的回滚：`bash "$M/automations/heartbeat-1021/register.sh" imac --stage rollback --apply`，再挪走 lock-held-alert（回滚表「第 4 步」）。
+卡 ③ 的回滚：`bash "$M/automations/heartbeat-1021/register.sh" imac --stage rollback --apply`，再还原 heartbeat-watch.sh、挪走 lock-held-alert（回滚表「第 4 步」）。
 
 ### 卡 ④：并行一晚，然后去掉 box 目标、停用 box `94e4b0bc`（iMac）
 
 **5. 并行一晚。** 不改东西。并行一晚是 plan D1，要 Zack 确认；这一晚要跨过 02:17 的 ops · 11。第二天早上要有这些证据：
-- MBA 新任务整晚每次 `exitCode` 1、没有 `timedOut`、`@@HB` 的 `rc` 都是 0，记下最长的 `durationMs`；
+- MBA 新任务和 `5c2d0575` 整晚 `exitCode` 只能是 1 和偶尔的 75，没有 `timedOut`；有心跳的轮次 `@@HB` 的 `rc` 都是 0。卡上分别记两条任务的 75 次数和最长 `durationMs`；出现 73、71、127 就停；
 - `5c2d0575` 两个目标的结论，和 box `94e4b0bc`（iMac 上加 `--environment grok-bot`）同一时段的结论对得上；
-- 没有误报。Coding助手 这一晚收到的 heartbeat_stale / heartbeat_recovered（如果有）逐条对上原因；
+- 没有误报。ops-system 收到 MBA、iMac 的 heartbeat_stale / heartbeat_recovered，coding-assistant 收到 box 的；两边逐条对上原因；
 - iMac 上 `pgrep -fl 'zsh -lc orca'` 和 sshd 的进程数没有越积越多。
 
 **6. 去掉 box 目标，再停 box 94e4b0bc（iMac）。** 先照第 0 步把 main 浅克隆到 `$M`。顺序不能反：先停 box 的话，`5c2d0575` 还盯着它，
@@ -206,12 +213,13 @@ orca automations show --id 94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80 --environment gr
 orca automations edit 94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80 --environment grok-bot --disabled
 ```
 在 box 上跑就去掉 `--environment grok-bot`，备份放 box 的 `~/ops-archive/heartbeat-1021/`。final 把 `5c2d0575` 的预检超时改成 300，
+最终版继续套 lock-held-alert 和 lockf，沿用 `5c2d0575.lock`；
 顺带改名成「ops · 29 心跳互查（盯 MBA ops · 29）」：改名是任务书没写、我加的，不要的话删掉 defs.json 里 final 的 `name`。
 
 卡 ④ 上要告诉 Zack 三件残余风险：
 - iMac 和 MBA 同时停，没人报；
 - MBA 睡着或重启，会空档 20–45 分钟，但会报出来；关盖、拔电源时的设置（D6，要 sudo）还没定；
-- `5c2d0575` 本身没人盯（见「已知限制」）。
+- `5c2d0575` 本身没人盯，锁卡住时只有它自己的 lock-held-alert 会报（见「已知限制」）。
 
 卡 ④ 的回滚：先重新启用 box、等它正常，再还原 `5c2d0575`，最后停用 MBA 新任务（回滚表「第 6 步」）。
 box 真正下线以后，这条回滚就不成立了，只能修 MBA 这边往前走。
@@ -225,7 +233,7 @@ iMac 上的 `register.sh` 用浅克隆的 main（`$M`，见第 0 步）。文件
 |---|---|
 | 第 1 步 | MBA：`d=~/ops-archive/heartbeat-1021/removed-$(date +%Y%m%d-%H%M%S); mkdir -p "$d" && mv ~/.orca-state/bin/heartbeat-watch.sh ~/.orca-state/bin/orca-via-ssh ~/.orca-state/bin/lock-held-alert ~/.orca-state/heartbeat-watch "$d"/`（锁文件和 `*.skips.json` 在 `~/.orca-state/heartbeat-watch/` 里，一起挪走）。备份目录里有 `*.mba.before` 就拷回 `~/.orca-state/bin/`（10-21 时这几个文件和 `~/.orca-state/heartbeat-watch/` 都没有） |
 | 第 2、3 步 | MBA：`orca automations edit $MBA_ID --disabled`，再做上一行。box `94e4b0bc` 一直在跑，ops · 01 没断过看守 |
-| 第 4 步 | iMac：1. `bash "$M/automations/heartbeat-1021/register.sh" imac --stage rollback --apply`，还原 `5c2d0575` 的名字、预检和超时（240）<br>2. 等 `5c2d0575` 下一次运行用回现网的预检（stdout 只有「box ops · 29 卡住检查心跳：…」一个目标），再挪走这次加的文件：`d=~/ops-archive/heartbeat-1021/removed-$(date +%Y%m%d-%H%M%S); mkdir -p "$d" && mv ~/.orca-state/bin/lock-held-alert "$d"/; mv ~/.orca-state/heartbeat-watch/5c2d0575.lock* "$d"/ 2>/dev/null`。`~/.orca-state/heartbeat-watch/` 是 `5c2d0575` 的状态目录，目录本身和里面别的文件不动 |
+| 第 4 步 | iMac：1. `bash "$M/automations/heartbeat-1021/register.sh" imac --stage rollback --apply`，还原 `5c2d0575` 的名字、预检和超时（240）<br>2. `cp -p ~/ops-archive/heartbeat-1021/heartbeat-watch.sh.imac.before ~/.orca-state/bin/heartbeat-watch.sh`，还原原来的收件人；等 `5c2d0575` 下一次运行用回现网的预检（stdout 只有「box ops · 29 卡住检查心跳：…」一个目标），再挪走这次加的文件：`d=~/ops-archive/heartbeat-1021/removed-$(date +%Y%m%d-%H%M%S); mkdir -p "$d" && mv ~/.orca-state/bin/lock-held-alert "$d"/; mv ~/.orca-state/heartbeat-watch/5c2d0575.lock* "$d"/ 2>/dev/null`。`~/.orca-state/heartbeat-watch/` 是 `5c2d0575` 的状态目录，目录本身和里面别的文件不动 |
 | 第 6 步（全部回滚） | 1. iMac：`orca automations edit 94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80 --environment grok-bot --enabled`，等它下一次运行正常（`orca automations runs --id 94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80 --environment grok-bot --json`）<br>2. iMac：做「第 4 步」那一行<br>3. MBA：`orca automations edit $MBA_ID --disabled` |
 | 代码 | `git revert -m 1 <合并提交>`，开 PR 合回去。新任务停用后这些脚本不会被调用 |
 
@@ -265,13 +273,13 @@ python3 -c 'import json,sys; a=json.load(open(sys.argv[1]))["result"]["automatio
     间隔约 10 分钟，在 20 分钟的阈值以内；上一轮被超时杀掉（它本来就没有 `@@HB`）时，间隔约 15 分钟加下一轮的用时，下一轮也跑了 5 分钟以上
     就会过 20 分钟，iMac 可能报一次 MBA 那条中断。
   - 锁文件的目录要先有：MBA 上第 1 步 `mkdir -p`，漏了每轮退出 73、没有 `@@HB`。iMac 上这个目录已经有了。
-  - 挡不住的：最终版（超时 300）和回滚版（240）没套 lockf，这次只要求套 MBA 新任务和并行版；锁按任务分，两个任务共用一个状态目录时
+  - 挡不住的：回滚版（240）保持现网原文，没套 lockf；最终版已套锁。锁按任务分，两个任务共用一个状态目录时
     互相挡不住（现在每台只有一个任务用 heartbeat-watch）；有人只杀 lockf 一个进程时锁放开，它起的 heartbeat-watch 还在跑，下一轮会和它同时跑。
-  - 后续：heartbeat-watch.sh 自己加锁、临时文件按进程取名。这次按要求不改 heartbeat-watch.sh，留给后续 PR，和 wake-tla 模型的更新一起做。
+  - 后续：heartbeat-watch.sh 自己加锁、临时文件按进程取名。这次 heartbeat-watch.sh 只改收件人和注释，加锁留给后续 PR，和 wake-tla 模型的更新一起做。
 - **锁一直被占着**：每一轮都退出 75，这条看守就停了。锁能一直被占着，要么有人手动拿着锁，要么持锁的进程卡住、又不在 Orca 会杀的进程组里
   （heartbeat-watch 一轮有上限，到超时 Orca 杀整个进程组）。`lock-held-alert` 管这件事：
   - 每次 lockf 退出 75，在锁文件旁边的 `<锁文件>.skips.json` 记这一串跳过的第一次时间和次数，stdout 打一行「…已连续跳过 N 轮…」。
-    从第一次跳过起满 45 分钟的那一轮（5 分钟一轮，是第 10 或 11 次）告警一次：发给 coding-assistant（和 heartbeat-watch 同一个 bot、同样的
+    从第一次跳过起满 45 分钟的那一轮（5 分钟一轮，是第 10 或 11 次，锁卡住约 50 分钟）告警一次：发给 ops-system（和 heartbeat-watch 同一个 bot、同样的
     webhook 文件），`kind` `heartbeat_stale`，`source` `lock-held-alert`，写明主机、锁文件、第一次跳过的时间、跳过了几轮、这段时间没在查的目标。
     之后的跳过不再报。拿到锁的那一轮跑完清掉记录；报过警的再发一条 `heartbeat_recovered`。
   - 跳过的一轮不打 `@@HB`：对面的 heartbeat-watch 只看 `@@HB` 的时间、不看 `rc`，打了会当这边还活着（FAILURE-MODES F34）。
@@ -279,17 +287,18 @@ python3 -c 'import json,sys; a=json.load(open(sys.argv[1]))["result"]["automatio
   - 演练：S15 外部拿住锁，阈值用环境变量改成 15 秒，看到第 3 轮告警、第 4 轮不重复、锁放开后第 5 轮报恢复、第 6 轮什么都不打；
     默认的 45 分钟由 S15 的 .45 看，状态文件是演练写的（假装第一次跳过在 44、46 分钟前）。没真等 45 分钟。告警只发给了假 curl。
   - 每轮只发一次，curl 最多 20 秒；发不出去（没有 webhook 配置、POST 失败）就在 stdout 写「没发出去」，下一轮跳过时再发；
-    「已恢复」发不出去时留着报过的记录，下一次拿到锁再发。这条路没演练。
-  - 拿到锁的那一轮要报恢复时多一次 POST：MBA 那条最坏 296 秒加起动约 4 秒、再加 20 秒，在 330 以内；并行版 572 加 20，在 600 以内。
+    「已恢复」先写待补发记录再发；失败后拿到锁的轮次会补发，被挡的轮次先补发再重记新的一串，旧报警不会挡新报警。S15.*.rf 已演练（假 curl 回 500）。
+  - 拿到锁的那一轮要报恢复时多一次 POST：MBA 那条最坏 296 秒加起动约 4 秒、再加 20 秒，在 330 以内；并行版 572 加起动约 4 秒和 20 秒，共 596 秒，在 600 以内。最终版约 290 + 20 = 310 秒，超过固定的 300 秒；Orca 会杀掉该轮并记超时，待补发状态在 POST 前写下，下轮补发。
   - 两个 lock-held-alert 同时写状态文件（拿锁的那一轮结束时清掉，同时有一轮跳过、记一次）：临时文件按进程取名，再 `os.replace` 换上去，
     文件不会写坏，谁后写算谁的。清掉的记录被盖回「跳过 1 次」，下一轮拿到锁就清掉；跳过的一次被盖掉，告警晚一轮。没演练。
-  - 记录是旧的（任务在一次跳过之后被停用，很久以后再启用，第一轮又正好跳过）：从旧的第一次跳过算起，可能马上就过 45 分钟、提前报一次。
+  - 记录是旧的：`now - last > 15 分钟`（`HB_LOCK_GAP_MIN`，默认三个间隔）就重记 first，从这一轮重新算；没有 last 时用 first。上一串报过的警不挡新一串。S15.*.old 覆盖三天旧记录、16/14 分钟边界和旧报警。
   - 从卡 ③ 起，MBA 的锁一直被占着时报两次：iMac `5c2d0575` 20 分钟报「MBA ops · 29 心跳互查」中断，MBA 的 lock-held-alert 45 分钟
     再报一次锁被占着；恢复时也是两条。两条说的不是一回事（对面看到的现象、这边的原因），没合并。
   - 退出 73（锁文件的目录没了）不计数、不报：状态文件也写不了。MBA 上从卡 ③ 起 iMac 会报（没有 `@@HB`）。iMac 上这个目录是
-    `5c2d0575` 的状态目录，现在就有；被人删掉的话，并行版每轮退出 73，没人报。
-  - 收件方（Coding助手）怎么处理 `source` 是 `lock-held-alert` 的 `heartbeat_stale`、`heartbeat_recovered`，没验证。
-  - 最终版（超时 300）和回滚版没套 lockf，也没有 lock-held-alert。
+    `5c2d0575` 的状态目录，现在就有；被人删掉或 lockf 起不来时，并行版、最终版每轮 73 或 71，没人报；可选的 45 分钟告警本轮不做，因为 73 时同目录状态也写不了，需要另设状态位置。卡 ③、④ 必须看退出码。
+  - 收件方（ops-system）怎么处理 `source` 是 `lock-held-alert` 的 `heartbeat_stale`、`heartbeat_recovered`，没验证。
+  - 最终版（超时 300）已套 lockf 和 lock-held-alert；回滚版保持现网原文，不套。
+  - 收件人迁移：卡 ② 装 MBA，卡 ③ 换 iMac 的 heartbeat-watch.sh。box 安装副本不动，到卡 ④ 停用前仍发 coding-assistant。
 - **告警里写「本机」**：MBA 新任务的目标 environment 是空串，heartbeat-watch 把告警的 machine / worktree 写成「本机」，
   查不到时写「连不上 本机 的 Orca」。这里的「本机」指 HB_ORCA 连到的那台，也就是经 ssh 的 iMac；目标名里写了 iMac。
   任务书要求 heartbeat-watch 逻辑不动；在包装里改写参数，又会把只读转发变成改参数，所以这次没改。收到这条告警时，「本机」是 iMac，不是 MBA。
@@ -301,7 +310,7 @@ python3 -c 'import json,sys; a=json.load(open(sys.argv[1]))["result"]["automatio
   这段时间 ops · 01 没人盯。MBA 现在接电源、`SleepDisabled 1`（见 `automations/migration-1020/README.md`）；关盖、拔电源时的设置（D6）还没定。
 - **并行那一晚**：iMac 到 box 的 grok-bot 隧道 10-21 晚上断过几次（19:30、19:49、20:20、20:25 前后读 box 得到 `remote_runtime_unavailable`），
   这时 box 目标是「运行记录查不到」，连续 45 分钟才报。这和本 PR 之前一样；第 6 步去掉 box 目标后就没有这一项了。
-- **装好的是副本**：MBA 上的 heartbeat-watch.sh、orca-via-ssh、lock-held-alert 和 iMac 上的 lock-held-alert 都是 `~/.orca-state/bin/` 里的副本，
+- **装好的是副本**：MBA 上的 heartbeat-watch.sh、orca-via-ssh、lock-held-alert 和 iMac 上的 heartbeat-watch.sh、lock-held-alert 都是 `~/.orca-state/bin/` 里的副本，
   主检出切分支、改文件都不影响它们。反过来，main 里这几个文件改了，要另开卡片重装、比 sha。
 - **ssh 半路断线**：包装加了 `ServerAliveInterval=15`、`ServerAliveCountMax=2`，MBA 这边约 30 秒退出。没演练。
 - **Orca 会自己升级**：两台的 Orca 这两天都自己升级过，不是本 PR 动的：iMac 10-21 23:15 前后从 1.4.224 升到 1.4.235，MBA 10-22 00:55 前后

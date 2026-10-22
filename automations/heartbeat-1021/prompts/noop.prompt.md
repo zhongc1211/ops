@@ -1,1 +1,1 @@
-precheck 已处理，无需操作。这个任务（ops · 29 心跳互查 MBA，盯 iMac ops · 01）的全部工作由预检 `heartbeat-watch.sh --precheck` 完成：它经 ssh 读 iMac 的运行记录，要报警就自己发给 Coding助手，然后总是以非 0 退出（正常 1、有报警没发出去 3、脚本出错 4），不会起模型。如果你看到这段话，说明预检被改过：什么都不要做，直接结束。
+precheck 已处理，无需操作。这个任务（ops · 29 心跳互查 MBA，盯 iMac ops · 01）的全部工作由预检 `heartbeat-watch.sh --precheck` 完成：它经 ssh 读 iMac 的运行记录，要报警就自己发给 ops-system，然后总是以非 0 退出（正常 1、有报警没发出去 3、脚本出错 4；外面套着 lockf，上一轮还没跑完时 75），不会起模型。如果你看到这段话，说明预检被改过：什么都不要做，直接结束。

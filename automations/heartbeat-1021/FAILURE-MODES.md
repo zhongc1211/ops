@@ -390,3 +390,13 @@ base 还是 `f828d452`，回退的做法不变。新加 5 项，另有 2 项从�
 - 上面 7 项挂的原因要在演练「实际」一栏里对得上（加进 `WHY_RE`），对不上算不一致。
 
 共 71 项。
+
+### 写代码时改的（2026-10-22 08:2x，改演练、跑演练之前）
+
+| # | 改了什么 | 为什么 |
+|---|---|---|
+| A66 | A57 的做法改了，期望不变：上一串报过警、还没报「已恢复」的，在新的一串开始时（被挡的一轮补发没发出去，或者上一串按 A56 断了）从 `alerted` 改记成 `prev_alerted`；`alerted` 只记这一串自己报的。「已报过，不重复报」只看有没有 `alerted`，不再比 alerted 和 first 谁早。拿到锁的一轮要报恢复的报警时间取 `alerted`，没有就取 `prev_alerted`；got_lock 先写下的还是 `{"alerted", "recovered"}`（A55 原样）。被挡的一轮碰到没有 first 的 `alerted` 或 `prev_alerted`，都当「拿到过锁、「已恢复」没发出去」，先补发 | 照 A57 原来的做法（alerted 不早于 first 才算这一串报过），rf-d 只把 first 改到 46 分钟前，rf-a 报警的时间（几秒前）晚于这个 first，状态文件读起来就是「这一串已经报过」，期望的「报警 → 200」做不到；复审的 L3 也是只改 first。比时间先后还怕系统时钟往回调。退出码、stdout、假 curl 的次数和内容都不变 |
+| A67 | A55、A57 里讲状态文件内容的几处跟着 A66 改：rf-c 之后「alerted 还是 rf-a 那一次」改成「`prev_alerted` 是 rf-a 那一次，没有 `alerted`、`recovered`」；rf-d 之后有 `alerted`（这一轮报的），`prev_alerted` 还在；old-d、old-f 之后「alerted 还是 3 天前那次」改成「`prev_alerted` 是 3 天前那次，没有 `alerted`」；old-e 之后有 `alerted`，`prev_alerted` 还在 | 同 A66 |
+| A68 | 补发时 stdout 的写法定下来（A55）：被挡的一轮补发出去是「补发了：POST heartbeat_recovered → ops-system → 200」，没发出去是「补发也没发出去（POST heartbeat_recovered → ops-system → 500）」；拿到锁的一轮补发是「<拿到锁的时间> 拿到锁时「已恢复」没发出去，这次补发，已报恢复：POST heartbeat_recovered → ops-system → 200」，「已报恢复：POST …」这一段和不是补发时一样 | 演练按这些原文核对 |
+
+写完 lock-held-alert 以后，在临时目录用假 lockf、假 curl 照 rf、old 的顺序和复审的 L1–L7 各跑过一次（自查，只看逻辑，不叫 E2E，输出不进报告）：rf 每轮之后假 curl 累计 1、2、3、4、5、6 次，old 累计 0、0、1、1、2、2、3 次，L1、L3–L6 PASS。
