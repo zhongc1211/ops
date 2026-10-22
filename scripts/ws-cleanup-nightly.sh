@@ -140,13 +140,15 @@ def worker(args, run_dir):
                 raise ValueError('sha_mismatch')
         result.update(sha_rc=0, sha_finished_at=now())
         print(now(), 'sha_ok', flush=True)
-        cleanup = str(args.bundle / 'scripts/ws-cleanup.sh')
-        result['rc'] = stage('dry_run', ['/bin/bash', cleanup, '--dry-run', '--out',
+        cleanup = ['/bin/bash', str(args.bundle / 'scripts/ws-cleanup.sh')]
+        if args.no_issue_reviews is not None:
+            cleanup += ['--no-issue-reviews', str(args.no_issue_reviews)]
+        result['rc'] = stage('dry_run', cleanup + ['--dry-run', '--out',
                                         str(run_dir / 'dryrun')], args.workspace)
         if result['rc'] != 0:
             return
         if not args.dry_run_only:
-            result['rc'] = stage('execute', ['/bin/bash', cleanup, '--execute', '--only-from',
+            result['rc'] = stage('execute', cleanup + ['--execute', '--only-from',
                                             str(run_dir / 'dryrun/worktrees.tsv'), '--out',
                                             str(run_dir / 'exec')], args.workspace)
         result['status'] = 'completed' if result['rc'] == 0 else 'failed'
@@ -230,10 +232,13 @@ try:
     parser.add_argument('--dry-run-only', action='store_true')
     parser.add_argument('--bundle', type=Path, default=launcher.parent.parent)
     parser.add_argument('--workspace', type=Path, required=True)
+    parser.add_argument('--no-issue-reviews', type=Path)
     parser.add_argument('--archive', type=Path, default=Path.home() / 'ops-archive/ws-cleanup/nightly')
     options = parser.parse_args()
     for key in ('bundle', 'workspace', 'archive'):
         setattr(options, key, getattr(options, key).resolve())
+    if options.no_issue_reviews is not None:
+        options.no_issue_reviews = options.no_issue_reviews.resolve()
     options.path = os.environ.get('PATH', '/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin')
     sys.exit(trigger(options))
 except SystemExit:
