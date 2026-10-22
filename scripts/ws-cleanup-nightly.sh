@@ -15,6 +15,7 @@ import signal
 import subprocess
 import sys
 import time
+import traceback
 import uuid
 
 SIGNALS = (signal.SIGTERM, signal.SIGINT, signal.SIGHUP)
@@ -58,6 +59,9 @@ def worker(args, run_dir):
                 return True
             except ProcessLookupError:
                 return False
+            except PermissionError:
+                # An unconfirmed group is still active: retain the lock and wait.
+                return True
 
         send(signal.SIGTERM)
         deadline = time.monotonic() + 10
@@ -151,7 +155,10 @@ def worker(args, run_dir):
             result.update(sha_rc=1, sha_finished_at=now())
         result['rc'] = exc.code if isinstance(exc, SystemExit) and isinstance(exc.code, int) else 1
         # Log only the exception class; command errors can contain URLs or credentials.
-        result.update(status='failed', error=type(exc).__name__)
+        result.update(status='failed', error=type(exc).__name__,
+                      error_errno=getattr(exc, 'errno', None),
+                      error_frames=[str(f.lineno) + ':' + f.name
+                                    for f in traceback.extract_tb(exc.__traceback__)])
         print(now(), 'failed', type(exc).__name__, flush=True)
     finally:
         # Ignore further catchable termination while publishing the final record.
