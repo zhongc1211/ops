@@ -1860,8 +1860,8 @@ npass, nfail = sum(r[1] == "PASS" for r in rows), sum(r[1] != "PASS" for r in ro
 env = open(os.path.join(out, "env.txt"), encoding="utf-8").read().strip().splitlines()
 cell = lambda s: s.replace("|", "\\|").replace("`", "'")
 scen = [
-    ("S0", "三版 heartbeat-watch（base、iMac 已装、本分支）去掉注释后一致，第 33 行收件人不变", "iMac", "静态对比"),
-    ("S1", "14 个回放例子 × 三版：输出和退出码逐字节一致，且符合期望", "iMac", "替身：假 HB_ORCA 回放录好的数据 + 固定时钟"),
+    ("S0", "三版 heartbeat-watch（base、iMac 已装、本分支）去掉注释并把 BOT 换成同一占位后一致；本分支默认收件人改成 ops-system", "iMac", "静态对比"),
+    ("S1", "14 个回放例子 × 三版：收件人名字换成占位后输出逐字节一致，退出码一致；S1.bot 单独核对默认收件人", "iMac", "替身：假 HB_ORCA 回放录好的数据 + 固定时钟"),
     ("S2", "MBA 上照 defs 原文跑 precheck（/bin/sh、/bin/zsh 各一次）读真的 iMac ops · 01", "MBA → ssh iMac", "真"),
     ("S3", "MBA 上 --dry-run，目标换成心跳过期的回放数据", "MBA", "替身：假 HB_ORCA"),
     ("S4 / S4b", "ORCA_SSH_HOST 指向不存在的主机", "MBA", "真 ssh（主机名解析失败）"),
@@ -1888,9 +1888,9 @@ scen = [
      "kill、term、crash 只用 lockf 和 sleep，是真的（crash 是从外面发 SIGSEGV 模拟的）；held、nodir 用记录调用的 ssh / orca 替身；"
      "timeout 第一轮用 sleep 60 的替身、超时 12 秒，第二轮是真的"),
     ("S15", "锁一直被占着：外部 lockf 拿住锁，precheck 每轮跳过，到阈值时 lock-held-alert 报警一次，锁放开后报恢复；"
-     "默认阈值 45 分钟（.45）；状态文件坏了（.bad）",
+     "默认阈值 45 分钟（.45）；状态文件坏了（.bad）；恢复发送失败后再卡住（.rf）；三天旧记录与 16/14 分钟连续性边界（.old）",
      "MBA、iMac 各一遍",
-     "替身：假 curl（记下请求体、回 200）、阈值改成 0.25 分钟、.45 的状态文件是演练写的；lock-held-alert、lockf、heartbeat-watch 是真的，"
+     "替身：假 curl（记下请求体、默认回 200，.rf 两轮回 500）、主线阈值改成 0.25 分钟、.45/.rf/.old 的状态文件由演练写或改；lock-held-alert、lockf、heartbeat-watch 是真的，"
      "第 5、6 轮读真的 iMac ops · 01 / box、MBA。预检进程是演练脚本照 Orca 的做法起的"),
 ]
 L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
@@ -1907,8 +1907,8 @@ L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "万一判中断，没有 webhook 配置、curl 也是假的，发不出去。"
      "lockf 的锁文件、lock-held-alert 的状态文件都放在临时目录里，没碰 `~/.orca-state/heartbeat-watch/` 下的真文件（S10 核对）；"
      "precheck 里的 `~/.orca-state/bin/lock-held-alert` 换成了仓库里 `scripts/lock-held-alert` 的临时副本。"
-     "lock-held-alert 不看 `--dry-run`：S15 里它真发告警，发给假 webhook 配置（`STUCK_FORCE_BOT=ops-system`，`127.0.0.1:9` 的假地址），"
-     "PATH 里的假 curl 记下请求体、回 200，不连网络；别的场景到不了它发告警的那一步（没到 45 分钟）。"
+     "lock-held-alert 不看 `--dry-run`：S15 里它真发告警，发给假 webhook 配置（不设 `STUCK_FORCE_BOT`，默认收件人 ops-system，`127.0.0.1:9` 的假地址），"
+     "PATH 里的假 curl 记下请求体、默认回 200（.rf 两轮回 500），不连网络；别的场景到不了它发告警的那一步（没到 45 分钟）。"
      "S12.old、S14 的 timeout 第一轮到超时时，演练脚本照 Orca 的做法给它自己起的预检进程组发 SIGTERM、2 秒后 SIGKILL；"
      "S14 的 kill、term、crash 核对 pid、ppid（演练的 shell）、命令名（lockf）以后，只给演练自己起的 lockf 发 SIGKILL、SIGTERM、SIGSEGV，"
      "它起的 sleep 不发信号、等它自己结束。没有给演练以外的进程发过信号。"
@@ -1930,7 +1930,7 @@ L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "模型里还是 box 盯 iMac，没有 lockf。见 FAILURE-MODES F29。",
      "- Orca 把预检退出 75 记成 `skipped_precheck`：没在真机上验证。要让 Orca 真跑一轮带锁的预检，就得建任务或者改现网任务，任务书禁止；"
      "orca CLI 也没有不建任务就能试预检的命令。依据是两台 Orca 的代码和现有运行记录（退出 1、2、255 和超时都记成 `skipped_precheck`），"
-     "见 FAILURE-MODES F25。卡 ② 启用以后可以手动验证一次（README 卡 ②）。",
+     "见 FAILURE-MODES F25。卡 ② 启用以后必须手动验证一次（README 卡 ②）。",
      "- Orca 自己让两轮预检重叠：没在真机上看到，只读了两台 Orca 的代码（F28）。S13 的三轮是演练脚本起的。",
      "- iMac 上真的 orca 卡住时什么样：没演练。S12 的「iMac 那边不回」是 ssh 替身把远端命令换成 `sleep 110`；"
      "真 orca 可能自己 60 秒超时、先回一个报错，那样不用等 70 秒上限。",
@@ -1939,9 +1939,9 @@ L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "- ssh 连接半路断了（ServerAlive 起作用）：没演练。",
      "- MBA 那条的少见情况：还没见过心跳、心跳又过期，而且 runs 前两次各卡满 70 秒，再加一次 list，最坏 296 秒，加起动约 4 秒，在 330 秒的超时以内。没演练。",
      "- lock-held-alert 真等 45 分钟：没跑。S15 主线把阈值改成 0.25 分钟；默认的 45 分钟由 S15 的 .45 看，状态文件是演练写的（FAILURE-MODES C17）。",
-     "- lock-held-alert 的告警发不出去（没有 webhook 配置、POST 失败）、「已恢复」发不出去：没演练，S15 只走了发成功的路（假 curl 回 200，A51）。",
+     "- lock-held-alert 的首次告警发不出去（没有 webhook 配置、POST 失败）：没演练。「已恢复」发不出去及补发由 S15.*.rf 的假 curl 回 500 验证（A55），不算 E2E。",
      "- 两个 lock-held-alert 同时写状态文件：没演练（A50）。",
-     "- 收件方（Coding助手）怎么处理 `source` 是 `lock-held-alert` 的 `heartbeat_stale`、`heartbeat_recovered`：没验证，告警只发给了假 curl（C18）。",
+     "- 收件方（ops-system）怎么处理 `source` 是 `lock-held-alert` 的 `heartbeat_stale`、`heartbeat_recovered`：没验证，告警只发给了假 curl（C18）。",
      "- lockf 自己真的段错误：没有。S14 的 crash 是从外面给 lockf 发 SIGSEGV 模拟的（C20）。",
      "", "## 文件", "",
      "- `results.tsv`：每项一行（编号、结果、期望、实际），`README.md` 由它生成。",
@@ -1963,9 +1963,9 @@ L = ["# heartbeat-watch 跨机看守挪到 MBA↔iMac：演练结果", "",
      "两个数依次是 `~/Library/Logs/DiagnosticReports/`、`/Library/Logs/DiagnosticReports/` 里的，读不了的目录记 `?`；"
      "after 是等它起的 sleep 结束以后数的，报告写得更晚时会数漏，所以只记不判，F36、F37）；"
      "timeout 探锁的结果和探锁前后的时间（`timeout.probe.*`）、两轮的预检结果（`timeout-1.*`、`timeout-2.*`）。",
-     "- `raw/mba/S15/`、`raw/S15-imac/`：每一轮（主线 `r1`–`r6`，`45a`、`45b`，`bad-a`、`bad-b`）的 precheck（`.cmd`）、stdout、stderr、"
+     "- `raw/mba/S15/`、`raw/S15-imac/`：每一轮（主线 `r1`–`r6`，`45a`、`45b`，`bad-a`、`bad-b`，`rf-a`–`rf-f`，`old-a`–`old-g`）的 precheck（`.cmd`）、stdout、stderr、"
      "预检结果（`.orca.json`）、HB_STATE_DIR 有没有被建出来（`.probe`）、到这轮为止假 curl 几次（`.curls`）、这轮之后锁文件旁边的状态文件（`.skips.json`，没有就是没了）；"
-     "假 curl 记下的请求体（`main.curl-bodies`、`45.curl-bodies`、`bad.curl-bodies`，每行「假地址 请求体」）；演练写的状态文件（`45a.seed.json`、`45b.seed.json`、`bad-a.seed`）；"
+     "假 curl 记下的请求体（`main.curl-bodies`、`45.curl-bodies`、`bad.curl-bodies`、`rf.curl-bodies`、`old.curl-bodies`，每行「假地址 请求体」）；演练写的状态文件（`45a.seed.json`、`45b.seed.json`、`bad-a.seed`）；"
      "第 1 轮开始的时间（`t0`）、持锁的 sleep 的 pid 和它结束的时间、lockf 的退出码（`main.holder-*`、`45.holder-*`、`bad.holder-*`）；主机名（`host`）、锁文件名（`lockname`）。",
      "- `raw/mba/S12.*`、`raw/mba/S12-old.*`：precheck（`.cmd`）、stdout、stderr、预检结果（`.orca.json`：超时、是否超时、退出码、用时、起止时间）、"
      "每次 ssh 的 pid 和开始时间（`.ssh-starts`）、ssh 收到的参数（`.ssh-args`）、进程检查（`.first-alive-at-second`、`.alive-after`，"
