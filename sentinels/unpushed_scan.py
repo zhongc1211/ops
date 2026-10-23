@@ -42,6 +42,9 @@ BOTS = [  # (git remote 里的关键字, bot)
     ("xinyue", "xinyue"),
     ("vllm-omni", "vllm-omni"),
 ]
+EXACT_REPOS = {  # owner/repo 完全相同才算（不按关键字，免得 deepvision-ops 之类误中）
+    "zhongc1211/ops": "ops-system",  # ops 仓库和它的嵌套工作区归 ops bot（10-23 起；之前落到 coding-assistant）
+}
 IGNORE = [  # (机器, 路径)：这些工作区不扫，也不算进「扫了 N 个工作区」
     ("mba", "~/orca/projects/local"),  # Orca 自动生成的占位仓库，只有一个 Initial commit，没有远程
     ("imac", "~/claude/worker"),  # 停用的 Lark 秘书 worker，没有远程；2026-10-19 已归档到 ~/ops-archive/20261019/claude-worker.tar.zst，原目录保留
@@ -106,9 +109,20 @@ def other_worktrees(path):
     return roots - {os.path.realpath(path)}
 
 
+def repo_slug(url):
+    """https://github.com/o/r(.git)、git@github.com:o/r(.git)、ssh://.../o/r → "o/r"（小写）；认不出返回空串。"""
+    u = url.strip().rstrip("/")
+    if u.endswith(".git"):
+        u = u[:-4]
+    parts = u.replace(":", "/").split("/")
+    return "/".join(parts[-2:]).lower() if len(parts) >= 2 else ""
+
+
 def bot_for(path):
     rc, url = git(path, "remote", "get-url", "origin")
     url = url.strip() if rc == 0 else ""
+    if url and repo_slug(url) in EXACT_REPOS:
+        return EXACT_REPOS[repo_slug(url)], url
     for key, bot in BOTS:
         if key in url:
             return bot, url
