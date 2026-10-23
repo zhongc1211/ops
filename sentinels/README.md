@@ -26,10 +26,12 @@
 | `unpushed_scan.py` | 扫本机 `orca worktree list` 的每个工作区：不在任何远程分支里、最早一个超过 2 小时的提交；放了 2 小时以上的未提交改动（未跟踪的 node_modules 软链接不算）。只读：`GIT_OPTIONAL_LOCKS=0`，不 fetch |
 
 叫醒对象按 git remote 认：deepvision-site → `deepvision-ops`，deepvision-ads → `deepvision-ads`，xinyue → `xinyue`，
-vllm-omni → `vllm-omni`，其他（ops 等）→ `coding-assistant`。同一个 bot 一次运行只收一条消息。
+vllm-omni → `vllm-omni`；remote 正好是 `zhongc1211/ops`（主检出和嵌套在里面的 ops 工作区）→ `ops-system`（按 owner/repo 全等，
+写在 `EXACT_REPOS`）；其他 → `coding-assistant`。同一个 bot 一次运行只收一条消息。
 
 限流（`~/.orca-state/unpushed-scan/state.json`）：新的或变了的发现马上叫；没变的满 4 小时再叫一次；叫过 2 次还没变，
-改叫 `coding-assistant`，之后每 24 小时最多一次。
+改叫 `coding-assistant`，之后每 24 小时最多一次（本来就归 `coding-assistant` 的发现，叫满 2 次后也是每 24 小时最多一次）。
+每条记录存认出的 `bot`；bot 变了（改路由，或没存 bot 的旧记录）就把叫醒次数和升级计时清零、从新 bot 重新数，上次叫醒时间保留，4 小时内照样不再叫。
 
 演练：`UNPUSHED_LOG_NAME=drills/x.log unpushed-scan.sh --only <工作区路径> --state <单独的状态文件> --drill`；
 只看不叫：`unpushed_scan.py --dry-run`。
