@@ -12,7 +12,9 @@
   - 新发现：这个工作区 4 小时内没叫过就马上叫项目 bot，计数从 1 开始；
   - 内容变了（最早没推送的提交 / HEAD 加改动列表不同）：叫醒次数重新数（最多记 1 次），但不重置计时
     （10-19 ops 主目录改动数 26→28，00:29、02:29 各叫一次）；
-  - 没变：距上次叫醒满 4 小时才再叫项目 bot；已经叫过 2 次还没变，第 3 次改叫 coding-assistant，之后每 24 小时最多再叫它一次；
+  - 没变：距上次叫醒满 4 小时才再叫项目 bot；已经叫过 2 次还没变，第 3 次改叫 coding-assistant，之后每 24 小时最多再叫它一次
+    （发现本来就归 coding-assistant 时也一样：叫满 2 次后每 24 小时最多一次）；
+  - 记录里存认出的 bot；bot 变了（改了路由，或没记 bot 的旧记录）就把叫醒次数和升级计时清零，从新 bot 重新数，上次叫醒时间保留；
   - 发现消失了就删掉它的记录。
 日志一行一条打印到 stdout，并追加到 --log（box 上就是 /workspace/ops/reports/unpushed-scan-YYYYMMDD.log；
 iMac 上是本机镜像，由 unpushed-scan.sh 再经 ssh 追加到 box 的同一个文件）。
@@ -246,24 +248,33 @@ def main():
             seen.add(key)
             st = state.get(key)
             if not st:
-                st = {"fp": fp, "wakes": 0, "last": 0, "esc": 0, "first": now}
-            elif st.get("fp") != fp:
-                st = dict(st, fp=fp, wakes=min(st.get("wakes", 0), 1))  # 内容变了：重新数，计时不变
-            target = None
+                st = {"fp": fp, "wakes": 0, "last": 0, "esc": 0, "first": now, "bot": bot}
+            else:
+                if st.get("fp") != fp:
+                    st = dict(st, fp=fp, wakes=min(st.get("wakes", 0), 1))  # 内容变了：重新数，计时不变
+                if st.get("bot") != bot:
+                    # 认出的 bot 变了（含没记 bot 的旧记录）：从新 bot 重新数、升级计时清零；last 保留，4 小时计时不变
+                    st = dict(st, bot=bot, wakes=0, esc=0)
+            target, escalate = None, False
             quiet = now - path_last.get(path, 0) >= REWAKE  # 这个工作区 4 小时内没叫过
             if quiet and st["wakes"] < 2:
                 target = bot
             elif quiet and st["wakes"] >= 2 and now - st["esc"] >= ESCALATE_EVERY:
-                target = "coding-assistant"
+                target, escalate = "coding-assistant", True
             line = "%s %s [%s → %s] %s" % (kind, path, w.get("displayName") or "", bot, desc)
             if target:
-                note = "" if target == bot else "（已叫 %s %d 次没变，改叫 coding-assistant）" % (bot, st["wakes"])
+                if not escalate:
+                    note = ""
+                elif target != bot:
+                    note = "（已叫 %s %d 次没变，改叫 coding-assistant）" % (bot, st["wakes"])
+                else:  # 本来就归 coding-assistant：升级目标就是它自己，也按 24 小时一次算
+                    note = "（已叫 %d 次没变，之后每 24 小时最多叫一次）" % st["wakes"]
                 per_bot.setdefault(target, []).append(line + note)
-                if target == bot:
+                if escalate:
+                    st["esc"] = now
+                else:
                     st["wakes"] += 1
                     st["last"] = now
-                else:
-                    st["esc"] = now
                 paths[path] = now
                 log("发现 %s；本次叫 %s" % (line, target))
             else:

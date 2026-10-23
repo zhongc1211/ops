@@ -30,7 +30,8 @@ vllm-omni → `vllm-omni`；remote 正好是 `zhongc1211/ops`（主检出和嵌�
 写在 `EXACT_REPOS`）；其他 → `coding-assistant`。同一个 bot 一次运行只收一条消息。
 
 限流（`~/.orca-state/unpushed-scan/state.json`）：新的或变了的发现马上叫；没变的满 4 小时再叫一次；叫过 2 次还没变，
-改叫 `coding-assistant`，之后每 24 小时最多一次。
+改叫 `coding-assistant`，之后每 24 小时最多一次（本来就归 `coding-assistant` 的发现，叫满 2 次后也是每 24 小时最多一次）。
+每条记录存认出的 `bot`；bot 变了（改路由，或没存 bot 的旧记录）就把叫醒次数和升级计时清零、从新 bot 重新数，上次叫醒时间保留，4 小时内照样不再叫。
 
 演练：`UNPUSHED_LOG_NAME=drills/x.log unpushed-scan.sh --only <工作区路径> --state <单独的状态文件> --drill`；
 只看不叫：`unpushed_scan.py --dry-run`。
