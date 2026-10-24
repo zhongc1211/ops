@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  S12 ② 触发转发程序的 LaunchAgent 模板。由 forwarder/install.sh 渲染到 ~/Library/LaunchAgents/，@…@ 是占位符。
+  - /usr/bin/env -i 清掉所有继承来的环境变量（包括任何 ORCA_*），只留 HOME、PATH、LANG（FAILURE-MODES F23）。
+  - forwarder.js 不带参数：监听地址只能是 tailnet IPv4:8110，上游只能是 127.0.0.1:3110（F25）。
+  - 一直保持运行；退出后至少隔 30 秒才重起，开机时 tailnet 没就绪也不会占着 CPU（F3、F4）。
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>@LABEL@</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/env</string>
+    <string>-i</string>
+    <string>HOME=@HOME@</string>
+    <string>PATH=/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <string>LANG=en_US.UTF-8</string>
+    <string>@NODE@</string>
+    <string>--max-old-space-size=32</string>
+    <string>@SCRIPT@</string>
+  </array>
+  <key>WorkingDirectory</key><string>@DIR@</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>30</integer>
+  <key>StandardOutPath</key><string>@LOG_DIR@/launchd.out.log</string>
+  <key>StandardErrorPath</key><string>@LOG_DIR@/launchd.err.log</string>
+</dict>
+</plist>

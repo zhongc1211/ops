@@ -1,6 +1,6 @@
 #!/bin/bash
 # S12 ② 第 4 步：建 company、agent、routine、触发器（实现在 provision.py）。
-# 用法（在 iMac 上，服务已经由 LaunchAgent 起好）：provision.sh  只打印；provision.sh --apply  照做
+# 用法（在 iMac 上，服务已经由 LaunchAgent 起好）：provision.sh  只打印；provision.sh --apply  照做；provision.sh --check  收紧后的读回（只读）
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 . "${here}/config.sh"

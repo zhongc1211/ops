@@ -15,8 +15,10 @@ agent 用了 `--bare`，claude 只认环境变量 `ANTHROPIC_API_KEY`（或 apiK
 2. 运行：
 
    ```bash
-   ~/.local/share/paperclip-ops/scripts/key-fill.sh
+   ~/.local/share/paperclip-ops/scripts/key-fill.sh --fill
    ```
+
+   不带 `--fill` 只打印用法，不会读 key。
 
 3. 看到「粘贴 Console API key 后回车（屏幕不显示）」后，粘贴 key 并回车。屏幕上不会出现任何字符。
 4. 最后一行应是 `填好了，读回： 有 | agent 状态: paused`。

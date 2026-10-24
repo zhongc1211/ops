@@ -1,5 +1,8 @@
 #!/bin/bash
-# S12 ② 第 3 步：登记 Serve 主机名，渲染 LaunchAgent，经 launchctl bootstrap gui/<uid> 加载（开机自启）。
+# S12 ② 第 3 步：渲染 LaunchAgent，经 launchctl bootstrap gui/<uid> 加载（开机自启）。
+# 有对外地址文件（public-url，由 forwarder/install.sh 写）时设 PAPERCLIP_PUBLIC_URL。
+# 不往 config.json 登记 allowedHostnames：转发程序把 Host 改成本机地址，PUBLIC_URL 的主机名运行时也会自动并进去
+# （1012.0 server/src/config.ts:231-246），config.json 保持不动，撤掉转发程序时才能完全还原。
 # 用法（在 iMac 上）：launchagent.sh            只打印要做什么
 #                     launchagent.sh --apply    照做（已加载就先 bootout 再 bootstrap）
 #                     launchagent.sh --bootout  停掉并卸载 LaunchAgent（plist 留着，删要手动）
@@ -29,22 +32,21 @@ say "== 计划 =="
 say "label: ${LAUNCH_LABEL}"
 say "plist: ${LAUNCH_PLIST}（由 $(basename "${here}")/${LAUNCH_LABEL}.plist.template 渲染）"
 say "程序: ${NODE_BIN}/node ${PAPERCLIP_CLI} run --instance ${PAPERCLIP_INSTANCE_ID} --config ${CONFIG_PATH}"
-say "监听: ${SERVER_HOST}:${SERVER_PORT}；PAPERCLIP_API_URL=${API_URL}；PAPERCLIP_PUBLIC_URL=<读 ${SERVE_URL_FILE}>"
+say "监听: ${SERVER_HOST}:${SERVER_PORT}；PAPERCLIP_API_URL=${API_URL}；PAPERCLIP_PUBLIC_URL=<读 ${PUBLIC_URL_FILE}>"
 say "PATH: ${LAUNCH_PATH}"
 say "加载: launchctl bootstrap ${domain} ${LAUNCH_PLIST}"
 
 [ -f "${PAPERCLIP_CLI}" ] || die "还没装（找不到 ${PAPERCLIP_CLI}），先跑 install.sh --apply"
 [ -f "${CONFIG_PATH}" ] || die "找不到 ${CONFIG_PATH}"
-# Serve 还没定（例如 headscale 下 Serve 用不了）时也能起服务：不设 PAPERCLIP_PUBLIC_URL、不登记主机名。
-# Serve 定了以后跑 serve.sh --apply，再用 apply 模式重跑本脚本。
+# 没有对外地址文件时也能起服务：不设 PAPERCLIP_PUBLIC_URL。
 public_url=""
-serve_host=""
-if [ -s "${SERVE_URL_FILE}" ]; then
-    public_url=$(head -1 "${SERVE_URL_FILE}")
-    serve_host=$("${PY}" -c 'import sys,urllib.parse as u; print(u.urlsplit(sys.argv[1]).hostname or "")' "${public_url}")
-    [ -n "${serve_host}" ] || die "Serve 地址解析不出主机名"
+public_host=""
+if [ -s "${PUBLIC_URL_FILE}" ]; then
+    public_url=$(head -1 "${PUBLIC_URL_FILE}")
+    public_host=$("${PY}" -c 'import sys,urllib.parse as u; print(u.urlsplit(sys.argv[1]).hostname or "")' "${public_url}")
+    [ -n "${public_host}" ] || die "对外地址解析不出主机名"
 else
-    say "注意: 没有 ${SERVE_URL_FILE}，这次不设 PAPERCLIP_PUBLIC_URL、不登记 allowedHostnames"
+    say "注意: 没有 ${PUBLIC_URL_FILE}，这次不设 PAPERCLIP_PUBLIC_URL"
 fi
 
 # LaunchAgent 的 PATH 下要找得到这些工具。
@@ -58,7 +60,7 @@ mem=$(mem_level)
 say "memorystatus_level: ${mem}"
 
 if [ "${mode}" != --apply ]; then
-    [ -z "${serve_host}" ] || say "将执行: paperclipai allowed-hostname <Serve 主机名> -c ${CONFIG_PATH}"
+    [ -z "${public_url}" ] || say "将设 PAPERCLIP_PUBLIC_URL=$(printf '%s' "${public_url}" | mask)"
     loaded && say "将先 bootout 已加载的 ${LAUNCH_LABEL}"
     say "（只打印，未执行。加 --apply 照做）"
     exit 0
@@ -66,13 +68,7 @@ fi
 
 [ "${mem}" -ge 20 ] || die "memorystatus_level=${mem} 低于 20，不起服务"
 
-# 1) Serve 用的主机名登记进 allowedHostnames（重复登记无害）。
-if [ -n "${serve_host}" ]; then
-    env -u ORCA_DISPATCH_BOT PAPERCLIP_INSTANCE_ID="${PAPERCLIP_INSTANCE_ID}" PATH="${NODE_BIN}:/usr/bin:/bin" \
-        "${TIMEOUT}" 120 "${NODE_BIN}/node" "${PAPERCLIP_CLI}" allowed-hostname "${serve_host}" -c "${CONFIG_PATH}" 2>&1 | mask
-fi
-
-# 2) 渲染 plist。
+# 渲染 plist。
 tmp=$(mktemp)
 trap 'rm -f "${tmp}"' EXIT
 sed -e "s#@LABEL@#${LAUNCH_LABEL}#g" \
@@ -89,7 +85,7 @@ sed -e "s#@LABEL@#${LAUNCH_LABEL}#g" \
     -e "s#@PUBLIC_URL@#${public_url}#g" \
     -e "s#@INSTANCE_ROOT@#${INSTANCE_ROOT}#g" \
     "${here}/${LAUNCH_LABEL}.plist.template" >"${tmp}"
-# 没有 Serve 地址时整行去掉 PAPERCLIP_PUBLIC_URL。
+# 没有对外地址时整行去掉 PAPERCLIP_PUBLIC_URL。
 [ -n "${public_url}" ] || sed -i '' '/<key>PAPERCLIP_PUBLIC_URL<\/key><string><\/string>/d' "${tmp}"
 grep -q '@[A-Z_]*@' "${tmp}" && die "plist 里还有没替换的占位符"
 plutil -lint "${tmp}" >/dev/null || die "plist 格式不对"
