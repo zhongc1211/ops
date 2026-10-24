@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  S12 ② Paperclip 实例 ops 的 LaunchAgent 模板。由 launchagent.sh 渲染到 ~/Library/LaunchAgents/，
+  @…@ 是占位符。不手改渲染后的文件，改这里再用 apply 模式重跑 launchagent.sh。
+  - 用 /usr/bin/env -u 去掉 Orca 派活变量：就算有人 launchctl setenv 过，也不会带进 Paperclip。
+  - 只听 127.0.0.1；PAPERCLIP_API_URL 显式写本机地址，免得被 PAPERCLIP_PUBLIC_URL 推成 Serve 地址。
+  - 崩溃才重起（SuccessfulExit=false），两次之间至少 60 秒。
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>@LABEL@</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/env</string>
+    <string>-u</string><string>ORCA_DISPATCH_BOT</string>
+    <string>-u</string><string>ORCA_DISPATCH_ISSUE</string>
+    <string>-u</string><string>ORCA_DISPATCH_TS</string>
+    <string>-u</string><string>ORCA_DISPATCH_PID</string>
+    <string>@NODE@</string>
+    <string>@CLI@</string>
+    <string>run</string>
+    <string>--instance</string><string>@INSTANCE@</string>
+    <string>--config</string><string>@CONFIG@</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key><string>@HOME@</string>
+    <key>PATH</key><string>@PATH@</string>
+    <key>LANG</key><string>en_US.UTF-8</string>
+    <key>PAPERCLIP_HOME</key><string>@PAPERCLIP_HOME@</string>
+    <key>PAPERCLIP_INSTANCE_ID</key><string>@INSTANCE@</string>
+    <key>PAPERCLIP_CONFIG</key><string>@CONFIG@</string>
+    <key>HOST</key><string>@HOST@</string>
+    <key>PORT</key><string>@PORT@</string>
+    <key>PAPERCLIP_API_URL</key><string>@API_URL@</string>
+    <key>PAPERCLIP_PUBLIC_URL</key><string>@PUBLIC_URL@</string>
+    <key>PAPERCLIP_SERVICE_MANAGED</key><string>1</string>
+    <key>PAPERCLIP_NO_BROWSER</key><string>true</string>
+    <key>PAPERCLIP_OPEN_ON_LISTEN</key><string>false</string>
+    <key>PAPERCLIP_ANNOUNCEMENTS_ENABLED</key><string>false</string>
+  </dict>
+  <key>WorkingDirectory</key><string>@INSTANCE_ROOT@</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key><false/>
+  </dict>
+  <key>ThrottleInterval</key><integer>60</integer>
+  <key>StandardOutPath</key><string>@INSTANCE_ROOT@/logs/launchd.out.log</string>
+  <key>StandardErrorPath</key><string>@INSTANCE_ROOT@/logs/launchd.err.log</string>
+</dict>
+</plist>
