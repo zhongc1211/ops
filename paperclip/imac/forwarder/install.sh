@@ -19,7 +19,8 @@ say() { printf '%s\n' "$*"; }
 die() { printf 'forwarder/install: %s\n' "$*" >&2; exit 1; }
 mask() { sed -E 's/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/<ip>/g; s/[0-9a-f]{24}/<publicId>/g'; }
 loaded() { launchctl print "${domain}/${FWD_LABEL}" >/dev/null 2>&1; }
-listeners() { /usr/sbin/lsof -nP -iTCP:"${FWD_PORT}" -sTCP:LISTEN 2>/dev/null | awk 'NR>1 {print $1, $9}' | sort -u; }
+# 没人听时 lsof 退出码是 1；在 pipefail 加 set -e 下会让 cur=$(listeners) 直接退出整个脚本（FAILURE-MODES C3）。
+listeners() { { /usr/sbin/lsof -nP -iTCP:"${FWD_PORT}" -sTCP:LISTEN 2>/dev/null || true; } | awk 'NR>1 {print $1, $9}' | sort -u; }
 health() { curl -s -o /dev/null -w '%{http_code}' -m 5 "${API_URL}/api/health" 2>/dev/null || true; }
 
 # .url 文件：plan 只报告现状；apply 核对后写入；restore 从备份还原；verify-off 核对已还原。
