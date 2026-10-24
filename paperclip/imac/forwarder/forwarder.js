@@ -68,6 +68,20 @@ function writeLog(text) {
   }
 }
 
+// launchd 的 stdout/stderr（StandardOutPath、StandardErrorPath）不经过 writeLog。launchd 每次起进程时重新打开它们，
+// 所以启动时超过 1 MiB 就改名成 .1，下一次启动写新文件（第 1 轮验收新风险第 6 条）。
+function rotateLaunchdLogs() {
+  for (const name of ['launchd.out.log', 'launchd.err.log']) {
+    const file = path.join(path.dirname(LOG_FILE), name);
+    try {
+      const st = fs.statSync(file, { throwIfNoEntry: false });
+      if (st && st.size > LOG_MAX_BYTES) fs.renameSync(file, `${file}.1`);
+    } catch {
+      // 转不了不影响转发。
+    }
+  }
+}
+
 function logRequest(method, allowed, status, startedAt, error) {
   const m = KNOWN_METHODS.has(method) ? method : 'OTHER';
   const ms = Date.now() - startedAt;
@@ -339,7 +353,10 @@ function makeServer(upstreamPort) {
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
   logToStdout = opts.dev;
-  if (!opts.dev) fs.mkdirSync(path.dirname(LOG_FILE), { recursive: true, mode: 0o700 });
+  if (!opts.dev) {
+    fs.mkdirSync(path.dirname(LOG_FILE), { recursive: true, mode: 0o700 });
+    rotateLaunchdLogs();
+  }
 
   // F23：LaunchAgent 用 env -i 起，正常不会有；万一有就不起。
   if (Object.keys(process.env).some((k) => k.startsWith('ORCA_'))) exitWith(1, 'orca_env_present');

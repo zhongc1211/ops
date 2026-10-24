@@ -1,7 +1,7 @@
 #!/bin/bash
 # 【现在不用】这个 headscale 下 Serve 用不了（README「对外怎么开」、FAILURE-MODES.md C1、C2），对外改由 forwarder/ 的
 # 转发程序负责。留着这个脚本只为将来 headscale 改了 DNS 配置以后还能回到 Serve；不要和转发程序同时用（都占 8110，
-# 都写 public-url）。
+# serve.sh 写 public-url，转发程序不设 PUBLIC_URL、见到 public-url 会停下）。--apply 在转发程序已加载或 8110 有人听时停下。
 # S12 ② 第 2 步（原计划）：tailscale serve 只把 /api/routine-triggers/public/ 转到本机 Paperclip。
 # 先试 HTTPS，不行走 HTTP。配置用 --bg，写进 tailscaled 的状态，重启后还在。
 # 用法（在 iMac 上）：serve.sh          只打印要做什么
@@ -24,12 +24,7 @@ if [ "${mode}" = --off ]; then
     say "关 serve: https:${SERVE_HTTPS_PORT} 和 http:${SERVE_HTTP_PORT} 上的 ${SERVE_PATH}"
     "${TIMEOUT}" 60 "${TS}" serve --https="${SERVE_HTTPS_PORT}" --set-path "${SERVE_PATH}" off 2>&1 | mask || true
     "${TIMEOUT}" 60 "${TS}" serve --http="${SERVE_HTTP_PORT}" --set-path "${SERVE_PATH}" off 2>&1 | mask || true
-    # 转发程序在用时 public-url 是它写的，不删。
-    if launchctl print "gui/$(id -u)/${FWD_LABEL}" >/dev/null 2>&1; then
-        say "转发程序在运行，public-url 是它的，不删"
-    else
-        rm -f "${PUBLIC_URL_FILE}"
-    fi
+    rm -f "${PUBLIC_URL_FILE}"
     serve_status
     exit 0
 fi
@@ -49,6 +44,13 @@ say "地址写进 ${PUBLIC_URL_FILE}（权限 600），launchagent.sh 读它设 
 say "现状:"; serve_status
 
 [ "${mode}" = --apply ] || { say "（只打印，未执行。加 --apply 照做）"; exit 0; }
+
+# 转发程序和 Serve 都要 8110，不能同时用（第 1 轮验收新风险第 8 条）。
+if launchctl print "gui/$(id -u)/${FWD_LABEL}" >/dev/null 2>&1 \
+    || [ -n "$(/usr/sbin/lsof -nP -iTCP:"${SERVE_HTTP_PORT}" -sTCP:LISTEN 2>/dev/null)" ]; then
+    say "serve: 转发程序已加载，或 ${SERVE_HTTP_PORT} 有人在听，停下。要换回 Serve 先跑 forwarder/install.sh --off" >&2
+    exit 1
+fi
 
 write_url() {
     umask 077

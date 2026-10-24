@@ -1,8 +1,9 @@
 #!/bin/bash
 # S12 ② 第 3 步：渲染 LaunchAgent，经 launchctl bootstrap gui/<uid> 加载（开机自启）。
-# 有对外地址文件（public-url，由 forwarder/install.sh 写）时设 PAPERCLIP_PUBLIC_URL。
+# 有对外地址文件（public-url）时设 PAPERCLIP_PUBLIC_URL。现在只有 serve.sh 会写它（现在不用）；转发程序不设 PUBLIC_URL，
+# forwarder/install.sh 见到这个文件会停下。
 # 不往 config.json 登记 allowedHostnames：转发程序把 Host 改成本机地址，PUBLIC_URL 的主机名运行时也会自动并进去
-# （1012.0 server/src/config.ts:231-246），config.json 保持不动，撤掉转发程序时才能完全还原。
+# （1012.0 server/src/config.ts:231-246），config.json 保持不动。
 # 用法（在 iMac 上）：launchagent.sh            只打印要做什么
 #                     launchagent.sh --apply    照做（已加载就先 bootout 再 bootstrap）
 #                     launchagent.sh --bootout  停掉并卸载 LaunchAgent（plist 留着，删要手动）

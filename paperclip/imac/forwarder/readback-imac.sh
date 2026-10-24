@@ -2,8 +2,8 @@
 # S12 ② 转发程序装好以后在 iMac 上的读回（只读）。由 MBA 的 readback-from-mba.sh 经 ssh 调用，也可以单独跑。
 # 用法：readback-imac.sh runs       只打印 company 下 heartbeat runs 的条数
 #       readback-imac.sh publicid   只打印「S12 演练叫醒（测试）」触发器的 publicId（给 MBA 的 probe 用，不落盘）
-#       readback-imac.sh checks     监听、LaunchAgent、环境、日志、对外地址、.url 文件、本机和局域网地址打 8110
-# 不打印 bearer、IP、ID、PID；.url 文件只和 Paperclip 读回的 webhookUrl 比较是否相同。
+#       readback-imac.sh checks     监听、LaunchAgent、环境、日志、没设 PUBLIC_URL、.url 文件、本机和局域网地址打 8110
+# 不打印 bearer、IP、ID、PID；.url 文件只和 Paperclip 读回的 webhookUrl 比较（路径相同、origin 是转发地址），不打印内容。
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 . "${here}/../config.sh"
@@ -87,14 +87,16 @@ else
 fi
 say "launchd.err.log: $(wc -l <"${FWD_LOG_DIR}/launchd.err.log" 2>/dev/null | tr -d ' ') 行"
 
-say "== 对外地址和 .url 文件（F21、F22）=="
+say "== 不设 PUBLIC_URL、.url 文件（F21、F22、F34–F38）=="
 pu=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:PAPERCLIP_PUBLIC_URL' "${LAUNCH_PLIST}" 2>/dev/null)
-[ "${pu}" = "http://${ip4}:${FWD_PORT}" ] && say "PASS  Paperclip plist PAPERCLIP_PUBLIC_URL = http://<tailnet-ip>:8110" \
-    || say "FAIL  Paperclip plist PAPERCLIP_PUBLIC_URL = $(printf '%s' "${pu:-未设}" | mask)"
+[ -z "${pu}" ] && say "PASS  Paperclip plist 里没有 PAPERCLIP_PUBLIC_URL" \
+    || say "FAIL  Paperclip plist PAPERCLIP_PUBLIC_URL = $(printf '%s' "${pu}" | mask)"
+[ -e "${PUBLIC_URL_FILE}" ] && say "FAIL  实例目录里有 public-url" || say "PASS  实例目录里没有 public-url"
 say "Paperclip plist PAPERCLIP_API_URL: $(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:PAPERCLIP_API_URL' "${LAUNCH_PLIST}")"
-"${PY}" - "${API_URL}" "${COMPANY_NAME}" "${SECRETS_DIR}" "http://${ip4}:${FWD_PORT}" <<'PYEOF'
-import json, os, stat, sys, urllib.request
-api, company_name, secrets_dir, base = sys.argv[1:5]
+# .url 只和 Paperclip 读回的 webhookUrl 比较，不打印内容：路径相同，origin 是 http://<当前 tailnet-ip>:8110。
+"${PY}" - "${API_URL}" "${COMPANY_NAME}" "${SECRETS_DIR}" "http://${ip4}:${FWD_PORT}" "${FWD_PATH_RE}" <<'PYEOF'
+import json, os, re, stat, sys, urllib.parse, urllib.request
+api, company_name, secrets_dir, fwd_origin, path_re = sys.argv[1:6]
 def get(p):
     with urllib.request.urlopen(api + "/api" + p, timeout=30) as r:
         return json.load(r)
@@ -107,9 +109,14 @@ for r in get("/companies/%s/routines" % c["id"]):
         slug = label[: -len("-bearer")]
         path = os.path.join(secrets_dir, slug + ".url")
         on_disk = open(path).read().strip() if os.path.exists(path) else ""
-        url = t.get("webhookUrl") or ""
-        ok = url.startswith(base + "/api/routine-triggers/public/") and on_disk == url
-        print("%s  %s.url 和 Paperclip 读回的 webhookUrl 相同，且以转发地址开头（权限 %s）" % (
-            "PASS" if ok else "FAIL", slug, oct(stat.S_IMODE(os.stat(path).st_mode)) if on_disk else "-"))
+        w = urllib.parse.urlsplit(t.get("webhookUrl") or "")
+        d = urllib.parse.urlsplit(on_disk)
+        same_path = bool(re.fullmatch(path_re, w.path)) and d.path == w.path and not (d.query or d.fragment)
+        fwd = "%s://%s" % (d.scheme, d.netloc) == fwd_origin
+        mode = oct(stat.S_IMODE(os.stat(path).st_mode))[2:] if os.path.exists(path) else "-"
+        print("%s  %s.url 的路径和 webhookUrl 的路径相同" % ("PASS" if same_path else "FAIL", slug))
+        print("%s  %s.url 的 origin 是 http://<tailnet-ip>:8110" % ("PASS" if fwd else "FAIL", slug))
+        print("%s  %s.url 权限 600（实际 %s）" % ("PASS" if mode == "600" else "FAIL", slug, mode))
+        print("%s  webhookUrl 是本机地址（没设 PUBLIC_URL）" % ("PASS" if "%s://%s" % (w.scheme, w.netloc) == api else "FAIL"))
 PYEOF
 "${PY}" -c 'import json,sys; s=json.load(open(sys.argv[1]))["server"]; print("config.json allowedHostnames 条数:", len(s.get("allowedHostnames") or []))' "${CONFIG_PATH}"

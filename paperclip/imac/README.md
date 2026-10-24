@@ -28,12 +28,13 @@ S12 ②：在 iMac 上装 Paperclip 2026.1012.0，做 ops 系统叫醒的接收�
 
 1. `install.sh [--apply]`：装 paperclipai、写 `config.json`、跑 `doctor --repair`。不起服务。
 2. 对外：`forwarder/install.sh [--apply | --off]`，见下面「对外怎么开」。`serve.sh` **现在不用**（headscale 下 Serve 用不了），留着备用。
-3. `launchagent.sh [--apply | --bootout]`：有 `~/.paperclip/instances/ops/public-url` 时设 `PAPERCLIP_PUBLIC_URL`；渲染 plist（环境里没有 `ORCA_*`，`PAPERCLIP_API_URL` 固定本机），bootstrap。内存 `kern.memorystatus_level` 低于 20 不起。
+3. `launchagent.sh [--apply | --bootout]`：有 `~/.paperclip/instances/ops/public-url` 时设 `PAPERCLIP_PUBLIC_URL`（现在没有这个文件，也不设：
+   转发程序不用 PUBLIC_URL，只有不用的 `serve.sh` 会写它）；渲染 plist（环境里没有 `ORCA_*`，`PAPERCLIP_API_URL` 固定本机），bootstrap。内存 `kern.memorystatus_level` 低于 20 不起。
    不再往 `config.json` 登记 allowedHostnames：转发程序把 Host 改成本机地址，PUBLIC_URL 的主机名运行时也会自动并进去（1012.0 `server/src/config.ts:231-246`）。
 4. `provision.sh [--apply | --check]`：建 company、agent（建完就暂停）、设置文件、两条 routine、两个触发器（密钥直接写 600 文件，屏幕只出长度）；
    再收紧：company 的 `requireBoardApprovalForNewAgents` 设 true，ops-system 的 `canCreateAgents` 设 false。`--check` 是只读的读回：
-   company 下只有 ops-system 一个 agent、`canCreateAgents=false`、4 个授权（`agents:configure`、`skills:create`、`tools:manage_runtime`、
-   `tools:manage_connections`）都不在。4 个授权在 1012.0 删不掉，见「要 Zack 定」，所以那一项在 Zack 定之前会是 FAIL。
+   company 要求批准、company 下只有 ops-system 一个 agent、`canCreateAgents=false`、没设 trustPreset。4 个授权（`agents:configure`、
+   `skills:create`、`tools:manage_runtime`、`tools:manage_connections`）按 Zack 第 80 条选的 C 不动，`--check` 只列出来，不算 FAIL，见「已定的事」。
 5. `key-fill.sh --fill`：Zack 填 Console API key，见 `KEY-FILL.md`。不带参数只打印用法。
 
 ## 读回
@@ -57,7 +58,8 @@ curl -s http://127.0.0.1:3110/api/routines/<routine id> | python3 -c 'import jso
 ```
 
 触发器的公开地址（含 publicId）在 `~/.config/paperclip-ops/triggers/<slug>.url`。装转发程序之前里面是本机地址（`http://127.0.0.1:3110/...`）；
-`forwarder/install.sh --apply` 把它换成 Paperclip 读回的新 webhookUrl（`http://<tailnet-ip>:8110/...`），旧的备份成 `<slug>.url.before-forwarder`。
+`forwarder/install.sh --apply` 只把 origin 换成 `http://<tailnet-ip>:8110`，路径取自 Paperclip 读回的 webhookUrl，旧的备份成 `<slug>.url.before-forwarder`（600）。
+Paperclip 自己读回的 webhookUrl 仍是本机地址（不设 PUBLIC_URL）。
 
 ## 回退
 
@@ -65,7 +67,7 @@ curl -s http://127.0.0.1:3110/api/routines/<routine id> | python3 -c 'import jso
 
 ```bash
 S=~/.local/share/paperclip-ops/scripts
-$S/forwarder/install.sh --off                                 # 撤掉转发程序，PUBLIC_URL 和 .url 恢复原样（会重启 Paperclip）
+$S/forwarder/install.sh --off                                 # 撤掉转发程序，.url 从备份还原（不碰 Paperclip）
 $S/launchagent.sh --bootout                                   # 停服务、卸载 LaunchAgent
 rm ~/Library/LaunchAgents/com.zhongc1211.paperclip-ops.plist
 $S/serve.sh --off                                             # 撤掉本目录加的 serve（现在本来就没有）
@@ -98,10 +100,17 @@ rm -rf ~/Library/Logs/paperclip-ops-forwarder                 # 转发程序的�
 - LaunchAgent：`com.zhongc1211.paperclip-ops-forwarder`，模板 `forwarder/com.zhongc1211.paperclip-ops-forwarder.plist.template`。
   用 `/usr/bin/env -i` 起 node，环境里只有 HOME、PATH、LANG，没有任何 `ORCA_*`；不带参数，所以只能是 tailnet IPv4:8110 和 127.0.0.1:3110；
   RunAtLoad、KeepAlive、ThrottleInterval 30。
-- `forwarder/install.sh [--apply | --off]`：默认只打印计划和检查结果。`--apply`：装程序、渲染并核对 plist、`launchctl bootstrap gui/<uid>`、
-  核对 8110 只听 tailnet IPv4、把 `public-url` 写成转发地址、跑 `launchagent.sh --apply` 重启 Paperclip（设 `PAPERCLIP_PUBLIC_URL`）、
-  从 Paperclip 读回新的 webhookUrl 更新两个 `.url` 文件。`--off`：撤掉程序和 LaunchAgent，`public-url` 和 `.url` 恢复成装之前的样子，重启 Paperclip。
+- **不设 `PAPERCLIP_PUBLIC_URL`，不重启 Paperclip**（Zack 第 76 条，主会话按第 1 轮验收第 11 项收窄）。触发接口只看路径，不需要 PUBLIC_URL；
+  Host 由转发程序写成本机，不用登记 allowedHostnames。发送方要的转发地址只写在两个 `.url` 文件里。
+- `forwarder/install.sh [--apply | --off]`：默认只打印计划和检查结果。Paperclip 的 plist 里有 `PAPERCLIP_PUBLIC_URL`，或者实例目录里有 `public-url`，
+  就打印出来并停下（不是预期的状态）。`--apply`：装程序、渲染并核对 plist、`launchctl bootstrap gui/<uid>`、核对 8110 只听 tailnet IPv4，
+  然后改 `.url`：从 Paperclip 用 GET 读回每个触发器的 webhookUrl，核对 origin 是本机、路径整串符合 `^/api/routine-triggers/public/[0-9a-f]{24}/fire$`，
+  只把 origin 换成 `http://<tailnet-ip>:8110`。第一次写之前先备份旧的 `.url`（600），新文件先写临时文件再原子换名（600），写完读回。读回不对就停下，不写。
+  `--off`：bootout 转发程序，删它的 plist 和程序文件，从备份还原 `.url`（600），核对 8110 没人听、`.url` 是本机地址。
+  `--apply`、`--off` 都不碰 Paperclip 的 LaunchAgent、`public-url` 和 Paperclip 进程。
 - 读回：MBA 上 `paperclip/imac/forwarder/readback-from-mba.sh [输出文件]`。只用错的 bearer 或不带 bearer；前后各数一次 heartbeat runs，必须都是 0。
+  iMac 上的部分（`forwarder/readback-imac.sh checks`）另外核对：plist 里没有 `PAPERCLIP_PUBLIC_URL`、没有 `public-url`；每个 `.url` 的路径和 webhookUrl 的路径相同、
+  origin 是 `http://<当前 tailnet-ip>:8110`、权限 600（不打印 `.url` 的内容）。
   内容：不带 bearer、错 bearer、伪造 X-Forwarded-Host 或 Host 再带错 bearer → 401；`/`、`/api/health`、`/api/companies`、各种路径和方法变体、
   HTTP/1.0、分块编码、走私 → 404；70 KiB → 413；iMac 的 127.0.0.1、`[::1]`、局域网地址打 8110 连不上；LaunchAgent、日志、`.url` 文件的核对。
 - 本地自查（开发自查，替身上游，不是 E2E）：MBA 上 `paperclip/imac/forwarder/selfcheck-mba.sh <输出目录>`，只用 127.0.0.1。
@@ -118,31 +127,35 @@ $S/provision.sh --check
 
 然后在 MBA 上跑 `paperclip/imac/forwarder/readback-from-mba.sh`。
 
-tailnet 地址变了的话（少见）：转发程序会自己退出、用新地址重起，但 `public-url`、`.url` 文件和两台 wake env 里还是旧地址。
-重跑 `forwarder/install.sh --apply` 更新前两样；wake env 要 Zack 批了再改。
+tailnet 地址变了的话（少见）：转发程序会自己退出、用新地址重起，但 `.url` 文件和两台 wake env 里还是旧地址（`readback-imac.sh` 会报 FAIL）。
+重跑 `forwarder/install.sh --apply` 按新地址重写 `.url`（备份已在就不再备份）；wake env 要 Zack 批了再改。
 
-## 要 Zack 定：ops-system 的 4 个授权删不掉
+## 已定的事：ops-system 的 4 个授权不动（Zack 第 80 条选 C）
 
 S12 ② 验收方要求去掉 ops-system 的 `agents:configure`、`skills:create`、`tools:manage_runtime`、`tools:manage_connections`。
 1012.0 没有能删 agent 授权的 REST 接口：成员授权接口只认人类成员（`server/src/routes/access.ts:1301`），
-`PATCH /agents/:id/permissions` 只会动 `tasks:assign`（`server/src/routes/agents.ts:5116-5126`）。`provision.sh` 这次只列出来，不删。
+`PATCH /agents/:id/permissions` 只会动 `tasks:assign`（`server/src/routes/agents.ts:5116-5126`）。
 
-- A.（推荐）把 ops-system 设成低信任：`PATCH /agents/:id/permissions` 带 `trustPreset: "low_trust_review"`。低信任时
-  `agents:create`、`agent_config:update`、`skill_config:update`、`runtime:manage`、`secrets:read` 等一律拒绝（`server/src/services/authorization.ts:1029-1049`），
-  不管有没有那几个授权（读源码推的，没实测）。走的是正式接口，能读回。缺点：它还会拒掉 `company_scope:read`、`inbox:manage` 等，ops 系统实际要用哪些，
-  得 S12 ④ 真跑一次才知道。
-- B. 直接在内嵌 postgres 里删 `principal_permission_grants` 表里这 4 行。精确，但绕过 Paperclip，没有活动记录，升级后会不会被补回来没查实。
-- C. 先不删，只靠 `canCreateAgents=false`、`requireBoardApprovalForNewAgents=true` 和设置文件 deny Bash、WebFetch。
-  缺点：`agents:configure` 还在，ops-system 仍可能改别的 agent 的 `dangerouslySkipPermissions`（S12 ② 验收第 9 项）。
+**Zack 第 80 条选了 C：4 个授权不动，不改 Paperclip 的数据库，不设低信任（trustPreset）。** 条件是 S12 ③ 的允许清单不放行能访问本机 3110 的工具
+（Bash、curl、WebFetch、MCP 里的 HTTP 工具都算）。`provision.sh --check` 把 4 个授权列出来，不算 FAIL；另外核对没设 trustPreset。
 
-可以直接回复「A」「B」或「C」。
+当时考虑过、没选的两种：
+
+- A. 设成低信任（`PATCH /agents/:id/permissions` 带 `trustPreset: "low_trust_review"`）。**不能用：A 会让 ops-system 每次运行都返回 422。**
+  1012.0 里低信任的运行要求开了隔离工作区、执行模式是 `isolated_workspace`、环境驱动是 `sandbox`，否则直接 422
+  （`server/src/services/low-trust-runtime-containment.ts:44-88`，由 `heartbeat.ts:22017` 调到；第 1 轮验收第 13 项查到）。ops-system 是本机的 claude_local，没有 sandbox 驱动。
+- B. 直接在内嵌 postgres 里删这 4 行。绕过 Paperclip，没有活动记录，升级后会不会被补回来没查实。如果 S12 ③ 确实要放行能打 3110 的工具，
+  按验收方的建议在恢复 agent 之前用 B 删 `agents:configure`、`skills:create` 两行（另外两行对 agent 没作用），这要再问 Zack。
 
 ## 待办
 
 - S12 ③：log_tail、note 里有一行 `~~~~` 就能把模板的代码围栏关掉（S12 ② 验收新风险第 2 条）。要改发送端（notify-run、orca-wake），这次没改。
 - S12 ③：发送方不带 Idempotency-Key，转发程序回 504 后发送方重试，可能重复叫醒（`forwarder/FAILURE-MODES.md` F19）。
 - 两台 wake env 里的 URL 换成转发地址：是切换，要 Zack 批。
-- S12 ④：`PAPERCLIP_RUNTIME_API_URL` 会指向转发地址，看 agent 真跑时有没有用到它（`forwarder/FAILURE-MODES.md` F21）。
+- S12 ③：允许清单不放行能访问本机 3110 的工具（Zack 第 80 条选 C 的条件）。
+- S12 ③：请求声明的 Content-Length 比实际发的字节少时，前一个请求会转给 Paperclip，客户端却收到 404，发送方会重试（第 1 轮验收新风险第 4 条，`forwarder/FAILURE-MODES.md` B7）。两个发送方都按实际长度发，现在碰不到。
+- S12 ③：CONNECT 请求直接断开，不回 404（第 1 轮验收新风险第 5 条，B8）。没转发，不算绕过。
+- 不设 PUBLIC_URL 以后，第 1 轮记的「S12 ④ 看 `PAPERCLIP_RUNTIME_API_URL`」不再需要。
 
 ## 已知限制
 

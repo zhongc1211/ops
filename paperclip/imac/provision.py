@@ -6,7 +6,7 @@
 - 触发器密钥只在建触发器的响应里出现一次，这里直接写进 600 文件；屏幕只打印长度。
 - 屏幕上不打印任何 ID：写名字，ID 用 README 里的查法读。
 - 收紧（S12 ② 验收新风险第 1 条）：company 的 requireBoardApprovalForNewAgents 设 true，ops-system 的 canCreateAgents
-  设 false。要去掉的 4 个授权在 1012.0 没有 REST 接口能删，只列出来，等 Zack 定（README「要 Zack 定」）。
+  设 false。验收方点名的 4 个授权按 Zack 第 80 条选的 C 不动，也不设 trustPreset（README「已定的事」）。
 用法：provision.py           只打印计划
       provision.py --apply   照做（建缺的，再收紧）
       provision.py --check   只读：收紧以后的读回
@@ -189,8 +189,8 @@ DROP_GRANTS = ["agents:configure", "skills:create", "tools:manage_runtime", "too
 def say_hardening_plan():
     say("收紧: company「%s」requireBoardApprovalForNewAgents -> true（PATCH /companies/:id）" % COMPANY_NAME)
     say("收紧: agent %s canCreateAgents -> false（PATCH /agents/:id/permissions，tasks:assign 保持原样）" % AGENT_NAME)
-    say("要去掉的授权: %s —— 1012.0 没有删 agent 授权的 REST 接口（成员授权接口只认人类成员，"
-        "routes/access.ts:1301），这次不删，等 Zack 定" % "、".join(DROP_GRANTS))
+    say("不动的授权: %s —— Zack 第 80 条选了 C：不删、不设 trustPreset、不改数据库；"
+        "条件是 S12 ③ 的允许清单不放行能访问本机 3110 的工具" % "、".join(DROP_GRANTS))
     say("14 个默认授权，ops 系统要不要用（留给 S12 ③ 定）:")
     for key, need, why in GRANTS:
         say("  %-30s %s；%s" % (key, need, why))
@@ -214,7 +214,8 @@ def harden(cid, aid):
 
 
 def check():
-    """只读：company 下只有 ops-system 一个 agent，canCreateAgents=false，4 个授权都不在，company 要求批准。"""
+    """只读：company 要求批准，company 下只有 ops-system 一个 agent，canCreateAgents=false，没设 trustPreset。
+    4 个授权按 Zack 第 80 条 C 保留，只列出来，不算 FAIL。"""
     ok_all = True
 
     def item(ok, text):
@@ -239,7 +240,8 @@ def check():
     item(perms.get("canCreateAgents") is False, "agent canCreateAgents = %s" % perms.get("canCreateAgents"))
     keys = sorted({g.get("permissionKey") for g in (agent.get("access") or {}).get("grants") or []})
     present = [k for k in DROP_GRANTS if k in keys]
-    item(not present, "要去掉的 4 个授权还在的: %s" % (present or "没有"))
+    item(perms.get("trustPreset") in (None, "standard"), "agent trustPreset = %s（没设低信任）" % perms.get("trustPreset"))
+    say("INFO  4 个授权按 Zack 第 80 条 C 保留，现在还在的: %s" % (present or "没有"))
     say("agent 现有授权（%d 个）: %s" % (len(keys), " ".join(keys)))
     say("agent status: %s；canCreateSkills: %s" % (agent.get("status"), perms.get("canCreateSkills")))
     if not ok_all:

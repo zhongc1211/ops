@@ -21,7 +21,8 @@ SERVER_PORT=3110
 PG_PORT=54339
 API_URL="http://${SERVER_HOST}:${SERVER_PORT}"
 
-# 对外地址（PAPERCLIP_PUBLIC_URL）：现在由转发程序的 install.sh 写，launchagent.sh 读。
+# 对外地址（PAPERCLIP_PUBLIC_URL）：launchagent.sh 读，只有 serve.sh 会写（现在不用）。转发程序不设 PUBLIC_URL，
+# forwarder/install.sh 发现这个文件就停下（forwarder/FAILURE-MODES.md F21）。
 PUBLIC_URL_FILE="${INSTANCE_ROOT}/public-url"
 
 # Serve（现在不用，见 README「对外怎么开」）：先试 HTTPS 443，不行走 HTTP 8110。只挂触发路径。
@@ -36,7 +37,6 @@ FWD_LABEL=com.zhongc1211.paperclip-ops-forwarder
 FWD_PLIST="${HOME}/Library/LaunchAgents/${FWD_LABEL}.plist"
 FWD_DIR="${APP_ROOT}/forwarder"
 FWD_JS="${FWD_DIR}/forwarder.js"
-FWD_STATE="${FWD_DIR}/state"
 FWD_LOG_DIR="${HOME}/Library/Logs/paperclip-ops-forwarder"
 FWD_PATH_RE='^/api/routine-triggers/public/[0-9a-f]{24}/fire$'
 

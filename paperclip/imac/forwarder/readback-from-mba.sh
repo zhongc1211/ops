@@ -15,7 +15,8 @@ R='bash ~/.local/share/paperclip-ops/scripts/forwarder/readback-imac.sh'
 TSM=$(command -v tailscale || echo /usr/local/bin/tailscale)
 ip=$("${TSM}" ip -4 imac 2>/dev/null | head -1)
 [ -n "${ip}" ] || { echo "取不到 iMac 的 tailnet 地址" >&2; exit 1; }
-mask() { sed -E "s/${ip//./\\.}/<imac-tailnet-ip>/g; s/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/<ip>/g; s/[0-9a-f]{24}/<publicId>/g"; }
+# 24 位十六进制只在前后都不是十六进制字符时才打码，40 位的 commit sha 不会被截掉；48 位（bearer 的长度）整串打码。
+mask() { sed -E "s/${ip//./\\.}/<imac-tailnet-ip>/g; s/[0-9a-f]{48}/<hex48>/g; s/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/<ip>/g; s/(^|[^0-9a-f])[0-9a-f]{24}([^0-9a-f]|$)/\1<publicId>\2/g"; }
 
 {
     date '+%F %T %z'
