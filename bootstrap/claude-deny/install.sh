@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # PER-89: merge bootstrap/claude-deny/settings-fragment.json into Claude Code settings. Idempotent.
 #   install.sh [--settings-file F] [--hooks-dir D] --dry-run --out O    write the merged result to O only, print its sha256
-#   install.sh [--settings-file F] [--hooks-dir D] --apply              install the hook script, back up F, write F atomically
+#   install.sh [--settings-file F] [--hooks-dir D] --apply              back up both targets, then install hook and settings
 #   install.sh [--settings-file F] [--hooks-dir D] --check              compare only; exit 1 and list what is missing
 #   install.sh [--settings-file F] [--hooks-dir D] --uninstall [--dry-run --out O]
 # Only touches permissions.deny, hooks.UserPromptExpansion and hooks.UserPromptSubmit entries that belong to this feature.
-# Before writing a settings file it is copied to <file>.bak-<YYYYmmddHHMMSS>; no change = no write, no backup;
-# a failed backup exits non-zero without writing. The hook timeout comes only from ./hook-timeout.
+# Before any target mutation, both existing targets get unique .bak-<timestamp>-<random> copies.
+# Backup failure changes neither target; no change = no write/backup. Timeout comes only from ./hook-timeout.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 settings="$HOME/.claude/settings.json"
@@ -35,10 +35,10 @@ guard_dst="$hooks_dir/disabled-cmd-prompt-guard.sh"
 hook_timeout=$(tr -d ' \n' < "$here/hook-timeout")
 case "$hook_timeout" in ''|*[!0-9]*) echo "bad hook-timeout: '$hook_timeout'" >&2; exit 65 ;; esac
 
-# Merge logic. argv: settings fragment mode(apply|uninstall|check) target hooks_dir hook_timeout backup(0|1)
+# Merge and backup barrier. argv: settings fragment mode target hooks_dir timeout apply_writes guard_src
 merge_py=$(cat <<'PY'
-import json, os, shutil, sys, tempfile, time
-settings, fragment, mode, target, hooks_dir, timeout, backup = sys.argv[1:8]
+import json, os, shlex, shutil, stat, sys, tempfile, time
+settings, fragment, mode, target, hooks_dir, timeout, backup, guard_src = sys.argv[1:9]
 raw = open(settings).read()
 d = json.loads(raw)
 frag = json.load(open(fragment))
@@ -49,6 +49,8 @@ deny_new = frag["permissions"]["deny"]
 upe_new = frag["hooks"]["UserPromptExpansion"][0]
 ups_new = frag["hooks"]["UserPromptSubmit"][0]["hooks"][0]
 upe_new["hooks"][0]["timeout"] = ups_new["timeout"] = int(timeout)
+guard_dst = os.path.abspath(os.path.join(hooks_dir, NEW_SCRIPT))
+ups_new["command"] = "bash " + shlex.quote(guard_dst)
 
 def ours_upe(e):
     return any(MARK in h.get("command", "") for h in e.get("hooks", []))
@@ -132,28 +134,79 @@ if mode == "check":
 
 new = merged(d) if mode == "apply" else unmerged(d)
 text = dump(new)
-if os.path.abspath(target) == os.path.abspath(settings) and new == d:  # same content; key order alone is no change
+def atomic_write(path, content, permissions):
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(path)), prefix=".per89-")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(content)
+        os.chmod(tmp, permissions)
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+if backup != "1":  # dry-run writes only the explicit output, never an installation target
+    if os.path.realpath(target) in (os.path.realpath(settings), os.path.realpath(guard_dst)):
+        sys.exit("dry-run output must not be an installation target")
+    atomic_write(target, text.encode(), stat.S_IMODE(os.stat(settings).st_mode))
+    print("wrote: " + target)
+    sys.exit(0)
+
+# Validate before making even the hooks directory. Refuse symlink targets.
+for path in (settings, guard_dst):
+    if os.path.islink(path) or (os.path.lexists(path) and not os.path.isfile(path)):
+        sys.exit("target must be a regular, non-symlink file: " + path)
+if os.path.realpath(settings) == os.path.realpath(guard_dst):
+    sys.exit("settings and guard must be different files")
+guard_exists = os.path.exists(guard_dst)
+guard_bytes = open(guard_dst, "rb").read() if guard_exists else None
+source_bytes = open(guard_src, "rb").read() if mode == "apply" else None
+settings_changed = new != d  # key order alone is no change
+if mode == "apply":
+    guard_changed = (guard_bytes != source_bytes or not guard_exists or
+                     stat.S_IMODE(os.stat(guard_dst).st_mode) != 0o755)
+else:
+    guard_changed = guard_exists
+if not settings_changed and not guard_changed:
     print("no change: " + settings)
     sys.exit(0)
-if backup == "1":
-    bak = settings + ".bak-" + time.strftime("%Y%m%d%H%M%S")
-    # an existing same-second backup (pin-claude-plugins.sh writes first) already holds the earlier content
-    if not os.path.exists(bak):
-        try:
-            shutil.copy2(settings, bak)
-        except OSError as e:
-            sys.exit("backup failed, settings not written: %s" % e)
-        print("backup: " + bak)
-dirn = os.path.dirname(os.path.abspath(target))
-fd, tmp = tempfile.mkstemp(dir=dirn, prefix=".per89-")
-with os.fdopen(fd, "w") as f:
-    f.write(text)
-if os.path.exists(target):
-    os.chmod(tmp, os.stat(target).st_mode & 0o7777)
+
+# Back up BOTH existing targets before overwriting/removing either. mkstemp
+# never reuses a same-second snapshot, including one made by the pin installer.
+backups = []
+try:
+    for path in (settings, guard_dst):
+        if not os.path.exists(path):
+            continue
+        fd, bak = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(path)),
+                                  prefix=os.path.basename(path) + ".bak-" + time.strftime("%Y%m%d%H%M%S") + "-")
+        os.close(fd)
+        backups.append(bak)
+        shutil.copy2(path, bak)
+        if open(bak, "rb").read() != open(path, "rb").read():
+            raise OSError("backup byte comparison failed")
+except OSError as e:
+    for bak in backups:
+        os.unlink(bak)
+    sys.exit("backup failed; settings and guard unchanged: %s" % e)
+for bak in backups:
+    print("backup: " + bak)
+
+# Backup barrier passed. Later I/O failures may need restoration from the pair;
+# this is not an atomic transaction spanning two separate files.
+if guard_changed:
+    if mode == "apply":
+        os.makedirs(hooks_dir, exist_ok=True)
+        atomic_write(guard_dst, source_bytes, 0o755)
+        print("hook script: " + guard_dst)
+    else:
+        os.unlink(guard_dst)
+        print("removed: " + guard_dst)
+if settings_changed:
+    atomic_write(settings, text.encode(), stat.S_IMODE(os.stat(settings).st_mode))
+    print("wrote: " + settings)
 else:
-    os.chmod(tmp, os.stat(settings).st_mode & 0o7777)
-os.replace(tmp, target)
-print("wrote: " + target)
+    print("no change: " + settings)
 PY
 )
 
@@ -161,7 +214,7 @@ sha() { shasum -a 256 "$1" | cut -d' ' -f1; }
 
 if [ "$mode" = check ]; then
   rc=0
-  python3 -c "$merge_py" "$settings" "$here/settings-fragment.json" check "$settings" "$hooks_dir" "$hook_timeout" 0 || rc=$?
+  python3 -c "$merge_py" "$settings" "$here/settings-fragment.json" check "$settings" "$hooks_dir" "$hook_timeout" 0 "$guard_src" || rc=$?
   if [ ! -f "$guard_dst" ]; then echo "missing: hook script $guard_dst"; rc=1
   elif ! cmp -s "$guard_src" "$guard_dst"; then echo "differs: hook script $guard_dst"; rc=1; fi
   [ "$rc" != 0 ] || echo "ok: $settings matches the PER-89 fragment"
@@ -170,21 +223,12 @@ fi
 
 before=$(sha "$settings")
 if [ "$dry" = 1 ]; then
-  python3 -c "$merge_py" "$settings" "$here/settings-fragment.json" "$mode" "$out" "$hooks_dir" "$hook_timeout" 0
+  python3 -c "$merge_py" "$settings" "$here/settings-fragment.json" "$mode" "$out" "$hooks_dir" "$hook_timeout" 0 "$guard_src"
   echo "sha256 source: $before  $settings"
   echo "sha256 out:    $(sha "$out")  $out"
   exit 0
 fi
 
-if [ "$mode" = apply ]; then
-  mkdir -p "$hooks_dir"
-  install -m 755 "$guard_src" "$guard_dst"
-  echo "hook script: $guard_dst"
-fi
-python3 -c "$merge_py" "$settings" "$here/settings-fragment.json" "$mode" "$settings" "$hooks_dir" "$hook_timeout" 1
-if [ "$mode" = uninstall ] && [ -f "$guard_dst" ]; then
-  rm -f "$guard_dst"
-  echo "removed: $guard_dst"
-fi
+python3 -c "$merge_py" "$settings" "$here/settings-fragment.json" "$mode" "$settings" "$hooks_dir" "$hook_timeout" 1 "$guard_src"
 echo "sha256 before: $before"
 echo "sha256 after:  $(sha "$settings")"

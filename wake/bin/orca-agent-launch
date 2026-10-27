@@ -134,7 +134,10 @@ if [ "$agent" = claude ]; then
             *) claude_args+=("$1"); shift ;;
         esac
     done
-    session_settings_file=$(mktemp "${TMPDIR:-/tmp}/orca-claude-settings.XXXXXX") || die "建不了会话设置文件"
+    # 固定 /tmp，不接受可能指向永久目录的 TMPDIR。macOS 的系统
+    # com.apple.tmp_cleaner 每天清理 /tmp 的过期内容；不是进程退出即删。
+    # mktemp 创建 0600 文件，不改变 notify-run -> claude 的直接父子关系。
+    session_settings_file=$(mktemp /tmp/orca-claude-settings.XXXXXX) || die "建不了会话设置文件"
     trap 'rm -f -- "$session_settings_file"' EXIT
     python3 - "$session_settings" "$session_settings_file" <<'PY'
 import json, pathlib, sys
@@ -156,8 +159,9 @@ except Exception:
     sys.exit('无法读取或合并 --settings；没有启动 Claude')
 PY
     [ $? -eq 0 ] || die "无法合并 Claude 会话设置"
-    # 未启动（dry-run/Linear 拒绝/exec 失败）时清理；成功 exec 后由操作者
-    # 在会话结束后删打印出的文件，不能提前删（Claude 可能重读配置）。
+    # 未启动（dry-run/Linear 拒绝/exec 失败）时清理。成功 exec 不跑 EXIT：
+    # 由 macOS tmp_cleaner 延迟回收；会话结束后也可按打印路径提前删除。
+    # 不按固定秒数提前删（无法确认 Claude 已读完且不会重读）。
     cmd+=(--tty -- "$claude_bin" --settings "$session_settings_file" ${claude_args[@]+"${claude_args[@]}"})
 else
     cmd+=(--tty -- "$@")
@@ -214,5 +218,5 @@ PY
     fi
     echo "orca-agent-launch: $msg" >&2
 fi
-[ "$agent" != claude ] || echo "orca-agent-launch: 本会话设置 $session_settings_file（会话结束后删除）" >&2
+[ "$agent" != claude ] || echo "orca-agent-launch: 本会话设置 $session_settings_file（0600；macOS 系统延迟清理，会话结束后可提前删除）" >&2
 exec "${cmd[@]}"

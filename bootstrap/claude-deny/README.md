@@ -73,12 +73,12 @@ E2E 的故障注入 (c) 把两个 hook 都去掉、只留 deny：模型调用照
 ```bash
 bootstrap/claude-deny/install.sh --dry-run --out /tmp/settings.per89.json   # 看合并结果，不动原文件，打印 sha256
 diff -u ~/.claude/settings.json /tmp/settings.per89.json
-bootstrap/claude-deny/install.sh --apply       # 装 hook 脚本，备份为 settings.json.bak-<YYYYmmddHHMMSS>，原子写回，打印前后 sha256
+bootstrap/claude-deny/install.sh --apply       # 先备份 settings 和已有 guard，再逐文件原子写回，打印前后 sha256
 bootstrap/claude-deny/install.sh --check       # 一致退出 0；不一致逐项列出，退出 1
 bootstrap/claude-deny/install.sh --uninstall   # 撤掉本目录加的项，见下
 ```
 
-`--settings-file <路径>`、`--hooks-dir <目录>` 可以改目标（测试用）。
+`--settings-file <路径>`、`--hooks-dir <目录>` 可以改目标（测试用）。生成的 hook command 会绑定 `--hooks-dir` 的绝对路径（带 shell 引号），不再仍指向默认 `$HOME/.claude/hooks`。
 
 `install.sh` 只改三处，其他键（插件、notify、Orca 的 hook 等）原样保留、顺序不变，文件保持原来的 2 空格缩进：
 
@@ -86,7 +86,9 @@ bootstrap/claude-deny/install.sh --uninstall   # 撤掉本目录加的项，见�
 - `hooks.UserPromptExpansion`：没有带 `Blocked (PER-89)` 的条目就追加，有就换成片段里的版本；
 - `hooks.UserPromptSubmit`：调 `block-disabled-skills.sh` 的那一项原位换成新脚本；已经是新脚本就更新成片段里的版本；都没有就追加。
 
-改 settings 前先备份成 `settings.json.bak-<YYYYmmddHHMMSS>`；内容不变就不写也不备份；备份失败就退出非 0、不写。`--apply` 和 `--uninstall` 都这样。
+`--apply` 和 `--uninstall` 都先计算 settings/guard 是否需要改动。有变化时，在创建 hooks 目录、覆盖 guard、删除 guard、写 settings **之前**，给 settings 和已经存在的 guard 各做一份 `<文件>.bak-<YYYYmmddHHMMSS>-<随机后缀>` 备份，逐字节比对成功后才往下写。任一备份失败则清理本轮未完成的备份，退出非 0，两份目标内容/权限不改，不创建 hooks 目录。已有同秒备份不复用、不覆盖。两份目标都没变时不写也不备份；只有 guard 改变也必须过同一备份屏障。拒绝 symlink/非普通文件目标，避免备份对象和覆盖对象不一致；请勿并发运行安装器。
+
+这不是跨两文件的原子事务：**全部备份成功以后的**磁盘/权限故障仍可能留下部分应用，要按打印的成对备份恢复；不要把「备份失败不改目标」扩写成「任何阶段失败都自动回滚」。
 
 `--apply` 把 settings 里调 `block-disabled-skills.sh` 的旧条目换成新脚本后，旧脚本文件还留在 `~/.claude/hooks/`。确认 settings 已不再引用它，再挪走（不直接删，要恢复就挪回来）：
 
@@ -96,7 +98,7 @@ grep -q block-disabled-skills ~/.claude/settings.json || { [ ! -e ~/.claude/hook
 
 `--uninstall` 撤掉片段中的 29 条 deny、`UserPromptExpansion` 条目、`UserPromptSubmit` 里的新脚本项，删掉 `~/.claude/hooks/disabled-cmd-prompt-guard.sh`；不把旧 hook 加回来。
 
-回滚到装之前的原样：`cp -p ~/.claude/settings.json.bak-<YYYYmmddHHMMSS> ~/.claude/settings.json`（`--apply` 会打印备份文件名）。挪走过旧脚本的，把 `block-disabled-skills.sh.bak-<时间>` 挪回 `~/.claude/hooks/block-disabled-skills.sh`，否则恢复后的 settings 指向一个不存在的脚本。
+回滚到装之前的原样：用 `--apply`/`--uninstall` 打印的**本次成对备份路径**，分别 `cp -p <settings备份> ~/.claude/settings.json` 和 `cp -p <guard备份> ~/.claude/hooks/disabled-cmd-prompt-guard.sh`。若本次安装前 guard 不存在，则恢复 settings 后移走本次新增 guard；别误用同秒其他阶段的备份。挪走过旧脚本的，把 `block-disabled-skills.sh.bak-<时间>` 挪回 `~/.claude/hooks/block-disabled-skills.sh`，否则恢复后的 settings 指向一个不存在的脚本。
 
 改超时：只改 `hook-timeout`，再跑 `--apply`；`--check` 读同一个文件。`tests/install-sandbox.sh` 验证改成 7 后两个 hook 都变 7、`--check` 跟着变，并用一个写死 timeout 的安装器副本做回退用例（它不跟着变，检查会挂）。
 
@@ -104,7 +106,7 @@ grep -q block-disabled-skills ~/.claude/settings.json || { [ ! -e ~/.claude/hook
 
 本目录和 #48 的 `bootstrap/claude-plugins/` 在同一个 PR 里合并（PER-83 + PER-89）。挡禁用命令只有本目录这一套：#48 原来的 `block-disabled-skills.sh` 已删除，`install-block-hook.sh` 改成转调 `install.sh --apply`；`pin-claude-plugins.sh` 安装时调 `install.sh --apply`，`--check` 时调 `install.sh --check`。超时只在 `hook-timeout` 一处。
 
-`pin-claude-plugins.sh` 先写 `settings.json`（并备份），紧接着 `install.sh` 再写一次；两次落在同一秒时，`install.sh` 不覆盖已有的同名备份，留下的是运行前的原内容。
+`pin-claude-plugins.sh` 先写 `settings.json`（并备份），紧接着 `install.sh` 再写一次。deny 安装器即使落在同一秒也生成独立随机后缀备份，保存自己写前的精确内容；pin 的早期快照保留不动。完整 pin 回退仍以操作前整套备份为准，不能把 deny 阶段快照误认为 pin 运行前快照。
 
 ## 已知绕过
 
