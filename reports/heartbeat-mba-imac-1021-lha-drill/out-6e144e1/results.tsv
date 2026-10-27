@@ -1,0 +1,8 @@
+L1.alert-once	PASS	rc 75; curl after 46 min=1, next skip still 1
+L2.recover-fail	INFO	rc 0 curl=       2 state={"alerted": 1792630574.131024} (recovery not delivered, kept alerted only)
+L3.second-episode	FAIL	MISSED: 2nd stuck episode not alerted (curl        2->       2), state={"alerted": 1792630574.131024, "first": 1792627812, "skips": 2, "last": 1792630575.4665658}
+L4.stale-first	FAIL	alerted on first skip because first= 3 days ago (last not used)
+L5.71-73	PASS	missing lockf rc 71, unopenable rc 73: not counted, no alert (silent unless the watcher of this task notices)
+L6.no-secret	PASS	KEY not in output or body files
+L7.concurrent	INFO	8 concurrent skip rounds -> skips=5 (no corruption; lost updates possible, harmless at */5)
+L7.tmp-left	INFO	       0 leftover tmp files

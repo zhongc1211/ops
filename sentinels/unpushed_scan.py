@@ -3,20 +3,24 @@
 
 对本机 `orca worktree list` 里的每个工作区（只读，GIT_OPTIONAL_LOCKS=0，不 fetch、不提交、不推、不 stash、不 reset）：
   unpushed — HEAD 上有不在任何远程分支里的提交（git rev-list HEAD --not --remotes），最早的一个超过 2 小时
-  dirty    — 有未提交的改动（含未跟踪文件，不含未跟踪的 node_modules 软链接），其中最早的一处改动超过 2 小时
+  dirty    — 有未提交的改动（含未跟踪文件，不含未跟踪的 node_modules 软链接），其中最早的一处改动超过 2 小时；
+             未跟踪条目正好是本仓库另一个已注册 worktree 的根目录、并且这次也在扫的工作区里（Orca 把 ops 工作区
+             建在 ops 主检出里面）不算，那个工作区自己会单独扫；git worktree list 失败或超时就照旧算
 发现了就用 notify-run 叫醒该项目的 bot（按 git remote 认项目），同一个 bot 一次运行只叫一次，消息里列出全部发现。
 限流（状态在 ~/.orca-state/unpushed-scan/state.json）：
   - 同一个工作区 4 小时内只叫一次（项目 bot 和 coding-assistant 都算），不管是哪种发现、内容变没变；
   - 新发现：这个工作区 4 小时内没叫过就马上叫项目 bot，计数从 1 开始；
   - 内容变了（最早没推送的提交 / HEAD 加改动列表不同）：叫醒次数重新数（最多记 1 次），但不重置计时
     （10-19 ops 主目录改动数 26→28，00:29、02:29 各叫一次）；
-  - 没变：距上次叫醒满 4 小时才再叫项目 bot；已经叫过 2 次还没变，第 3 次改叫 coding-assistant，之后每 24 小时最多再叫它一次；
+  - 没变：距上次叫醒满 4 小时才再叫项目 bot；已经叫过 2 次还没变，第 3 次改叫 coding-assistant，之后每 24 小时最多再叫它一次
+    （发现本来就归 coding-assistant 时也一样：叫满 2 次后每 24 小时最多一次）；
+  - 记录里存认出的 bot；bot 变了（改了路由，或没记 bot 的旧记录）就把叫醒次数和升级计时清零，从新 bot 重新数，上次叫醒时间保留；
   - 发现消失了就删掉它的记录。
 日志一行一条打印到 stdout，并追加到 --log（box 上就是 /workspace/ops/reports/unpushed-scan-YYYYMMDD.log；
 iMac 上是本机镜像，由 unpushed-scan.sh 再经 ssh 追加到 box 的同一个文件）。
 忽略名单 IGNORE：按 --machine 和路径跳过的工作区（如 MBA 的 ~/orca/projects/local 占位仓库）。
 演练：--only <路径前缀> 只扫这些工作区，--state 用单独的状态文件，--drill 让叫醒标题带「【演练】」，
-  环境变量 UNPUSHED_FORCE_BOT=<bot> 让所有叫醒改发给这个 bot（演练用 test，不叫醒真 bot）。
+  环境变量 UNPUSHED_FORCE_BOT=<bot> 让所有叫醒改发给这个 bot（演练用 ops-system，不叫醒业务 bot；只换收件 bot，标题不加「[演练 叫醒通路]」，--drill 时带「【演练】」）。
 退出码：0 = 扫完（不管有没有发现）；2 = 拿不到工作区列表。
 """
 import argparse
@@ -40,6 +44,9 @@ BOTS = [  # (git remote 里的关键字, bot)
     ("xinyue", "xinyue"),
     ("vllm-omni", "vllm-omni"),
 ]
+EXACT_REPOS = {  # owner/repo 完全相同才算（不按关键字，免得 deepvision-ops 之类误中）
+    "zhongc1211/ops": "ops-system",  # ops 仓库和它的嵌套工作区归 ops bot（10-23 起；之前落到 coding-assistant）
+}
 IGNORE = [  # (机器, 路径)：这些工作区不扫，也不算进「扫了 N 个工作区」
     ("mba", "~/orca/projects/local"),  # Orca 自动生成的占位仓库，只有一个 Initial commit，没有远程
     ("imac", "~/claude/worker"),  # 停用的 Lark 秘书 worker，没有远程；2026-10-19 已归档到 ~/ops-archive/20261019/claude-worker.tar.zst，原目录保留
@@ -91,17 +98,41 @@ def git(path, *args):
     return p.returncode, p.stdout
 
 
+def other_worktrees(path):
+    """本仓库另外注册的 worktree 根目录（realpath）。git worktree list 失败或超时返回空集，宁可多报。"""
+    try:
+        p = subprocess.run(["git", "-C", path, "worktree", "list", "--porcelain"],
+                           capture_output=True, text=True, env=GIT_ENV, timeout=15)
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    if p.returncode != 0:
+        return set()
+    roots = {os.path.realpath(l[len("worktree "):]) for l in p.stdout.splitlines() if l.startswith("worktree ")}
+    return roots - {os.path.realpath(path)}
+
+
+def repo_slug(url):
+    """https://github.com/o/r(.git)、git@github.com:o/r(.git)、ssh://.../o/r → "o/r"（小写）；认不出返回空串。"""
+    u = url.strip().rstrip("/")
+    if u.endswith(".git"):
+        u = u[:-4]
+    parts = u.replace(":", "/").split("/")
+    return "/".join(parts[-2:]).lower() if len(parts) >= 2 else ""
+
+
 def bot_for(path):
     rc, url = git(path, "remote", "get-url", "origin")
     url = url.strip() if rc == 0 else ""
+    if url and repo_slug(url) in EXACT_REPOS:
+        return EXACT_REPOS[repo_slug(url)], url
     for key, bot in BOTS:
         if key in url:
             return bot, url
     return "coding-assistant", url or "(没有 origin)"
 
 
-def scan_one(path):
-    """返回这个工作区的发现列表 [(kind, 指纹, 说明)]。"""
+def scan_one(path, scanned=frozenset()):
+    """返回这个工作区的发现列表 [(kind, 指纹, 说明)]。scanned：这次运行要扫的工作区（realpath）。"""
     found = []
     rc, head = git(path, "rev-parse", "HEAD")
     if rc != 0:
@@ -123,7 +154,7 @@ def scan_one(path):
                 branch, len(commits), age / 3600, up, subj.strip()[:80])))
     rc, out = git(path, "status", "--porcelain=v1", "-z", "--untracked-files=normal")
     if rc == 0 and out:
-        entries, oldest, now = [], None, time.time()
+        entries, oldest, now, nested = [], None, time.time(), None
         parts = out.split("\0")
         i = 0
         while i < len(parts):
@@ -136,6 +167,11 @@ def scan_one(path):
                 i += 1  # 改名的原路径
             if st == "??" and name.rstrip("/").split("/")[-1] == "node_modules":
                 continue  # 指向共享依赖的 node_modules 软链接：gitignore 的 node_modules/ 匹配不到软链接，不算改动
+            if st == "??" and name.endswith("/"):
+                if nested is None:
+                    nested = other_worktrees(path) & scanned
+                if os.path.realpath(os.path.join(path, name)) in nested:
+                    continue  # 嵌在主检出里、这次也在扫的另一个工作区，它自己单独扫
             entries.append(st + " " + name)
             try:
                 m = os.lstat(os.path.join(path, name)).st_mtime
@@ -192,13 +228,14 @@ def main():
     for k, v in state.items():
         pth = k.rsplit("::", 1)[0]
         path_last[pth] = max(path_last.get(pth, 0), v.get("last", 0), v.get("esc", 0))
+    scanned = frozenset(os.path.realpath(w["path"]) for w in wts if os.path.isdir(w["path"]))
     for w in wts:
         path = w["path"]
         if not os.path.isdir(path):
             skipped += 1
             continue
         try:
-            found = scan_one(path)
+            found = scan_one(path, scanned)
         except Exception as e:
             log("%s 扫描出错：%s" % (path, type(e).__name__))
             continue
@@ -211,24 +248,33 @@ def main():
             seen.add(key)
             st = state.get(key)
             if not st:
-                st = {"fp": fp, "wakes": 0, "last": 0, "esc": 0, "first": now}
-            elif st.get("fp") != fp:
-                st = dict(st, fp=fp, wakes=min(st.get("wakes", 0), 1))  # 内容变了：重新数，计时不变
-            target = None
+                st = {"fp": fp, "wakes": 0, "last": 0, "esc": 0, "first": now, "bot": bot}
+            else:
+                if st.get("fp") != fp:
+                    st = dict(st, fp=fp, wakes=min(st.get("wakes", 0), 1))  # 内容变了：重新数，计时不变
+                if st.get("bot") != bot:
+                    # 认出的 bot 变了（含没记 bot 的旧记录）：从新 bot 重新数、升级计时清零；last 保留，4 小时计时不变
+                    st = dict(st, bot=bot, wakes=0, esc=0)
+            target, escalate = None, False
             quiet = now - path_last.get(path, 0) >= REWAKE  # 这个工作区 4 小时内没叫过
             if quiet and st["wakes"] < 2:
                 target = bot
             elif quiet and st["wakes"] >= 2 and now - st["esc"] >= ESCALATE_EVERY:
-                target = "coding-assistant"
+                target, escalate = "coding-assistant", True
             line = "%s %s [%s → %s] %s" % (kind, path, w.get("displayName") or "", bot, desc)
             if target:
-                note = "" if target == bot else "（已叫 %s %d 次没变，改叫 coding-assistant）" % (bot, st["wakes"])
+                if not escalate:
+                    note = ""
+                elif target != bot:
+                    note = "（已叫 %s %d 次没变，改叫 coding-assistant）" % (bot, st["wakes"])
+                else:  # 本来就归 coding-assistant：升级目标就是它自己，也按 24 小时一次算
+                    note = "（已叫 %d 次没变，之后每 24 小时最多叫一次）" % st["wakes"]
                 per_bot.setdefault(target, []).append(line + note)
-                if target == bot:
+                if escalate:
+                    st["esc"] = now
+                else:
                     st["wakes"] += 1
                     st["last"] = now
-                else:
-                    st["esc"] = now
                 paths[path] = now
                 log("发现 %s；本次叫 %s" % (line, target))
             else:

@@ -1,0 +1,7 @@
+d4f0bb0c7be86599079ddf30a2386cf35d65c3b1
+# sync-bot-rules --check  ref=origin/zhongc1211/ops-bot-rules-targets-1021  commit=d4f0bb0c7be86599079ddf30a2386cf35d65c3b1  host=mba
+机器 | 目标路径 | 源 sha256 | 目标 sha256 | 状态
+MBA | /Users/jiawenwang/agent-data/workflows/dev-bot-rules/SKILL.md | b4610e94fb8ced5acbf732960d7787a677ab32a7be7cfe58503bc08c7c94918b | c517c576337ca434f190d23c7c5f0231429db2410530e8c6bd9772670c430d2f | drift
+MBA | /Users/jiawenwang/agent-data/workflows/dev-bot-rules/SOURCE.txt | - | 520f622e220ece8e6f8942bb358fe9b45fda4dc3bdda48e81fb1991a4d184116 | extra
+MBA | /Users/jiawenwang/agent-data/workflows/dev-bot-rules/SHA256SUMS.txt | - | 28669aa44374bae5e1aabcc40a3a79930fe2e463b6f4c4e5eee2423434ff1a33 | extra
+exit=1

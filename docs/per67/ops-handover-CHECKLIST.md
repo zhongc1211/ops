@@ -9,10 +9,10 @@
 - [ ] 3 EverOS：10-19 补写完成并读回（[Zack答-PER67-9]）→ 服务端移交 ops 系统；dr eggbot 只读权限配好
 - [ ] 4 ops 系统 webhook：三台机器配好；dev-bot-rules 81/88 行加上 ops-system
 - [ ] 5 pstack 用最新兼容版（10-20 起最新 0.15.29，先做兼容检查再钉，替代 0148b78） + compound-engineering 同一 commit：box / iMac / MBA 都钉住；bootstrap 锁版本（⑧）；禁用命令真禁住
-- [ ] 6 verify skill：官网 ✅（#101）；去掉 ports.test.mjs 单测；心月；vllm（落点待 Zack 定）；ops verify / SYSTEM_MAP（#28）
-- [ ] 7 ops 仓库文档里「eggbot 管 EverOS」的说法改掉（见 reports/ops-bot-handover-20261019/ownership-grep.txt）
-- [ ] 8 采集脚本 box 冻结后能自动补推
+- [ ] 6 verify skill：官网 ✅（#101）；去掉 ports.test.mjs 单测 ✅（Coding助手报 #106 合 main 10-20 18:43，FDV-94；dr eggbot 看不到 futuredeepvision 仓库，未独立核）；心月；vllm（落点待 Zack 定）；ops verify / SYSTEM_MAP（#28）
+- [x] 7 ops 仓库文档里「eggbot 管 EverOS」的说法改掉（见 reports/ops-bot-handover-20261019/ownership-grep.txt） —— ✅ #47 合 main b28b7a5（10-20 19:23，锁 26bd94d，6 个 .md），[Zack答-PER84-1]，PER-84 Done
+- [ ] 8 采集脚本 box 冻结后能自动补推（10-20 23:01：#63@b7788ec 有条件通过，退回补 F10/F11 等；PER-118 心月大日子补推排不进时限，是未解决的已知缺口，第 8 项不因 #63 合并而关闭）
 - [ ] 9 卡住检查误报（子进程无 notify-run）修复；告警路由到 ops-system（#45，未合）
-- [ ] 10 「Orca 叫醒测试（v5）」routine 去留（等 Zack）；重活离开 box
+- [ ] 10 「Orca 叫醒测试（v5）」routine 去留（等 Zack）；重活离开 box。演练已改发 ops-system（PER-105，本 PR）；v5 删除等迁移后一次演练通过 + Zack 卡
 - [ ] 11 F1–F8 和 #45 都合并安装、第 5 项升到 88d4751 之后，ops 系统 跑一次 /maintain-formal-verification-skill 对齐 wake-tla-verify 模型与代码，区分模型过时 vs 代码 bug；单 agent、只用 Claude 订阅额度不另花钱，开跑前仍给 Zack 弹卡（Zack 10-20 18:49 SGT「可以」）
 - [ ] 12 pstack 新版监测：出新版就做兼容检查（5 个禁用命令、verify-dv-site、wake-tla-verify、bootstrap），兼容才升级三台机器（Zack 10-20 18:53）

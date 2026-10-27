@@ -1,0 +1,3 @@
+#!/bin/bash
+# heartbeat-watch 演练的假 orca：HB_ORCA=<这个文件>。回放 fixtures/ 里录的运行记录，不连任何 Orca（见 replay.py）。
+exec python3 -I "$(dirname "$0")/replay.py" "$@"

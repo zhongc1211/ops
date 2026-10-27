@@ -1,0 +1,15 @@
+$ rg -n 'machine": *"box"' automations/migration-1020/defs.json    # in /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree
+7:  {"key": "box-xinyue-watch", "machine": "box", "name": "心月 · 18 夜审 看守 box", "rrule": "10 2 * * *", "extraAgentArgs": "--model sonnet --effort low", "precheck": "bash /workspace/repos/ops/scripts/night-review-gate.sh box-watch xinyue", "precheckTimeout": 120, "prompt": "prompts/noop.prompt.md", "workspace": "path:/workspace/repos/ops", "timezone": "Asia/Singapore", "grace": 120, "provider": "claude"},
+12:  {"key": "box-deepvision-site-watch", "machine": "box", "name": "dv运维 · 20 夜审 官网 看守 box", "rrule": "0 3 * * *", "extraAgentArgs": "--model sonnet --effort low", "precheck": "bash /workspace/repos/ops/scripts/night-review-gate.sh box-watch deepvision-site", "precheckTimeout": 120, "prompt": "prompts/noop.prompt.md", "workspace": "path:/workspace/repos/ops", "timezone": "Asia/Singapore", "grace": 120, "provider": "claude"},
+17:  {"key": "box-deepvision-ads-watch", "machine": "box", "name": "dv广告 · 21 夜审 看守 box", "rrule": "25 3 * * *", "extraAgentArgs": "--model sonnet --effort low", "precheck": "bash /workspace/repos/ops/scripts/night-review-gate.sh box-watch deepvision-ads", "precheckTimeout": 120, "prompt": "prompts/noop.prompt.md", "workspace": "path:/workspace/repos/ops", "timezone": "Asia/Singapore", "grace": 120, "provider": "claude"},
+22:  {"key": "box-vllm-omni-watch", "machine": "box", "name": "vllm · 22 夜审 看守 box", "rrule": "50 3 * * *", "extraAgentArgs": "--model sonnet --effort low", "precheck": "bash /workspace/repos/ops/scripts/night-review-gate.sh box-watch vllm-omni", "precheckTimeout": 120, "prompt": "prompts/noop.prompt.md", "workspace": "path:/workspace/repos/ops", "timezone": "Asia/Singapore", "grace": 120, "provider": "claude"},
+28:  {"id": "75b324a4", "machine": "box", "set": {"grace": 120}},
+29:  {"id": "43c55a22", "machine": "box", "set": {"grace": 120}},
+30:  {"id": "9b5c20e7", "machine": "box", "set": {"grace": 120}},
+31:  {"id": "c392a743", "machine": "box", "set": {"grace": 120}},
+32:  {"id": "bc9ee42b", "machine": "box", "set": {"grace": 120}},
+33:  {"id": "349967f6", "machine": "box", "set": {"grace": 120}},
+34:  {"id": "1191c819", "machine": "box", "set": {"grace": 120, "precheck": "bash /workspace/repos/ops/scripts/cleanup-precheck.sh ws", "precheckTimeout": 120}},
+35:  {"id": "8c40fa83", "machine": "box", "set": {"grace": 120, "precheck": "bash /workspace/repos/ops/scripts/cleanup-precheck.sh mem", "precheckTimeout": 120}},
+36:  {"id": "27383c07", "machine": "box", "set": {"rrule": "0 1 * * *"}, "why": "MIGRATION-BRIEF: guard 00:30 -> 01:00 so the 23:40 MBA review and its copy back to box fit; a failed copy back = review not done, the guard alarms (correct)"}
+rc=0

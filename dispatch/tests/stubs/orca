@@ -1,0 +1,23 @@
+#!/bin/bash
+# 假 orca：按 FAKE_ORCA_MODE 返回 tests/fixtures 里的 JSON，或模拟挂住、坏 JSON、ok:false。
+set -u
+fx="${FAKE_FIXTURES:?}"
+mode="${FAKE_ORCA_MODE:-ok}"
+cmd="$1 $2"
+case "$mode" in
+  timeout)
+    [ -n "${FAKE_PIDFILE:-}" ] && echo "$$" >> "$FAKE_PIDFILE"
+    sleep 60 &
+    [ -n "${FAKE_PIDFILE:-}" ] && echo "$!" >> "$FAKE_PIDFILE"
+    wait
+    exit 0 ;;
+  badjson) printf '{"ok":true,"result":{"host":{"availableMem' ; exit 0 ;;
+  notok) echo '{"ok":false,"error":{"message":"runtime not ready"}}'; exit 0 ;;
+  exit1) echo 'orca: runtime unavailable' >&2; exit 1 ;;
+esac
+case "$cmd" in
+  "diagnostics memory") cat "$fx/diag.json" ;;
+  "terminal list") [ "$mode" = enrichfail ] && exit 1; cat "$fx/terminal-list.json" ;;
+  "worktree ps") [ "$mode" = enrichfail ] && { echo 'not json'; exit 0; }; cat "$fx/worktree-ps.json" ;;
+  *) echo "fake orca: 未知命令 $*" >&2; exit 2 ;;
+esac

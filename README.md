@@ -19,9 +19,12 @@ Orca 项目和工作区清单见 [orca-projects.md](orca-projects.md)。
 |---|---|
 | [`wake/`](wake/) | agent 停下时叫醒派活 bot：`orca-wake`、`orca-wake-hooks`、`notify-run`、Pi 扩展。原 `orca-agent-wake` 仓库，2026-10-17 并入（保留历史） |
 | [`wake/install.sh`](wake/install.sh) | 在 iMac / box 上安装叫醒脚本和 `agent-probe`（`--check` 只比对） |
-| [`scripts/stuck-check.sh`](scripts/stuck-check.sh) | 卡住工作检查（Orca 自动化每分钟 precheck，约 15 分钟扫一次），兜底补叫醒；也查 ops 主目录里的 agent 和没包 notify-run 的 agent；依赖 orca-wake 的 `sent/` 状态 |
+| [`scripts/stuck-check.sh`](scripts/stuck-check.sh) | 卡住工作检查（Orca 自动化每分钟 precheck，约 15 分钟扫一次），兜底补叫醒；也查 ops 主目录里的 agent 和没包 notify-run 的 agent；依赖 orca-wake 的 `sent/` 状态。扫描时长防护（单项超时、整轮时限、scan-history.json、scan_slow 告警，PER-82）见脚本开头，演练 `wake/tests/stuck-check-scan-guard.sh` |
 | [`scripts/agent-probe`](scripts/agent-probe) | 列出本机 agent 和 notify-run 进程，给卡住检查用 |
 | [`scripts/heartbeat-watch.sh`](scripts/heartbeat-watch.sh) | 盯另一台机器上卡住检查的心跳（自动任务运行记录里的 `@@HB`），太久没有就报警、恢复报一次 |
+| [`scripts/orca-via-ssh`](scripts/orca-via-ssh) | 经 ssh 在另一台机器上跑 `orca automations runs` 或 `orca automations list`（只放行这两个只读命令），给 heartbeat-watch 的 `HB_ORCA` 用：MBA 的 Orca 没有 iMac 的 environment |
+| [`scripts/lock-held-alert`](scripts/lock-held-alert) | 写在 heartbeat-watch 的 precheck 里 `lockf` 前面：退出码照 lockf 的交出去；锁一直被占着、连续跳过满 45 分钟时告警一次，锁放开后报恢复（B1，见 `automations/heartbeat-1021/README.md`） |
+| [`automations/heartbeat-1021/`](automations/heartbeat-1021/) | B1：盯 iMac ops · 01 的跨机看守从 box 挪到 MBA↔iMac。定义文件、注册脚本（默认 dry-run）、上线顺序、回滚和失败方式清单；演练 `wake/tests/heartbeat-watch-ssh.sh`，回退测试 `wake/tests/heartbeat-watch-ssh-rollback.sh` |
 | [`wake/bin/orca-agent-launch`](wake/bin/orca-agent-launch) | 统一的起 agent 入口，强制经 notify-run；带 `--issue` 时给 Linear 卡写负责 bot 和 due（`--eta`） |
 | [`wake/bin/agent-stop`](wake/bin/agent-stop) | 主动停 agent：先写「主动停止」标记再发信号，卡住检查看到标记就不报 agent_gone |
 | [`scripts/automation-reaper.sh`](scripts/automation-reaper.sh) | 关掉做完不退出的 Orca 自动任务 agent（已写结果、空闲超过 2 小时），没写结果的不动 |
@@ -36,6 +39,8 @@ Orca 项目和工作区清单见 [orca-projects.md](orca-projects.md)。
 | 路径 | 内容 |
 |---|---|
 | [`scripts/box-cleanup.sh`](scripts/box-cleanup.sh) | box 清理（夜间 / 负载高时） |
+| [`automations/migration-1020/`](automations/migration-1020/) | PER-79 重活迁移：夜审挪到 MBA，iMac 看守和备用，新任务都不在 box 上跑（B2a，PER-146）；定义文件、注册脚本（默认 dry-run）、上线顺序和回滚 |
+| [`scripts/heavy-lock.sh`](scripts/heavy-lock.sh)、[`scripts/night-review-gate.sh`](scripts/night-review-gate.sh)、[`scripts/sync-manifests-from-box.sh`](scripts/sync-manifests-from-box.sh)、[`scripts/review-date.sh`](scripts/review-date.sh)、[`scripts/cleanup-precheck.sh`](scripts/cleanup-precheck.sh) | 每台机器一个重活的锁、夜审的预检和收尾（存放位置可配置，默认 box）、拉当晚清单（来源可配置，默认 box）、macOS 上的日期计算、box 两个清理的预检（现在没有任务用） |
 | [`scripts/orca-due.sh`](scripts/orca-due.sh)、[`scripts/orca-ok.sh`](scripts/orca-ok.sh) | Orca 自动化的到期 / 成功标记 |
 | [`scripts/naming-check.py`](scripts/naming-check.py) | Orca 工作区命名检查 |
 | [`scripts/seo-weekly-precheck.sh`](scripts/seo-weekly-precheck.sh)、[`scripts/vllm-upstream-precheck.sh`](scripts/vllm-upstream-precheck.sh) | 定时任务的预检 |

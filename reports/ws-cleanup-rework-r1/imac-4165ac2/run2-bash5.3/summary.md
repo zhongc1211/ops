@@ -1,0 +1,38 @@
+# ws-cleanup dry-run（iMac，2026-10-21 04:48:20 SGT）
+
+orca：`/Applications/Orca.app/Contents/Resources/bin/orca`；gh：`/usr/local/bin/gh`；工作区空闲门槛 24 小时，终端 24 小时；备份根目录 `/Users/jiawenwang/ops-archive/ws-cleanup`。
+
+| 动作 | 工作区 |
+|---|---|
+| RM | 19 |
+| BACKUP_RM | 14 |
+| SKIP | 118 |
+| LIST | 1 |
+
+RM 合计约 1550 MB，BACKUP_RM 合计约 8583 MB（du）。
+
+| 规则 | 个数 |
+|---|---|
+| W1 | 10 |
+| W2 | 1 |
+| W4 | 3 |
+| W5 | 16 |
+| W6 | 1 |
+| W7 | 6 |
+| W8 | 4 |
+| W9 | 12 |
+| W10 | 16 |
+| W11 | 23 |
+| W12 | 21 |
+| W13 | 14 |
+| W14 | 19 |
+| W16 | 1 |
+| W17 | 5 |
+
+状态冲突、这次不删、等 Zack 定的：14 个（worktrees.tsv 里 W11 且原因写「状态冲突」）
+
+Linear 查不到的：2 个（都当作没关）
+
+终端：SKIP 19（T1 11，T3 2，T7 5，T8 1）
+
+超过 30 天的备份（只列出，删除另外批准）：无

@@ -1,0 +1,35 @@
+host	repo	name	path	action	verdict	rule	reason	status	pr	linear	dirty	unpushed	terms	idle_h	last_activity	mb	backup	other_ignored	planned
+MBA	deepvision-ads	main	/Users/jiawenwang/orca/projects/deepvision-ads	LIST	SKIP	W1	main 工作区 / bare 仓库	in-progress					1	31	2026-10-19 19:31	1073			
+MBA	deepvision-ads	dv广告 · FDV-89 A+B 引导循环和骨架屏	/Users/jiawenwang/orca/workspaces/deepvision-ads/fdv-89-ab	LIST	SKIP	W10	Linear 还没关	in-review		FDV-89 started	0	0	1	54	2026-10-18 20:14	1291			
+MBA	deepvision-ads	dv广告 · FDV-89 C 合并查询少刷新	/Users/jiawenwang/orca/workspaces/deepvision-ads/fdv-89-c	LIST	SKIP	W10	Linear 还没关	in-review		FDV-89 started	0	0	1	54	2026-10-18 20:00	1220			
+MBA	deepvision-site	main	/Users/jiawenwang/orca/projects/deepvision-site	LIST	SKIP	W1	main 工作区 / bare 仓库	in-progress					0	3	2026-10-20 22:44	27			
+MBA	deepvision-site	dv官网 · FDV-70 G Ryze几何对照	/Users/jiawenwang/orca/workspaces/deepvision-site/dv官网-FDV-70-G-Ryze几何对照	LIST	SKIP	W9	PR 还开着	in-review	#93 OPEN	FDV-70	0	0	0	51	2026-10-18 23:28	1309			
+MBA	deepvision-site	dv官网 · FDV-70 PR6 其余页面	/Users/jiawenwang/orca/workspaces/deepvision-site/dv官网-FDV-70-PR6-其余页面	LIST	SKIP	W10	Linear 还没关	in-review	#88 MERGED	FDV-70 started	0	0	0	53	2026-10-18 21:37	1390			
+MBA	deepvision-site	dv官网 · FDV-70 Ryze复刻重做（MBA）	/Users/jiawenwang/orca/workspaces/deepvision-site/dv官网-FDV-70-Ryze复刻重做-MBA	LIST	SKIP	W10	Linear 还没关	in-review	#89 MERGED	FDV-70 started	0	0	0	54	2026-10-18 20:00	1364			
+MBA	deepvision-site	dv官网 · FDV-70 Ryze对照图	/Users/jiawenwang/orca/workspaces/deepvision-site/dv官网-FDV-70-Ryze对照图	LIST	SKIP	W10	Linear 还没关	completed		FDV-70 started	0	0	0	53	2026-10-18 21:32	1307			
+MBA	deepvision-site	dv官网 · FDV-70 示例行业整改	/Users/jiawenwang/orca/workspaces/deepvision-site/dv官网-FDV-70-示例行业整改	LIST	SKIP	W10	Linear 还没关	in-review	#87 MERGED	FDV-70 started	0	0	0	53	2026-10-18 21:29	296			
+MBA	deepvision-site	dv运维 · FDV-88 夜审读MBA会话修	/Users/jiawenwang/orca/workspaces/deepvision-site/dv运维-FDV-88-夜审读MBA会话修	LIST	BACKUP_RM	W13	有要备份的 git 忽略文件	in-review		FDV-88 completed	0	0	0	54	2026-10-18 20:04	976	.orca-task		备份到 /Users/jiawenwang/ops-archive/ws-cleanup/<日期>/deepvision-site/dv运维-FDV-88-夜审读MBA会话修/ + sha 核对，然后 orca worktree rm --worktree 'id:d1fae3d4-64a2-4d93-96fe-a5a454e63cfc::/Users/jiawenwang/orca/workspaces/deepvision-site/dv运维-FDV-88-夜审读MBA会话修'
+MBA	deepvision-site	dv运维 · FDV-70 日历说法更正（MBA）	/Users/jiawenwang/orca/workspaces/deepvision-site/fdv-70-calendar-claim	LIST	SKIP	W5	agent 在跑	in-progress		FDV-70			1	9	2026-10-20 17:33	1344			
+MBA	deepvision-site	dv运维 · FDV-70 G6/G7/G9 r1（MBA）	/Users/jiawenwang/orca/workspaces/deepvision-site/fdv-70-g6-g7-g9	LIST	SKIP	W5	agent 在跑	in-review		FDV-70			1	6	2026-10-20 20:06	1908			
+MBA	deepvision-site	dv官网 · FDV-92 返工1 MBA 重演	/Users/jiawenwang/orca/workspaces/deepvision-site/fdv-92-rework1-mba	LIST	BACKUP_RM	W13	有要备份的 git 忽略文件	completed	#101 MERGED	FDV-92 completed	0	0	0	36	2026-10-19 14:24	976	.orca-task		备份到 /Users/jiawenwang/ops-archive/ws-cleanup/<日期>/deepvision-site/fdv-92-rework1-mba/ + sha 核对，然后 orca worktree rm --worktree 'id:d1fae3d4-64a2-4d93-96fe-a5a454e63cfc::/Users/jiawenwang/orca/workspaces/deepvision-site/fdv-92-rework1-mba'
+MBA	deepvision-site	dv运维 · FDV-93 verify 支持 macOS（MBA）	/Users/jiawenwang/orca/workspaces/deepvision-site/fdv-93-verify-macos	LIST	SKIP	W12	9 小时内有活动	in-review		FDV-93 completed	0	0	0	9	2026-10-20 17:12	1111			
+MBA	local	master	/Users/jiawenwang/orca/projects/local	LIST	SKIP	W1	main 工作区 / bare 仓库	in-progress					0	4	2026-10-20 22:13	0			
+MBA	ops	main	/Users/jiawenwang/orca/workspaces/ops	LIST	SKIP	W1	main 工作区 / bare 仓库	in-progress					3	22	2026-10-20 04:37	27			
+MBA	ops	ops · PER-105 #62 合并	/Users/jiawenwang/orca/workspaces/ops/ops-PER-105-merge62	LIST	SKIP	W12	3 小时内有活动	completed		PER-105 completed	0	0	0	3	2026-10-20 23:32	2			
+MBA	ops	ops · PER-90 ops-system webhook 三台	/Users/jiawenwang/orca/workspaces/ops/ops-PER-90-webhook	LIST	SKIP	W9	PR 还开着	completed	#58 OPEN	PER-90	0	0	0	5	2026-10-20 21:08	2			
+MBA	ops	ops-PER-94-pstack-monitor-mba	/Users/jiawenwang/orca/workspaces/ops/ops-PER-94-pstack-monitor-mba	LIST	SKIP	W5	agent 在跑	in-review		PER-94			2	0	2026-10-21 01:43	2			
+MBA	ops	ops · PER-79 box 重活迁移	/Users/jiawenwang/orca/workspaces/ops/ops-box-heavy-migration-1020	LIST	SKIP	W12	2 小时内有活动	completed	#49 MERGED	PER-79 completed	0	0	0	2	2026-10-20 23:45	2			
+MBA	ops	ops · PER-67 EverOS 10-19 补写	/Users/jiawenwang/orca/workspaces/ops/ops-everos-backfill-1019	LIST	SKIP	W12	7 小时内有活动	completed		PER-67 completed	0	0	0	7	2026-10-20 19:02	1			
+MBA	ops	ops · PER-67 采集补推修复	/Users/jiawenwang/orca/workspaces/ops/ops-everos-catchup-1020	LIST	SKIP	W5	agent 在跑	in-review		PER-67			1	8	2026-10-20 18:14	1			
+MBA	ops	ops · PER-126 v3 派活方案独立评审（只读）	/Users/jiawenwang/orca/workspaces/ops/ops-per126-v3-review-1021	LIST	SKIP	W5	agent 在跑	in-progress					2	0	2026-10-21 01:49	2			
+MBA	ops	ops · PER-123 dev-bot-rules 终稿进 Git	/Users/jiawenwang/orca/workspaces/ops/per123-devbotrules-1020b	LIST	SKIP	W12	3 小时内有活动	completed	#67 MERGED	PER-123 completed	0	0	0	3	2026-10-20 23:34	2			
+MBA	vllm-omni	main	/Users/jiawenwang/orca/projects/vllm-omni	LIST	SKIP	W1	main 工作区 / bare 仓库	in-progress					0		0	380			
+MBA	vllm-omni	vllm · PER-56 4090+A100 补跑（MBA）	/Users/jiawenwang/orca/workspaces/vllm-omni/vllm-PER-56-4090-A100-MBA	LIST	SKIP	W10	Linear 还没关	completed		PER-56 started	0	0	0	53	2026-10-18 21:19	140			
+MBA	xinyue-site	feat/xinyue-site	/Users/jiawenwang/orca/projects/xinyue-site	LIST	SKIP	W1	main 工作区 / bare 仓库	in-progress					0		0	16			
+MBA	xinyue-site	心月 · PER-115 MBA 接手：本机检查+testing+5条E2E	/Users/jiawenwang/orca/workspaces/xinyue-site/per-115-mba-handoff	LIST	SKIP	W5	agent 在跑	in-review					1	1	2026-10-21 00:43	299			
+MBA	xinyue-site	心月 · PER-62 MBA 自托管 runner	/Users/jiawenwang/orca/workspaces/xinyue-site/per-62-mba-runner	LIST	SKIP	W5	agent 在跑	in-review		PER-62			1	49	2026-10-19 01:37	6			
+MBA	xinyue-site	心月 · PER-70 Colorfigures 整合（MBA 续做）	/Users/jiawenwang/orca/workspaces/xinyue-site/per-70-colorfigures-integrate-mba	LIST	SKIP	W7	有未提交改动 1 项	in-review		PER-70	1		0	36	2026-10-19 14:35	8			
+MBA	xinyue-site	心月 · PER-71 Colorfigures 框架与总入口	/Users/jiawenwang/orca/workspaces/xinyue-site/per-71-colorfigures-a	LIST	SKIP	W9	PR 还开着	in-review	#101 OPEN	PER-71	0	0	0	42	2026-10-19 08:32	309			
+MBA	xinyue-site	心月 · PER-72 Colorfigures 第1批8个	/Users/jiawenwang/orca/workspaces/xinyue-site/per-72-colorfigures-b	LIST	SKIP	W9	PR 还开着	in-review	#104 OPEN	PER-72	0	0	0	40	2026-10-19 10:00	288			
+MBA	xinyue-site	心月 · PER-76 反复超时测试排查	/Users/jiawenwang/orca/workspaces/xinyue-site/per-76-flaky-timeouts	LIST	SKIP	W10	Linear 还没关	todo		PER-76 unstarted	0	0	0	9	2026-10-20 17:13	281			
+MBA	xinyue-site	心月 · PER-93 verify skill	/Users/jiawenwang/orca/workspaces/xinyue-site/per-93-verify-skill	LIST	SKIP	W9	PR 还开着	in-review	#105 OPEN	PER-93	0	0	0	5	2026-10-20 21:28	300			

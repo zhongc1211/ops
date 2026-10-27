@@ -1,0 +1,2 @@
+2026-10-21 22:01:54 SGT MBA ops · 09 内存与 CPU 负载清理：中断：最近 100 次运行记录里没有心跳行（@@HB），最新一次运行在 10-21 21:37
+2026-10-21 22:01:54 SGT dry-run，将 POST 给 coding-assistant：{"task": "检查任务没在跑：MBA ops · 09 内存与 CPU 负载清理", "worktree": "mba", "status": "stuck", "kind": "heartbeat_stale", "machine": "mba", "source": "heartbeat-watch", "note": "最近 100 次运行记录里没有心跳行（@@HB），最新一次运行在 10-21 21:37。自动任务 id 62d18b16-74ca-4c7f-a670-04197e7652fe。去那台机器看 Orca 是否开着、自动任务是否启用、`orca automations runs --id 62d18b16-74ca-4c7f-a670-04197e7652fe` 最近几次的结果。", "bot": "coding-assistant"}

@@ -1,0 +1,22 @@
+1792601685 pass nosuchhost.invalid nosuchhost.invalid test -d '/var/lib/everos-ingest/vllm-omni/2026-10-19'
+1792601690 pass nosuchhost.invalid nosuchhost.invalid test -d '/var/lib/everos-ingest/vllm-omni/2026-10-19'
+1792601690 pass mba 100.64.0.7 test -d '/var/lib/everos-ingest/vllm-omni/2001-01-01'
+1792601691 pass local local test -d '/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/fix/vllm-omni/2099-01-20'
+1792601696 pass local local test -d '/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/fix/vllm-omni/2099-01-20'
+1792601697 pass imac imac test -d '/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/fix/vllm-omni/2099-01-20'
+1792601702 pass imac imac test -d '/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/fix/vllm-omni/2099-01-20'
+1792601710 pass nosuchhost.invalid nosuchhost.invalid cat /tmp/b2a-e2e-20261022-005434-pre-95502/state-mba/vllm-omni/2099-01-01.status
+1792601715 pass nosuchhost.invalid nosuchhost.invalid cat /tmp/b2a-e2e-20261022-005434-pre-95502/state-mba/vllm-omni/2099-01-01.status
+1792601719 pass mba 100.64.0.7 cat /tmp/b2a-e2e-20261022-005434-pre-95502/state-mba/vllm-omni/2099-01-02.status
+1792601721 pass mba 100.64.0.7 cat /tmp/b2a-e2e-20261022-005434-pre-95502/state-mba/vllm-omni/2099-01-11.status
+1792601729 pass mba 100.64.0.7 cat /tmp/b2a-e2e-20261022-005434-pre-95502/state-mba/vllm-omni/2099-01-04.status
+1792601736 pass mba 100.64.0.7 cat /tmp/b2a-e2e-20261022-005434-pre-95502/state-mba/vllm-omni/2099-01-05.status
+1792601759 pass nosuchhost.invalid nosuchhost.invalid mkdir -p /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store && tar -xzf - -C /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store
+1792601760 pass nosuchhost.invalid nosuchhost.invalid grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store/2099-01-13-vllm-omni.md
+1792601765 pass nosuchhost.invalid nosuchhost.invalid grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store/2099-01-13-vllm-omni.md
+1792601765 pass nosuchhost.invalid nosuchhost.invalid mkdir -p /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store && tar -xzf - -C /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store
+1792601772 pass nosuchhost.invalid nosuchhost.invalid grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store/2099-01-15-vllm-omni.md
+1792601778 pass nosuchhost.invalid nosuchhost.invalid grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store/2099-01-15-vllm-omni.md
+1792601778 pass mba 100.64.0.7 cat /tmp/b2a-e2e-20261022-005434-pre-95502/state-mba/vllm-omni/2099-01-15.status
+1792601780 pass nosuchhost.invalid nosuchhost.invalid grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store/2099-01-15-vllm-omni.md
+1792601785 pass nosuchhost.invalid nosuchhost.invalid grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/store/2099-01-15-vllm-omni.md

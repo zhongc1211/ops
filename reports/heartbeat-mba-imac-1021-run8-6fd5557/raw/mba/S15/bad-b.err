@@ -1,0 +1,2 @@
+lockf: /var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.l5tJtYtXAX/s15/bad/lock/mba-hb-watch.lock: already locked
+2026-10-22 02:36:42 SGT lock-held-alert：出错（退出码照旧 75）：IsADirectoryError: [Errno 21] Is a directory: '/var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.l5tJtYtXAX/s15/bad/lock/mba-hb-watch.lock.skips.json.90552.tmp' -> '/var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.l5tJtYtXAX/s15/bad/lock/mba-hb-watch.lock.skips.json'

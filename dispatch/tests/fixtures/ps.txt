@@ -1,0 +1,12 @@
+  PID  PPID    RSS  ELAPSED COMM
+    1     0   7984 12:17:16 /sbin/launchd
+  100     1   1968 01:00:00 /usr/bin/login
+  101   100    528 01:00:00 -/bin/zsh
+  102   101 200000 59:00 /Users/x/.local/bin/claude
+  103   102  50000 58:00 node
+  200     1   1968 02:00:00 /usr/bin/login
+  201   200 100000 01:59:00 /opt/homebrew/bin/codex
+  400     1  90000 10:00 /Users/x/.local/bin/claude
+  401   400  30000 09:00 node
+  500     1  20000 05:00 node
+  600     1   3000 05:00 /Applications/Orca.app/Contents/MacOS/Orca Helper (Renderer)

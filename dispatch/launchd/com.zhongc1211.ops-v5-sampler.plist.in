@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- PER-126 v5 前提 2：被动采样器，每 60 秒跑一次。@HOME@ 由 dispatch/install.sh 替换成本机 HOME。 -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.zhongc1211.ops-v5-sampler</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>@HOME@/.local/bin/ops-v5-sampler</string>
+    <string>--once</string>
+  </array>
+  <key>StartInterval</key>
+  <integer>60</integer>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>LowPriorityIO</key>
+  <true/>
+  <key>Nice</key>
+  <integer>10</integer>
+  <key>WorkingDirectory</key>
+  <string>@HOME@/.local/state/ops-v5</string>
+  <key>StandardOutPath</key>
+  <string>@HOME@/.local/state/ops-v5/ops-v5-sampler.launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>@HOME@/.local/state/ops-v5/ops-v5-sampler.launchd.log</string>
+</dict>
+</plist>

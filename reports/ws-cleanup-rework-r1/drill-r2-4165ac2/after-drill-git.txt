@@ -1,0 +1,104 @@
+worktree /Users/jiawenwang/ops-drill/ws-cleanup-drill
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/main
+
+worktree /Users/jiawenwang/ops-drill/wt-r2/d04-unpushed
+HEAD 76bba9c9b9fa75b67c5f743586d75acd16f64832
+branch refs/heads/drill-r2/d04-unpushed
+
+worktree /Users/jiawenwang/ops-drill/wt-r2/d05-dirty
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/drill-r2/d05-dirty
+
+worktree /Users/jiawenwang/ops-drill/wt-r2/d06-gone-local
+HEAD 8d2b96acace5cd6332bd6b82e35532006af718ea
+detached
+prunable gitdir file points to non-existent location
+
+worktree /Users/jiawenwang/ops-drill/wt-r2/d08-inreview
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/drill-r2/d08-inreview
+
+worktree /Users/jiawenwang/ops-drill/wt-r2/d09-late-commit
+HEAD 29b01e7649da658521578058b53a3510ac350352
+branch refs/heads/drill-r2/d09-late-commit
+
+worktree /Users/jiawenwang/ops-drill/wt-r2/d10-late-dirty
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/drill-r2/d10-late-dirty
+
+worktree /Users/jiawenwang/ops-drill/wt-r2/d11-locked
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/drill-r2/d11-locked
+locked ws-cleanup drill E2
+
+worktree /Users/jiawenwang/ops-drill/wt-r2/d13-noperm
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/drill-r2/d13-noperm
+
+worktree /Users/jiawenwang/ops-drill/wt-r2/d15-nested
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/drill-r2/d15-nested
+
+worktree /Users/jiawenwang/ops-drill/wt-r2/d16-linear-missing
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/drill-r2/d16-linear-missing
+
+worktree /Users/jiawenwang/ops-drill/wt-r2/d17-branch-only
+HEAD fe4b18fc29c2101d0970c5ad81cd710e0c88abed
+branch refs/heads/drill-r2/d17-branch-only
+
+worktree /Users/jiawenwang/ops-drill/wt/d04-unpushed
+HEAD 1137532b6366c6c6a5236c071aebf416b8a0a2d7
+branch refs/heads/drill/d04-unpushed
+
+worktree /Users/jiawenwang/ops-drill/wt/d05-dirty
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/drill/d05-dirty
+
+worktree /Users/jiawenwang/ops-drill/wt/d06-gone-local
+HEAD a34d3a61fdb59d4e2cfc1fc370e302902156b9ea
+detached
+prunable gitdir file points to non-existent location
+
+worktree /Users/jiawenwang/ops-drill/wt/d08-inreview
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/drill/d08-inreview
+
+worktree /Users/jiawenwang/ops-drill/wt/d09-late-commit
+HEAD e72848815faa76235a97f164eeaa91d26c193fb6
+branch refs/heads/drill/d09-late-commit
+
+worktree /Users/jiawenwang/ops-drill/wt/d10-late-dirty
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/drill/d10-late-dirty
+
+worktree /Users/jiawenwang/ops-drill/wt/d11-locked
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/drill/d11-locked
+locked ws-cleanup drill E2
+
+worktree /Users/jiawenwang/ops-drill/wt/d12-sha
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/drill/d12-sha
+
+worktree /Users/jiawenwang/ops-drill/wt/d13-noperm
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/drill/d13-noperm
+
+worktree /Users/jiawenwang/ops-drill/wt/d15-nested
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/drill/d15-nested
+
+worktree /Users/jiawenwang/ops-drill/wt/d16-linear-missing
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/drill/d16-linear-missing
+
+worktree /Users/jiawenwang/ops-drill/wt/d17-branch-only
+HEAD eaa4af23a820e378e8e0084a31f6bcca2560648e
+branch refs/heads/drill/d17-branch-only
+
+worktree /Users/jiawenwang/orca/workspaces/ws-cleanup-drill/d01-clean
+HEAD 078c8a2ef09e77e79b95247224e77df408af8a3c
+branch refs/heads/zack/d01-clean
+

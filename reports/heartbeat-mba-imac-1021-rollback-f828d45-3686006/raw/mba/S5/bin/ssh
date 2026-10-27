@@ -1,0 +1,4 @@
+#!/bin/sh
+for a in "$@"; do printf '[%s]' "$a"; done >>"$FAKE_SSH_LOG"
+printf '\n' >>"$FAKE_SSH_LOG"
+echo '{"ok": true, "result": {"runs": []}}'

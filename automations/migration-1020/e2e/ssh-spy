@@ -1,0 +1,23 @@
+#!/bin/bash
+# ssh-spy: the drill's ssh (B2a, PER-146). run-e2e.sh puts it first in PATH as `ssh` on the iMac and the MBA, so every ssh
+# that night-review-gate.sh and sync-manifests-from-box.sh make goes through it (FAILURE-MODES.md G4: no other ssh earlier in
+# the gate's PATH). It refuses box, by name or by the address `ssh -G box` gives ($SSH_SPY_BOX_ADDR), with exit 255 (what ssh
+# returns for an unreachable host) and passes everything else to /usr/bin/ssh unchanged.
+# Log ($SSH_SPY_LOG), one line per call: <epoch> pass|REFUSED <destination> <address> <remote command>.
+set -u
+a=("$@"); i=0; dest=""
+while [ $i -lt ${#a[@]} ]; do
+  case "${a[$i]}" in
+    -[BbcDEeFIiJLlmOopQRSWw]) i=$((i+2));;                      # options that take a value
+    -*) i=$((i+1));;
+    *) dest=${a[$i]}; break;;
+  esac
+done
+cmd="${a[*]:$((i+1))}"
+addr=$(/usr/bin/ssh -G "$dest" 2>/dev/null </dev/null | awk '$1 == "hostname" {print $2; exit}')
+if [ "${dest#*@}" = box ] || [ "$addr" = box ] || { [ -n "${SSH_SPY_BOX_ADDR:-}" ] && [ "$addr" = "$SSH_SPY_BOX_ADDR" ]; }; then
+  echo "$(date +%s) REFUSED $dest $addr $cmd" >> "${SSH_SPY_LOG:-/dev/null}"
+  echo "ssh-spy: refused $dest ($addr): the drill never connects to box" >&2; exit 255
+fi
+echo "$(date +%s) pass $dest $addr $cmd" >> "${SSH_SPY_LOG:-/dev/null}"
+exec /usr/bin/ssh "$@"

@@ -1,0 +1,19 @@
+2026-10-21 01:27:25 SGT 开始（dry-run）（orca=orca，等输入/无输出阈值 30 分钟）
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-134-dryrun-fix
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-94-pstack-monitor
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-gap7-rerun
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-box-decommission-inventory-1021
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-box-disk-1020
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/auto-run-1-20261013T1530
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/auto-run-2-20261013T1725
+2026-10-21 01:27:25 SGT 查 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/per-115-free-games
+2026-10-21 01:27:25 SGT agent_idle | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c | orca-wake 补叫醒（pid 65882 send；派活 bot：e2e-down，dry-run，不发）
+2026-10-21 01:27:25 SGT iMac：in-progress 任务工作区和主目录 agent 9 个，新嫌疑 0 个，断了的 0 个
+2026-10-21 01:27:25 SGT iMac：没包 notify-run 的 agent 新报 0 条
+2026-10-21 01:27:25 SGT 脚本出错：Traceback (most recent call last):
+  File "<stdin>", line 2199, in <module>
+  File "<stdin>", line 1866, in main
+  File "<stdin>", line 2086, in hist_phase
+KeyError: 'phases'
+

@@ -1,0 +1,1 @@
+2026-10-22 10:23:45 SGT lock-held-alert：锁被占着，这一轮没起 new.sh；已连续跳过 1 轮（从 10-22 10:23:45 起 0.0 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-drill.d4RR62pZfT/s15/rf/lock/5c2d0575.lock）；10-22 10:23:26 报过锁被占着，10-22 10:23:44 拿到过锁、「已恢复」没发出去，补发也没发出去（POST heartbeat_recovered → ops-system → 500），下一次拿到锁再发；到 45 分钟才报

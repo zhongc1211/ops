@@ -1,0 +1,13 @@
+drwxr-xr-x ~/ops-drill/archive-r2
+drwxr-xr-x ~/ops-drill/archive-r2/2026-10-21
+drwxr-xr-x ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill
+drwx------ ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d03-backup
+drwx------ ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d11-locked
+drwx------ ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d12-sha
+drwx------ ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d12-sha.failed-044306
+drwx------ ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d12-sha.failed-044306/.orca-task
+drwx------ ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d12-sha/.orca-task
+drwx------ ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d13-noperm.failed-044307
+drwx------ ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d13-noperm.failed-044307/secret-notes
+drwx------ ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d13-noperm.failed-044318
+drwx------ ~/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d13-noperm.failed-044318/secret-notes

@@ -1,0 +1,6 @@
+path	verdict	file	bytes
+/Users/jiawenwang/ops-drill/wt/d03-backup	BACKUP_RM	.dev.vars	24
+/Users/jiawenwang/ops-drill/wt/d03-backup	BACKUP_RM	notes.local	29
+/Users/jiawenwang/ops-drill/wt/d11-locked	BACKUP_RM	.dev.vars	24
+/Users/jiawenwang/ops-drill/wt/d12-sha	BACKUP_RM	.orca-task/log.local	34328576
+/Users/jiawenwang/ops-drill/wt/d13-noperm	BACKUP_RM	secret-notes/locked.txt	2

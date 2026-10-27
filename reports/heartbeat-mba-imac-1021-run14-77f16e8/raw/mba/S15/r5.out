@@ -1,0 +1,2 @@
+2026-10-22 10:27:32 SGT iMac ops · 01 卡住工作检查：正常（最新心跳 10-22 10:25，1.8 分钟前，rc 1，上次扫描 15 分钟前）
+2026-10-22 10:27:32 SGT lock-held-alert：锁拿到了，之前连续跳过 4 轮（从 10-22 10:26:59 起 0.6 分钟，锁文件 /var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.SboDn29124/s15/main/lock/mba-hb-watch.lock）；这一轮 heartbeat-watch.sh 退出 1；10-22 10:27:17 报过的锁被占着，已报恢复：POST heartbeat_recovered → ops-system → 200

@@ -1,0 +1,1 @@
+2026-10-22 02:55:45 SGT lock-held-alert：锁被占着，这一轮没起 new.sh；已连续跳过 4 轮（从 10-22 02:55:21 起 0.4 分钟，锁文件 /var/folders/rz/c67l5p1d6rg2ldhm5459tv180000gn/T/hb-drill.vxH0uMZzZR/s15/main/lock/5c2d0575.lock）；10-22 02:55:39 已报过，不重复报

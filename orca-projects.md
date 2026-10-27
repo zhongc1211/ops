@@ -40,7 +40,8 @@
 | vllm-omni 开发 | vllm · PER-40 调度开销分析（b8e788b7::~/orca/workspaces/repository/vllm-PER-40-调度开销分析；base #8746 head 48f7dac47；in-progress，Claude Code Opus max 在 term_a9e6a444；2026-10-12 19:4x 建） | vllm-omni | PER-40（in-progress） |
 | vllm-omni 开发 | vllm · PER-22 C2-1 性能优化（per-22-direct-register） | vllm-omni | PER-22（in-progress） |
 | vllm-omni 开发 | 已标 completed（未删）：PER-14 trim（stack-trim）、PER-1/PER-2 rebased ×2、PER-2 H3/C1 原开发目录（h3-c1-lab/worktree） | vllm-omni | PER-14 / 1 / 2 |
-| 定时任务 | ops 主目录（显示名 main） | ops | — |
+| ops-system | ops 主目录（显示名 main）和 ops 项目下所有工作区（iMac e9b33f9c / box 5aaefe84 / MBA；原写「定时任务」→ 映射到不存在的 ops.env 落到 coding-assistant，2026-10-20 改归 ops 系统） | ops | — |
+| coding-assistant | ops · PER-67 F 组（box，Coding助手 派，Coding助手 续做；按 Linear 编号仍报给它） | ops | PER-67 |
 
 仍在的已归档工作区：H3/C1·Git 数据库（vllm-omni 项目的 bare repo，不能删）、vllm·主目录（Orca 拒绝删除受保护路径）。
 不属于任何 bot：adrunner「ui 校正」、rf / worker / mingsheng 主目录。

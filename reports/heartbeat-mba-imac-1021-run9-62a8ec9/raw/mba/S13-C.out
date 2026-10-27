@@ -1,0 +1,3 @@
+2026-10-22 02:47:56 SGT iMac ops · 01 卡住工作检查：正常（最新心跳 10-22 02:47，0.5 分钟前，rc 1，上次扫描 1 分钟前）
+@@HB {"ts": 1792608476, "mode": "heartbeat-watch", "rc": 0, "last_scan": 1792608476}
+2026-10-22 02:47:56 SGT lock-held-alert：锁拿到了，之前连续跳过 1 轮（从 10-22 02:47:20 起 0.6 分钟，锁文件 /var/folders/6j/tz0s2v611hj_c04dtspxg8vw0000gn/T/hb-drill.DjmlQKLEMO/s13/lock/mba-hb-watch.lock）；这一轮 heartbeat-watch.sh 退出 1

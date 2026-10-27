@@ -1,0 +1,11 @@
+mode=pre
+commit=5820dde3f5670f92773567c5df84f7c4daefb4e0
+base=f828d452345f16898d6c9d133984e170d98d9f83
+tree=/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/pre/tree
+uncommitted=0 (files in the checkout that differ from the commit)
+date=2026-10-22 00:54:33 +0800
+imac: iMac bash=3.2.57(1)-release macOS=26.6.2
+mba: mba bash=3.2.57(1)-release macOS=26.6.2
+notify-run sha256: imac=4ce9845ef12349d4 mba=4ce9845ef12349d4
+box: not contacted (ssh-spy-imac.log, ssh-spy-mba.log)
+rt=mba:/tmp/b2a-e2e-20261022-005434-pre-95502 box-address imac=100.64.0.6 mba=100.64.0.6

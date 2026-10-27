@@ -1,0 +1,2 @@
+{"host": "box", "kind": "tar", "path": "~/xinyue-deploy/nightly-review", "rc": 0, "cmd": "mkdir -p ~/xinyue-deploy/nightly-review && tar -xzf - -C ~/xinyue-deploy/nightly-review"}
+{"host": "box", "kind": "grep", "path": "~/xinyue-deploy/nightly-review/2099-01-30-vllm-omni.md", "rc": 0, "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' ~/xinyue-deploy/nightly-review/2099-01-30-vllm-omni.md"}

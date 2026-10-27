@@ -1,0 +1,17 @@
+{
+ "command": "orca automations show --id 94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80 --environment grok-bot --json",
+ "tries": 1,
+ "error": null,
+ "automation": {
+  "id": "94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80",
+  "name": "ops · 29 卡住检查心跳（盯 iMac ops · 01）",
+  "enabled": true,
+  "rrule": "*/5 * * * *",
+  "timezone": "Asia/Singapore",
+  "missedRunGraceMinutes": 720,
+  "precheck": {
+   "command": "$HOME/.orca-state/bin/heartbeat-watch.sh --precheck --target \"iMac ops · 01 卡住工作检查|iMac|439cd438-cffe-44dd-bd2b-23b07bfa3d61|20\"",
+   "timeoutSeconds": 240
+  }
+ }
+}

@@ -1,0 +1,30 @@
+{
+  "id": "09b38fca-6136-4e73-b913-4f263a2699fe",
+  "ok": true,
+  "result": {
+    "repo": {
+      "id": "13a60bf6-f713-4397-ba4b-0729dafa93f3",
+      "path": "/Users/jiawenwang/ops-drill/ws-cleanup-drill",
+      "displayName": "ws-cleanup-drill",
+      "badgeColor": "#737373",
+      "addedAt": 1792553861607,
+      "kind": "git",
+      "externalWorktreeVisibilityLegacy": false,
+      "upstream": null,
+      "gitUsername": "zack",
+      "hookSettings": {
+        "mode": "auto",
+        "setupRunPolicy": "run-by-default",
+        "setupAgentStartupPolicy": "start-immediately",
+        "scripts": {
+          "setup": "",
+          "archive": ""
+        }
+      },
+      "externalWorktreeVisibility": "hide"
+    }
+  },
+  "_meta": {
+    "runtimeId": "cb0f5509-687d-409f-bf36-d841efc78dcf"
+  }
+}

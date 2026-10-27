@@ -1,0 +1,1568 @@
+{
+ "primary-store-done": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-store-done",
+  "steps": [
+   {
+    "role": "primary",
+    "args": [],
+    "now": 1792516860,
+    "rc": 1,
+    "stdout": "night-review-gate primary vllm-omni 2099-02-01: state=skipped reason=already_done\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=skipped reason=already_done ts=1792516860"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {
+   "nas": {
+    "2099-02-01-vllm-omni.md": "5a7d318578be"
+   }
+  },
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-store-done/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 0,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-store-done/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "primary-started-1h-ago": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-started-1h-ago",
+  "steps": [
+   {
+    "role": "primary",
+    "args": [],
+    "now": 1792516860,
+    "rc": 1,
+    "stdout": "night-review-gate primary vllm-omni 2099-02-01: already started here, skip\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=started machine=mba reason=ok ts=1792513260"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-started-1h-ago/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-started-1h-ago/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "primary-checking-10min-ago": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-checking-10min-ago",
+  "steps": [
+   {
+    "role": "primary",
+    "args": [],
+    "now": 1792516860,
+    "rc": 1,
+    "stdout": "night-review-gate primary vllm-omni 2099-02-01: already checking here, skip\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=checking machine=mba ts=1792516260"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-checking-10min-ago/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-checking-10min-ago/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "primary-outside-window": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-outside-window",
+  "steps": [
+   {
+    "role": "primary",
+    "args": [],
+    "now": 1792515600,
+    "rc": 1,
+    "stdout": "night-review-gate primary vllm-omni 2099-02-01: outside MBA time .. +25 min, skip\n",
+    "stderr": ""
+   }
+  ],
+  "status": [],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-outside-window/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-outside-window/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "primary-on-battery": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-on-battery",
+  "steps": [
+   {
+    "role": "primary",
+    "args": [],
+    "now": 1792516860,
+    "rc": 1,
+    "stdout": "night-review-gate primary vllm-omni 2099-02-01: state=checking machine=mba\nnight-review-gate primary vllm-omni 2099-02-01: state=missed machine=mba reason=asleep detail=on_battery\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=checking machine=mba ts=1792516860",
+   "state=missed machine=mba reason=asleep detail=on_battery ts=1792516860"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-on-battery/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-on-battery/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "primary-lid-closed": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-lid-closed",
+  "steps": [
+   {
+    "role": "primary",
+    "args": [],
+    "now": 1792516860,
+    "rc": 1,
+    "stdout": "night-review-gate primary vllm-omni 2099-02-01: state=checking machine=mba\nnight-review-gate primary vllm-omni 2099-02-01: state=missed machine=mba reason=asleep detail=lid_closed\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=checking machine=mba ts=1792516860",
+   "state=missed machine=mba reason=asleep detail=lid_closed ts=1792516860"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-lid-closed/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-lid-closed/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "primary-lid-closed-sleepdisabled": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-lid-closed-sleepdisabled",
+  "steps": [
+   {
+    "role": "primary",
+    "args": [],
+    "now": 1792516860,
+    "rc": 0,
+    "stdout": "night-review-gate primary vllm-omni 2099-02-01: state=checking machine=mba\nheavy-lock: acquired by night-review-vllm-omni\nnight-review-gate primary vllm-omni 2099-02-01: state=started machine=mba reason=ok gh=no caffeinate=9403\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=checking machine=mba ts=1792516860",
+   "state=started machine=mba reason=ok gh=no caffeinate=9403 ts=1792516860"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": "night-review-vllm-omni",
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [
+   "vllm-omni 2099-02-01 mba"
+  ],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-lid-closed-sleepdisabled/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-lid-closed-sleepdisabled/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "primary-lock-busy": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-lock-busy",
+  "steps": [
+   {
+    "role": "primary",
+    "args": [],
+    "now": 1792516860,
+    "rc": 1,
+    "stdout": "night-review-gate primary vllm-omni 2099-02-01: state=checking machine=mba\nnight-review-gate primary vllm-omni 2099-02-01: state=missed machine=mba reason=lock_busy detail=vllm-upstream\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=checking machine=mba ts=1792516860",
+   "state=missed machine=mba reason=lock_busy detail=vllm-upstream ts=1792516860"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": "vllm-upstream",
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [
+   "vllm-omni 2099-02-01 mba"
+  ],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-lock-busy/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-lock-busy/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "primary-own-lock": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-own-lock",
+  "steps": [
+   {
+    "role": "primary",
+    "args": [],
+    "now": 1792516860,
+    "rc": 1,
+    "stdout": "night-review-gate primary vllm-omni 2099-02-01: state=checking machine=mba\nnight-review-gate primary vllm-omni 2099-02-01: our own lock (another trigger), skip\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=checking machine=mba ts=1792516860"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": "night-review-vllm-omni",
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [
+   "vllm-omni 2099-02-01 mba"
+  ],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-own-lock/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-own-lock/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "primary-normal-then-retry": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-normal-then-retry",
+  "steps": [
+   {
+    "role": "primary",
+    "args": [],
+    "now": 1792516860,
+    "rc": 0,
+    "stdout": "night-review-gate primary vllm-omni 2099-02-01: state=checking machine=mba\nheavy-lock: acquired by night-review-vllm-omni\nnight-review-gate primary vllm-omni 2099-02-01: state=started machine=mba reason=ok gh=no caffeinate=9641\n",
+    "stderr": ""
+   },
+   {
+    "role": "primary",
+    "args": [],
+    "now": 1792517460,
+    "rc": 1,
+    "stdout": "night-review-gate primary vllm-omni 2099-02-01: already started here, skip\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=checking machine=mba ts=1792516860",
+   "state=started machine=mba reason=ok gh=no caffeinate=9641 ts=1792516860"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": "night-review-vllm-omni",
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [
+   "vllm-omni 2099-02-01 mba"
+  ],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-normal-then-retry/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-normal-then-retry/srv/nightly-review/2099-02-01-vllm-omni.md"
+   },
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-normal-then-retry/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-normal-then-retry/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "watch-store-done": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-store-done",
+  "steps": [
+   {
+    "role": "watch",
+    "args": [],
+    "now": 1792518600,
+    "rc": 1,
+    "stdout": "night-review-gate watch vllm-omni 2099-02-01: state=seen_done\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=seen_done ts=1792518600"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {
+   "nas": {
+    "2099-02-01-vllm-omni.md": "5a7d318578be"
+   }
+  },
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-store-done/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 0,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-store-done/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "watch-mba-no-state": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-no-state",
+  "steps": [
+   {
+    "role": "watch",
+    "args": [],
+    "now": 1792518600,
+    "rc": 1,
+    "stdout": "night-review-gate watch vllm-omni 2099-02-01: state=takeover reason=asleep\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=takeover reason=asleep ts=1792518600"
+  ],
+  "takeover": "reason=asleep since=1792518600\n",
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-no-state/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-no-state/srv/nightly-review/2099-02-01-vllm-omni.md"
+   },
+   {
+    "host": "mba",
+    "kind": "cat",
+    "path": "~/.orca-state/night-review/vllm-omni/2099-02-01.status",
+    "rc": 1,
+    "cmd": "cat ~/.orca-state/night-review/vllm-omni/2099-02-01.status"
+   }
+  ]
+ },
+ "watch-mba-lock-busy": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-lock-busy",
+  "steps": [
+   {
+    "role": "watch",
+    "args": [],
+    "now": 1792518600,
+    "rc": 1,
+    "stdout": "night-review-gate watch vllm-omni 2099-02-01: state=takeover reason=lock_busy\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=takeover reason=lock_busy ts=1792518600"
+  ],
+  "takeover": "reason=lock_busy since=1792518600\n",
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-lock-busy/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-lock-busy/srv/nightly-review/2099-02-01-vllm-omni.md"
+   },
+   {
+    "host": "mba",
+    "kind": "cat",
+    "path": "~/.orca-state/night-review/vllm-omni/2099-02-01.status",
+    "rc": 0,
+    "cmd": "cat ~/.orca-state/night-review/vllm-omni/2099-02-01.status"
+   }
+  ]
+ },
+ "watch-mba-running": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-running",
+  "steps": [
+   {
+    "role": "watch",
+    "args": [],
+    "now": 1792518600,
+    "rc": 1,
+    "stdout": "night-review-gate watch vllm-omni 2099-02-01: state=seen_running\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=seen_running ts=1792518600"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-running/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-running/srv/nightly-review/2099-02-01-vllm-omni.md"
+   },
+   {
+    "host": "mba",
+    "kind": "cat",
+    "path": "~/.orca-state/night-review/vllm-omni/2099-02-01.status",
+    "rc": 0,
+    "cmd": "cat ~/.orca-state/night-review/vllm-omni/2099-02-01.status"
+   }
+  ]
+ },
+ "watch-mba-stalled": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-stalled",
+  "steps": [
+   {
+    "role": "watch",
+    "args": [],
+    "now": 1792522200,
+    "rc": 1,
+    "stdout": "night-review-gate watch vllm-omni 2099-02-01: state=takeover reason=stalled\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=takeover reason=stalled ts=1792522200"
+  ],
+  "takeover": "reason=stalled since=1792522200\n",
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-stalled/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-stalled/srv/nightly-review/2099-02-01-vllm-omni.md"
+   },
+   {
+    "host": "mba",
+    "kind": "cat",
+    "path": "~/.orca-state/night-review/vllm-omni/2099-02-01.status",
+    "rc": 0,
+    "cmd": "cat ~/.orca-state/night-review/vllm-omni/2099-02-01.status"
+   }
+  ]
+ },
+ "watch-mba-done-not-in-store": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-done-not-in-store",
+  "steps": [
+   {
+    "role": "watch",
+    "args": [],
+    "now": 1792518600,
+    "rc": 1,
+    "stdout": "night-review-gate watch vllm-omni 2099-02-01: state=takeover reason=rsync_failed\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=takeover reason=rsync_failed ts=1792518600"
+  ],
+  "takeover": "reason=rsync_failed since=1792518600\n",
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-done-not-in-store/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-done-not-in-store/srv/nightly-review/2099-02-01-vllm-omni.md"
+   },
+   {
+    "host": "mba",
+    "kind": "cat",
+    "path": "~/.orca-state/night-review/vllm-omni/2099-02-01.status",
+    "rc": 0,
+    "cmd": "cat ~/.orca-state/night-review/vllm-omni/2099-02-01.status"
+   },
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-done-not-in-store/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-done-not-in-store/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "backup-before-window": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-before-window",
+  "steps": [
+   {
+    "role": "backup",
+    "args": [],
+    "now": 1792518000,
+    "rc": 1,
+    "stdout": "",
+    "stderr": ""
+   }
+  ],
+  "status": [],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": []
+ },
+ "backup-after-window": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-after-window",
+  "steps": [
+   {
+    "role": "backup",
+    "args": [],
+    "now": 1792531800,
+    "rc": 1,
+    "stdout": "",
+    "stderr": ""
+   }
+  ],
+  "status": [],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": []
+ },
+ "backup-store-done": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-store-done",
+  "steps": [
+   {
+    "role": "backup",
+    "args": [],
+    "now": 1792519200,
+    "rc": 1,
+    "stdout": "",
+    "stderr": ""
+   }
+  ],
+  "status": [],
+  "takeover": "reason=offline since=1792518600\n",
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {
+   "nas": {
+    "2099-02-01-vllm-omni.md": "5a7d318578be"
+   }
+  },
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-store-done/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 0,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-store-done/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "backup-mba-running": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-mba-running",
+  "steps": [
+   {
+    "role": "backup",
+    "args": [],
+    "now": 1792519200,
+    "rc": 1,
+    "stdout": "",
+    "stderr": ""
+   }
+  ],
+  "status": [],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-mba-running/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-mba-running/srv/nightly-review/2099-02-01-vllm-omni.md"
+   },
+   {
+    "host": "mba",
+    "kind": "cat",
+    "path": "~/.orca-state/night-review/vllm-omni/2099-02-01.status",
+    "rc": 0,
+    "cmd": "cat ~/.orca-state/night-review/vllm-omni/2099-02-01.status"
+   }
+  ]
+ },
+ "backup-already-started": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-already-started",
+  "steps": [
+   {
+    "role": "backup",
+    "args": [],
+    "now": 1792519200,
+    "rc": 1,
+    "stdout": "",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=started machine=imac reason=offline ts=1792518600"
+  ],
+  "takeover": "reason=offline since=1792518600\n",
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-already-started/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-already-started/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "backup-lock-busy-under-60min": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-lock-busy-under-60min",
+  "steps": [
+   {
+    "role": "backup",
+    "args": [],
+    "now": 1792519200,
+    "rc": 1,
+    "stdout": "",
+    "stderr": ""
+   }
+  ],
+  "status": [],
+  "takeover": "reason=offline since=1792518600\n",
+  "synced": true,
+  "lock": "linear-sync",
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [
+   "vllm-omni 2099-02-01 imac"
+  ],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-lock-busy-under-60min/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-lock-busy-under-60min/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "box-watch-store-done": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/box-watch-store-done",
+  "steps": [
+   {
+    "role": "box-watch",
+    "args": [],
+    "now": 1792525800,
+    "rc": 1,
+    "stdout": "",
+    "stderr": ""
+   }
+  ],
+  "status": [],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {
+   "2099-02-01-vllm-omni.md": "5a7d318578be"
+  },
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": []
+ },
+ "backup-synced-marker": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-synced-marker",
+  "steps": [
+   {
+    "role": "backup",
+    "args": [],
+    "now": 1792519200,
+    "rc": 0,
+    "stdout": "heavy-lock: acquired by night-review-vllm-omni\nnight-review-gate backup vllm-omni 2099-02-01: state=started machine=imac reason=asleep\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=started machine=imac reason=asleep ts=1792519200"
+  ],
+  "takeover": "reason=asleep since=1792518600\n",
+  "synced": true,
+  "lock": "night-review-vllm-omni",
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-synced-marker/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-synced-marker/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "box-watch-already-escalated": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/box-watch-already-escalated",
+  "steps": [
+   {
+    "role": "box-watch",
+    "args": [],
+    "now": 1792525800,
+    "rc": 1,
+    "stdout": "",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "escalated=box reason=imac_missed ts=1792525200"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": []
+ },
+ "box-watch-imac-running": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/box-watch-imac-running",
+  "steps": [
+   {
+    "role": "box-watch",
+    "args": [],
+    "now": 1792525800,
+    "rc": 1,
+    "stdout": "night-review-gate box-watch vllm-omni 2099-02-01: state=seen_imac_running\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=seen_imac_running ts=1792525800"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "imac",
+    "kind": "cat",
+    "path": "~/.orca-state/night-review/vllm-omni/2099-02-01.status",
+    "rc": 0,
+    "cmd": "cat ~/.orca-state/night-review/vllm-omni/2099-02-01.status"
+   }
+  ]
+ },
+ "box-watch-nobody": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/box-watch-nobody",
+  "steps": [
+   {
+    "role": "box-watch",
+    "args": [],
+    "now": 1792525800,
+    "rc": 1,
+    "stdout": "200 <- ops-system stuck machine=imac reason=imac_missed\nnight-review-gate box-watch vllm-omni 2099-02-01: escalated=imac reason=imac_missed\n",
+    "stderr": ""
+   },
+   {
+    "role": "box-watch",
+    "args": [],
+    "now": 1792526400,
+    "rc": 1,
+    "stdout": "",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "escalated=imac reason=imac_missed ts=1792525800"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "imac",
+    "kind": "cat",
+    "path": "~/.orca-state/night-review/vllm-omni/2099-02-01.status",
+    "rc": 1,
+    "cmd": "cat ~/.orca-state/night-review/vllm-omni/2099-02-01.status"
+   }
+  ]
+ },
+ "backup-lock-busy-over-60min": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-lock-busy-over-60min",
+  "steps": [
+   {
+    "role": "backup",
+    "args": [],
+    "now": 1792519200,
+    "rc": 1,
+    "stdout": "200 <- ops-system stuck machine=imac reason=lock_busy\nnight-review-gate backup vllm-omni 2099-02-01: escalated=imac reason=lock_busy\n",
+    "stderr": ""
+   },
+   {
+    "role": "backup",
+    "args": [],
+    "now": 1792519800,
+    "rc": 1,
+    "stdout": "",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "escalated=imac reason=lock_busy ts=1792519200"
+  ],
+  "takeover": "reason=offline since=1792515500\n",
+  "synced": true,
+  "lock": "linear-sync",
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [
+   "vllm-omni 2099-02-01 imac"
+  ],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-lock-busy-over-60min/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-lock-busy-over-60min/srv/nightly-review/2099-02-01-vllm-omni.md"
+   },
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-lock-busy-over-60min/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-lock-busy-over-60min/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "finish-no-done-line": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/finish-no-done-line",
+  "steps": [
+   {
+    "role": "finish",
+    "args": [
+     "2099-02-01",
+     "mba",
+     "ok"
+    ],
+    "now": 1792519200,
+    "rc": 3,
+    "stdout": "night-review-gate finish vllm-omni 2099-02-01: state=failed machine=mba reason=ok detail=no_done_line\nheavy-lock: released by night-review-vllm-omni\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=failed machine=mba reason=ok detail=no_done_line ts=1792519200"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": []
+ },
+ "finish-store-down": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/finish-store-down",
+  "steps": [
+   {
+    "role": "finish",
+    "args": [
+     "2099-02-01",
+     "mba",
+     "ok"
+    ],
+    "now": 1792519200,
+    "rc": 4,
+    "stdout": "night-review-gate finish vllm-omni 2099-02-01: state=failed machine=mba reason=ok detail=rsync_failed\nheavy-lock: released by night-review-vllm-omni\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=failed machine=mba reason=ok detail=rsync_failed ts=1792519200"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "mkdir -p /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/finish-store-down/srv/nightly-review && tar -xzf - -C /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/finish-store-down/srv/nightly-review"
+   }
+  ]
+ },
+ "finish-ok": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/finish-ok",
+  "steps": [
+   {
+    "role": "finish",
+    "args": [
+     "2099-02-01",
+     "imac",
+     "offline"
+    ],
+    "now": 1792519200,
+    "rc": 0,
+    "stdout": "night-review-gate finish vllm-omni 2099-02-01: state=done machine=imac reason=offline files=2\nheavy-lock: released by night-review-vllm-omni\nmachine=imac reason=offline: vllm-omni 2099-02-01 done, 2 file(s) copied to nas:/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/finish-ok/srv/nightly-review\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=done machine=imac reason=offline files=2 ts=1792519200"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {
+   "nas": {
+    "2099-02-01-vllm-omni-ledger.jsonl": "ca3d163bab05",
+    "2099-02-01-vllm-omni.md": "5a7d318578be"
+   }
+  },
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "tar",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/finish-ok/srv/nightly-review",
+    "rc": 0,
+    "cmd": "mkdir -p /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/finish-ok/srv/nightly-review && tar -xzf - -C /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/finish-ok/srv/nightly-review"
+   },
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/finish-ok/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 0,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/finish-ok/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "reason-no-takeover": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/reason-no-takeover",
+  "steps": [
+   {
+    "role": "reason",
+    "args": [
+     "2099-02-01"
+    ],
+    "now": 1792519200,
+    "rc": 0,
+    "stdout": "ok\n",
+    "stderr": ""
+   }
+  ],
+  "status": [],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": []
+ },
+ "reason-takeover": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/reason-takeover",
+  "steps": [
+   {
+    "role": "reason",
+    "args": [
+     "2099-02-01"
+    ],
+    "now": 1792519200,
+    "rc": 0,
+    "stdout": "lock_busy\n",
+    "stderr": ""
+   }
+  ],
+  "status": [],
+  "takeover": "reason=lock_busy since=1792518600\n",
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": []
+ },
+ "keepawake": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/keepawake",
+  "steps": [
+   {
+    "role": "keepawake",
+    "args": [],
+    "now": 1792519200,
+    "rc": 1,
+    "stdout": "keepawake: caffeinate pid 10709 for 1s\n",
+    "stderr": ""
+   }
+  ],
+  "status": [],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": []
+ },
+ "xinyue-primary-normal": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-primary-normal",
+  "steps": [
+   {
+    "role": "primary",
+    "args": [],
+    "now": 1792510860,
+    "rc": 0,
+    "stdout": "night-review-gate primary xinyue 2099-02-01: state=checking machine=mba\nheavy-lock: acquired by night-review-xinyue\nnight-review-gate primary xinyue 2099-02-01: state=started machine=mba reason=ok gh=no caffeinate=10768\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=checking machine=mba ts=1792510860",
+   "state=started machine=mba reason=ok gh=no caffeinate=10768 ts=1792510860"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": "night-review-xinyue",
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [
+   "xinyue 2099-02-01 mba"
+  ],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-primary-normal/srv/nightly-review/2099-02-01-xinyue.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-primary-normal/srv/nightly-review/2099-02-01-xinyue.md"
+   }
+  ]
+ },
+ "primary-store-down": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-store-down",
+  "steps": [
+   {
+    "role": "primary",
+    "args": [],
+    "now": 1792516860,
+    "rc": 0,
+    "stdout": "night-review-gate primary vllm-omni 2099-02-01: state=checking machine=mba\nheavy-lock: acquired by night-review-vllm-omni\nnight-review-gate primary vllm-omni 2099-02-01: state=started machine=mba reason=ok gh=no caffeinate=10819\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=checking machine=mba ts=1792516860",
+   "state=started machine=mba reason=ok gh=no caffeinate=10819 ts=1792516860"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": "night-review-vllm-omni",
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [
+   "vllm-omni 2099-02-01 mba"
+  ],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-store-down/srv/nightly-review/2099-02-01-vllm-omni.md"
+   },
+   {
+    "host": "nas",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/primary-store-down/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "xinyue-finish-ok": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-finish-ok",
+  "steps": [
+   {
+    "role": "finish",
+    "args": [
+     "2099-02-01",
+     "mba",
+     "ok"
+    ],
+    "now": 1792513200,
+    "rc": 0,
+    "stdout": "night-review-gate finish xinyue 2099-02-01: state=done machine=mba reason=ok files=3\nheavy-lock: released by night-review-xinyue\nmachine=mba reason=ok: xinyue 2099-02-01 done, 3 file(s) copied to nas:/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-finish-ok/srv/nightly-review\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=done machine=mba reason=ok files=3 ts=1792513200"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {
+   "nas": {
+    "2099-02-01-addflush.json": "37517e5f3dc6",
+    "2099-02-01-xinyue-ledger.jsonl": "ca3d163bab05",
+    "2099-02-01-xinyue.md": "5a7d318578be"
+   }
+  },
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "tar",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-finish-ok/srv/nightly-review",
+    "rc": 0,
+    "cmd": "mkdir -p /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-finish-ok/srv/nightly-review && tar -xzf - -C /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-finish-ok/srv/nightly-review"
+   },
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-finish-ok/srv/nightly-review/2099-02-01-xinyue.md",
+    "rc": 0,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-finish-ok/srv/nightly-review/2099-02-01-xinyue.md"
+   }
+  ]
+ },
+ "xinyue-box-watch-nobody": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-box-watch-nobody",
+  "steps": [
+   {
+    "role": "box-watch",
+    "args": [],
+    "now": 1792519800,
+    "rc": 1,
+    "stdout": "200 <- ops-system stuck machine=imac reason=imac_missed\nnight-review-gate box-watch xinyue 2099-02-01: escalated=imac reason=imac_missed\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "escalated=imac reason=imac_missed ts=1792519800"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "imac",
+    "kind": "cat",
+    "path": "~/.orca-state/night-review/xinyue/2099-02-01.status",
+    "rc": 1,
+    "cmd": "cat ~/.orca-state/night-review/xinyue/2099-02-01.status"
+   }
+  ]
+ },
+ "watch-mba-offline": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-offline",
+  "steps": [
+   {
+    "role": "watch",
+    "args": [],
+    "now": 1792518600,
+    "rc": 1,
+    "stdout": "night-review-gate watch vllm-omni 2099-02-01: state=takeover reason=offline\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=takeover reason=offline ts=1792518600"
+  ],
+  "takeover": "reason=offline since=1792518600\n",
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-offline/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-mba-offline/srv/nightly-review/2099-02-01-vllm-omni.md"
+   },
+   {
+    "host": "mba",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "cat ~/.orca-state/night-review/vllm-omni/2099-02-01.status"
+   },
+   {
+    "host": "mba",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "cat ~/.orca-state/night-review/vllm-omni/2099-02-01.status"
+   }
+  ]
+ },
+ "backup-mba-offline-takes-over": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-mba-offline-takes-over",
+  "steps": [
+   {
+    "role": "backup",
+    "args": [],
+    "now": 1792519200,
+    "rc": 0,
+    "stdout": "heavy-lock: acquired by night-review-vllm-omni\nnight-review-gate backup vllm-omni 2099-02-01: state=started machine=imac reason=offline\n",
+    "stderr": ""
+   },
+   {
+    "role": "backup",
+    "args": [],
+    "now": 1792519800,
+    "rc": 1,
+    "stdout": "",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=started machine=imac reason=offline ts=1792519200"
+  ],
+  "takeover": "reason=offline since=1792519200\n",
+  "synced": true,
+  "lock": "night-review-vllm-omni",
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [
+   "vllm-omni 2099-02-01 imac"
+  ],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-mba-offline-takes-over/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-mba-offline-takes-over/srv/nightly-review/2099-02-01-vllm-omni.md"
+   },
+   {
+    "host": "mba",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "cat ~/.orca-state/night-review/vllm-omni/2099-02-01.status"
+   },
+   {
+    "host": "mba",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "cat ~/.orca-state/night-review/vllm-omni/2099-02-01.status"
+   },
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-mba-offline-takes-over/srv/nightly-review/2099-02-01-vllm-omni.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/backup-mba-offline-takes-over/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ },
+ "box-watch-imac-down": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/box-watch-imac-down",
+  "steps": [
+   {
+    "role": "box-watch",
+    "args": [],
+    "now": 1792525800,
+    "rc": 1,
+    "stdout": "200 <- ops-system stuck machine=imac reason=imac_missed\nnight-review-gate box-watch vllm-omni 2099-02-01: escalated=imac reason=imac_missed\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "escalated=imac reason=imac_missed ts=1792525800"
+  ],
+  "takeover": null,
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "imac",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "cat ~/.orca-state/night-review/vllm-omni/2099-02-01.status"
+   },
+   {
+    "host": "imac",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "cat ~/.orca-state/night-review/vllm-omni/2099-02-01.status"
+   }
+  ]
+ },
+ "xinyue-watch-mba-offline": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-watch-mba-offline",
+  "steps": [
+   {
+    "role": "watch",
+    "args": [],
+    "now": 1792512600,
+    "rc": 1,
+    "stdout": "night-review-gate watch xinyue 2099-02-01: state=takeover reason=offline\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=takeover reason=offline ts=1792512600"
+  ],
+  "takeover": "reason=offline since=1792512600\n",
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-watch-mba-offline/srv/nightly-review/2099-02-01-xinyue.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-watch-mba-offline/srv/nightly-review/2099-02-01-xinyue.md"
+   },
+   {
+    "host": "mba",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "cat ~/.orca-state/night-review/xinyue/2099-02-01.status"
+   },
+   {
+    "host": "mba",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "cat ~/.orca-state/night-review/xinyue/2099-02-01.status"
+   }
+  ]
+ },
+ "xinyue-backup-mba-offline": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-backup-mba-offline",
+  "steps": [
+   {
+    "role": "backup",
+    "args": [],
+    "now": 1792513200,
+    "rc": 0,
+    "stdout": "heavy-lock: acquired by night-review-xinyue\nnight-review-gate backup xinyue 2099-02-01: state=started machine=imac reason=offline\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=started machine=imac reason=offline ts=1792513200"
+  ],
+  "takeover": "reason=offline since=1792513200\n",
+  "synced": true,
+  "lock": "night-review-xinyue",
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [
+   "xinyue 2099-02-01 imac"
+  ],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "grep",
+    "path": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-backup-mba-offline/srv/nightly-review/2099-02-01-xinyue.md",
+    "rc": 2,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/xinyue-backup-mba-offline/srv/nightly-review/2099-02-01-xinyue.md"
+   },
+   {
+    "host": "mba",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "cat ~/.orca-state/night-review/xinyue/2099-02-01.status"
+   },
+   {
+    "host": "mba",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "cat ~/.orca-state/night-review/xinyue/2099-02-01.status"
+   }
+  ]
+ },
+ "watch-store-down-mba-done": {
+  "sb": "/private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-store-down-mba-done",
+  "steps": [
+   {
+    "role": "watch",
+    "args": [],
+    "now": 1792518600,
+    "rc": 1,
+    "stdout": "night-review-gate watch vllm-omni 2099-02-01: state=takeover reason=rsync_failed\n",
+    "stderr": ""
+   }
+  ],
+  "status": [
+   "state=takeover reason=rsync_failed ts=1792518600"
+  ],
+  "takeover": "reason=rsync_failed since=1792518600\n",
+  "synced": false,
+  "lock": null,
+  "local_store": {},
+  "fake_stores": {},
+  "sync_calls": [],
+  "ssh": [
+   {
+    "host": "nas",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-store-down-mba-done/srv/nightly-review/2099-02-01-vllm-omni.md"
+   },
+   {
+    "host": "nas",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-store-down-mba-done/srv/nightly-review/2099-02-01-vllm-omni.md"
+   },
+   {
+    "host": "mba",
+    "kind": "cat",
+    "path": "~/.orca-state/night-review/vllm-omni/2099-02-01.status",
+    "rc": 0,
+    "cmd": "cat ~/.orca-state/night-review/vllm-omni/2099-02-01.status"
+   },
+   {
+    "host": "nas",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-store-down-mba-done/srv/nightly-review/2099-02-01-vllm-omni.md"
+   },
+   {
+    "host": "nas",
+    "kind": "down",
+    "path": "",
+    "rc": 255,
+    "cmd": "grep -Eq '^状态(：|:)[[:space:]]*完成' /private/tmp/claude-501/-Users-jiawenwang-orca-workspaces-ops-ops-migration-nobox-b2a-1021/ab93b969-c8ee-4fc6-8748-adf58cc346ca/scratchpad/e2e-20261022-005430/post/g1/G1b/sb/new/watch-store-down-mba-done/srv/nightly-review/2099-02-01-vllm-omni.md"
+   }
+  ]
+ }
+}

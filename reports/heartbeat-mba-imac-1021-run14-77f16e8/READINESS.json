@@ -1,0 +1,8 @@
+{
+  "observed_at": "2026-10-22T02:19:08Z",
+  "machine": "iMac",
+  "command": "orca automations show --id 94e4b0bc-0f9d-4cf2-a1fd-2282a888fe80 --environment grok-bot --json",
+  "attempt": 1,
+  "ok": true,
+  "probe_retries": 0
+}

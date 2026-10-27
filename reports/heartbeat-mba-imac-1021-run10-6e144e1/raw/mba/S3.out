@@ -1,0 +1,2 @@
+2026-10-22 02:56:53 SGT iMac ops · 01 卡住工作检查：中断：最新心跳在 10-22 02:26，已 30 分钟没有新的（阈值 20 分钟）：Orca 调度器停了或脚本没在跑
+2026-10-22 02:56:53 SGT dry-run，将 POST 给 coding-assistant：{"task": "检查任务没在跑：iMac ops · 01 卡住工作检查", "worktree": "本机", "status": "stuck", "kind": "heartbeat_stale", "machine": "本机", "source": "heartbeat-watch", "note": "最新心跳在 10-22 02:26，已 30 分钟没有新的（阈值 20 分钟）：Orca 调度器停了或脚本没在跑。自动任务 id 439cd438-cffe-44dd-bd2b-23b07bfa3d61。去那台机器看 Orca 是否开着、自动任务是否启用、`orca automations runs --id 439cd438-cffe-44dd-bd2b-23b07bfa3d61` 最近几次的结果。", "bot": "coding-assistant"}

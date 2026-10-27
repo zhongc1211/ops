@@ -1,0 +1,1018 @@
+{
+ "_recorded": "2026-10-21 19:47:56 SGT 在 iMac 上录：orca automations runs --id 439cd438-cffe-44dd-bd2b-23b07bfa3d61 --json。只留 heartbeat-watch 用到的字段，stdout 只留 @@HB 行。",
+ "ok": true,
+ "result": {
+  "runs": [
+   {
+    "createdAt": 1792583233248,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3007,
+     "stdout": "@@HB {\"ts\": 1792583236, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792582682, \"last_duration_s\": 108.6}\n"
+    }
+   },
+   {
+    "createdAt": 1792583173252,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 5738,
+     "stdout": "@@HB {\"ts\": 1792583179, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792582682, \"last_duration_s\": 108.6}\n"
+    }
+   },
+   {
+    "createdAt": 1792583113251,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4126,
+     "stdout": "@@HB {\"ts\": 1792583117, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792582682, \"last_duration_s\": 108.6}\n"
+    }
+   },
+   {
+    "createdAt": 1792583053252,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3470,
+     "stdout": "@@HB {\"ts\": 1792583056, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792582682, \"last_duration_s\": 108.6}\n"
+    }
+   },
+   {
+    "createdAt": 1792582993261,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3810,
+     "stdout": "@@HB {\"ts\": 1792582997, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792582682, \"last_duration_s\": 108.6}\n"
+    }
+   },
+   {
+    "createdAt": 1792582933248,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 5592,
+     "stdout": "@@HB {\"ts\": 1792582938, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792582682, \"last_duration_s\": 108.6}\n"
+    }
+   },
+   {
+    "createdAt": 1792582873253,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3444,
+     "stdout": "@@HB {\"ts\": 1792582876, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792582682, \"last_duration_s\": 108.6}\n"
+    }
+   },
+   {
+    "createdAt": 1792582813250,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2388,
+     "stdout": "@@HB {\"ts\": 1792582815, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792582682, \"last_duration_s\": 108.6}\n"
+    }
+   },
+   {
+    "createdAt": 1792582753313,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 1354,
+     "stdout": "@@HB {\"ts\": 1792582754, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792582682, \"last_duration_s\": 108.6}\n"
+    }
+   },
+   {
+    "createdAt": 1792582693311,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 1622,
+     "stdout": "@@HB {\"ts\": 1792582695, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792582682, \"last_duration_s\": 108.6}\n"
+    }
+   },
+   {
+    "createdAt": 1792582633306,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3400,
+     "stdout": "@@HB {\"ts\": 1792582636, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792581769, \"last_duration_s\": 95.8}\n"
+    }
+   },
+   {
+    "createdAt": 1792582573305,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 108683,
+     "stdout": "@@HB {\"ts\": 1792582682, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792582682, \"last_duration_s\": 108.6}\n"
+    }
+   },
+   {
+    "createdAt": 1792582513303,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2887,
+     "stdout": "@@HB {\"ts\": 1792582516, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792581769, \"last_duration_s\": 95.8}\n"
+    }
+   },
+   {
+    "createdAt": 1792582453296,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4472,
+     "stdout": "@@HB {\"ts\": 1792582457, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792581769, \"last_duration_s\": 95.8}\n"
+    }
+   },
+   {
+    "createdAt": 1792582393298,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 5398,
+     "stdout": "@@HB {\"ts\": 1792582398, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792581769, \"last_duration_s\": 95.8}\n"
+    }
+   },
+   {
+    "createdAt": 1792582333297,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2956,
+     "stdout": "@@HB {\"ts\": 1792582336, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792581769, \"last_duration_s\": 95.8}\n"
+    }
+   },
+   {
+    "createdAt": 1792582273294,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3232,
+     "stdout": "@@HB {\"ts\": 1792582276, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792581769, \"last_duration_s\": 95.8}\n"
+    }
+   },
+   {
+    "createdAt": 1792582213295,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4397,
+     "stdout": "@@HB {\"ts\": 1792582217, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792581769, \"last_duration_s\": 95.8}\n"
+    }
+   },
+   {
+    "createdAt": 1792582153292,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2805,
+     "stdout": "@@HB {\"ts\": 1792582156, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792581769, \"last_duration_s\": 95.8}\n"
+    }
+   },
+   {
+    "createdAt": 1792582093290,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 1712,
+     "stdout": "@@HB {\"ts\": 1792582095, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792581769, \"last_duration_s\": 95.8}\n"
+    }
+   },
+   {
+    "createdAt": 1792582033299,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 1252,
+     "stdout": "@@HB {\"ts\": 1792582034, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792581769, \"last_duration_s\": 95.8}\n"
+    }
+   },
+   {
+    "createdAt": 1792581973288,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3024,
+     "stdout": "@@HB {\"ts\": 1792581976, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792581769, \"last_duration_s\": 95.8}\n"
+    }
+   },
+   {
+    "createdAt": 1792581913283,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 6372,
+     "stdout": "@@HB {\"ts\": 1792581919, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792581769, \"last_duration_s\": 95.8}\n"
+    }
+   },
+   {
+    "createdAt": 1792581853280,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 1411,
+     "stdout": "@@HB {\"ts\": 1792581854, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792581769, \"last_duration_s\": 95.8}\n"
+    }
+   },
+   {
+    "createdAt": 1792581793261,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2557,
+     "stdout": "@@HB {\"ts\": 1792581796, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792581769, \"last_duration_s\": 95.8}\n"
+    }
+   },
+   {
+    "createdAt": 1792581733260,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3230,
+     "stdout": "@@HB {\"ts\": 1792581736, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792581673259,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 95841,
+     "stdout": "@@HB {\"ts\": 1792581769, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792581769, \"last_duration_s\": 95.8}\n"
+    }
+   },
+   {
+    "createdAt": 1792581613257,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4593,
+     "stdout": "@@HB {\"ts\": 1792581618, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792581553266,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3740,
+     "stdout": "@@HB {\"ts\": 1792581557, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792581493270,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3040,
+     "stdout": "@@HB {\"ts\": 1792581496, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792581433256,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2956,
+     "stdout": "@@HB {\"ts\": 1792581436, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792581373250,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3778,
+     "stdout": "@@HB {\"ts\": 1792581377, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792581313250,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3866,
+     "stdout": "@@HB {\"ts\": 1792581317, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792581253247,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3828,
+     "stdout": "@@HB {\"ts\": 1792581257, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792581193252,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3228,
+     "stdout": "@@HB {\"ts\": 1792581196, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792581133244,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2971,
+     "stdout": "@@HB {\"ts\": 1792581136, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792581073248,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4898,
+     "stdout": "@@HB {\"ts\": 1792581078, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792581013245,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3895,
+     "stdout": "@@HB {\"ts\": 1792581017, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792580953246,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3575,
+     "stdout": "@@HB {\"ts\": 1792580956, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792580893244,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3036,
+     "stdout": "@@HB {\"ts\": 1792580896, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792580833227,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 6161,
+     "stdout": "@@HB {\"ts\": 1792580839, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792580773208,
+    "status": "completed",
+    "precheckResult": {
+     "exitCode": 0,
+     "timedOut": false,
+     "durationMs": 57173,
+     "stdout": "@@HB {\"ts\": 1792580830, \"mode\": \"--scan\", \"rc\": 0, \"last_scan\": 1792580830, \"last_duration_s\": 57.1}\n"
+    }
+   },
+   {
+    "createdAt": 1792580713215,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4416,
+     "stdout": "@@HB {\"ts\": 1792580717, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580136, \"last_duration_s\": 262.9}\n"
+    }
+   },
+   {
+    "createdAt": 1792580653205,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3490,
+     "stdout": "@@HB {\"ts\": 1792580656, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580136, \"last_duration_s\": 262.9}\n"
+    }
+   },
+   {
+    "createdAt": 1792580593217,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2947,
+     "stdout": "@@HB {\"ts\": 1792580596, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580136, \"last_duration_s\": 262.9}\n"
+    }
+   },
+   {
+    "createdAt": 1792580533206,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 5473,
+     "stdout": "@@HB {\"ts\": 1792580538, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580136, \"last_duration_s\": 262.9}\n"
+    }
+   },
+   {
+    "createdAt": 1792580473204,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4837,
+     "stdout": "@@HB {\"ts\": 1792580478, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580136, \"last_duration_s\": 262.9}\n"
+    }
+   },
+   {
+    "createdAt": 1792580413209,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3207,
+     "stdout": "@@HB {\"ts\": 1792580416, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580136, \"last_duration_s\": 262.9}\n"
+    }
+   },
+   {
+    "createdAt": 1792580353205,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4175,
+     "stdout": "@@HB {\"ts\": 1792580357, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580136, \"last_duration_s\": 262.9}\n"
+    }
+   },
+   {
+    "createdAt": 1792580293200,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3631,
+     "stdout": "@@HB {\"ts\": 1792580297, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580136, \"last_duration_s\": 262.9}\n"
+    }
+   },
+   {
+    "createdAt": 1792580233200,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4235,
+     "stdout": "@@HB {\"ts\": 1792580237, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580136, \"last_duration_s\": 262.9}\n"
+    }
+   },
+   {
+    "createdAt": 1792580173199,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3035,
+     "stdout": "@@HB {\"ts\": 1792580176, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580136, \"last_duration_s\": 262.9}\n"
+    }
+   },
+   {
+    "createdAt": 1792580113195,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2850,
+     "stdout": "@@HB {\"ts\": 1792580116, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792580053194,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3759,
+     "stdout": "@@HB {\"ts\": 1792580057, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579993196,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4319,
+     "stdout": "@@HB {\"ts\": 1792579997, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579933201,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4238,
+     "stdout": "@@HB {\"ts\": 1792579937, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579873184,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 262977,
+     "stdout": "@@HB {\"ts\": 1792580136, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792580136, \"last_duration_s\": 262.9}\n"
+    }
+   },
+   {
+    "createdAt": 1792579813151,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2678,
+     "stdout": "@@HB {\"ts\": 1792579816, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579753155,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4152,
+     "stdout": "@@HB {\"ts\": 1792579757, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579693150,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 1668,
+     "stdout": "@@HB {\"ts\": 1792579695, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579633150,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 1560,
+     "stdout": "@@HB {\"ts\": 1792579634, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579573154,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 1842,
+     "stdout": "@@HB {\"ts\": 1792579575, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579513155,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2589,
+     "stdout": "@@HB {\"ts\": 1792579515, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579453156,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2798,
+     "stdout": "@@HB {\"ts\": 1792579456, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579393158,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2181,
+     "stdout": "@@HB {\"ts\": 1792579395, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579333160,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2837,
+     "stdout": "@@HB {\"ts\": 1792579336, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579273157,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 17524,
+     "stdout": "@@HB {\"ts\": 1792579290, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579213152,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3990,
+     "stdout": "@@HB {\"ts\": 1792579217, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579153154,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3431,
+     "stdout": "@@HB {\"ts\": 1792579156, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579093152,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 5075,
+     "stdout": "@@HB {\"ts\": 1792579098, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792579033154,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4357,
+     "stdout": "@@HB {\"ts\": 1792579037, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792578973150,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 49401,
+     "stdout": "@@HB {\"ts\": 1792579022, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792579022, \"last_duration_s\": 49.3}\n"
+    }
+   },
+   {
+    "createdAt": 1792578913160,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3007,
+     "stdout": "@@HB {\"ts\": 1792578916, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792578310, \"last_duration_s\": 236.7}\n"
+    }
+   },
+   {
+    "createdAt": 1792578853211,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4642,
+     "stdout": "@@HB {\"ts\": 1792578857, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792578310, \"last_duration_s\": 236.7}\n"
+    }
+   },
+   {
+    "createdAt": 1792578793215,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4380,
+     "stdout": "@@HB {\"ts\": 1792578797, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792578310, \"last_duration_s\": 236.7}\n"
+    }
+   },
+   {
+    "createdAt": 1792578733215,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3151,
+     "stdout": "@@HB {\"ts\": 1792578736, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792578310, \"last_duration_s\": 236.7}\n"
+    }
+   },
+   {
+    "createdAt": 1792578673215,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4031,
+     "stdout": "@@HB {\"ts\": 1792578677, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792578310, \"last_duration_s\": 236.7}\n"
+    }
+   },
+   {
+    "createdAt": 1792578613219,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 5101,
+     "stdout": "@@HB {\"ts\": 1792578618, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792578310, \"last_duration_s\": 236.7}\n"
+    }
+   },
+   {
+    "createdAt": 1792578553215,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2927,
+     "stdout": "@@HB {\"ts\": 1792578556, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792578310, \"last_duration_s\": 236.7}\n"
+    }
+   },
+   {
+    "createdAt": 1792578493211,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3321,
+     "stdout": "@@HB {\"ts\": 1792578496, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792578310, \"last_duration_s\": 236.7}\n"
+    }
+   },
+   {
+    "createdAt": 1792578433215,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4949,
+     "stdout": "@@HB {\"ts\": 1792578438, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792578310, \"last_duration_s\": 236.7}\n"
+    }
+   },
+   {
+    "createdAt": 1792578373212,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4639,
+     "stdout": "@@HB {\"ts\": 1792578378, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792578310, \"last_duration_s\": 236.7}\n"
+    }
+   },
+   {
+    "createdAt": 1792578313202,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3272,
+     "stdout": "@@HB {\"ts\": 1792578316, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792578310, \"last_duration_s\": 236.7}\n"
+    }
+   },
+   {
+    "createdAt": 1792578253203,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3533,
+     "stdout": "@@HB {\"ts\": 1792578256, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792578193202,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3887,
+     "stdout": "@@HB {\"ts\": 1792578197, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792578133200,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3008,
+     "stdout": "@@HB {\"ts\": 1792578136, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792578073207,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 236830,
+     "stdout": "@@HB {\"ts\": 1792578310, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792578310, \"last_duration_s\": 236.7}\n"
+    }
+   },
+   {
+    "createdAt": 1792578013202,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4111,
+     "stdout": "@@HB {\"ts\": 1792578017, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792577953200,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2772,
+     "stdout": "@@HB {\"ts\": 1792577956, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792577893138,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 13343,
+     "stdout": "@@HB {\"ts\": 1792577906, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792577833138,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3127,
+     "stdout": "@@HB {\"ts\": 1792577836, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792577773137,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4405,
+     "stdout": "@@HB {\"ts\": 1792577777, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792577713142,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4409,
+     "stdout": "@@HB {\"ts\": 1792577717, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792577653139,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3337,
+     "stdout": "@@HB {\"ts\": 1792577656, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792577593133,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4884,
+     "stdout": "@@HB {\"ts\": 1792577598, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792577533138,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 4181,
+     "stdout": "@@HB {\"ts\": 1792577537, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792577473133,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 2950,
+     "stdout": "@@HB {\"ts\": 1792577476, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792577413141,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 3055,
+     "stdout": "@@HB {\"ts\": 1792577416, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792577353131,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 5715,
+     "stdout": "@@HB {\"ts\": 1792577358, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792577293136,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 8477,
+     "stdout": "@@HB {\"ts\": 1792577301, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   },
+   {
+    "createdAt": 1792577233131,
+    "status": "skipped_precheck",
+    "precheckResult": {
+     "exitCode": 1,
+     "timedOut": false,
+     "durationMs": 5046,
+     "stdout": "@@HB {\"ts\": 1792577238, \"mode\": \"--scan\", \"rc\": 1, \"last_scan\": 1792577218, \"last_duration_s\": 45.2}\n"
+    }
+   }
+  ]
+ }
+}

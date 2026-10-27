@@ -1,0 +1,23 @@
+mba: register.sh printed 9 create(s), defs.json has 9 for mba, same names: True
+  dv广告 · 21 夜审 MBA
+  dv广告 · 21 夜审 MBA 补跑
+  dv运维 · 20 夜审 官网 MBA
+  dv运维 · 20 夜审 官网 MBA 补跑
+  ops · 夜审防睡 MBA
+  vllm · 22 夜审 MBA
+  vllm · 22 夜审 MBA 补跑
+  心月 · 18 夜审 MBA
+  心月 · 18 夜审 MBA 补跑
+imac: register.sh printed 10 create(s), defs.json has 10 for imac, same names: True
+  dv广告 · 21 夜审 备用 iMac
+  dv广告 · 21 夜审 看守 iMac
+  dv运维 · 20 夜审 官网 备用 iMac
+  dv运维 · 20 夜审 官网 看守 iMac
+  ops · 12 Linear 状态对齐 iMac
+  vllm · 17 上游 PR 监控 iMac
+  vllm · 22 夜审 备用 iMac
+  vllm · 22 夜审 看守 iMac
+  心月 · 18 夜审 备用 iMac
+  心月 · 18 夜审 看守 iMac
+mba + imac: 19, every create in defs.json: 23, same: False
+in defs.json but printed for neither Mac: dv广告 · 21 夜审 看守 box, dv运维 · 20 夜审 官网 看守 box, vllm · 22 夜审 看守 box, 心月 · 18 夜审 看守 box

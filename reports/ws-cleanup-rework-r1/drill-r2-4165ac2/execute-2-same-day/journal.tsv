@@ -1,0 +1,9 @@
+2026-10-21 04:43:14	not-found	aa123560-8996-445e-9798-58252049e7e5::/Users/jiawenwang/ops-drill/wt-r2/d02-probe		名单里有，Orca 里已经没有，不动
+2026-10-21 04:43:14	not-found	aa123560-8996-445e-9798-58252049e7e5::/Users/jiawenwang/ops-drill/wt-r2/d03-backup		名单里有，Orca 里已经没有，不动
+2026-10-21 04:43:14	not-found	aa123560-8996-445e-9798-58252049e7e5::/Users/jiawenwang/ops-drill/wt-r2/d07-gone-pushed		名单里有，Orca 里已经没有，不动
+2026-10-21 04:43:14	not-found	aa123560-8996-445e-9798-58252049e7e5::/Users/jiawenwang/ops-drill/wt-r2/d14-fifo		名单里有，Orca 里已经没有，不动
+2026-10-21 04:43:15	backup	aa123560-8996-445e-9798-58252049e7e5::/Users/jiawenwang/ops-drill/wt-r2/d11-locked	1	备份目录已存在，不覆盖
+2026-10-21 04:43:16	backup	aa123560-8996-445e-9798-58252049e7e5::/Users/jiawenwang/ops-drill/wt-r2/d12-sha	0	/Users/jiawenwang/ops-drill/archive-r2/2026-10-21/ws-cleanup-drill/d12-sha
+2026-10-21 04:43:16	rm-start	aa123560-8996-445e-9798-58252049e7e5::/Users/jiawenwang/ops-drill/wt-r2/d12-sha		
+2026-10-21 04:43:17	rm-end	aa123560-8996-445e-9798-58252049e7e5::/Users/jiawenwang/ops-drill/wt-r2/d12-sha	0	{   "id": "0a8ab892-cd4b-4c47-b3f0-e894c806f3ae",   "ok": true,   "result": {     "removed": true,     "removing": true,     "catalogVersion": {       "epoch": "73678cb8-a185-4c43-a18a-bff8989ae46c",       "sequence": 1417     }   },   "_meta": {     "runtimeId": "cb0f5509-687d-409f-bf36-d841efc78dc
+2026-10-21 04:43:18	error	aa123560-8996-445e-9798-58252049e7e5::/Users/jiawenwang/ops-drill/wt-r2/d13-noperm		ERROR：PermissionError [Errno 13] Permission denied: '/Users/jiawenwang/ops-drill/wt-r2/d13-noperm/secret-notes/locked.txt'

@@ -1,0 +1,17 @@
+{
+ "command": "orca automations show --id 439cd438-cffe-44dd-bd2b-23b07bfa3d61 --json",
+ "tries": 1,
+ "error": null,
+ "automation": {
+  "id": "439cd438-cffe-44dd-bd2b-23b07bfa3d61",
+  "name": "ops · 01 卡住工作检查",
+  "enabled": true,
+  "rrule": "* * * * *",
+  "timezone": "Asia/Singapore",
+  "missedRunGraceMinutes": 30,
+  "precheck": {
+   "command": "$HOME/orca/workspaces/ops/scripts/stuck-check.sh --scan",
+   "timeoutSeconds": 600
+  }
+ }
+}

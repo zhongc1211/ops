@@ -1,0 +1,1 @@
+[-o][BatchMode=yes][-o][ConnectTimeout=10][-o][ServerAliveInterval=15][-o][ServerAliveCountMax=2][imac][zsh -lc 'orca '\''automations'\'' '\''list'\'' '\''--json'\''']

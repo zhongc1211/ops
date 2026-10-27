@@ -1,0 +1,5 @@
+d4f0bb0c7be86599079ddf30a2386cf35d65c3b1
+# sync-bot-rules --check  ref=origin/zhongc1211/ops-bot-rules-targets-1021  commit=d4f0bb0c7be86599079ddf30a2386cf35d65c3b1  host=iMac
+机器 | 目标路径 | 源 sha256 | 目标 sha256 | 状态
+# 本机（iMac）在 docs/bot-rules/targets.tsv 里没有目标
+exit=0

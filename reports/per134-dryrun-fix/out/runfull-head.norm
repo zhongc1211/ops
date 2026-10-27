@@ -1,0 +1,1284 @@
+== stdout ==
+开始（orca=orca，等输入/无输出阈值 30 分钟）
+agent_idle | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c | orca-wake 补叫醒（pid <变> send；派活 bot：e2e-down，已交给 orca-wake 发送；下次扫描再 recheck，already_woken 才算送达（发送失败它会重发同一个去重键））
+agent_idle | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c | 从 10-21 00:46 停下起 e2e-down 一直没收到 orca-wake 的补叫醒（46 分钟），转报 coding-assistant
+iMac：in-progress 任务工作区和主目录 agent 10 个，新嫌疑 1 个，断了的 0 个
+iMac：没包 notify-run 的 agent 新报 0 条
+box（--environment __no_box__）第一轮 3 次都没连上（{"code": "invalid_argument", "message": "Unknown Orca server in --environment __no_box__: no paired Orca server is named），等 <n> 秒再查一轮
+box（--environment __no_box__）重试 3 次仍查询失败，这次跳过（连续第 1 次）：{"code": "invalid_argument", "message": "Unknown Orca server in --environment __no_box__: no paired Orca server is named or has id __no_box__.", "data": {"known
+MBA：in-progress 任务工作区和主目录 agent 1 个，新嫌疑 0 个，断了的 0 个
+MBA：没包 notify-run 的 agent 新报 0 条
+box 这次没查到，不对 due date
+放行 | iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计 | completed，工作区干净，没有本地提交，没有 PR；没有 orca-wake / notify-run 记录
+放行 | iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dvads-prod-admin-secret | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-18 01:10）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dv广告-FDV-76-隐私页GEO | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 12 回合，10-17 23:49）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-67-e2e-imac | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-20 18:39）送达过叫醒；notify-run 退出时发送 http=200（10-20 18:40）
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-80-gaps | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 10 回合，10-20 21:52）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-84-merge-47 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-20 19:23）送达过叫醒；notify-run 退出时发送 http=200（10-20 19:24）
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-97-merge56 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-20 23:36）送达过叫醒；notify-run 退出时发送 http=200（10-20 23:48）
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap9 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-20 19:23）没有送达的叫醒；notify-run 退出时发送 http=200（10-20 20:17）
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER82-merge-deploy | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 2 回合，10-21 00:48）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/site/ops-per83-verify-dv-site | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 7 回合，10-20 20:17）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/ops-everos-imac-mcp | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 5 回合，10-16 20:20）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dvads-fdv-64-oauth | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 3 回合，10-18 00:29）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/everos-research | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 3 回合，10-15 23:08）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER82-stuck-budget | completed，工作区干净，没有本地提交，没有 PR；没有 orca-wake / notify-run 记录
+放行 | iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-65-testing-Builds修复 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-16 11:13）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/unpushed-cleanup-20261018 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-18 10:35）送达过叫醒
+iMac：completed / in-review 任务工作区这次查了 94 个，15 个没人验收
+等 Zack | MBA:/Users/jiawenwang/orca/workspaces/deepvision-ads/fdv-89-ab | FDV-89 挂着「等 Zack」，已验收在等拍板，不报
+等 Zack | MBA:/Users/jiawenwang/orca/workspaces/deepvision-ads/fdv-89-c | FDV-89 挂着「等 Zack」，已验收在等拍板，不报
+放行 | MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/fdv-92-rework1-mba | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-19 14:26）没有送达的叫醒；notify-run 退出时发送 http=200（10-19 14:28）
+放行 | MBA:/Users/jiawenwang/orca/workspaces/ops/ops-PER-105-merge62 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-20 23:33）送达过叫醒
+MBA：completed / in-review 任务工作区这次查了 24 个，3 个没人验收
+嫌疑 S1 | coding-assistant | agent_idle | [演练 PER-67 缺口7] ops · 45 分钟改报（重跑） | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c | agent 停在输入框等输入已 46 分钟（Orca 状态：done），工作区还标着 in-progress，没有 notify-run 在跑；从 10-21 00:46 停下起，orca-wake 给派活 bot e2e-down 的补叫醒 46 分钟一直没送达（它的 webhook 可能坏了），转给 coding-assistant：请转达 e2e-down 或看它的服务
+问题 | deepvision-ads | reported_not_accepted | dv广告 · FDV-72 开AI key | iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dv广告-FDV-72-开AI-key | 工作区标为 in-review，已 73.4 小时没人验收（没有 PR，分支 zhongc1211/dv广告-FDV-72-开AI-key）
+问题 | ops-system | reported_not_accepted | ops · PER-117 Linear 对齐迁出 box | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-117-linear-sync-move | agent 已开 PR 1.9 小时，没有 review，也没有人评论：https://github.com/zhongc1211/ops/pull/65
+问题 | ops-system | reported_not_accepted | ops · serve 自带显示（不借 :4） | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-serve-display-1020 | agent 已开 PR 3.7 小时，没有 review，也没有人评论：https://github.com/zhongc1211/ops/pull/60
+问题 | ops-system | reported_not_accepted | 心月 · EverOS 夜审补查+iMac 脚本同步 | iMac:/Users/jiawenwang/orca/workspaces/ops/xinyue-everos-recheck | 工作区标为 in-review，已 85.3 小时没人验收（没有 PR，分支 zhongc1211/xinyue-everos-recheck）
+问题 | xinyue | reported_not_accepted | 心月 · PER-75 开源游戏候选调研 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/per-75-oss-games | 工作区标为 in-review；Linear PER-75 已完成，已 38.8 小时没人验收（没有 PR，分支 zhongc1211/per-75-oss-games）
+问题 | xinyue | reported_not_accepted | 心月 · EverOS 启动器 v2.1 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/心月-EverOS-启动器-v2.1 | 工作区标为 in-review，已 80.2 小时没人验收（没有 PR，分支 zhongc1211/心月-EverOS-启动器-v2.1）
+问题 | ops-system | reported_not_accepted | ops · PER-67 orca-projects.md 重写 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-orca-projects-1020 | agent 已开 PR 5.5 小时，没有 review，也没有人评论：https://github.com/zhongc1211/ops/pull/50
+问题 | ops-system | reported_not_accepted | ops · PER-89 禁用命令deny加固 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-89-deny | 工作区标为 completed，已 4.5 小时没人验收（没有 PR，分支 zhongc1211/ops-PER-89-deny）（16 个提交不在远端默认分支）
+问题 | vllm-omni | reported_not_accepted | vllm · PER-56 H3 PR 合并成三个 | iMac:/Users/jiawenwang/orca/workspaces/repository/PER-56-h3-merge-three | 工作区标为 completed，已 150.2 小时没人验收（没有 PR，分支 zhongc1211/PER-56-h3-merge-three）（3 个提交不在远端默认分支）
+问题 | vllm-omni | reported_not_accepted | PER-56 vllm · PER-8 Hunyuan 重测 iMac | iMac:/Users/jiawenwang/orca/workspaces/repository/PER-8-hunyuan-imac-omni | 工作区标为 completed，已 109.8 小时没人验收（没有 PR，分支 zhongc1211/PER-8-hunyuan-imac-omni）（3 个提交不在远端默认分支）
+问题 | vllm-omni | reported_not_accepted | vllm · PER-56 #8714 schedule 格式错误返回400 | iMac:/Users/jiawenwang/orca/workspaces/repository/per-8714-schedule-400 | 工作区标为 completed，已 81.5 小时没人验收（没有 PR，分支 zhongc1211/per-8714-schedule-400）（2 个提交不在远端默认分支）
+问题 | vllm-omni | reported_not_accepted | vllm · PER-56 N10-step-a 根因（Opus 无GPU） | iMac:/Users/jiawenwang/orca/workspaces/repository/per56-n10-rootcause-opus | 工作区标为 completed，已 107.9 小时没人验收（没有 PR，分支 zhongc1211/per56-n10-rootcause-opus）（10 个提交不在远端默认分支）
+问题 | deepvision-ads | reported_not_accepted | FDV-66 zhongc1211/release-1-r2-fdv66-imac | iMac:/Users/jiawenwang/orca/r2-F | 工作区标为 completed；Linear FDV-66 已完成，已 66.8 小时没人验收（没有 PR，分支 zhongc1211/release-1-r2-fdv66-imac）（1 个提交不在远端默认分支）
+问题 | ops-system | reported_not_accepted | ops · PER-86 合 #53 夜审文档 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER86-merge | 工作区标为 completed；Linear PER-86 已完成，已 2.1 小时没人验收（没有 PR，分支 zhongc1211/ops-PER86-merge）（工作区干净，但claude 会话最后一次停下（第 1 回合，10-20 23:07）没有送达的叫醒：派活 bot 可能不知道它停了）
+问题 | vllm-omni | reported_not_accepted | vllm · PER-56 N7 根因（旧，已结束） | iMac:/Users/jiawenwang/orca/workspaces/repository/PER-56-n7-rootcause | 工作区标为 completed，已 130.2 小时没人验收（没有 PR，分支 zhongc1211/PER-56-n7-rootcause）（10 个提交不在远端默认分支）
+问题 | xinyue | reported_not_accepted | 心月 · PER-70 Colorfigures 整合（MBA 续做） | MBA:/Users/jiawenwang/orca/workspaces/xinyue-site/per-70-colorfigures-integrate-mba | 工作区标为 in-review，已 35.0 小时没人验收（没有 PR，分支 zhongc1211/per-70-colorfigures-integrate-mba）
+问题 | deepvision-ops | reported_not_accepted | dv官网 · FDV-70 Ryze对照图 | MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/dv官网-FDV-70-Ryze对照图 | 工作区标为 completed，已 52.0 小时没人验收（没有 PR，分支 zhongc1211/dv官网-FDV-70-Ryze对照图）（63 个提交不在远端默认分支）
+问题 | vllm-omni | reported_not_accepted | vllm · PER-56 4090+A100 补跑（MBA） | MBA:/Users/jiawenwang/orca/workspaces/vllm-omni/vllm-PER-56-4090-A100-MBA | 工作区标为 completed，已 52.2 小时没人验收（没有 PR，分支 rebase-1019/pr2）（548 个提交不在远端默认分支）
+不发送（STUCK_NO_SEND），将 POST 给 coding-assistant：{"bot": "coding-assistant", "task": "[演练 PER-67 缺口7] ops · 45 分钟改报（重跑）", "worktree": "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c", "status": "stuck", "kind": "agent_idle", "note": "agent 停在输入框等输入已 46 分钟（Orca 状态：done），工作区还标着 in-progress，没有 notify-run 在跑；从 10-21 00:46 停下起，orca-wake 给派活 bot e2e-down 的补叫醒 46 分钟一直没送达（它的 webhook 可能坏了），转给 coding-assistant：请转达 e2e-down 或看它的服务", "machine": "iMac", "source": "stuck-check"}
+结束：1 条嫌疑，0 条直发，0 条发送失败
+@@HB {"ts": <变>, "mode": "--run", "rc": 0, "last_scan": <变>, "last_duration_s": <变>}
+== 状态文件 ==
+-- agents.json
+{
+ "box:/home/box/orca/workspaces/ops/ops-PER-67-SYSTEM_MAP-与-ops-verify": {
+  "kind": "ws_broken",
+  "marker": 1792367107.168,
+  "notified": 1792510210.8607428,
+  "to": "coding-assistant"
+ },
+ "box:/home/box/orca/workspaces/ops/ops-PER-67-第1步前置清理": {
+  "kind": "ws_broken",
+  "marker": 1792367109.616,
+  "notified": 1792510210.8607428,
+  "to": "coding-assistant"
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c": {
+  "handed": 1792517565.6131022,
+  "handed_since": 1792517112.520459,
+  "kind": "agent_idle",
+  "marker": 1792514812.45,
+  "shadow": false,
+  "to": "e2e-down",
+  "via": "orca-wake"
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-box-disk-1020": {
+  "kind": "ws_broken",
+  "marker": 1792506944.682,
+  "notified": 1792510210.8607428,
+  "to": "ops-system"
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/auto-run-1-20261013T1530": {
+  "dismissed": 1792312095.7256892,
+  "kind": "ws_broken",
+  "marker": 1791905411.908,
+  "reason": "自动任务「心月夜审」建的工作区"
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/auto-run-2-20261013T1725": {
+  "dismissed": 1792312095.7256892,
+  "kind": "ws_broken",
+  "marker": 1791912920.458,
+  "reason": "自动任务「心月夜审」建的工作区"
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/per-115-free-games": {
+  "kind": "ws_broken",
+  "marker": 1792506886.575,
+  "notified": 1792510210.8607428,
+  "to": "xinyue"
+ }
+}
+-- gate.json
+{
+ "MBA": "pid:None|rt:db1f347b-5676-45a4-bc3e-3d45bee50aaf",
+ "box": "pid:None|rt:3b1838b4-2107-4357-86ca-418825bb2e7f",
+ "done": 1792517565,
+ "iMac": "pid:659|rt:cb0f5509-687d-409f-bf36-d841efc78dcf",
+ "last": 1792517112.520459,
+ "why": "到点"
+}
+-- heartbeat.json
+{
+ "last_duration_s": "<变>",
+ "last_scan": 1792517565,
+ "mode": "--run",
+ "rc": 0,
+ "ts": "<变>"
+}
+-- notified.json
+{
+ "MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/dv官网-FDV-70-Ryze对照图|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792351874.622869
+ },
+ "MBA:/Users/jiawenwang/orca/workspaces/vllm-omni/vllm-PER-56-4090-A100-MBA|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792351874.622869
+ },
+ "MBA:/Users/jiawenwang/orca/workspaces/xinyue-site/per-62-mba-runner-2|reported_not_accepted": {
+  "last_seen": 1792497787.363959,
+  "notified": 1792497787.363959
+ },
+ "MBA:/Users/jiawenwang/orca/workspaces/xinyue-site/per-70-colorfigures-integrate-mba|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792400235.706301
+ },
+ "box:/home/box/orca/workspaces/deepvision-ads/dvads-backup-unpushed|reported_not_accepted": {
+  "last_seen": 1792484237.830344,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-ads/dv广告-FDV-36-栈修复|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-ads/dv广告-FDV-38-PR-3-修复|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-ads/dv广告-FDV-39-PR-4-修复|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-ads/dv广告-FDV-67-接入EverOS|reported_not_accepted": {
+  "last_seen": 1792484237.830344,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-ads/fdv-81-ads-nightreview-everos|reported_not_accepted": {
+  "last_seen": 1792484237.830344,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-ads/release-1|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-site/dv官网-FDV-70-Ryze对照图|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/deepvision-site/dv运维-FDV-78-夜审切新脚本|reported_not_accepted": {
+  "last_seen": 1792484237.830344,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/ops/ops-tunnel-flaps-1019|reported_not_accepted": {
+  "last_seen": 1792484237.830344,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/xinyue-site/ops-everos-mcp-v2|reported_not_accepted": {
+  "last_seen": 1792484237.830344,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/xinyue-site/ops-everos-wireup|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/xinyue-site/per-70-colorfigures-integrate|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792484237.830344
+ },
+ "box:/home/box/orca/workspaces/xinyue-site/心月-EverOS-MCP-v2-G5验证|reported_not_accepted": {
+  "last_seen": 1792484237.830344,
+  "notified": 1792484237.830344
+ },
+ "iMac:/Users/jiawenwang/orca/r2-F|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792313893.748288
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dv广告-FDV-72-开AI-key|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792250287.04128
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-117-linear-sync-move|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792514412.2584589
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-89-deny|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792514412.2584589
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER86-merge|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792514412.2584589
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-everos-backfill-1019-addendum|reported_not_accepted": {
+  "last_seen": 1792514412.2584589,
+  "notified": 1792514412.2584589
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-orca-projects-1020|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792510210.8607428
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-serve-display-1020|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792514412.2584589
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/ops/xinyue-everos-recheck|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792250287.04128
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/repository/PER-56-h3-merge-three|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1791983002.431201
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/repository/PER-56-n7-rootcause|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792313893.748288
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/repository/PER-8-hunyuan-imac-omni|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792045125.0360608
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/repository/per-8714-schedule-400|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792250287.04128
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/repository/per56-n10-rootcause-opus|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792134237.2226639
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计|reported_not_accepted": {
+  "last_seen": 1792491618.853417,
+  "notified": 1792101836.5569332
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/per-75-oss-games|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792382235.192108
+ },
+ "iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/心月-EverOS-启动器-v2.1|reported_not_accepted": {
+  "last_seen": 1792517565.6131022,
+  "notified": 1792250287.04128
+ }
+}
+-- pending.json
+{
+ "created": "<变>",
+ "direct": [],
+ "suspects": []
+}
+-- scan-history.json
+[
+ {
+  "budget_s": null,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "killed": true,
+  "mode": "--run",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "due",
+   "二类 iMac"
+  ],
+  "skipped_calls": [
+   {
+    "call": "environment list",
+    "secs": "<变>",
+    "what": "iMac:（environment list）"
+   },
+   {
+    "call": "terminal read",
+    "secs": "<变>",
+    "what": "iMac:term_79be8949-bb9d-482e-816b-1f6dd0d2e7c1"
+   }
+  ],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "failed"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [],
+  "rc": 0,
+  "skipped_calls": [
+   {
+    "call": "status",
+    "secs": "<变>",
+    "what": "iMac:（整台）"
+   },
+   {
+    "call": "environment list",
+    "secs": "<变>",
+    "what": "iMac:（environment list）"
+   },
+   {
+    "call": "worktree ps",
+    "secs": "<变>",
+    "what": "iMac:（整台）"
+   }
+  ],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "failed"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [],
+  "rc": 0,
+  "skipped_calls": [
+   {
+    "call": "status",
+    "secs": "<变>",
+    "what": "grok-bot:（整台）"
+   },
+   {
+    "call": "worktree ps",
+    "secs": "<变>",
+    "what": "iMac:（整台）"
+   }
+  ],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "failed"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [],
+  "rc": 0,
+  "skipped_calls": [
+   {
+    "call": "status",
+    "secs": "<变>",
+    "what": "grok-bot:（整台）"
+   },
+   {
+    "call": "status",
+    "secs": "<变>",
+    "what": "mba:（整台）"
+   },
+   {
+    "call": "automations show",
+    "secs": "<变>",
+    "what": "iMac:439cd438-cffe-44dd-bd2b-23b07bfa3d61"
+   },
+   {
+    "call": "worktree ps",
+    "secs": "<变>",
+    "what": "iMac:（整台）"
+   }
+  ],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 box",
+    "s": "<变>",
+    "status": "partial"
+   },
+   {
+    "name": "二类 MBA",
+    "s": "<变>",
+    "status": "skipped"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due",
+   "二类 iMac",
+   "二类 box",
+   "二类 MBA"
+  ],
+  "rc": 0,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": true,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "partial"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "skipped"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "二类 box",
+   "二类 MBA",
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due"
+  ],
+  "rc": 1,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": true,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 MBA",
+   "due",
+   "一类 iMac",
+   "一类 box"
+  ],
+  "rc": 1,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due"
+  ],
+  "rc": 1,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due"
+  ],
+  "rc": 1,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 MBA",
+    "s": "<变>",
+    "status": "partial"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due",
+   "二类 iMac",
+   "二类 box",
+   "二类 MBA"
+  ],
+  "rc": 1,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": true,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "二类 MBA",
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due"
+  ],
+  "rc": 1,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due"
+  ],
+  "rc": 0,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": 240.0,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--scan",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due"
+  ],
+  "rc": 1,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ },
+ {
+  "budget_s": null,
+  "call_timeout_s": 30.0,
+  "duration_s": "<变>",
+  "end": "<变>",
+  "mode": "--run",
+  "phases": [
+   {
+    "name": "闸门",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "iMac 读取",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "一类 box",
+    "s": "<变>",
+    "status": "unreachable"
+   },
+   {
+    "name": "一类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "due",
+    "s": "<变>",
+    "status": "unreachable"
+   },
+   {
+    "name": "二类 iMac",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "二类 box",
+    "s": "<变>",
+    "status": "unreachable"
+   },
+   {
+    "name": "二类 MBA",
+    "s": "<变>",
+    "status": "done"
+   },
+   {
+    "name": "发送",
+    "s": "<变>",
+    "status": "done"
+   }
+  ],
+  "pid": "<变>",
+  "plan": [
+   "一类 iMac",
+   "一类 box",
+   "一类 MBA",
+   "due",
+   "二类 iMac",
+   "二类 box",
+   "二类 MBA"
+  ],
+  "rc": 0,
+  "skipped_calls": [],
+  "start": "<变>",
+  "timeout_s": 300.0,
+  "truncated": false,
+  "updated": "<变>"
+ }
+]
+-- stuck-check.log
+开始（orca=orca，等输入/无输出阈值 30 分钟）
+agent_idle | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c | orca-wake 补叫醒（pid <变> send；派活 bot：e2e-down，已交给 orca-wake 发送；下次扫描再 recheck，already_woken 才算送达（发送失败它会重发同一个去重键））
+agent_idle | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c | 从 10-21 00:46 停下起 e2e-down 一直没收到 orca-wake 的补叫醒（46 分钟），转报 coding-assistant
+iMac：in-progress 任务工作区和主目录 agent 10 个，新嫌疑 1 个，断了的 0 个
+iMac：没包 notify-run 的 agent 新报 0 条
+box（--environment __no_box__）第一轮 3 次都没连上（{"code": "invalid_argument", "message": "Unknown Orca server in --environment __no_box__: no paired Orca server is named），等 <n> 秒再查一轮
+box（--environment __no_box__）重试 3 次仍查询失败，这次跳过（连续第 1 次）：{"code": "invalid_argument", "message": "Unknown Orca server in --environment __no_box__: no paired Orca server is named or has id __no_box__.", "data": {"known
+MBA：in-progress 任务工作区和主目录 agent 1 个，新嫌疑 0 个，断了的 0 个
+MBA：没包 notify-run 的 agent 新报 0 条
+box 这次没查到，不对 due date
+放行 | iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-Open-Design-重设计 | completed，工作区干净，没有本地提交，没有 PR；没有 orca-wake / notify-run 记录
+放行 | iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dvads-prod-admin-secret | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-18 01:10）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dv广告-FDV-76-隐私页GEO | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 12 回合，10-17 23:49）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-67-e2e-imac | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-20 18:39）送达过叫醒；notify-run 退出时发送 http=200（10-20 18:40）
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-80-gaps | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 10 回合，10-20 21:52）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-84-merge-47 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-20 19:23）送达过叫醒；notify-run 退出时发送 http=200（10-20 19:24）
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-97-merge56 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-20 23:36）送达过叫醒；notify-run 退出时发送 http=200（10-20 23:48）
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap9 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-20 19:23）没有送达的叫醒；notify-run 退出时发送 http=200（10-20 20:17）
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER82-merge-deploy | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 2 回合，10-21 00:48）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/site/ops-per83-verify-dv-site | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 7 回合，10-20 20:17）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/ops-everos-imac-mcp | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 5 回合，10-16 20:20）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dvads-fdv-64-oauth | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 3 回合，10-18 00:29）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/everos-research | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 3 回合，10-15 23:08）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER82-stuck-budget | completed，工作区干净，没有本地提交，没有 PR；没有 orca-wake / notify-run 记录
+放行 | iMac:/Users/jiawenwang/orca/workspaces/site/dv官网-FDV-65-testing-Builds修复 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-16 11:13）送达过叫醒
+放行 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/unpushed-cleanup-20261018 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-18 10:35）送达过叫醒
+iMac：completed / in-review 任务工作区这次查了 94 个，15 个没人验收
+等 Zack | MBA:/Users/jiawenwang/orca/workspaces/deepvision-ads/fdv-89-ab | FDV-89 挂着「等 Zack」，已验收在等拍板，不报
+等 Zack | MBA:/Users/jiawenwang/orca/workspaces/deepvision-ads/fdv-89-c | FDV-89 挂着「等 Zack」，已验收在等拍板，不报
+放行 | MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/fdv-92-rework1-mba | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-19 14:26）没有送达的叫醒；notify-run 退出时发送 http=200（10-19 14:28）
+放行 | MBA:/Users/jiawenwang/orca/workspaces/ops/ops-PER-105-merge62 | completed，工作区干净，没有本地提交，没有 PR；claude 会话最后一次停下（第 1 回合，10-20 23:33）送达过叫醒
+MBA：completed / in-review 任务工作区这次查了 24 个，3 个没人验收
+嫌疑 S1 | coding-assistant | agent_idle | [演练 PER-67 缺口7] ops · 45 分钟改报（重跑） | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c | agent 停在输入框等输入已 46 分钟（Orca 状态：done），工作区还标着 in-progress，没有 notify-run 在跑；从 10-21 00:46 停下起，orca-wake 给派活 bot e2e-down 的补叫醒 46 分钟一直没送达（它的 webhook 可能坏了），转给 coding-assistant：请转达 e2e-down 或看它的服务
+问题 | deepvision-ads | reported_not_accepted | dv广告 · FDV-72 开AI key | iMac:/Users/jiawenwang/orca/workspaces/deepvision-ads/dv广告-FDV-72-开AI-key | 工作区标为 in-review，已 73.4 小时没人验收（没有 PR，分支 zhongc1211/dv广告-FDV-72-开AI-key）
+问题 | ops-system | reported_not_accepted | ops · PER-117 Linear 对齐迁出 box | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-117-linear-sync-move | agent 已开 PR 1.9 小时，没有 review，也没有人评论：https://github.com/zhongc1211/ops/pull/65
+问题 | ops-system | reported_not_accepted | ops · serve 自带显示（不借 :4） | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-serve-display-1020 | agent 已开 PR 3.7 小时，没有 review，也没有人评论：https://github.com/zhongc1211/ops/pull/60
+问题 | ops-system | reported_not_accepted | 心月 · EverOS 夜审补查+iMac 脚本同步 | iMac:/Users/jiawenwang/orca/workspaces/ops/xinyue-everos-recheck | 工作区标为 in-review，已 85.3 小时没人验收（没有 PR，分支 zhongc1211/xinyue-everos-recheck）
+问题 | xinyue | reported_not_accepted | 心月 · PER-75 开源游戏候选调研 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/per-75-oss-games | 工作区标为 in-review；Linear PER-75 已完成，已 38.8 小时没人验收（没有 PR，分支 zhongc1211/per-75-oss-games）
+问题 | xinyue | reported_not_accepted | 心月 · EverOS 启动器 v2.1 | iMac:/Users/jiawenwang/orca/workspaces/xinyue-site/心月-EverOS-启动器-v2.1 | 工作区标为 in-review，已 80.2 小时没人验收（没有 PR，分支 zhongc1211/心月-EverOS-启动器-v2.1）
+问题 | ops-system | reported_not_accepted | ops · PER-67 orca-projects.md 重写 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-orca-projects-1020 | agent 已开 PR 5.5 小时，没有 review，也没有人评论：https://github.com/zhongc1211/ops/pull/50
+问题 | ops-system | reported_not_accepted | ops · PER-89 禁用命令deny加固 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER-89-deny | 工作区标为 completed，已 4.5 小时没人验收（没有 PR，分支 zhongc1211/ops-PER-89-deny）（16 个提交不在远端默认分支）
+问题 | vllm-omni | reported_not_accepted | vllm · PER-56 H3 PR 合并成三个 | iMac:/Users/jiawenwang/orca/workspaces/repository/PER-56-h3-merge-three | 工作区标为 completed，已 150.2 小时没人验收（没有 PR，分支 zhongc1211/PER-56-h3-merge-three）（3 个提交不在远端默认分支）
+问题 | vllm-omni | reported_not_accepted | PER-56 vllm · PER-8 Hunyuan 重测 iMac | iMac:/Users/jiawenwang/orca/workspaces/repository/PER-8-hunyuan-imac-omni | 工作区标为 completed，已 109.8 小时没人验收（没有 PR，分支 zhongc1211/PER-8-hunyuan-imac-omni）（3 个提交不在远端默认分支）
+问题 | vllm-omni | reported_not_accepted | vllm · PER-56 #8714 schedule 格式错误返回400 | iMac:/Users/jiawenwang/orca/workspaces/repository/per-8714-schedule-400 | 工作区标为 completed，已 81.5 小时没人验收（没有 PR，分支 zhongc1211/per-8714-schedule-400）（2 个提交不在远端默认分支）
+问题 | vllm-omni | reported_not_accepted | vllm · PER-56 N10-step-a 根因（Opus 无GPU） | iMac:/Users/jiawenwang/orca/workspaces/repository/per56-n10-rootcause-opus | 工作区标为 completed，已 107.9 小时没人验收（没有 PR，分支 zhongc1211/per56-n10-rootcause-opus）（10 个提交不在远端默认分支）
+问题 | deepvision-ads | reported_not_accepted | FDV-66 zhongc1211/release-1-r2-fdv66-imac | iMac:/Users/jiawenwang/orca/r2-F | 工作区标为 completed；Linear FDV-66 已完成，已 66.8 小时没人验收（没有 PR，分支 zhongc1211/release-1-r2-fdv66-imac）（1 个提交不在远端默认分支）
+问题 | ops-system | reported_not_accepted | ops · PER-86 合 #53 夜审文档 | iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER86-merge | 工作区标为 completed；Linear PER-86 已完成，已 2.1 小时没人验收（没有 PR，分支 zhongc1211/ops-PER86-merge）（工作区干净，但claude 会话最后一次停下（第 1 回合，10-20 23:07）没有送达的叫醒：派活 bot 可能不知道它停了）
+问题 | vllm-omni | reported_not_accepted | vllm · PER-56 N7 根因（旧，已结束） | iMac:/Users/jiawenwang/orca/workspaces/repository/PER-56-n7-rootcause | 工作区标为 completed，已 130.2 小时没人验收（没有 PR，分支 zhongc1211/PER-56-n7-rootcause）（10 个提交不在远端默认分支）
+问题 | xinyue | reported_not_accepted | 心月 · PER-70 Colorfigures 整合（MBA 续做） | MBA:/Users/jiawenwang/orca/workspaces/xinyue-site/per-70-colorfigures-integrate-mba | 工作区标为 in-review，已 35.0 小时没人验收（没有 PR，分支 zhongc1211/per-70-colorfigures-integrate-mba）
+问题 | deepvision-ops | reported_not_accepted | dv官网 · FDV-70 Ryze对照图 | MBA:/Users/jiawenwang/orca/workspaces/deepvision-site/dv官网-FDV-70-Ryze对照图 | 工作区标为 completed，已 52.0 小时没人验收（没有 PR，分支 zhongc1211/dv官网-FDV-70-Ryze对照图）（63 个提交不在远端默认分支）
+问题 | vllm-omni | reported_not_accepted | vllm · PER-56 4090+A100 补跑（MBA） | MBA:/Users/jiawenwang/orca/workspaces/vllm-omni/vllm-PER-56-4090-A100-MBA | 工作区标为 completed，已 52.2 小时没人验收（没有 PR，分支 rebase-1019/pr2）（548 个提交不在远端默认分支）
+不发送（STUCK_NO_SEND），将 POST 给 coding-assistant：{"bot": "coding-assistant", "task": "[演练 PER-67 缺口7] ops · 45 分钟改报（重跑）", "worktree": "iMac:/Users/jiawenwang/orca/workspaces/ops/ops-PER80-drill-gap7c", "status": "stuck", "kind": "agent_idle", "note": "agent 停在输入框等输入已 46 分钟（Orca 状态：done），工作区还标着 in-progress，没有 notify-run 在跑；从 10-21 00:46 停下起，orca-wake 给派活 bot e2e-down 的补叫醒 46 分钟一直没送达（它的 webhook 可能坏了），转给 coding-assistant：请转达 e2e-down 或看它的服务", "machine": "iMac", "source": "stuck-check"}
+结束：1 条嫌疑，0 条直发，0 条发送失败
+-- track.json
+{
+ "box_alerted": false,
+ "box_fail": 1,
+ "due": {
+  "due:due_no_agent:PER-112:2026-10-21:1792508427": {
+   "sent": 1792511711.9297578
+  },
+  "due:due_no_agent:PER-70:2026-10-21:1792510407": {
+   "sent": 1792512611.942453
+  },
+  "due:due_no_agent:PER-71:2026-10-21:1792463176": {
+   "sent": 1792511711.9297578
+  },
+  "due:due_no_agent:PER-72:2026-10-21:1792463185": {
+   "sent": 1792509921.827273
+  },
+  "due:due_no_agent:PER-73:2026-10-21:1792463195": {
+   "sent": 1792486217.899345
+  },
+  "due:due_no_agent:PER-74:2026-10-21:1792463204": {
+   "sent": 1792487117.958008
+  },
+  "due:due_no_agent:PER-89:2026-10-21:1792502239": {
+   "sent": 1792509921.827273
+  }
+ },
+ "last_full": 1792517565.6131022,
+ "main_seen": {},
+ "markers": {},
+ "mba_alerted": false,
+ "mba_fail": 0,
+ "post_fail": {},
+ "precheck_timeout": {
+  "ts": "<变>",
+  "v": 300.0
+ },
+ "screens": {
+  "term_045e1d16-4f92-4d0c-a230-a04c95ea1843": {
+   "hash": "2d53e3dcc89c2a1b8d4d25ba710237fe91a8923d",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_08530c43-7064-4864-9782-03d3ba5b3608": {
+   "hash": "679587d33c2a96b2bb2bef4369513617739af10a",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_244e06e3-564b-422a-8717-47cfe34d0f10": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792509921.827273,
+   "since": 1792508428.744
+  },
+  "term_2945869c-ad1c-4c61-ae54-d5af2cca0561": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792497787.363959,
+   "since": 1792497181.726
+  },
+  "term_2c78c29c-47e7-4d63-b423-cc3ed4165375": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792500563.8621,
+   "since": 1792494048.232
+  },
+  "term_32e07ae5-67f6-4983-a895-ac16868b769e": {
+   "hash": "9e757dae80f50101fd3d3d99067624ddeb65ab99",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_3e2356c7-a5f4-4617-9de9-33a59b811d0c": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_45b07008-51c3-4bf6-b2fe-923c0662add1": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_6827dbee-02cb-460a-9134-8009e9a3c48e": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_79be8949-bb9d-482e-816b-1f6dd0d2e7c1": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792352599.232
+  },
+  "term_7b625fe0-781d-4c67-995d-e3bfbc651f64": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_804188c0-0498-44cd-920f-559d88ecb06a": {
+   "hash": "8965e179719040eb21629e650eef45ceddfc84e6",
+   "seen": 1792509921.827273,
+   "since": 1792509969.681
+  },
+  "term_9ff423e5-660f-46d5-80de-5a481618499d": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_b58c0137-3233-4c99-b37c-7b1fbdfb0d88": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792509921.827273,
+   "since": 1792509948.492
+  },
+  "term_ddb45c6e-9d8b-4516-a817-7181788a8e85": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  },
+  "term_fd8ed590-3a7c-4adf-aae0-ff38b5984701": {
+   "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+   "seen": 1792506205.2132218,
+   "since": 1792464137.337455
+  }
+ },
+ "undelivered": {},
+ "unwrapped": {
+  "box:2117862": {
+   "automation": true,
+   "start": "<变>"
+  },
+  "box:2216497": {
+   "automation": true,
+   "start": "<变>"
+  },
+  "box:2216736": {
+   "automation": true,
+   "start": "<变>"
+  },
+  "box:2246912": {
+   "automation": true,
+   "start": "<变>"
+  }
+ }
+}

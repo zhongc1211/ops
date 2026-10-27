@@ -1,0 +1,1 @@
+/usr/local/bin/bash scripts/ws-cleanup.sh --execute --only-from reports/ws-cleanup-rework-r2/imac/run2-bash5.3/worktrees.tsv --out reports/ws-cleanup-exec-1021/imac/run1  # started 2026-10-21 08:22:59
