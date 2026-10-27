@@ -36,13 +36,15 @@ Paperclip claude_local engine=cli
 | 同文件 `7003–7014,7156–7199` | 列运行、读运行、取消单次运行；列表最多一千条，不能假定无限历史 |
 | `server/src/routes/issues.ts:13491–13533` | done 遇 active runner goal 可能先停运行；本方案仅接受 CLI 非 native，无 goal 的常规 routine；实际 E2E 必核 |
 | 同文件 `3602–3617` | 没有 runner goal 时该额外停止分支返回空 |
+| 同文件 `8414–8437`；`server/src/services/runner-goals.ts:276–349` | GET runner-goal 可指定 agent；返回绑定、goal 和 pendingAction。host 在启动前及 done 前要求同一绑定且后二者明确为 null，不把非 native 当无 goal |
 | `server/src/routes/agents.ts:745–750,5305–5365` | 指令读回 content + revision；更新须带 baseRevisionId |
+| 同文件 `5557–5558,5608–5628`；`packages/shared/src/validators/agent.ts:157` | replaceAdapterConfig=true 才跳过同类型 adapter 的默认浅合并；回滚须用全量替换移除新增键 |
 
 宿主在结果交给 adapter 之前核 Linear 并 done；失败时**先持久熔断再暂停**，因为暂停 API 会杀本进程。停止模型和熔断不是模型能请求的管理工具。
 
 ## 什么算写成
 
-1. 从服务端核 run/company/agent/task、issue executionRunId 和指定 routine 归属；不相信模型输出中的标识。
+1. 从服务端核 run/company/agent/task、issue executionRunId 和指定 routine 归属；不相信模型输出中的标识。同时读本次 issue/agent 的 runner-goal projection，要求 goal、pendingAction 明确为空；启动前与 done PATCH 前各核一次，未知／404／缺字段拒绝。即使 goal 已 complete 也拒绝，不扩展到带 goal 的任务。检查与 PATCH 不是原子事务，外部管理员并发改 goal 仍可能使 PATCH 失败或取消当前 run；不得声称消除了这种竞态。
 2. 从模板顶部唯一的 issue 字段选 PER 卡；空／缺省值归 PER-67 汇总，非 PER 或多义值拒绝。note/log_tail 中的目标不算。
 3. 宿主生成随机一次性标记，含本次 run；读目标卡已有评论，保存旧评论集合；在私有 active.json 保存本次上下文。
 4. helper 只对该目标写一次，正文最后一行须精确标记、禁止 [Zack答]，先持久写意图。超时／不明响应不重试。
@@ -61,7 +63,7 @@ Paperclip claude_local engine=cli
 - **不是精确计费硬上限**：CLI 的 max-budget 是估算，检查点之间可能超过；Paperclip 在 adapter 收尾后才可汇总当前 run，不能用旧 spentMonthlyCents 当实时花费。E2E 仍需人看时间／费用，超限立即停，不起第二次。月边界的保守预留不清旧月数据；API 账期不同时取较大值会更早停。
 - **输出体积**：stdout+stderr 超十六 MiB 熔断，防失控日志。
 
-失败（Paperclip 离线、Linear/Orca 读不到、认证失败、作者不符、无评论、超时、未知费用、绑定漂移）宁可保持 issue 未完成。暂停失败也保留 FUSED/INFLIGHT 并告警 stderr，后继包装执行不跑模型。不要把失败改成 done 来挡补跑。
+在 done PATCH 前失败（Paperclip 离线、Linear/Orca 读不到、认证失败、作者不符、无评论、超时、未知费用、绑定或 goal 漂移）不标完成，熔断暂停。若 PATCH 已生效但其响应／随后 GET／证据落盘失败，issue 可能已是 done：仍熔断，报告“评论已核，处置或收尾证据待核”，由人只读核实，不自动重开 issue 或重跑模型。暂停失败也保留 FUSED/INFLIGHT 并告警 stderr，后继包装执行不跑模型。不要把失败改成 done 来挡补跑。
 
 ## 安装与回滚（本轮均没执行）
 
@@ -76,11 +78,12 @@ bash paperclip/imac/ops-system/install.sh --apply --claude "$HOME/.local/bin/cla
 bash paperclip/imac/ops-system/install.sh --rollback '<本次备份目录>' --apply
 ```
 
-- apply 前检查 paused、运行零条、原 extraArgs 和 skip=false，调用 key-fill --check（只看有无）；不读取密钥文件。
+- 安装 apply 前检查 paused、运行零条、原 extraArgs 和 skip=false，调用 key-fill --check；仅退出码零且 stdout 去首尾空白后精确为“有”才继续。“没有”、空输出、未知输出、非零或超时，都在 mkdir／备份／文件写入／API 修改之前停止；不读取密钥文件。回滚不以 key 存在为前提，不因 key 缺失阻止恢复旧配置。
 - 先备份 settings、指令内容、adapterConfig、两条 routine 的描述／策略、已有宿主文件。再原子写、mode 600（可执行脚本 700）、更新指令和 adapter command；extraArgs 不变；routine 设 coalesce_if_active / skip_missed，不改 trigger。
-- 指令更新用当前 revision，读回 content；settings 内容及模式读回；agent paused、零运行、原 extraArgs／非 skip 读回。宿主文件 manifest 每次模型启动前核。
+- 安装读回完整 API 可见 adapterConfig，必须与本次期望对象完全相等（含 command、timeoutSec=900、graceSec=5、extraArgs、skip=false）；两条 routine 各自的 description／concurrencyPolicy／catchUpPolicy 逐字段比较，缺字段也失败。指令内容、入口及新 revision、settings 内容／600、paused／零运行均须符合。host/helper 落盘摘要另与仓库文件比较，host.json 与构造对象比较，之后才记 manifest；运行前也核 manifest。
 - 幂等重跑不删 claim、FUSED、INFLIGHT 或预算预留。安装后有运行历史时拒绝再次安装；应人工定维护方案，不能清运行历史绕过。
-- 回滚还原原内容和策略；宿主状态保留作证据，agent 仍暂停，不恢复、不触发。
+- 回滚先用当前 baseRevisionId 把备份指令内容提交成**新 revision**，再以 `replaceAdapterConfig: true` 全量恢复备份配置（不改 adapterType），不是默认浅合并；原来没有的 command／timeoutSec／graceSec 必须消失。配置替换后再读指令入口、内容及 revision，须仍指向刚提交的版本，不假装回到历史 revision。
+- 回滚只有在完整 API 可见 adapterConfig 与备份完全相等、两条 routine 三字段与备份相等、指令／revision／settings 摘要与600／paused 都读回符合时才打印成功；任一差异即失败，不能只核 paused。保留宿主文件和状态作证据不等于仍允许执行宿主；不恢复、不触发。
 - 脚本故障后保持暂停，检查本次备份再回滚；不是跨 API／文件系统事务，未声称部分失败自动全部回滚。
 
 ## 指令来源及可重复步骤
@@ -104,7 +107,7 @@ AGENTS.md 是人工收敛的生成结果，不在仓库存私有原人设。重�
 
 只改仓库代码，不安装两台 notify-run/orca-wake。只对 ops-system 将所有反引号／波浪线改成全角字符，涵盖内联、缩进和围栏；其他标量换行变字面转义，避免伪造顶部 issue 字段。note/log_tail 仍保留换行。静态围栏只是呈现层，不承担权限隔离。
 
-orca-wake 的键为机器+bot+既有 dedup_key 的摘要；notify-run 没旧事件键，以机器+启动时间+本次 mktemp 随机名作键，并写 payload。重试循环之外生成，同次超时重试相同，独立启动不同。只对 ops-system 发送 Idempotency-Key；其它 bot 行为不变。
+orca-wake 的键为机器+bot+既有 dedup_key 的摘要；notify-run 没旧事件键，以机器+启动时间+本次 mktemp 随机名+**显式事件类型+status** 作键，并写 payload。start_watch 使用 startup-warning，finish 使用 final；同一进程的 stuck 预警与最终 done/failed/killed 因事件类型不同而不会互相去重。每个事件的键在其重试循环之外固定，重试不重新生成；两个事件也分别使用 payload 文件，避免彼此覆盖待重试正文。只对 ops-system 发送 Idempotency-Key；其它 bot 不增加 header。
 
 服务端依据：`routes/routines.ts:669`；`services/routines.ts:1799–1836,3044–3108`。bearer 去重范围 company/routine/source/trigger/key；记录保留期间无 TTL。setupPending 收据单独记，不能拿测试收据去触发正式 run。去重不能代替收尾，也不抵消 model 内部补跑。
 
@@ -115,11 +118,12 @@ orca-wake 的键为机器+bot+既有 dedup_key 的摘要；notify-run 没旧事�
 验收方先核静态代码及权限负例，再由主会话问 Zack 装不装、跑不跑第 81 条那次。必须包括：curl/python/node、命令替换、管道、重定向、环境前缀、原始 orca 的其它命令和远程参数、gh pr merge、写设置／台账／宿主文件均被拒；helper 正例只用假目录或只读，不真的写 Linear。
 
 获批安装且核过以后，单次 E2E：
-1. 查安装哈希、600、paused、零 run、key 存在、settings 唯一 helper；确认外部 timeout 和 Orca 在场。确认订阅自查通过，宿主配置的 Linear 作者正确。任何一项不符就不跑。
-2. 仅验收方按批准恢复，测试 routine 触发一次；bearer 只由脚本读，经 stdin／header，不输出、不作命令行参数。正式 routine bearer 不用。setupPending 的更改须核对该次批准范围，不能把测试回执当真实运行。
-3. 模型只在 PER-67 写一条 `[演练] S12 ③ E2E` 评论，末行本次标记。核 helper 回执、Linear 读回、issue done，以及实际 Claude argv 的 dontAsk／无 skip；Paperclip 记录显示的是 host command，要另核宿主生成的真 Claude 参数。
-4. 经管理端 GET `/api/heartbeat-runs/<本次运行>`、GET `/api/companies/<本次公司>/heartbeat-runs?agentId=<本次agent>&limit=1000` 观察开始时间／usage／cost（当前 run 尚未收尾时可能未上报）；同时核私有 last-invocation（真 Claude argv）、last-model-result（本次成本）、last-success 和 FUSED/INFLIGHT。失败路径可能未把 Claude 输出交还 adapter，因此 Paperclip 的零费用不能代替私有成本记录或账单；记录缺失就记未知，不再运行。不可只看 routine run。
-5. 超两美元或十五分钟没结束，POST `/api/heartbeat-runs/<本次运行>/cancel`，随后 POST `/api/agents/<本次agent>/pause`，GET agent 确认 paused。无论成功失败，结束都立即暂停读回。失败不跑第二次。
-6. 核全部关联 heartbeat run（含 scheduled_retry/queued/cancelled），应只有一次、无补跑；检查包装调用次数和 Linear 仅一条评论。多出记录也算失败，不能用“没实际花钱”掩盖。
+1. 查安装哈希、600、paused、零 run、key 存在、settings 唯一 helper；确认外部 timeout 和 Orca 在场。确认权限验收通过、宿主配置的 Linear 作者正确、安装完整读回通过。**触发前还须确定本次 run 的费用来源和刷新时效**；只有终态 last-model-result／可能滞后的 Paperclip 累计值不构成运行中的观测来源。本轮没有验证实时费用来源，若仍没有，前提不成立，不恢复／不触发，交主会话向 Zack 说明缺口；不能自行改成“只靠两美元 CLI 参数就跑”。
+2. 仅验收方按批准恢复，测试 routine 触发一次；bearer 只由脚本读，经 stdin／header，不输出、不作命令行参数。正式 routine bearer 不用。setupPending 的更改须核对该次批准范围，不能把测试回执当真实运行。触发前存空运行列表基线，触发后固定本次 run/issue/routine 的绑定，后续不再触发。
+3. 模型只在 PER-67 写一条 `[演练] S12 ③ E2E` 评论，末行本次标记。核 helper 回执、Linear 读回、issue done，以及实际 Claude argv 的 dontAsk／无 skip；Paperclip 记录显示的是 host command，要另核宿主生成的真 Claude 参数。核两次 runner-goal 检查无 goal／pending action；未知或带 goal 不得以“非 native”代替核实。
+4. 从运行开始立即取样，之后**每五秒**读本次 heartbeat run 和该 agent 的完整 heartbeat 列表（GET `/api/heartbeat-runs/<本次运行>`、GET `/api/companies/<本次公司>/heartbeat-runs?agentId=<本次agent>&limit=1000`），同时读约定费用来源及私有 last-invocation、last-model-result、last-success、FUSED/INFLIGHT。费用须绑定本次 run、覆盖当前已发生调用、并符合来源已核实的刷新时效，最长不得超过十秒；未上报、只有旧零值、来源不可达／过期、或数值冲突都记**未知，不当零**。
+5. **任一取样费用未知就立刻停止本次运行并暂停**，不等到十五分钟或等它以后补报；不再起第二次。超过两美元、十五分钟未结束、观察到额外 run 或状态／接口不可核实也走同样流程：POST `/api/heartbeat-runs/<本次运行>/cancel`，随后 POST `/api/agents/<本次agent>/pause`，GET agent 确认 paused，并只读核模型组已退出。取消请求失败也必须尝试 pause，不因取消的 HTTP 错误跳过暂停；取消未确认或模型还在就记失败并请人工处理，不宣称已安全停止。运行已经终态但费用未知，仍暂停、保留记录、只读补查费用，结果保持失败／未核实；不能重跑来补成本证据。CLI cap 是估算，五秒轮询也不是瞬时账单硬闸。
+6. 第一个 run 一到终态，成功失败都立即暂停并 GET 确认；**不为观察补跑而保持 agent 可运行**。以“本次 run 已终态且已读回 paused”的较晚时刻为 T0，继续只读观察 **十五分钟，每五秒一次**，T0+十五分钟再做最终快照。每次查同一 agent 的全部 run、当前 issue、测试 routine 的 runs 和宿主状态；列表触及一千条上限、返回不完整或任何取样失败都判观察不完整，不用空列表算通过，也不靠再次恢复弥补。
+7. “本窗口内无补跑”通过条件必须同时满足：相对空基线始终恰有本次一个 heartbeat run；本次为 succeeded、issue 为 done、对应 routine run 为 completed、agent 持续 paused；没有任何 queued/running/scheduled_retry，没有第二个 run（即便第二个已经 cancelled/failed/timed_out/interrupted/succeeded 也失败），没有新增包装调用、FUSED 或残留 INFLIGHT，Linear 仅一条本次演练评论。活动／终态枚举依据 `services/heartbeat.ts:793–817`。发现额外记录即记失败并确保该 agent 仍暂停，不等 scheduled_retry 到点才处理。这里是规定观察窗口的证据，**不是“以后永远不会补跑”的证明**；即使 claim 阻止了第二次模型、没多花钱，第二条 heartbeat 记录仍算失败。
 
 所有上述读写管理调用都由验收宿主执行，绝不塞进模型 allowlist。当前没有真实 E2E，不转 ready。

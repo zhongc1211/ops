@@ -52,6 +52,29 @@ def write(path, data, mode=0o600):
     os.replace(temp, path)
 
 
+def readback_configuration(api, aid, adapter_config, routines):
+    """Compare the whole API-visible adapter object, not just retained keys.
+    No mismatch is repaired here; do not print success for a partial rollback.
+    """
+    agent = api('GET', '/agents/' + aid)
+    host.require(agent['status'] == 'paused', 'agent_not_paused_on_readback')
+    host.require(agent['adapterConfig'] == adapter_config, 'adapter_config_readback_mismatch')
+    host.require(len(routines) == 2, 'expected_two_routines')
+    for rid, expected in routines.items():
+        host.require(set(expected) == {'description', 'concurrencyPolicy', 'catchUpPolicy'}, 'incomplete_routine_snapshot')
+        actual = api('GET', '/routines/' + rid)
+        host.require({key: actual[key] for key in expected} == expected, 'routine_readback_mismatch')
+
+
+def readback_instruction(api, route, content, committed):
+    actual = api('GET', route + '?path=AGENTS.md')
+    host.require(actual['content'] == content and actual['path'] == 'AGENTS.md', 'instruction_readback_mismatch')
+    # Rollback restores bytes as a NEW revision, never rewinds to the old revision.
+    # Check after config replacement too: restored paths must resolve that revision.
+    revision = committed['revision']['id']
+    host.require(actual['revision']['id'] == revision, 'instruction_revision_readback_mismatch')
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--apply', action='store_true')
@@ -87,28 +110,35 @@ def main():
         backup = a.rollback.resolve()
         saved = json.loads((backup / 'snapshot.json').read_text())
         host.require(saved['agent'] == aid and saved['company'] == cid, 'wrong_backup')
-        api('PUT', bundle_route, {'path': 'AGENTS.md', 'content': saved['instructions'],
+        restored_instruction = api('PUT', bundle_route, {'path': 'AGENTS.md', 'content': saved['instructions'],
                                 'baseRevisionId': (old_instruction.get('revision') or {}).get('id')})
-        api('PATCH', '/agents/' + aid, {'adapterConfig': saved['adapterConfig']})
+        # v2026.1012.0 routes/agents.ts:5557–5558,5608–5628:
+        # default PATCH shallow-merges; true is required to REMOVE newly added keys.
+        api('PATCH', '/agents/' + aid, {'adapterConfig': saved['adapterConfig'],
+                                      'replaceAdapterConfig': True})
         for name, value in saved['routines'].items():
             api('PATCH', '/routines/' + name, value)
         write(target, (backup / 'settings.json').read_bytes())
         for name in ('host.py', 'linear-safe.py', 'host.json', 'manifest.json'):
             if (backup / name).exists():
                 write(root / name, (backup / name).read_bytes(), 0o700 if name.endswith('.py') else 0o600)
-        host.require(api('GET', bundle_route + '?path=AGENTS.md')['content'] == saved['instructions'], 'rollback_instruction_mismatch')
-        host.require(digest(target) == digest(backup / 'settings.json'), 'rollback_settings_mismatch')
+        readback_configuration(api, aid, saved['adapterConfig'], saved['routines'])
+        readback_instruction(api, bundle_route, saved['instructions'], restored_instruction)
+        host.require(digest(target) == digest(backup / 'settings.json')
+                     and stat.S_IMODE(target.stat().st_mode) == 0o600, 'rollback_settings_mismatch')
         # Keep host files/fuse/claims; never erase evidence or re-enable the model.
-        host.require(api('GET', '/agents/' + aid)['status'] == 'paused', 'rollback_not_paused')
-        print('ROLLBACK read back; paused; host state retained')
+        print('ROLLBACK read back: full adapterConfig, two routines, instructions/revision, settings; paused; host state retained')
         return
     host.require(a.claude is not None and a.claude.is_absolute() and a.claude.is_file(), 'claude_path_required')
     host.require(a.linear_author and len(a.linear_author) <= 100, 'linear_author_required')
     host.require(agent['adapterConfig'].get('dangerouslySkipPermissions') is False, 'unsafe_existing_config')
     provision = load_provision()
     host.require(agent['adapterConfig'].get('extraArgs') == provision.EXTRA_ARGS, 'extra_args_changed')
-    # --check reports presence only; never --fill or open the underlying key file.
-    subprocess.run(['/bin/bash', str(HERE.parent / 'key-fill.sh'), '--check'], check=True, timeout=60)
+    # key-fill --check exits zero for BOTH 有 and 没有. Require the affirmative
+    # output before any mkdir/backup/file write/API mutation; unknown is a refusal.
+    key_check = subprocess.run(['/bin/bash', str(HERE.parent / 'key-fill.sh'), '--check'],
+                               capture_output=True, text=True, timeout=60)
+    host.require(key_check.returncode == 0 and key_check.stdout.strip() == '有', 'key_not_confirmed_present')
     routines = api('GET', '/companies/' + cid + '/routines')
     selected = [r for r in routines if r['title'] in (os.environ['ROUTINE_OPS_TITLE'], os.environ['ROUTINE_TEST_TITLE'])]
     host.require(len(selected) == 2, 'missing_routines')
@@ -148,27 +178,31 @@ def main():
     host.store(root / 'host.json', conf)
     write(target, expected.encode())
     content = (HERE / 'AGENTS.md').read_text()
+    committed_instruction = old_instruction
     if old_instruction['content'] != content:
-        api('PUT', bundle_route, {'path': 'AGENTS.md', 'content': content,
+        committed_instruction = api('PUT', bundle_route, {'path': 'AGENTS.md', 'content': content,
                                 'baseRevisionId': (old_instruction.get('revision') or {}).get('id')})
     # Re-read config: instruction API may have updated its managed path/revision fields.
     config = api('GET', '/agents/' + aid)['adapterConfig']
     config.update({'command': str(root / 'host.py'), 'timeoutSec': 900, 'graceSec': 5,
                    'dangerouslySkipPermissions': False})
     api('PATCH', '/agents/' + aid, {'adapterConfig': config})
+    expected_routines = {}
     for routine in selected:
         template = next(r['description'] for r in provision.ROUTINES if r['title'] == routine['title'])
-        api('PATCH', '/routines/' + routine['id'], {'description': template,
-              'concurrencyPolicy': 'coalesce_if_active', 'catchUpPolicy': 'skip_missed'})
+        expected_routines[routine['id']] = {'description': template,
+              'concurrencyPolicy': 'coalesce_if_active', 'catchUpPolicy': 'skip_missed'}
+        api('PATCH', '/routines/' + routine['id'], expected_routines[routine['id']])
+    for name in ('host.py', 'linear-safe.py'):
+        host.require(digest(root / name) == digest(HERE / name), 'host_file_readback_mismatch')
+    host.require(json.loads((root / 'host.json').read_text()) == conf, 'host_config_readback_mismatch')
     host.store(root / 'manifest.json', {str(f): digest(f) for f in (target, root / 'host.py', root / 'linear-safe.py', root / 'host.json')})
-    readback = api('GET', '/agents/' + aid)
-    host.require(readback['status'] == 'paused', 'agent_changed_status')
-    host.require(readback['adapterConfig']['extraArgs'] == provision.EXTRA_ARGS, 'extra_args_changed')
-    host.require(readback['adapterConfig']['dangerouslySkipPermissions'] is False, 'unsafe_readback')
-    host.require(api('GET', bundle_route + '?path=AGENTS.md')['content'] == content, 'instruction_mismatch')
+    # Whole-object equality includes command/timeoutSec/graceSec/extraArgs/skip.
+    readback_configuration(api, aid, config, expected_routines)
+    readback_instruction(api, bundle_route, content, committed_instruction)
     host.require(target.read_text() == expected and stat.S_IMODE(target.stat().st_mode) == 0o600, 'settings_mismatch')
     host.require(api('GET', '/companies/' + cid + '/heartbeat-runs?agentId=' + aid + '&limit=1000') == [], 'runs_changed')
-    print('PASS: hashes/settings mode/paused/zero runs/extraArgs; backup:', backup)
+    print('PASS: full adapterConfig/two routines/instructions revision/hashes/settings mode/paused/zero runs; backup:', backup)
     print('Instructions sha256:', hashlib.sha256(content.encode()).hexdigest())
     print('Settings sha256:', digest(target))
 

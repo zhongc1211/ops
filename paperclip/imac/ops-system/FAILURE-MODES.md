@@ -35,3 +35,13 @@
 | Orca 未启动、CLI 超时或响应结构改变 | 只读验证 CLI 与结构，模拟失败 | 严格解析并限时；不标 done、暂停、写不含凭据的日志 |
 | 包装脚本污染 adapter stdout 或隐藏实际权限参数 | 查 stream-json 协议和命令记录 | 原样传递 claude 输出，宿主日志独立；校验 dontAsk／非 skip，保留真实启动证据 |
 | 安装覆盖非预期状态或回滚后放宽权限 | 检查 dry-run、备份、原子写、读回 | 本轮不 apply；安装前 paused/零运行，备份后验证摘要／模式；回滚也保持暂停 |
+
+## 第 3 轮：代码验收发现（修复前记录）
+
+| 风险 | 怎么发现 | 怎么防／验收门槛 |
+| --- | --- | --- |
+| F1 同一 notify-run 的启动预警吞掉最终通知 | 对照 start_watch、finish 与服务端幂等键查询 | 显式区分 startup-warning / final 事件，事件内重试键不变，事件间 payload 文件也分开 |
+| F2 key-fill --check 打印“没有”但退出零 | 核 key-fill.py 的输出契约及 install 控制流 | 仅退出零且完整去空白输出等于“有”才允许安装；在创建备份、写文件或 API 修改前检查 |
+| F3 浅合并回滚遗留宿主 command | 核 agents PATCH 的 replaceAdapterConfig 分支 | 显式全量替换，逐项完整比较 adapterConfig、两条 routine 三字段、指令的新 revision／内容与 paused；不符不得报成功 |
+| 非 native 仍有关联 runner goal | 核 runner-goal projection 与 done 的停 goal 分支 | 启动前及 done 前核同一 issue/agent 的 goal 和 pendingAction 明确为空；未知响应拒绝 |
+| 费用未知被当成零；瞬时列表没有补跑被当成最终结论 | 核验收观察频率、终态及异步队列 | 未知即停，不凭零继续等；暂停后持续观察规定窗口和运行集合，发现任何新增 run 都失败，不恢复来等补跑 |

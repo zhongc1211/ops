@@ -129,6 +129,13 @@ def identity():
     require(issue.get('originKind') == 'routine_execution' and issue.get('originId') in CONF['routines'], 'not_allowed_routine')
     require(issue.get('executionRunId') == run_id and run['status'] == 'running', 'execution_not_owned')
     require(issue['status'] in ('todo', 'in_progress'), 'issue_not_open')
+    # CLI/non-native does NOT imply no runner goal. This is called before spawn
+    # and again immediately before done. Unknown/404/partial responses fail closed.
+    # v2026.1012.0 routes/issues.ts:8414–8437; services/runner-goals.ts:276–349.
+    projection = api('GET', '/issues/' + issue_id + '/runner-goal?agentId=' + CONF['agent'])
+    require(projection['issueId'] == issue_id and projection['agentId'] == CONF['agent']
+            and projection['adapterType'] == 'claude_local', 'goal_binding_mismatch')
+    require(projection['goal'] is None and projection['pendingAction'] is None, 'runner_goal_present')
     return run_id, issue_id, issue
 
 
