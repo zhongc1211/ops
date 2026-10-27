@@ -13,7 +13,6 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
 
 from local_state import atomic_write, maintain_logs
 from prod_fetch import WORKERS
@@ -203,16 +202,25 @@ def main():
     ap.add_argument('--ledger', type=Path, default=os.environ.get('PROD_LEDGER'))
     ap.add_argument('--fetch-rc', type=int, default=0)
     ap.add_argument('--init-baseline', action='store_true')
-    ap.add_argument('--no-wake', action='store_true', help='仅允许临时目录；只打印叫醒，不发送')
+    ap.add_argument('--no-wake', action='store_true', help='仅允许固定 /tmp 下的隔离目录（macOS 为 /private/tmp）；只打印不发送')
     args = ap.parse_args()
     args.state_dir = args.state_dir.expanduser().resolve()
     args.ledger = (args.ledger or args.state_dir / 'prod-ledger.md').expanduser().resolve()
     if args.ledger.parent != args.state_dir:
         ap.error('台账必须位于 --state-dir 内；隔离运行请显式指定状态目录')
     if args.no_wake:
-        roots = (Path('/tmp').resolve(), Path(tempfile.gettempdir()).resolve())
-        if not all(any(root in p.parents for root in roots) for p in (args.state_dir, args.ledger)):
-            ap.error('--no-wake 只允许状态和台账都在临时目录')
+        # Independent production deny, including symlink aliases into /tmp.
+        production = (Path.home() / '.orca-state/prod-watch').resolve()
+        paths = (args.state_dir, args.ledger)
+        if any(p == production or production in p.parents for p in paths):
+            ap.error('--no-wake 拒绝正式状态目录及其子路径')
+        # Never use tempfile.gettempdir(): TMPDIR/TEMP/TMP can widen that root,
+        # and its writable-directory probe can write before we reject a path.
+        # Darwin's per-user confstr temp query may also create a directory;
+        # deliberately support only the fixed system root, not that directory.
+        root = Path('/private/tmp' if sys.platform == 'darwin' else '/tmp').resolve()
+        if not all(root in p.parents for p in paths):
+            ap.error('--no-wake 只允许状态和台账都在固定系统临时目录的子目录')
     if args.cmd == 'latest':
         try:
             for r in {r['Worker']: r for r in read_rows(args.ledger)}.values():
