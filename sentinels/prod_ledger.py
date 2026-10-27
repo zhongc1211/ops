@@ -88,6 +88,24 @@ def wake(args, title, body):
         log(args, '叫醒失败：' + type(e).__name__ + '；仍未报')
 
 
+def parse_created_on(value):
+    """Accept RFC3339 fractional seconds on macOS Python 3.9 too.
+
+    Python 3.9 fromisoformat only accepts certain fractional widths; Cloudflare
+    can return other widths. Normalize to microseconds before parsing, without
+    accepting missing timestamps, invalid calendar values, or missing offsets.
+    The ledger displays minutes, so sub-microsecond truncation loses no display data.
+    """
+    if not isinstance(value, str):
+        raise ValueError('deployment 时间字段不是字符串')
+    match = re.fullmatch(r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})', value)
+    if not match:
+        raise ValueError('deployment 时间字段不是 RFC3339')
+    base, fraction, zone = match.groups()
+    normalized = base + ('.' + (fraction + '000000')[:6] if fraction else '')
+    return dt.datetime.fromisoformat(normalized + ('+00:00' if zone == 'Z' else zone))
+
+
 def validate(data, rc):
     if rc != 0 or not isinstance(data, dict) or data.get('errors'):
         raise ValueError('Cloudflare 查询失败')
@@ -99,7 +117,7 @@ def validate(data, rc):
     for w in workers:
         if not isinstance(w['deployment_id'], str) or not w['deployment_id'] or not w['versions']:
             raise ValueError('缺 deployment 或版本')
-        dt.datetime.fromisoformat(w['created_on'].replace('Z', '+00:00'))
+        parse_created_on(w['created_on'])
         for v in w['versions']:
             if not v.get('id') or v.get('error') or v.get('number') is None:
                 raise ValueError('版本查询不完整')
@@ -116,7 +134,7 @@ def row_for(w, baseline):
         if m:
             commit = m.group(0)
             break
-    cells = [dt.datetime.fromisoformat(w['created_on'].replace('Z', '+00:00')).astimezone(SGT).strftime('%Y-%m-%d %H:%M'),
+    cells = [parse_created_on(w['created_on']).astimezone(SGT).strftime('%Y-%m-%d %H:%M'),
              w['worker'], number, '+'.join(v['id'] for v in versions), w['deployment_id'], commit,
              'ops · 23 哨兵', '—', '已知' if baseline else '未报',
              '本机基线；不追溯报告历史' if baseline else '通知不代表已报']
