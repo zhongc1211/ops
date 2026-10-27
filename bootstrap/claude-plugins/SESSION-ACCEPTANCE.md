@@ -20,11 +20,13 @@ head=$("$T" 840 gh pr view 48 --repo zhongc1211/ops --json headRefOid --jq .head
 "$T" 840 git -C "$repo" cat-file -e "$head^{commit}"
 umask 077
 sandbox=$(mktemp -d /tmp/s11-session.XXXXXX)
+printf 'cleanup sandbox: %s\n' "$sandbox" >&2  # out 创建失败时也留确切路径
 realhome=$HOME
 CLAUDE="$realhome/.local/bin/claude"      # 核真实安装位置；不存在则停，不创建替身
 [ -x "$CLAUDE" ] || exit 66
 mkdir -p "$sandbox/home/.claude" "$sandbox/project" "$sandbox/src" "$out"
 chmod 700 "$sandbox" "$out"
+printf 'sandbox=%s\n' "$sandbox" > "$out/cleanup-paths.txt"
 src="$sandbox/src"
 "$T" 840 git -C "$repo" archive "$head" | tar -x -C "$src"
 printf '%s\n' "$head" > "$out/head.txt"
@@ -49,7 +51,7 @@ iso "$CLAUDE" plugin install --scope user superpowers@claude-plugins-official > 
 iso "$CLAUDE" auth status >/dev/null 2>&1 || { echo 'auth unavailable: STOP'; exit 1; }
 ```
 
-上面可能因登录/下载/安装记录字段失败；失败保留原日志，不能挑失败项重跑掩盖。不要把真 HOME 的 settings、.claude.json 或 credentials 拷进沙箱。需要登录时由操作者单独处理，不在验收脚本里自动 login，不改变现有钥匙串。
+上面可能因登录/下载/安装记录字段失败；失败保留原日志，不能挑失败项重跑掩盖。`set -e` 会中止当前 shell，但**没有通用 EXIT 自动清理**：确切路径已打印，并在 out 建好后记入 `cleanup-paths.txt`。前置失败也必须按第 5 节收尾；启动模型/peer 后不设无条件删目录的 EXIT trap，以免超时 shell 退出时仍活着的子进程失去设置文件。不要把真 HOME 的 settings、.claude.json 或 credentials 拷进沙箱。需要登录时由操作者单独处理，不在验收脚本里自动 login，不改变现有钥匙串。
 
 ### 安装记录、实际 manifest、deny 读回（先通过才跑模型）
 
@@ -89,6 +91,8 @@ superpowers 版本不作新升级决策，只记录此次沙箱真实装到的�
 
 ```bash
 session=$(mktemp /tmp/orca-claude-settings.XXXXXX)
+printf 'cleanup session: %s\n' "$session" >&2
+printf 'session=%s\n' "$session" >> "$out/cleanup-paths.txt"
 "$T" 840 python3 - "$src/wake/bin/orca-agent-launch" "$session" <<'PY'
 import pathlib,subprocess,sys,stat
 text=pathlib.Path(sys.argv[1]).read_text()
@@ -101,7 +105,7 @@ PY
 "$T" 840 shasum -a 256 "$sandbox/home/.claude/settings.json" > "$out/sandbox-before.sha"
 ```
 
-即使真实会话失败也保留其日志和 rc；**本轮验收结束、所有本轮会话退出后**删除 session。普通运行的成功 launcher 固定把文件放 /tmp（不接受 TMPDIR 重定向），macOS 系统 tmp_cleaner 每日清理过期内容；不是即时回收、没有固定回收时限。本手册不手动运行 tmp_cleaner，也不修改系统任务。
+即使真实会话失败也保留其日志和 rc；**本轮验收结束、所有本轮会话退出后**删除 session。普通运行的成功 launcher 固定把文件放 /tmp（不接受 TMPDIR 重定向），macOS 系统 tmp_cleaner 每日清理过期内容；不是即时回收、没有固定回收时限。系统只按文件老化清理，不识别会话生命周期；超长会话可能在运行中失去该文件，是否影响 Claude 重读仍没查实。本手册不手动运行 tmp_cleaner，也不修改系统任务。
 
 ## 3. 初始化、24 条 deny、人工 slash、允许项、对照
 
@@ -185,7 +189,7 @@ printf 'review-noslop\t%s\n' "$rc" >> "$out/rc.tsv"
 
 ## 5. 收尾、hash 与临时文件
 
-1. 核所有本轮模型进程已结束（不停止别的会话）。核 GitHub head 仍是本轮 head，否则这份证据不能用于新 head。
+1. 正常跑完或因 `set -e` 提前退出，都必须收尾。从 `cleanup-paths.txt` 或创建时的 stderr 取本轮确切路径，不能用通配符，也不要直接 source 这个记录文件。前置安装失败且尚未起模型时，可以在取完脱敏日志后删本轮目录；起过模型/peer 时，先核所有本轮进程已结束（不停止别的会话），再删设置/沙箱。核 GitHub head 仍是本轮 head，否则这份证据不能用于新 head。
 2. 逐行写结果表，包含登录/额度/timeout/缺字段/未获授权的所有失败及没跑，不挑重跑；需重跑必须保留失败首轮、说明原因并整轮执行。
 3. 再跑隔离 `pin --check`；对真 settings / 两份 plugin metadata 和候选沙箱 settings 计算 hash，与前面比较：
 
@@ -204,6 +208,7 @@ current=$("$T" 840 gh pr view 48 --repo zhongc1211/ops --json headRefOid --jq .h
 "$T" 840 test ! -e "$session"
 "$T" 840 rm -rf -- "$sandbox"
 "$T" 840 test ! -e "$sandbox"
+printf 'cleanup=confirmed absent\n' >> "$out/cleanup-paths.txt"
 ```
 
 如果超时后 Claude/peer 仍活着，不提前删除它依赖的设置，不扩大到停止其他进程；交主会话收尾。本手册会话结束后确切路径删除是主动收尾，系统 tmp_cleaner 是无人值守/异常退出情况下的延迟兜底；**本轮没有等待几天证明系统实际删除，也没有证明真实成功 launcher 会话的加载/退出行为**，这些不能写成已通过。

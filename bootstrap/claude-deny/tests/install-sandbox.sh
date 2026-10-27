@@ -2,8 +2,10 @@
 # PER-89 installer checks on a copy of a real settings.json (the source file is only read).
 #   tests/install-sandbox.sh --live <settings.json to copy> --out <evidence dir>
 # Checks: dry-run = apply result; second apply writes nothing and makes no backup; first apply leaves a
-# .bak-<YYYYmmddHHMMSS> equal to the original; --check 0 after apply, 1 before; uninstall removes every PER-89
-# item and copying the .bak back restores the original bytes; failed backup = no write, non-zero exit; changing ./hook-timeout moves both hooks' timeout and --check
+# .bak-<YYYYmmddHHMMSS>-<random> equal to the original (no timestamp-only name);
+# --check 0 after apply, 1 before; uninstall removes every PER-89
+# item and copying the selected settings backup back restores the original bytes;
+# failed backup = no write, non-zero exit; changing ./hook-timeout moves both hooks' timeout and --check
 # follows it, and a hard-coded timeout in the fragment makes that check fail (regression).
 set -uo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)
@@ -45,7 +47,7 @@ check "apply result = dry-run result" "$(sha "$T/dry.json")" "$(sha "$S/settings
 baks=$(ls "$S"/settings.json.bak-* 2>/dev/null | wc -l | tr -d ' ')
 check "first apply makes one backup" 1 "$baks"
 b=$(ls "$S"/settings.json.bak-* 2>/dev/null | head -1)
-check "backup name is .bak-YYYYmmddHHMMSS" yes "$( [[ ${b##*.bak-} =~ ^[0-9]{14}$ ]] && echo yes || echo no)"
+check "backup name is .bak-YYYYmmddHHMMSS-random" yes "$( [[ ${b##*.bak-} =~ ^[0-9]{14}-[a-z0-9_]+$ ]] && echo yes || echo no)"
 check "backup equals original" "$orig" "$(sha "$b")"
 check "hook script installed 755" "-rwxr-xr-x" "$(ls -l "$S/hooks/disabled-cmd-prompt-guard.sh" | cut -c1-10)"
 after=$(sha "$S/settings.json"); sleep 1
@@ -65,7 +67,8 @@ check "key-order-only difference: apply writes nothing" "$reord" "$(sha "$S/sett
 check "key-order-only difference: no new backup" 1 "$(ls "$S"/settings.json.bak-* | wc -l | tr -d ' ')"
 check "timeouts come from hook-timeout ($(cat "$here/hook-timeout"))" "[$(cat "$here/hook-timeout")] [$(cat "$here/hook-timeout")]" "$(timeouts "$S/settings.json")"
 
-# 2. uninstall removes every PER-89 item; full rollback = copy the .bak back
+# 2. This fixture starts without a guard: uninstall removes the added guard/items;
+# copying the selected settings backup restores its original bytes (not a full plugin rollback).
 sleep 1; inst --uninstall
 check "uninstall leaves no PER-89 items" 0 "$(grep -c -E 'Skill\(skill:|PER-89|disabled-cmd-prompt-guard' "$S/settings.json")"
 check "uninstall removes hook script" no "$([ -e "$S/hooks/disabled-cmd-prompt-guard.sh" ] && echo yes || echo no)"
