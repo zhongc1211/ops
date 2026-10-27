@@ -1,6 +1,8 @@
-# S12 ③：宿主收尾草案（未安装，未 E2E）
+# S12 ③：宿主收尾草案（第 4 轮修复待验收）
 
-依据批准第 82 条，只交设计与代码。合并、安装和第 81 条单次演练均未执行；验收后须再问 Zack。不得把本目录的脚本运行权限当作安装批准。
+第3轮版本已由独立验收方安装；第89条及收尾批准后执行的一次 E2E **失败，未重跑**：adapter 注入 MCP 参数，旧 host 在起模型前熔断。报告为私有归档 `E2E-s12-3.md` 的「最终续办」。该次触发额度已经用掉，不能因没启动模型而再次使用。
+
+本目录第4轮只交修复和默认 dry-run 收尾脚本，**没有安装新版本、清状态或触发**。按既有报告，agent paused、测试 trigger disabled、OPS-1 blocked；本轮没有在线重新核状态。新安装、收尾 apply、再次 E2E 都须分别获准，不能把脚本权限或本轮交付当批准。
 
 ## 设计与信任边界
 
@@ -41,6 +43,33 @@ Paperclip claude_local engine=cli
 | 同文件 `5557–5558,5608–5628`；`packages/shared/src/validators/agent.ts:157` | replaceAdapterConfig=true 才跳过同类型 adapter 的默认浅合并；回滚须用全量替换移除新增键 |
 
 宿主在结果交给 adapter 之前核 Linear 并 done；失败时**先持久熔断再暂停**，因为暂停 API 会杀本进程。停止模型和熔断不是模型能请求的管理工具。
+
+## 第 4 轮：丢弃 adapter 自动注入的 MCP
+
+固定版本的两个内建服务（按源码注入链重建，作者未读取真实 MCP 文件）：
+
+| 服务 | 能力与源码 | agent 配置能否直接关闭 |
+| --- | --- | --- |
+| Paperclip connections | `heartbeat.ts:4937–4969,25012–25041`；`registry.ts:254–256` 将 claude_local 的 runtimeToolDelivery 固定为 native_mcp；入口 `/mcp/runtime-tools`，`connection-intent-guidance.ts:21–24` 列 connections_search / connections_request | 没有：条件是负责用户、可签发 token、服务 API 地址、adapter 注册常量，不读 agent adapterConfig 开关 |
+| Paperclip projects | `heartbeat.ts:25043–25045`；`routes/project-tools.ts:11–35`、`services/project-tools.ts:6–15`；入口 `/api/mcp/project-tools`，可列／创建项目、列项目仓库，按工作模式可创建任务／改任务标题 | 没有：条件是 run authToken、API 地址和 issueRef，不是 agent 配置开关 |
+
+`buildPaperclipRuntimeMcpServers` 的外部连接授权筛选（`heartbeat.ts:4616+`）与这两个随后 unshift 的内建入口是两层。清空工具 profile 或外部 MCP 分配不能取消它们；`enableMcpAggregators` 也不是这里的 per-agent 开关。没有添加无效的 `disableMcp` 字段、修改 adapter 类型／服务全局环境／服务源码或降级认证来绕开注入。**因此本轮不改 agent 配置；用宿主过滤落实第80条。**
+
+`execute.ts:552–566,875–876,946–949` 将运行时列表写入私有配置，非空时自动追加 `--mcp-config <file> --strict-mcp-config`，不是 extraArgs。实际事件记录数量为2；完整真实参数顺序（所有路径换占位）在 `adapter-argv.example.json`。
+
+- `args_checked` 成对识别并**丢弃**这两个输入参数及文件参数值；重复、缺失半对和未知旗标仍拒绝，resume/skip 也仍拒绝。
+- 最终只有宿主自己的一个 `--strict-mcp-config` 和一个 `--mcp-config '{"mcpServers":{}}'`。其余已识别结构参数按原顺序保留，仍限制 Bash/dontAsk/空 setting-sources/两美元预算。
+- 为准确记录丢弃数量，**仅宿主**按已核 settings 所属的 ops 实例及本次 company/agent/run 绑定路径，读取 adapter 自己生成的 MCP 配置计数。依据 `claude-config.ts:144–183`，该文件含 Authorization；因此拒绝不绑定路径、符号链接、非本人所有／非0600／非普通文件、超过一 MiB 或未知结构。内容不进入 child argv/env、日志、state 或异常输出；不请求任何 MCP 服务。
+- stderr 只记 `ops-host: discarded adapter MCP servers: N`；私有 `state/mcp-filter.json` 仅含 run 和 discardedServers，不存名称、URL、token、文件路径或原文。无注入时记0；未知不能冒充0，直接熔断。
+- 这是运行时宿主的特定私有读取，不是给模型新增 Read/MCP/网络能力。本轮作者未打开这次真实 mcp-config.json；计数逻辑尚未在真实 adapter 上执行。
+
+可在离线源码目录执行以下**参数契约检查**，不会运行 Claude、API、权限自查或读真实 MCP 文件：
+
+```sh
+python3 -I paperclip/imac/ops-system/check-adapter-argv.py
+```
+
+检查使用事件里的完整 argv 而非仅 extraArgs，核其它参数全部被识别且原样保留、旧 MCP 路径不被转发、末尾只有 strict 空配置。它不能替代真实 adapter 集成或工具权限验收。
 
 ## 什么算写成
 
@@ -86,6 +115,38 @@ bash paperclip/imac/ops-system/install.sh --rollback '<本次备份目录>' --ap
 - 回滚只有在完整 API 可见 adapterConfig 与备份完全相等、两条 routine 三字段与备份相等、指令／revision／settings 摘要与600／paused 都读回符合时才打印成功；任一差异即失败，不能只核 paused。保留宿主文件和状态作证据不等于仍允许执行宿主；不恢复、不触发。
 - 脚本故障后保持暂停，检查本次备份再回滚；不是跨 API／文件系统事务，未声称部分失败自动全部回滚。
 
+## 第 4 轮：仅本次失败演练的收尾脚本（未 apply）
+
+`close-failed-e2e.py` 是人工宿主维护工具，不安装给模型、不加 allowlist。默认只打印计划，连 incident／已装状态文件也不读；仅 `--apply` 才进入管理 API 和状态修改。
+
+```sh
+python3 -I paperclip/imac/ops-system/close-failed-e2e.py
+# 以下仅为另获批准后在 iMac 的用法，本轮没有运行：
+python3 -I paperclip/imac/ops-system/close-failed-e2e.py \
+  --incident '<已核私有 incident.json>' --apply
+```
+
+私有 incident.json 由本次报告的 company/agent/routine/trigger/issue/run、UTC 月及精确 FUSED 内容组成，保存在作者本轮私有源码归档，不提交真实 ID。脚本钉住该 JSON 的规范化 SHA256，不能拿同名 OPS-1 或另一次失败来复用。还钉住已失败的第3轮 host.py 摘要，证明该 unsupported_cli_flag 路径在模型 spawn 前。
+
+**apply 前拒绝条件：**旧 host 摘要不符、状态目录／文件有符号链接或不是本人普通文件、无法取得原 host.lock 独占锁、agent 非 paused、不是唯一原 cancelled heartbeat、记录费用变化、原 PID／进程组仍存在或不可核（即便 PID 已被无关进程复用也拒绝）、issue 绑定／blocked／空 executionRunId 不符、存在 parent/conversation/runner goal/pending action、测试 trigger 不是原 disabled/setupPending=false、state 不是原四个文件、FUSED／claim 时间或绑定不同、预留不再恰好为原月200。无权限／未知响应同样停止，不尝试修权或广泛清理。
+
+备份发生在任何 API／原 state 修改之前：在私有 `backups/failed-e2e-<UTC>/` 创建0700目录，原字节备份四个 state 文件到0600文件、核摘要并 fsync；snapshot 保存 incident、API 安全字段、原触发器对象及正式 routine 摘要，不含 env、bearer、MCP 内容。写操作期间保持独占锁，前后重复只读核安全条件。
+
+| 项 | 动作及读回 |
+| --- | --- |
+| OPS-1 | 只 PATCH `/api/issues/<issue>` 为 `{"status":"cancelled"}` 并 GET 核同一 issue 已 cancelled；不设 done、不追加评论、不 reopen/resume |
+| reservations.json | 原值必须精确为 `{<本次UTC月>:200}`，备份后原子写为同一月0；不删整份账本、不碰 Paperclip 费用或预算，这只是一次未启动模型的保守预留释放，不是账单退款 |
+| issue claim | 路径由本次 issue ID 的 SHA256 计算；内容必须只有原 run 与 started 且时间位于原 run 内，备份后仅 unlink 该文件，fsync state；不 glob 删除 claim |
+| FUSED.json | 必须等于本次 unsupported_cli_flag 的精确记录；备份后**最后**删除，再核最终目录只剩 host.lock／零预留 |
+| 测试 trigger | 必须已经 enabled=false/setupPending=false，并保持整个对象不变；脚本不写 trigger，也不恢复 setupPending=true |
+| 其余 | 保留原 heartbeat／routine run／issue 历史、host.lock、独占 E2E-FIRE-CLAIM、安装备份和正式 routine/trigger；不改 agent 配置、模型权限或部署文件 |
+
+`cancelled` 的源码依据：`shared/src/constants.ts:189–198` 和 issue validator 接受该终态；`routes/issues.ts:12803+` 的 PATCH、`12925–12926,13843+` 的取消处理、`14877+` 的终态判断。脚本要求没有父任务，避免终态父任务唤醒分支；无 comment/reassignment/reopen 字段，不制造新的工作请求。正常 API 仍会记录审计及终态清理，不声称绕过服务副作用。
+
+每阶段在备份内写 progress。任何写入阶段失败，尝试持久写 `cleanup_incomplete` 熔断并以非零退出；磁盘故障下也不能声称熔断写成功。它不是 API/文件系统事务，不会自动重开 issue、恢复预留或盲重试。收到超时／未知结果时只读核备份与线上状态后再人工处理；完整读回通过才报 PASS。
+
+**清理不是升级或再跑许可。**脚本要求仍是旧 host，后续若另获批应先核清理方案，再核单独升级方案。原 install.py 的零运行历史门禁没有放宽：这次已有 heartbeat，不能删历史来安装，不能用本脚本的状态清理绕过安装门禁；升级路径仍需另行审查。本次脚本清成功也保持 agent paused、测试 trigger disabled，已消耗的 E2E 额度不会恢复。
+
 ## 指令来源及可重复步骤
 
 AGENTS.md 是人工收敛的生成结果，不在仓库存私有原人设。重复生成按下面映射逐段核对、原样保留本目录文本；权限文件用 `python3 paperclip/imac/ops-system/generate.py` 重建（默认 iMac HOME，可显式 --home）。
@@ -111,11 +172,13 @@ orca-wake 的键为机器+bot+既有 dedup_key 的摘要；notify-run 没旧事�
 
 服务端依据：`routes/routines.ts:669`；`services/routines.ts:1799–1836,3044–3108`。bearer 去重范围 company/routine/source/trigger/key；记录保留期间无 TTL。setupPending 收据单独记，不能拿测试收据去触发正式 run。去重不能代替收尾，也不抵消 model 内部补跑。
 
-## 验收与 E2E 门禁
+## 验收与 E2E 门禁（历史步骤与当前边界）
 
-作者在 iMac 内存门槛通过后试了订阅 Claude 权限自查，但 OAuth 已过期且无法刷新，返回 authentication_failed、API duration 零、cost 零。**工具正负例没跑成**；不换认证、不用 Paperclip key。临时目录已删除，专属 Claude 进程零个。现不能称 allowlist 已实测安全。
+第2轮作者的订阅权限自查因 OAuth 过期没跑成；这是历史记录，不代表后来独立验收未做。后续权限验收及唯一 E2E 以私有报告为准。本轮不做权限自查、不重试 E2E；新修复仍须独立验收。
 
-验收方先核静态代码及权限负例，再由主会话问 Zack 装不装、跑不跑第 81 条那次。必须包括：curl/python/node、命令替换、管道、重定向、环境前缀、原始 orca 的其它命令和远程参数、gh pr merge、写设置／台账／宿主文件均被拒；helper 正例只用假目录或只读，不真的写 Linear。
+**下面保留第3轮的原单次 E2E 步骤作为历史。**报告中的第89条已经为那一次取消了实时费用前提，采用 CLI 两美元估算预算和十五分钟强制结束；第1/4/5步的实时费用要求不能再被说成那一次的停止原因。那一次已经失败且用完，第89条不是下一次运行的许可，后续门禁须重新明确。当前测试 trigger 保持 disabled/setupPending=false，不自行恢复。新的源码交付不改变任何批准。
+
+权限验收覆盖要求仍包括：curl/python/node、命令替换、管道、重定向、环境前缀、原始 orca 的其它命令和远程参数、gh pr merge、写设置／台账／宿主文件均被拒；helper 正例只用假目录或只读，不真的写 Linear。
 
 获批安装且核过以后，单次 E2E：
 1. 查安装哈希、600、paused、零 run、key 存在、settings 唯一 helper；确认外部 timeout 和 Orca 在场。确认权限验收通过、宿主配置的 Linear 作者正确、安装完整读回通过。**触发前还须确定本次 run 的费用来源和刷新时效**；只有终态 last-model-result／可能滞后的 Paperclip 累计值不构成运行中的观测来源。本轮没有验证实时费用来源，若仍没有，前提不成立，不恢复／不触发，交主会话向 Zack 说明缺口；不能自行改成“只靠两美元 CLI 参数就跑”。
@@ -126,4 +189,4 @@ orca-wake 的键为机器+bot+既有 dedup_key 的摘要；notify-run 没旧事�
 6. 第一个 run 一到终态，成功失败都立即暂停并 GET 确认；**不为观察补跑而保持 agent 可运行**。以“本次 run 已终态且已读回 paused”的较晚时刻为 T0，继续只读观察 **十五分钟，每五秒一次**，T0+十五分钟再做最终快照。每次查同一 agent 的全部 run、当前 issue、测试 routine 的 runs 和宿主状态；列表触及一千条上限、返回不完整或任何取样失败都判观察不完整，不用空列表算通过，也不靠再次恢复弥补。
 7. “本窗口内无补跑”通过条件必须同时满足：相对空基线始终恰有本次一个 heartbeat run；本次为 succeeded、issue 为 done、对应 routine run 为 completed、agent 持续 paused；没有任何 queued/running/scheduled_retry，没有第二个 run（即便第二个已经 cancelled/failed/timed_out/interrupted/succeeded 也失败），没有新增包装调用、FUSED 或残留 INFLIGHT，Linear 仅一条本次演练评论。活动／终态枚举依据 `services/heartbeat.ts:793–817`。发现额外记录即记失败并确保该 agent 仍暂停，不等 scheduled_retry 到点才处理。这里是规定观察窗口的证据，**不是“以后永远不会补跑”的证明**；即使 claim 阻止了第二次模型、没多花钱，第二条 heartbeat 记录仍算失败。
 
-所有上述读写管理调用都由验收宿主执行，绝不塞进模型 allowlist。当前没有真实 E2E，不转 ready。
+所有上述读写管理调用都由验收宿主执行，绝不塞进模型 allowlist。真实 E2E 已失败，当前修复尚未安装／再验，不转 ready。

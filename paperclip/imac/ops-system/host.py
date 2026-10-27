@@ -1,6 +1,7 @@
 #!/usr/bin/python3 -I
 """Host-only Claude command wrapper. Never add this executable to model tools.
-No imports from agent cwd; no shell; no credentials are read from files.
+No imports from agent cwd; no shell. Only the host reads the adapter's bound,
+private MCP config to count discarded servers; never forwards/logs its contents.
 Installed beside host.json, outside agent-work. stdout is withheld until settlement.
 """
 import datetime as dt
@@ -11,6 +12,7 @@ import os
 from pathlib import Path
 import re
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -139,12 +141,37 @@ def identity():
     return run_id, issue_id, issue
 
 
+def discarded_mcp_count(filename, run_id):
+    # v2026.1012.0 claude-config.ts:144–183. Fixed local ops instance only.
+    # This privileged read is NOT a model tool. Never log names/URLs/headers/path.
+    instance = Path(CONF['settings']).parents[3]
+    require(Path(CONF['settings']) == instance / 'agent-work/ops-system/.claude/ops-system-settings.json',
+            'unsupported_instance_layout')
+    expected = (instance / 'companies' / CONF['company'] / 'agents' / CONF['agent'] /
+                'claude-runtime/runs' / run_id / 'mcp/mcp-config.json')
+    require(Path(filename) == expected and expected.is_absolute(), 'mcp_path_not_bound')
+    require(expected.resolve(strict=True) == expected, 'mcp_symlink_refused')
+    fd = os.open(expected, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb') as f:
+        info = os.fstat(f.fileno())
+        require(stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid()
+                and stat.S_IMODE(info.st_mode) == 0o600, 'mcp_file_not_private')
+        raw = f.read(1024 * 1024 + 1)
+    require(len(raw) <= 1024 * 1024, 'mcp_config_too_large')
+    config = json.loads(raw)
+    require(isinstance(config, dict) and set(config) == {'mcpServers'}
+            and isinstance(config['mcpServers'], dict), 'bad_mcp_config_shape')
+    return len(config['mcpServers'])
+
+
 def args_checked(args):
-    # Adapter-generated structural arguments only. Reject future unknown capabilities.
+    # Pure argv filtering; no file/API/model access. The MCP pair is recognized
+    # ONLY to discard it. Unknown flags and resumed sessions still fail closed.
     values = {'--output-format', '--model', '--effort', '--max-turns', '--append-system-prompt-file',
-              '--add-dir', '--settings', '--permission-mode', '--permission-prompts'}
-    flags = {'--print', '--verbose', '--bare'}
+              '--add-dir', '--settings', '--permission-mode', '--permission-prompts', '--mcp-config'}
+    flags = {'--print', '--verbose', '--bare', '--strict-mcp-config'}
     seen = {}
+    forwarded = []
     i = 0
     while i < len(args):
         key = args[i]
@@ -152,17 +179,22 @@ def args_checked(args):
         if key in values:
             require(i + 1 < len(args), 'missing_cli_value')
             seen[key] = args[i + 1]
+            if key != '--mcp-config':
+                forwarded.extend(args[i:i + 2])
             i += 2
         else:
             require(key in flags, 'unsupported_cli_flag')
             seen[key] = True
+            if key != '--strict-mcp-config':
+                forwarded.append(key)
             i += 1
+    require(('--mcp-config' in seen) == ('--strict-mcp-config' in seen), 'incomplete_adapter_mcp_pair')
     require(seen.get('--print') and seen.get('--bare') and seen.get('--verbose'), 'missing_cli_flags')
     require(seen.get('--output-format') == 'stream-json' and seen.get('--permission-mode') == 'dontAsk', 'unsafe_cli_mode')
     require(seen.get('--permission-prompts') == 'none' and seen.get('--settings') == CONF['settings'], 'unsafe_cli_settings')
     require(bool(seen.get('--append-system-prompt-file')), 'missing_instructions_argument')
     # Fresh sessions only: --resume is intentionally rejected (also blocks adapter retries).
-    return args + ['--max-budget-usd', '2', '--tools', 'Bash', '--setting-sources', '',
+    return forwarded + ['--max-budget-usd', '2', '--tools', 'Bash', '--setting-sources', '',
                    '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}']
 
 
@@ -215,7 +247,12 @@ def main():
     require(max(reserved, spent) + 200 <= 20000, 'monthly_budget_fuse')
     ledger[month] = max(reserved, spent) + 200  # never refund, even on failed starts
     store(ledger_path, ledger)
-    args = args_checked(sys.argv[1:])
+    incoming = sys.argv[1:]
+    args = args_checked(incoming)
+    discarded = (discarded_mcp_count(incoming[incoming.index('--mcp-config') + 1], run_id)
+                 if '--mcp-config' in incoming else 0)
+    store(STATE / 'mcp-filter.json', {'run': run_id, 'discardedServers': discarded})
+    print('ops-host: discarded adapter MCP servers: ' + str(discarded), file=sys.stderr)
     manifest = json.loads((ROOT / 'manifest.json').read_text())
     for name, expected in manifest.items():
         require(hashlib.sha256(Path(name).read_bytes()).hexdigest() == expected, 'installed_file_changed')

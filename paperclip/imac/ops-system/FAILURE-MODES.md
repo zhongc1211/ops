@@ -45,3 +45,13 @@
 | F3 浅合并回滚遗留宿主 command | 核 agents PATCH 的 replaceAdapterConfig 分支 | 显式全量替换，逐项完整比较 adapterConfig、两条 routine 三字段、指令的新 revision／内容与 paused；不符不得报成功 |
 | 非 native 仍有关联 runner goal | 核 runner-goal projection 与 done 的停 goal 分支 | 启动前及 done 前核同一 issue/agent 的 goal 和 pendingAction 明确为空；未知响应拒绝 |
 | 费用未知被当成零；瞬时列表没有补跑被当成最终结论 | 核验收观察频率、终态及异步队列 | 未知即停，不凭零继续等；暂停后持续观察规定窗口和运行集合，发现任何新增 run 都失败，不恢复来等补跑 |
+
+## 第 4 轮：真实 adapter 集成失败（编码前）
+
+| 风险 | 怎么发现 | 怎么防／验收门槛 |
+| --- | --- | --- |
+| adapter 自动 MCP 注入使白名单拒绝；直接放行则暴露管理工具 | E2E 的真实 adapter.invoke argv 与 execute.ts 对照 | 成对识别并丢弃输入的 mcp-config/strict-mcp-config，只传宿主 strict 空配置；宿主仅记录丢弃 server 数，不记名称、URL、token、文件内容 |
+| 仅用 extraArgs 拼预检遗漏 adapter 结构参数 | 本次完整脱敏 argv | 仓库存完整形状；离线参数契约检查不启动模型、不访问 API 或真实 MCP 文件，不冒充权限／集成验收 |
+| 为计数读错文件或把敏感 MCP 配置透传 | 核绑定路径、文件类型／大小、最终 argv | 仅宿主读本次绑定的 adapter 私有配置计数；错误失败闭合，不把内容、路径或异常原文写日志；模型仍无 MCP |
+| 清理错 run、退掉其它预算或清熔断后误重跑 | 核本次证据、唯一 cancelled run、旧 host 摘要、完整 state 集合 | 默认无 IO 计划；apply 前独占锁及严格绑定，先备份；仅本次 claim／200美分预留／FUSED，先取消 issue 最后清 fuse；保留触发独占凭据和历史，不 resume／fire |
+| 取消失败演练却冒充业务 done，或清理中断误报成功 | 核固定版本 issue PATCH、终态及读回 | OPS-1 用 cancelled，不用 done；无 parent/runner goal/活动 run，触发器必须已 disabled；部分失败留熔断和备份，不能盲重试 |
