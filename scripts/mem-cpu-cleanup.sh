@@ -13,7 +13,7 @@
 # 关之前：对 cwd 跑 git status，有没提交的改动就把这些文件打包到 ~/archive/<工作区>/<日期>/，不删任何文件；
 #   打包失败就不关。先发 SIGTERM，30 秒后还在就发 SIGKILL。只按确认过的 PID 操作。
 # Chrome：只报告运行超过 24 小时、CPU 超过 50% 的 helper 进程，不杀。
-# 报告：每次运行在 ~/orca/workspaces/ops/reports/cleanup-<日期>.md 追加一节。
+# 报告：每次运行在 ~/.orca-state/mem-cpu-cleanup/reports/cleanup-<日期>.md 追加一节。
 # webhook：只有关不掉的进程或 Chrome 异常才 POST 到 ~/.config/grokbot/stuck-webhook.env，多条合并成一条
 #   {bot,task,worktree,status,note}；同一个 Chrome 进程只报一次。URL 和 KEY 不会出现在输出和报告里。
 # --pressure-check：给「负载触发」自动化做前置检查。5 分钟 load 超过 2×核数，或内存剩余低于 25%，
@@ -23,9 +23,12 @@
 set -u
 PY=$(command -v python3 || echo /usr/bin/python3)
 exec "$PY" - "$@" <<'PYEOF'
-import datetime, json, os, re, shutil, signal, subprocess, sys, tempfile, time
+import datetime, json, os, re, shutil, signal, socket, subprocess, sys, tempfile, time
 
 HOME = os.path.expanduser("~")
+# 与 ws-cleanup.sh 一样按本机 hostname 归一化，不依赖自动任务的环境变量。
+HOSTNAME = socket.gethostname().split(".")[0].lower()
+HOST = "iMac" if "imac" in HOSTNAME else "MBA" if "mba" in HOSTNAME or "macbook" in HOSTNAME else HOSTNAME or "unknown"
 ARGS = sys.argv[1:]
 DRY = "--dry-run" in ARGS
 TRIGGER = ARGS[ARGS.index("--trigger") + 1] if "--trigger" in ARGS and len(ARGS) > ARGS.index("--trigger") + 1 else "manual"
@@ -42,7 +45,7 @@ MEM_FREE_MIN = env_f("CLEANUP_MEM_FREE_MIN", "25")
 COOLDOWN_H = env_f("CLEANUP_PRESSURE_COOLDOWN_HOURS", "3")
 ENV_FILE = os.environ.get("CLEANUP_ENV_FILE") or os.path.join(HOME, ".config/grokbot/stuck-webhook.env")
 STATE_DIR = os.environ.get("CLEANUP_STATE_DIR") or os.path.join(HOME, ".orca-state/mem-cpu-cleanup")  # 这几个覆盖项只给测试用
-REPORT_DIR = os.environ.get("CLEANUP_REPORT_DIR") or os.path.join(HOME, "orca/workspaces/ops/reports")
+REPORT_DIR = os.environ.get("CLEANUP_REPORT_DIR") or os.path.join(HOME, ".orca-state/mem-cpu-cleanup/reports")
 ARCHIVE_ROOT = os.environ.get("CLEANUP_ARCHIVE_ROOT") or os.path.join(HOME, "archive")
 CLAUDE_DIR = os.environ.get("CLEANUP_CLAUDE_DIR") or os.path.join(HOME, ".claude")
 ONLY_PIDS = {int(x) for x in os.environ.get("CLEANUP_ONLY_PIDS", "").split(",") if x.strip().isdigit()}  # 测试时只处理这些 PID
@@ -481,16 +484,17 @@ def main():
     hook, rc = "没有关不掉的进程，也没有新的 Chrome 异常，不发 webhook", 0
     if items:
         kinds = (["kill_failed"] if failed else []) + (["chrome_abnormal"] if chrome_new else [])
-        payload = {"bot": "ops", "task": "cleanup", "worktree": "iMac",
+        payload = {"bot": "ops", "task": "cleanup", "worktree": HOST,
                    "status": kinds[0] if len(kinds) == 1 else "mixed",
                    "note": items[0] if len(items) == 1 else "共 %d 条：\n" % len(items) + "\n".join(
                        "%d. %s" % (i, t) for i, t in enumerate(items, 1))}
         cfg = {}
-        if os.path.isfile(ENV_FILE):
-            for ln in open(ENV_FILE):
-                m = re.match(r"\s*(?:export\s+)?(URL|KEY)\s*=\s*(.*?)\s*$", ln)
-                if m:
-                    cfg[m.group(1)] = m.group(2).strip("'\"")
+        if not DRY:
+            if os.path.isfile(ENV_FILE):
+                for ln in open(ENV_FILE):
+                    m = re.match(r"\s*(?:export\s+)?(URL|KEY)\s*=\s*(.*?)\s*$", ln)
+                    if m:
+                        cfg[m.group(1)] = m.group(2).strip("'\"")
         if DRY:
             hook = "dry-run，正式运行时会 POST 1 条（含 %d 项）：`%s`" % (len(items), json.dumps(payload, ensure_ascii=False))
         elif not cfg.get("URL") or not cfg.get("KEY"):
