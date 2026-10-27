@@ -22,6 +22,11 @@ done
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 DENY_INSTALL="$(cd "$HERE/../claude-deny" && pwd)/install.sh"
+# 此版本只支持 --home；拒绝只隔离 CLI、却把安装器写进默认目录。
+if [ -n "${CLAUDE_CONFIG_DIR:-}" ] && [ "$CLAUDE_CONFIG_DIR" != "$HOME/.claude" ]; then
+  echo "暂不支持独立 CLAUDE_CONFIG_DIR；请用 --home 隔离整个 HOME" >&2
+  exit 2
+fi
 C="$HOME/.claude"; P="$C/pinned-marketplaces"
 # 名字|仓库|commit|commit 里插件清单的路径（取期望版本号）|插件 id
 PINS=(
@@ -75,6 +80,8 @@ for it in pins:
         ver = None
     got = [x.get("version") for x in ip.get(pid, [])]
     say(ver is not None and got == [ver], f"installed_plugins.json {pid} 版本 {got}（期望 {ver}）")
+    commits = [x.get("gitCommitSha") for x in ip.get(pid, [])]
+    say(commits == [sha], f"installed_plugins.json {pid} commit {commits}（期望 {sha}）")
 try: rule_ok = rule_key in open(os.path.join(C, "CLAUDE.md")).read()
 except OSError: rule_ok = False
 say(rule_ok, "CLAUDE.md 有 PER-67 插件授权规矩")
@@ -96,11 +103,13 @@ for it in "${PINS[@]}"; do
   [ "$(git -C "$d" rev-parse HEAD 2>/dev/null)" = "$sha" ] || changed=1
   git -C "$d" -c advice.detachedHead=false checkout --quiet --detach "$sha"
   echo "$name $(git -C "$d" rev-parse HEAD)"
-  python3 - "$C/plugins/installed_plugins.json" "$id" "$(git -C "$d" show "$sha:$manifest")" <<'PY' || changed=1
+  python3 - "$C/plugins/installed_plugins.json" "$id" "$(git -C "$d" show "$sha:$manifest")" "$sha" <<'PY' || changed=1
 import json, sys
-try: got = [x.get("version") for x in json.load(open(sys.argv[1]))["plugins"][sys.argv[2]]]
+try:
+    entries = json.load(open(sys.argv[1]))["plugins"][sys.argv[2]]
+    got = [(x.get("version"), x.get("gitCommitSha")) for x in entries]
 except Exception: got = None
-sys.exit(got != [json.loads(sys.argv[3])["version"]])
+sys.exit(got != [(json.loads(sys.argv[3])["version"], sys.argv[4])])
 PY
 done
 python3 - "$C" "$P" <<'PY'
@@ -142,11 +151,16 @@ if ! grep -qF "$RULE_KEY" "$C/CLAUDE.md" 2>/dev/null; then
   printf '\n%s\n' "$RULE" >> "$C/CLAUDE.md"
 fi
 bash "$DENY_INSTALL" --settings-file "$C/settings.json" --hooks-dir "$C/hooks" --apply
-if [ $changed = 0 ]; then echo "插件已是钉的版本，跳过 claude plugin update"; exit 0; fi
+if [ $changed = 0 ]; then
+  echo "插件已是钉的版本，跳过 claude plugin update"
+  exec bash "$HERE/pin-claude-plugins.sh" --check
+fi
 cd /tmp
-t 180 claude plugin marketplace update cursor-plugins || true
-t 180 claude plugin marketplace update compound-engineering-plugin || true
-if t 60 claude plugin list 2>/dev/null | grep -q 'pstack@cursor-plugins'; then t 180 claude plugin update pstack@cursor-plugins || true
+t 180 claude plugin marketplace update cursor-plugins
+t 180 claude plugin marketplace update compound-engineering-plugin
+if t 60 claude plugin list 2>/dev/null | grep -q 'pstack@cursor-plugins'; then t 180 claude plugin update pstack@cursor-plugins
 else t 180 claude plugin install pstack@cursor-plugins; fi
-if t 60 claude plugin list 2>/dev/null | grep -q 'compound-engineering@compound-engineering-plugin'; then t 180 claude plugin update compound-engineering@compound-engineering-plugin || true
+if t 60 claude plugin list 2>/dev/null | grep -q 'compound-engineering@compound-engineering-plugin'; then t 180 claude plugin update compound-engineering@compound-engineering-plugin
 else t 180 claude plugin install compound-engineering@compound-engineering-plugin; fi
+# 同版本不同 commit 也算失败，不能用版本号掩盖缓存漂移。
+exec bash "$HERE/pin-claude-plugins.sh" --check

@@ -1,12 +1,14 @@
 # 禁用命令的确定性拦截（PER-89）
 
-2026-10-20 交接第 5 项停用了 5 个插件命令：pstack 的 `poteto-mode`、`tdd`、`reflect`、`setup-pstack`，compound-engineering 的 `lfg`。本目录把拦截改成三道防线，高负载时主防线不会因为 hook 超时而放行。
+2026-10-20 交接第 5 项停用了 5 个插件命令：pstack 的 `poteto-mode`、`tdd`、`reflect`、`setup-pstack`，compound-engineering 的 `lfg`。本目录把这 5 个命令的拦截改成三道防线，高负载时主防线不会因为 hook 超时而放行。
+
+S11 另加 **24 条 CE 模型调用 deny**（共 29 条 `Skill(skill:...)`），保留 `ce-code-review` 和它写报告时调用的 `ce-noslop`。名单、逐条出处、安装/回退和尚未跑的验收见 [`../claude-plugins/S11.md`](../claude-plugins/S11.md)。新增 24 条不扩展 slash hook：它们只禁模型 Skill 调用，不声称人手输入也被拦；原来的 5 个命令才有三道防线。
 
 ## 文件
 
 | 文件 | 作用 |
 |---|---|
-| `settings-fragment.json` | 要合并进 `~/.claude/settings.json` 的内容：5 条 deny、1 个 `UserPromptExpansion` hook、1 个 `UserPromptSubmit` hook |
+| `settings-fragment.json` | 要合并进 `~/.claude/settings.json` 的内容：29 条 deny、1 个 `UserPromptExpansion` hook、1 个 `UserPromptSubmit` hook |
 | `hooks/disabled-cmd-prompt-guard.sh` | 补充用的 `UserPromptSubmit` 脚本，只用 bash 内建命令 |
 | `hook-timeout` | 两个 hook 的 `timeout`（秒）。唯一来源：`install.sh` 写入和 `--check` 核对都读它，片段里不写 timeout |
 | `install.sh` | 合并、核对、卸载，幂等 |
@@ -92,7 +94,7 @@ bootstrap/claude-deny/install.sh --uninstall   # 撤掉本目录加的项，见�
 grep -q block-disabled-skills ~/.claude/settings.json || { [ ! -e ~/.claude/hooks/block-disabled-skills.sh ] || mv ~/.claude/hooks/block-disabled-skills.sh ~/.claude/hooks/block-disabled-skills.sh.bak-$(date +%Y%m%d%H%M%S); }
 ```
 
-`--uninstall` 撤掉 5 条 deny、`UserPromptExpansion` 条目、`UserPromptSubmit` 里的新脚本项，删掉 `~/.claude/hooks/disabled-cmd-prompt-guard.sh`；不把旧 hook 加回来。
+`--uninstall` 撤掉片段中的 29 条 deny、`UserPromptExpansion` 条目、`UserPromptSubmit` 里的新脚本项，删掉 `~/.claude/hooks/disabled-cmd-prompt-guard.sh`；不把旧 hook 加回来。
 
 回滚到装之前的原样：`cp -p ~/.claude/settings.json.bak-<YYYYmmddHHMMSS> ~/.claude/settings.json`（`--apply` 会打印备份文件名）。挪走过旧脚本的，把 `block-disabled-skills.sh.bak-<时间>` 挪回 `~/.claude/hooks/block-disabled-skills.sh`，否则恢复后的 settings 指向一个不存在的脚本。
 

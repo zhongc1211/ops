@@ -111,7 +111,57 @@ nr=${ORCA_AGENT_LAUNCH_NOTIFY_RUN:-$(command -v notify-run || echo "$HOME/.local
 [ -x "$nr" ] || die "找不到 notify-run（${nr}）"
 cmd=("$nr" --bot "$bot" --task "$task")
 [ -n "$issue" ] && cmd+=(--issue "$issue")
-cmd+=(--tty -- "$@")
+# 决定 5A：仅本入口启动的 Claude 会话禁用 superpowers，不写用户设置。
+# 合并已有 --settings（文件或 inline JSON），避免重复参数把调用方设置丢掉。
+# 在构造命令时完成，dry-run 也展示同一份参数；pi/codex 原样转发。
+if [ "$agent" = claude ]; then
+    claude_bin=$1; shift
+    claude_args=()
+    session_settings='{}'
+    seen_settings=0
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --) claude_args+=("$@"); break ;;
+            --settings|--settings=*)
+                [ "$seen_settings" = 0 ] || die "只接受一个 --settings，请先合并设置"
+                seen_settings=1
+                if [ "$1" = --settings ]; then
+                    [ $# -ge 2 ] || die "--settings 缺少值"
+                    session_settings=$2; shift 2
+                else
+                    session_settings=${1#--settings=}; shift
+                fi ;;
+            *) claude_args+=("$1"); shift ;;
+        esac
+    done
+    session_settings_file=$(mktemp "${TMPDIR:-/tmp}/orca-claude-settings.XXXXXX") || die "建不了会话设置文件"
+    trap 'rm -f -- "$session_settings_file"' EXIT
+    python3 - "$session_settings" "$session_settings_file" <<'PY'
+import json, pathlib, sys
+try:
+    raw = sys.argv[1]
+    data = json.loads(raw) if raw.lstrip().startswith('{') else json.loads(pathlib.Path(raw).read_text())
+    if not isinstance(data, dict):
+        raise ValueError('settings must be an object')
+    plugins = data.setdefault('enabledPlugins', {})
+    if not isinstance(plugins, dict):
+        raise ValueError('enabledPlugins must be an object')
+    plugins['superpowers@claude-plugins-official'] = False
+    # 文件输入也不展开到 argv/日志。mktemp 权限 0600；exec 后保留供会话读取。
+    with open(sys.argv[2], 'w') as f:
+        json.dump(data, f, ensure_ascii=False)
+        f.write('\n')
+except Exception:
+    # 不打印调用方设置值：其中可能有凭据。
+    sys.exit('无法读取或合并 --settings；没有启动 Claude')
+PY
+    [ $? -eq 0 ] || die "无法合并 Claude 会话设置"
+    # 未启动（dry-run/Linear 拒绝/exec 失败）时清理；成功 exec 后由操作者
+    # 在会话结束后删打印出的文件，不能提前删（Claude 可能重读配置）。
+    cmd+=(--tty -- "$claude_bin" --settings "$session_settings_file" ${claude_args[@]+"${claude_args[@]}"})
+else
+    cmd+=(--tty -- "$@")
+fi
 if [ "${ORCA_AGENT_LAUNCH_DRY:-}" = 1 ]; then
     [ -n "$issue" ] && [ -z "$no_linear" ] && echo "（会写 Linear ${issue}：due ${due}，负责 bot：${bot}）"
     printf '%q ' "${cmd[@]}"; echo
@@ -164,4 +214,5 @@ PY
     fi
     echo "orca-agent-launch: $msg" >&2
 fi
+[ "$agent" != claude ] || echo "orca-agent-launch: 本会话设置 $session_settings_file（会话结束后删除）" >&2
 exec "${cmd[@]}"

@@ -1,5 +1,7 @@
 # Claude Code 插件锁版本（pstack + compound-engineering）
 
+S11 当前交付与逐台安装/回退见 [S11.md](S11.md)。只支持默认配置目录或 `--home`，不支持独立 `CLAUDE_CONFIG_DIR`；不一致时在写文件之前退出 2。更新命令失败（含 timeout）即退出，不再忽略；最终 `--check` 同时核对安装记录版本和完整 `gitCommitSha`，同版本不同提交也失败。
+
 新机器或要核对时，在 ops 仓库根目录跑：
 
 ```bash
@@ -30,7 +32,7 @@ bootstrap/claude-plugins/pin-claude-plugins.sh --home /tmp/sandbox   # 装进别
    - `permissions.deny` 加 10 条规则（见下）。
 3. `~/.claude/plugins/known_marketplaces.json` 同步成目录源、`autoUpdate: false`（内容有变时先备份成 `known_marketplaces.json.bak-<YYYYmmddHHMMSS>`）。
 4. `~/.claude/CLAUDE.md` 没有 PER-67 那条插件授权规矩就补上（追加前先备份成 `CLAUDE.md.bak-<YYYYmmddHHMMSS>`）。
-5. 跑 `../claude-deny/install.sh --apply`：加 5 条 `Skill(skill:...)` deny、`UserPromptExpansion` hook 和 `UserPromptSubmit` 补充脚本，换掉旧的 `block-disabled-skills.sh` 条目（见 [`../claude-deny/README.md`](../claude-deny/README.md)）。
+5. 跑 `../claude-deny/install.sh --apply`：加 29 条 `Skill(skill:...)` deny、`UserPromptExpansion` hook 和 `UserPromptSubmit` 补充脚本，换掉旧的 `block-disabled-skills.sh` 条目（见 [`../claude-deny/README.md`](../claude-deny/README.md)）。
 6. `claude plugin marketplace update` 两个市场，再 `claude plugin install/update` 两个插件。检出没切 commit、已装版本也对时跳过这一步（它每次都会改 `known_marketplaces.json` 的 `lastUpdated`）。
 
 原有的其他设置不动；重复跑不改任何文件。
@@ -71,7 +73,7 @@ deny 规则挡不住人（或派活文字）直接输入 slash 命令。这部�
 - `settings.json` 的 10 条 deny、两个 `extraKnownMarketplaces`、两个 `enabledPlugins`；
 - `known_marketplaces.json` 两个市场的目录源和 `autoUpdate`；
 - `installed_plugins.json` 里两个插件的版本，是否等于钉的 commit 里插件清单的版本；
-- `../claude-deny/install.sh --check`：5 条 `Skill(skill:...)` deny、两个 hook 条目（timeout 等于 `hook-timeout`）、`~/.claude/hooks/disabled-cmd-prompt-guard.sh` 和仓库里的一样、旧 `block-disabled-skills.sh` 条目已不在；
+- `../claude-deny/install.sh --check`：29 条 `Skill(skill:...)` deny、两个 hook 条目（timeout 等于 `hook-timeout`）、`~/.claude/hooks/disabled-cmd-prompt-guard.sh` 和仓库里的一样、旧 `block-disabled-skills.sh` 条目已不在；
 - `CLAUDE.md` 是否有 PER-67 规矩。
 
 任何一项不符退出 1。不写文件，可以随时在线上机器跑。
