@@ -55,7 +55,10 @@ def timestamp(value):
 
 
 def incident(path):
-    value = json.loads(read_regular(path.resolve(strict=True)))
+    return validate_incident(json.loads(read_regular(path.resolve(strict=True))))
+
+
+def validate_incident(value):
     host.require(sha(json.dumps(value, sort_keys=True, separators=(',', ':')).encode()) == INCIDENT_SHA256,
                  'wrong_incident_digest')
     host.require(value['schema'] == 1 and value['issueIdentifier'] == 'OPS-1', 'wrong_incident')
@@ -168,8 +171,63 @@ def backup_bytes(path, content):
     host.require(read_regular(path) == content, 'cleanup_backup_mismatch')
 
 
+def install_source_hashes():
+    """Bind cleanup completion to the exact reviewed next installer/payload."""
+    here = Path(__file__).resolve().parent
+    names = ('host.py', 'install.py', 'install.sh', 'close-failed-e2e.py', 'generate.py',
+             'linear-safe.py', 'settings.json', 'AGENTS.md')
+    result = {name: sha(read_regular(here / name)) for name in names}
+    for name in ('provision.py', 'config.sh', 'key-fill.sh', 'key-fill.py'):
+        result['../' + name] = sha(read_regular(here.parent / name))
+    return result
+
+
+def verify_completed(root, backup, aid, cid, after_install=False):
+    """Installer's read-only order gate; no installed-code imports or repairs."""
+    private_directory(root)
+    private_directory(backup)
+    host.require(backup.parent == root / 'backups', 'cleanup_receipt_outside_backups')
+    snapshot_bytes = read_regular(backup / 'snapshot.json')
+    saved = json.loads(snapshot_bytes)
+    progress = json.loads(read_regular(backup / 'progress.json'))
+    m = validate_incident(saved['incident'])
+    host.require(m['agent'] == aid and m['company'] == cid, 'cleanup_receipt_wrong_owner')
+    host.require(saved['hostSha256'] == FAILED_HOST_SHA256
+                 and saved['nextInstallSha256'] == install_source_hashes(), 'cleanup_install_source_changed')
+    host.require(progress['phase'] == 'complete' and progress['snapshotSha256'] == sha(snapshot_bytes),
+                 'cleanup_not_complete')
+    claim = 'issue-' + sha(m['issue'].encode()) + '.json'
+    host.require(set(saved['sha256']) == {'host.lock', 'FUSED.json', 'reservations.json', claim},
+                 'cleanup_backup_incomplete')
+    for name, expected in saved['sha256'].items():
+        host.require(sha(read_regular(backup / name)) == expected, 'cleanup_backup_changed')
+    host.require(json.loads(read_regular(backup / 'FUSED.json')) == m['fuse']
+                 and json.loads(read_regular(backup / 'reservations.json')) == {m['month']: 200}
+                 and json.loads(read_regular(backup / claim))['run'] == m['run'], 'cleanup_backup_not_incident')
+    conf = json.loads(read_regular(root / 'host.json'))
+    previous = host.CONF
+    host.require(conf['api'] == previous['api'] and conf['agent'] == aid and conf['company'] == cid
+                 and conf['state'] == str(root / 'state') and conf['drillRoutine'] == m['routine'],
+                 'cleanup_receipt_host_changed')
+    try:
+        host.CONF = conf
+        current = guard(m, 'cancelled', None if after_install else saved['before'])
+        # Installation may legitimately update routine description timestamps;
+        # its own full settings readback covers those. Triggers must never change.
+        host.require(current['trigger'] == saved['before']['trigger'], 'cleanup_trigger_changed')
+    finally:
+        host.CONF = previous
+    state = root / 'state'
+    private_directory(state)
+    host.require({p.name for p in state.iterdir()} == {'host.lock', 'reservations.json'}
+                 and json.loads(read_regular(state / 'reservations.json')) == {m['month']: 0},
+                 'cleanup_completed_state_changed')
+    return sha(snapshot_bytes)
+
+
 def apply(root, evidence):
     m = incident(evidence)
+    next_install = install_source_hashes()
     private_directory(root)
     host.require(sha(read_regular(root / 'host.py')) == FAILED_HOST_SHA256, 'cleanup_not_failed_host_version')
     conf = json.loads(read_regular(root / 'host.json'))
@@ -195,7 +253,8 @@ def apply(root, evidence):
         for name, content in originals.items():
             backup_bytes(backup / name, content)
         host.store(backup / 'snapshot.json', {'incident': m, 'before': before,
-                   'hostSha256': FAILED_HOST_SHA256, 'sha256': {n: sha(b) for n, b in originals.items()}})
+                   'hostSha256': FAILED_HOST_SHA256, 'nextInstallSha256': next_install,
+                   'sha256': {n: sha(b) for n, b in originals.items()}})
         fsync_directory(backup)
         fsync_directory(parent)
         print('BACKUP:', backup, flush=True)
@@ -225,7 +284,9 @@ def apply(root, evidence):
             host.require({p.name for p in state.iterdir()} == {'host.lock', 'reservations.json'}
                          and json.loads(read_regular(state / 'reservations.json')) == {m['month']: 0},
                          'cleanup_final_state_mismatch')
-            host.store(backup / 'progress.json', {'phase': 'complete', 'after': after})
+            host.require(install_source_hashes() == next_install, 'cleanup_install_source_changed')
+            host.store(backup / 'progress.json', {'phase': 'complete', 'after': after,
+                       'snapshotSha256': sha(read_regular(backup / 'snapshot.json'))})
         except BaseException:
             # Never automatically reopen OPS-1 or restore/reapply the reservation.
             # A partial transaction needs manual inspection of backup + progress.
@@ -234,6 +295,7 @@ def apply(root, evidence):
             raise
         print('PASS: OPS-1 cancelled; agent paused; test trigger remains disabled; formal routine unchanged')
         print('Only incident fuse/claim/reservation cleared; history, host.lock and E2E-FIRE-CLAIM retained; no rerun authorized')
+        print('NEXT: reviewed install.py with --cleanup-backup', backup, '; do not change the source bundle')
 
 
 def main():
@@ -242,13 +304,14 @@ def main():
     p.add_argument('--incident', type=Path, help='Private non-secret binding/evidence JSON; required with --apply')
     p.add_argument('--root', type=Path, default=Path.home() / '.local/share/paperclip-ops/ops-system-host')
     a = p.parse_args()
+    print('PLAN: FIRST cleanup on old host; THEN reinstall from this same source bundle with --cleanup-backup receipt')
     print('PLAN: require exact pre-model failure evidence, old host hash, exclusive lock, one cancelled heartbeat, paused agent')
     print('PLAN: require test trigger already enabled=false/setupPending=false; no trigger/config/resume/fire writes')
     print('PLAN: back up FUSED, exact issue claim, reservations and host.lock with hashes and API safety snapshot')
     print('PLAN: PATCH only OPS-1 status=cancelled; read back; release exactly 200 reserved cents to month=0')
     print('PLAN: remove only incident claim, then FUSED last; read back; retain histories and E2E-FIRE-CLAIM')
     if not a.apply:
-        print('DRY RUN: no incident/installed-state reads, API calls, writes or subprocesses; --apply not authorized by this delivery')
+        print('DRY RUN: no incident/installed-state reads, API calls, writes or subprocesses; execution approval is checked by operator')
         return
     host.require(a.incident is not None, 'cleanup_incident_required')
     apply(a.root, a.incident)

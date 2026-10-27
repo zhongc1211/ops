@@ -46,6 +46,12 @@
 | 非 native 仍有关联 runner goal | 核 runner-goal projection 与 done 的停 goal 分支 | 启动前及 done 前核同一 issue/agent 的 goal 和 pendingAction 明确为空；未知响应拒绝 |
 | 费用未知被当成零；瞬时列表没有补跑被当成最终结论 | 核验收观察频率、终态及异步队列 | 未知即停，不凭零继续等；暂停后持续观察规定窗口和运行集合，发现任何新增 run 都失败，不恢复来等补跑 |
 
+## 第 5 轮：安装历史与收尾顺序（编码前）
+
+- 终态历史不是活动运行：安装/回滚前后读取完整列表，打印并精确比较 ID/status；拒绝 queued/running/scheduled_retry、未知状态、重复/错归属或列表上限，不删历史。
+- 顺序固定为先收尾后重装：收尾保留旧 host 证明，成功凭据绑定同目录待安装源码摘要；安装前核凭据、原始备份、线上 cancelled/paused/disabled 和清理后的状态，不能仅删旧 hash 断言。
+- 默认计划仍不读线上；显式 --inspect 只读显示真实历史，--apply 修改前也显示并保存历史计划，修改后再次显示/比较。作者本轮不调用 --inspect 或 --apply。
+
 ## 第 4 轮：真实 adapter 集成失败（编码前）
 
 | 风险 | 怎么发现 | 怎么防／验收门槛 |

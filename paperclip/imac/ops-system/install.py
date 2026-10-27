@@ -1,4 +1,5 @@
-"""Plan by default. --apply requires separate installation approval (S12 r2).
+"""Offline plan by default; --inspect reads history; --apply needs operator approval.
+S12 r5: cleanup first on failed host, then receipt-bound reinstall; retain history.
 No trigger, resume, grant changes, secret files, DB access, or LaunchAgent changes.
 """
 import argparse
@@ -8,6 +9,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import stat
 import subprocess
@@ -75,19 +77,53 @@ def readback_instruction(api, route, content, committed):
     host.require(actual['revision']['id'] == revision, 'instruction_revision_readback_mismatch')
 
 
+def run_snapshot(api, cid, aid, label, expected=None):
+    # v2026.1012.0 services/heartbeat.ts:793–817. Unknown is NOT terminal.
+    host.require(api('GET', '/agents/' + aid)['status'] == 'paused', 'agent_not_paused')
+    rows = api('GET', '/companies/' + cid + '/heartbeat-runs?agentId=' + aid + '&limit=1000')
+    host.require(isinstance(rows, list) and len(rows) < 1000, 'run_history_incomplete')
+    terminal = {'succeeded', 'interrupted', 'failed', 'cancelled', 'timed_out'}
+    result = []
+    for r in rows:
+        host.require(isinstance(r, dict) and isinstance(r.get('id'), str)
+                     and re.fullmatch(r'[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}', r['id']),
+                     'bad_run_history_id')
+        host.require(r['agentId'] == aid and r['companyId'] == cid, 'run_history_owner_mismatch')
+        result.append({'id': r['id'], 'status': r['status']})
+    result.sort(key=lambda r: r['id'])
+    print(label + ': ' + json.dumps(result), flush=True)
+    host.require(len({r['id'] for r in result}) == len(result), 'duplicate_run_history')
+    host.require(all(r['status'] in terminal for r in result), 'active_or_unknown_runs')
+    if expected is not None:
+        host.require(result == expected, 'runs_changed')
+    return result
+
+
+def load_cleanup():
+    spec = importlib.util.spec_from_file_location('ops_cleanup', HERE / 'close-failed-e2e.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--apply', action='store_true')
+    p.add_argument('--inspect', action='store_true', help='Read-only paused/run-history plan; no key check or writes')
+    p.add_argument('--cleanup-backup', type=Path, help='Completed cleanup backup; required for this failed-host upgrade')
     p.add_argument('--claude', type=Path)
     p.add_argument('--linear-author', help='Expected shared Linear account, supplied by operator; never committed')
     p.add_argument('--rollback', type=Path, help='Backup directory; still requires --apply')
     a = p.parse_args()
     root = Path.home() / '.local/share/paperclip-ops/ops-system-host'
     target = Path(os.environ['AGENT_SETTINGS'])
-    print('PLAN: backup then install host + restricted helper + settings + AGENTS; paused only; zero runs; no triggers')
+    print('PLAN: cleanup FIRST for failed E2E; then backup/install; paused; terminal history preserved; no triggers')
     print('PLAN: rollback' if a.rollback else 'PLAN: install', str(root))
-    if not a.apply:
-        print('DRY RUN: no API calls, no files changed; separate Zack installation approval required')
+    host.require(not (a.apply and a.inspect), 'choose_inspect_or_apply')
+    host.require(not (a.rollback and a.cleanup_backup), 'cleanup_receipt_is_for_install')
+    if not a.apply and not a.inspect:
+        print('PLAN_RUNS: not read in offline mode; --inspect or --apply prints actual IDs/statuses')
+        print('DRY RUN: no API calls, no files changed; execution approval is checked by operator')
         return
     host.CONF = {'api': os.environ['API_URL']}
     api = host.api
@@ -99,11 +135,22 @@ def main():
     aid = agent['id']
     agent = api('GET', '/agents/' + aid)
     host.require(agent['status'] == 'paused', 'agent_not_paused')
-    runs = api('GET', '/companies/' + cid + '/heartbeat-runs?agentId=' + aid + '&limit=1000')
-    # Rollback may follow the approved single E2E, but never while a run is active.
-    host.require(not any(r['status'] in ('queued', 'running', 'scheduled_retry') for r in runs), 'active_runs')
+    runs = run_snapshot(api, cid, aid, 'PLAN_RUNS')
+    if a.inspect:
+        print('READ-ONLY PLAN: history shown; apply also checks cleanup receipt/configuration; no writes or key check')
+        return
+    cleanup = load_cleanup()
+    receipt_digest = None
     if not a.rollback:
-        host.require(runs == [], 'nonzero_runs_install_refused')
+        # Never overwrite an unsettled wrapper. The known old-host upgrade must
+        # carry the completed cleanup receipt, not a manually deleted fuse.
+        host.require(not os.path.lexists(root / 'state/FUSED.json') and not os.path.lexists(root / 'state/INFLIGHT.json'),
+                     'cleanup_required_before_install')
+        old_failed_host = (root / 'host.py').exists() and digest(root / 'host.py') == cleanup.FAILED_HOST_SHA256
+        host.require(not (runs and old_failed_host) or a.cleanup_backup is not None, 'cleanup_receipt_required')
+        if a.cleanup_backup:
+            a.cleanup_backup = a.cleanup_backup.resolve(strict=True)
+            receipt_digest = cleanup.verify_completed(root, a.cleanup_backup, aid, cid)
     bundle_route = '/agents/' + aid + '/instructions-bundle/file'
     old_instruction = api('GET', bundle_route + '?path=AGENTS.md')
     if a.rollback:
@@ -126,8 +173,9 @@ def main():
         readback_instruction(api, bundle_route, saved['instructions'], restored_instruction)
         host.require(digest(target) == digest(backup / 'settings.json')
                      and stat.S_IMODE(target.stat().st_mode) == 0o600, 'rollback_settings_mismatch')
+        run_snapshot(api, cid, aid, 'READBACK_RUNS', runs)
         # Keep host files/fuse/claims; never erase evidence or re-enable the model.
-        print('ROLLBACK read back: full adapterConfig, two routines, instructions/revision, settings; paused; host state retained')
+        print('ROLLBACK read back: full adapterConfig, two routines, instructions/revision, settings; paused; history/state retained')
         return
     host.require(a.claude is not None and a.claude.is_absolute() and a.claude.is_file(), 'claude_path_required')
     host.require(a.linear_author and len(a.linear_author) <= 100, 'linear_author_required')
@@ -144,6 +192,10 @@ def main():
     host.require(len(selected) == 2, 'missing_routines')
     expected = json.dumps(settings(str(Path.home())), indent=2, ensure_ascii=False) + '\n'
     host.require((HERE / 'settings.json').read_text() == expected, 'regenerate_settings_for_target_home')
+    # Recheck after potentially slow preflight, before any backup/deployment write.
+    run_snapshot(api, cid, aid, 'PREWRITE_RUNS', runs)
+    if receipt_digest is not None:
+        host.require(cleanup.verify_completed(root, a.cleanup_backup, aid, cid) == receipt_digest, 'cleanup_receipt_changed')
     # Back up before any installed file or API mutation, including repeated apply.
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     host.require(root.resolve() == root, 'host_root_symlink')
@@ -153,7 +205,9 @@ def main():
     os.chmod(backup.parent, 0o700)
     write(backup / 'settings.json', target.read_bytes())
     fields = ('description', 'concurrencyPolicy', 'catchUpPolicy')
-    host.store(backup / 'snapshot.json', {'agent': aid, 'company': cid,
+    host.store(backup / 'snapshot.json', {'agent': aid, 'company': cid, 'runs': runs,
+        'cleanupBackup': str(a.cleanup_backup) if a.cleanup_backup else None,
+        'cleanupSnapshotSha256': receipt_digest,
         'adapterConfig': agent['adapterConfig'], 'instructions': old_instruction['content'],
         'routines': {r['id']: {k: r[k] for k in fields} for r in selected}})
     for name in ('host.py', 'linear-safe.py', 'host.json', 'manifest.json'):
@@ -201,8 +255,11 @@ def main():
     readback_configuration(api, aid, config, expected_routines)
     readback_instruction(api, bundle_route, content, committed_instruction)
     host.require(target.read_text() == expected and stat.S_IMODE(target.stat().st_mode) == 0o600, 'settings_mismatch')
-    host.require(api('GET', '/companies/' + cid + '/heartbeat-runs?agentId=' + aid + '&limit=1000') == [], 'runs_changed')
-    print('PASS: full adapterConfig/two routines/instructions revision/hashes/settings mode/paused/zero runs; backup:', backup)
+    run_snapshot(api, cid, aid, 'READBACK_RUNS', runs)
+    if receipt_digest is not None:
+        host.require(cleanup.verify_completed(root, a.cleanup_backup, aid, cid, after_install=True) == receipt_digest,
+                     'cleanup_receipt_changed')
+    print('PASS: full adapterConfig/two routines/instructions revision/hashes/settings mode/paused/unchanged terminal history; backup:', backup)
     print('Instructions sha256:', hashlib.sha256(content.encode()).hexdigest())
     print('Settings sha256:', digest(target))
 

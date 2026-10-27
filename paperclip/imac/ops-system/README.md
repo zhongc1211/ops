@@ -1,8 +1,8 @@
-# S12 ③：宿主收尾草案（第 4 轮修复待验收）
+# S12 ③：宿主收尾草案（第 5 轮安装／顺序修复待验收）
 
 第3轮版本已由独立验收方安装；第89条及收尾批准后执行的一次 E2E **失败，未重跑**：adapter 注入 MCP 参数，旧 host 在起模型前熔断。报告为私有归档 `E2E-s12-3.md` 的「最终续办」。该次触发额度已经用掉，不能因没启动模型而再次使用。
 
-本目录第4轮只交修复和默认 dry-run 收尾脚本，**没有安装新版本、清状态或触发**。按既有报告，agent paused、测试 trigger disabled、OPS-1 blocked；本轮没有在线重新核状态。新安装、收尾 apply、再次 E2E 都须分别获准，不能把脚本权限或本轮交付当批准。
+第5轮已读 `E2E2-s12-3.md`：复验停在安装前，第二次 E2E 未触发、未消耗。报告确认第92条已批准复验通过后的执行；本次阻断是代码门禁和顺序，不是实时费用或否认已有批准。本轮按派活只改代码，**不安装、不收尾 apply、不触发**，也没有在线重新核状态。下述顺序改为先收尾后重装，新 SHA／顺序的执行安排仍由主会话和验收方核对批准范围。
 
 ## 设计与信任边界
 
@@ -96,21 +96,26 @@ python3 -I paperclip/imac/ops-system/check-adapter-argv.py
 
 ## 安装与回滚（本轮均没执行）
 
-先由主会话向 Zack 另问是否安装，再由验收方操作。安装不是更改任何已装发送方的授权。
+由主会话及验收方核对新 SHA、顺序与批准范围后操作。安装不是更改任何已装发送方的授权。本次固定顺序为：同一完整源码包 → 旧 host 上精确收尾 → 取得完成凭据 → 用该源码包重装。
 
 ```sh
 # 默认只打印，不连 API、不写文件
 bash paperclip/imac/ops-system/install.sh
-# 另获安装批准后；作者账号值经只读核对，不能写入仓库
-bash paperclip/imac/ops-system/install.sh --apply --claude "$HOME/.local/bin/claude" --linear-author '<已确认的账号标识>'
+# 显式只读检查：显示实际 agent 历史 ID/status，不写、不调用 key-fill
+bash paperclip/imac/ops-system/install.sh --inspect
+# 本次先完成下节收尾，复核批准后；账号不能写入仓库
+bash paperclip/imac/ops-system/install.sh --apply --claude "$HOME/.local/bin/claude" --linear-author '<已确认的账号标识>' \
+  --cleanup-backup '<收尾输出的 BACKUP 目录>'
 # 回滚也须确认范围；从本次备份目录还原，不重启／恢复 agent
 bash paperclip/imac/ops-system/install.sh --rollback '<本次备份目录>' --apply
 ```
 
-- 安装 apply 前检查 paused、运行零条、原 extraArgs 和 skip=false，调用 key-fill --check；仅退出码零且 stdout 去首尾空白后精确为“有”才继续。“没有”、空输出、未知输出、非零或超时，都在 mkdir／备份／文件写入／API 修改之前停止；不读取密钥文件。回滚不以 key 存在为前提，不因 key 缺失阻止恢复旧配置。
+- 安装 apply 前检查 paused、完整历史全部为终态、原 extraArgs 和 skip=false，调用 key-fill --check；仅退出码零且 stdout 去首尾空白后精确为“有”才继续。“没有”、空输出、未知输出、非零或超时，都在 mkdir／备份／文件写入／API 修改之前停止；不读取密钥文件。回滚不以 key 存在为前提，不因 key 缺失阻止恢复旧配置。
 - 先备份 settings、指令内容、adapterConfig、两条 routine 的描述／策略、已有宿主文件。再原子写、mode 600（可执行脚本 700）、更新指令和 adapter command；extraArgs 不变；routine 设 coalesce_if_active / skip_missed，不改 trigger。
-- 安装读回完整 API 可见 adapterConfig，必须与本次期望对象完全相等（含 command、timeoutSec=900、graceSec=5、extraArgs、skip=false）；两条 routine 各自的 description／concurrencyPolicy／catchUpPolicy 逐字段比较，缺字段也失败。指令内容、入口及新 revision、settings 内容／600、paused／零运行均须符合。host/helper 落盘摘要另与仓库文件比较，host.json 与构造对象比较，之后才记 manifest；运行前也核 manifest。
-- 幂等重跑不删 claim、FUSED、INFLIGHT 或预算预留。安装后有运行历史时拒绝再次安装；应人工定维护方案，不能清运行历史绕过。
+- 安装读回完整 API 可见 adapterConfig，必须与本次期望对象完全相等（含 command、timeoutSec=900、graceSec=5、extraArgs、skip=false）；两条 routine 各自的 description／concurrencyPolicy／catchUpPolicy 逐字段比较，缺字段也失败。指令内容、入口及新 revision、settings 内容／600、paused／无活动运行及原历史逐项不变均须符合。host/helper 落盘摘要另与仓库文件比较，host.json 与构造对象比较，之后才记 manifest；运行前也核 manifest。
+- 允许已有终态历史，不删任何历史。`run_snapshot` 只接受 succeeded/interrupted/failed/cancelled/timed_out；queued/running/scheduled_retry 及未知状态均拒绝。按 ID 排序，拒绝错归属、重复、达到一千条上限／未知结构；修改前打印 PLAN_RUNS、PREWRITE_RUNS，备份保存 runs，修改后打印 READBACK_RUNS 并要求 ID/status 数组完全一致，新增、删除、变状态都不能报 PASS。枚举依据固定版本 heartbeat.ts:793–817。回滚也核当前历史前后不变，不恢复／删除历史记录。
+- 默认离线计划不读线上，不会虚构 ID；显式 `--inspect` 只读显示真实历史后返回，`--apply` 也会先显示实际历史计划再做其它前置检查。本轮作者只运行默认模式，没有调用 --inspect 或 --apply。
+- 安装不清 claim、FUSED、INFLIGHT 或预留。遇 FUSED／INFLIGHT 先拒绝；本次有历史的已失败旧 host 额外必须有 `--cleanup-backup` 完成凭据，否则拒绝覆盖旧 host。普通终态历史不再被当成活动 run。
 - 回滚先用当前 baseRevisionId 把备份指令内容提交成**新 revision**，再以 `replaceAdapterConfig: true` 全量恢复备份配置（不改 adapterType），不是默认浅合并；原来没有的 command／timeoutSec／graceSec 必须消失。配置替换后再读指令入口、内容及 revision，须仍指向刚提交的版本，不假装回到历史 revision。
 - 回滚只有在完整 API 可见 adapterConfig 与备份完全相等、两条 routine 三字段与备份相等、指令／revision／settings 摘要与600／paused 都读回符合时才打印成功；任一差异即失败，不能只核 paused。保留宿主文件和状态作证据不等于仍允许执行宿主；不恢复、不触发。
 - 脚本故障后保持暂停，检查本次备份再回滚；不是跨 API／文件系统事务，未声称部分失败自动全部回滚。
@@ -145,7 +150,21 @@ python3 -I paperclip/imac/ops-system/close-failed-e2e.py \
 
 每阶段在备份内写 progress。任何写入阶段失败，尝试持久写 `cleanup_incomplete` 熔断并以非零退出；磁盘故障下也不能声称熔断写成功。它不是 API/文件系统事务，不会自动重开 issue、恢复预留或盲重试。收到超时／未知结果时只读核备份与线上状态后再人工处理；完整读回通过才报 PASS。
 
-**清理不是升级或再跑许可。**脚本要求仍是旧 host，后续若另获批应先核清理方案，再核单独升级方案。原 install.py 的零运行历史门禁没有放宽：这次已有 heartbeat，不能删历史来安装，不能用本脚本的状态清理绕过安装门禁；升级路径仍需另行审查。本次脚本清成功也保持 agent paused、测试 trigger disabled，已消耗的 E2E 额度不会恢复。
+### 第5轮固定顺序及两个脚本的互核
+
+选 **先收尾、后重装**，不支持倒序：旧 host 摘要是本次失败发生在 spawn 前的直接证据。先清理可原样保留这个门禁；若先覆盖 host，就必须另设计旧版本证据迁移，反而扩大本次改动。新安装器接受原 cancelled 历史，所以先收尾不会再被零历史断言卡住。
+
+1. 在独立源码目录准备本次完整 `paperclip/imac` 包，不覆盖部署。先审核／确定目标 settings 等源文件，再收尾；收尾到安装间不得改包。
+2. 新收尾脚本在旧 host 上运行，仍核唯一原 cancelled run、blocked OPS-1、原 FUSED／claim／200预留及停用触发器；备份和清理范围不放宽。
+3. 收尾 snapshot 增加 `nextInstallSha256`：同包 install.py/install.sh、close-failed-e2e、host、generate、helper、settings、AGENTS 及上级 provision/config/key-fill 源文件的摘要（不读取凭据文件）。结束再核摘要未变，只有完整读回成功才写 progress.phase=complete 和 snapshotSha256，并输出下一步的 `--cleanup-backup` 目录。
+4. 安装器使用**仓库同包**的验证函数，不导入已安装代码；核凭据在 root/backups 下、目录私有、incident 摘要、原备份字节摘要、旧 host 证明、phase=complete、snapshot 摘要、当前待安装源码摘要。还 GET 核 OPS-1 cancelled、paused、原 cancelled run、测试trigger disabled，核清理后 state 只有锁和零预留。任一不符在安装备份／部署写之前拒绝。
+5. 安装备份保存 run ID/status 和收尾凭据路径／摘要；完成后重新核历史完全一致、凭据／源码／清理状态不变、trigger 整对象不变及已有完整配置读回。安装允许更新 routine 描述／策略，可能使 updatedAt 改变，所以装后不错误要求正式 routine 的整对象摘要仍等于收尾前；改用安装器已有的两条 routine 三字段完整读回，触发器仍不得变。
+
+这是具体可执行的升级路径，不是删历史或删旧 hash 保护。当前事件的收尾凭据仍严格限定唯一原 run，不接受清理到安装间又多一条 run；一般安装历史门禁则接受任意未截断终态集合。默认计划和 --inspect 不等于全部 apply 前提已验证。
+
+两个脚本仍不是跨文件系统/API事务，也不能阻止其它管理员并发恢复 agent。执行窗口应保持暂停、不修改配置；反复读回发现漂移即失败，不自动修状态／重试。清理成功后安装失败，只保留各自备份供核实，不自动恢复200预留、不重开 OPS-1、不再清一次。回滚只还原配置／文件，不倒转收尾或历史；保留 paused 和测试 disabled。
+
+第92条及本次任务已存在的批准不被脚本文案否认；新 SHA／调整后顺序是否符合执行安排交主会话核对。作者本轮没有执行两个 --apply，也没有消耗第二次 E2E。
 
 ## 指令来源及可重复步骤
 
@@ -176,7 +195,7 @@ orca-wake 的键为机器+bot+既有 dedup_key 的摘要；notify-run 没旧事�
 
 第2轮作者的订阅权限自查因 OAuth 过期没跑成；这是历史记录，不代表后来独立验收未做。后续权限验收及唯一 E2E 以私有报告为准。本轮不做权限自查、不重试 E2E；新修复仍须独立验收。
 
-**下面保留第3轮的原单次 E2E 步骤作为历史。**报告中的第89条已经为那一次取消了实时费用前提，采用 CLI 两美元估算预算和十五分钟强制结束；第1/4/5步的实时费用要求不能再被说成那一次的停止原因。那一次已经失败且用完，第89条不是下一次运行的许可，后续门禁须重新明确。当前测试 trigger 保持 disabled/setupPending=false，不自行恢复。新的源码交付不改变任何批准。
+**下面保留第3轮第一次 E2E 的原步骤作为历史，不是第二次的执行指令。**第92条后续获准演练须以原 cancelled 历史为基线，仅新增获准的那一次，不套用下文第一次演练的空基线，也不删历史来满足它。报告中的第89条已经为那一次取消了实时费用前提，采用 CLI 两美元估算预算和十五分钟强制结束；第1/4/5步的实时费用要求不能再被说成那一次的停止原因。那一次已经失败且用完，第89条不是下一次运行的许可，后续门禁须重新明确。当前测试 trigger 保持 disabled/setupPending=false，不自行恢复。新的源码交付不改变任何批准。
 
 权限验收覆盖要求仍包括：curl/python/node、命令替换、管道、重定向、环境前缀、原始 orca 的其它命令和远程参数、gh pr merge、写设置／台账／宿主文件均被拒；helper 正例只用假目录或只读，不真的写 Linear。
 
