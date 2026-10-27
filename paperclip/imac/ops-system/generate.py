@@ -21,7 +21,7 @@ def settings(home):
                      'Bash(ssh *)', 'Bash(gh *)', 'Bash(git *)', 'Bash(orca *)',
                      'Bash(orca-agent-launch *)', 'Bash(' + root + '/host.py*)',
                      'Bash(' + root + '/install*)'] +
-                    [tool + '(' + path + ')' for tool in ('Read', 'Write', 'Edit') for path in (
+                    [tool + '(/' + path + ')' for tool in ('Read', 'Write', 'Edit') for path in (
                         root + '/**', str(Path(home) / '.paperclip/**'),
                         str(Path(home) / 'ops-archive/travel-1026/**'),
                         str(Path(home) / '.config/paperclip-ops/triggers/**'),

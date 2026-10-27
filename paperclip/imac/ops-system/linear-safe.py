@@ -35,7 +35,8 @@ def main():
         candidate = Path(conf['home']) / relative
         if candidate.suffix not in ('.log', '.json', '.md', '.txt', '.flag'):
             raise ValueError('not a text log')
-        if any(word in candidate.name.lower() for word in ('secret', 'token', 'credential', '.env')):
+        if any(word in part.lower() for part in Path(relative).parts
+               for word in ('secret', 'token', 'credential', '.env')):
             raise ValueError('sensitive path')
         if not allowed or '..' in Path(relative).parts or candidate.resolve() != candidate or not candidate.is_file():
             raise ValueError('log path refused')
