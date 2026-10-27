@@ -72,9 +72,16 @@ build_json() {
         jq -n --arg bot "$bot" --arg task "$task" --arg issue "$issue" \
             --arg machine "$machine" --arg status "$status" --arg log_tail "$tail_text" \
             --argjson exit_code "$code" --argjson duration_s "$duration" --arg kind "${kind:-}" --arg note "${note:-}" \
+            --arg dedup_key "${dedup_key:-}" \
             '{bot: $bot, task: $task, issue: $issue, machine: $machine, exit_code: $exit_code,
               status: $status, log_tail: $log_tail, duration_s: $duration_s, source: "notify-run"}
-             + (if $kind == "" then {} else {kind: $kind, note: $note} end)'
+             + (if $kind == "" then {} else {kind: $kind, note: $note} end)
+             | if $bot == "ops-system" then . + {dedup_key: $dedup_key}
+               | with_entries(if (.value | type) == "string" then
+                   .value |= (gsub("`"; "｀") | gsub("~"; "～") | gsub("\\r"; ""))
+                   | if .key != "note" and .key != "log_tail" then .value |= gsub("\\n"; "\\\\n") else . end
+                 else . end)
+               else . end'
     else
         python3 -c 'import json, sys
 a = sys.argv[1:]
@@ -82,8 +89,14 @@ d = {"bot": a[0], "task": a[1], "issue": a[2], "machine": a[3], "exit_code": int
      "status": a[5], "log_tail": a[6], "duration_s": int(a[7]), "source": "notify-run"}
 if a[8]:
     d.update(kind=a[8], note=a[9])
+if a[0] == "ops-system":
+    d["dedup_key"] = a[10]
+    for key, value in d.items():
+        if isinstance(value, str):
+            value = value.replace("`", "｀").replace("~", "～").replace("\r", "")
+            d[key] = value if key in ("note", "log_tail") else value.replace("\n", "\\n")
 print(json.dumps(d))' \
-            "$bot" "$task" "$issue" "$machine" "$code" "$status" "$tail_text" "$duration" "${kind:-}" "${note:-}"
+            "$bot" "$task" "$issue" "$machine" "$code" "$status" "$tail_text" "$duration" "${kind:-}" "${note:-}" "${dedup_key:-}"
     fi
 }
 
@@ -119,6 +132,8 @@ send_webhook() (
         exit 1
     fi
     machine=$(hostname)
+    # One invocation/event, one key across every 20-second timeout retry.
+    dedup_key="notify-run:${machine}:${start}:${tmpd##*/}"
     if ! build_json >"$tmpd/payload.json"; then
         say "notify-run: 生成 JSON 失败（需要 jq 或 python3），未发送"
         exit 1
@@ -126,7 +141,9 @@ send_webhook() (
     tries=${NOTIFY_RUN_TRIES:-3}
     n=1
     while :; do
-        http=$(printf 'Authorization: Bearer %s\n' "$KEY" | curl -sS -o /dev/null -w '%{http_code}' \
+        http=$({ printf 'Authorization: Bearer %s\n' "$KEY"
+                 if [ "$bot" = ops-system ]; then printf 'Idempotency-Key: %s\n' "$dedup_key"; fi
+               } | curl -sS -o /dev/null -w '%{http_code}' \
             --max-time 20 -X POST -H @- -H 'Content-Type: application/json' \
             --data-binary @"$tmpd/payload.json" "$URL" 2>/dev/null)
         say "notify-run: webhook bot=$bot status=$status exit_code=$code http=${http:-无响应} 第${n}次"

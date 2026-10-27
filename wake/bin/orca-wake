@@ -503,7 +503,9 @@ def _send_now(job, sent, base):
         code, err, resp, retry_after = None, None, "", None
         try:
             req = urllib.request.Request(url, data=body, method="POST", headers={
-                "Content-Type": "application/json", "Authorization": "Bearer " + keyv})
+                "Content-Type": "application/json", "Authorization": "Bearer " + keyv,
+                **({"Idempotency-Key": hashlib.sha256((socket.gethostname() + ":" + job["bot"] + ":" + job["dedup_key"]).encode()).hexdigest()}
+                   if job["bot"] == "ops-system" else {})})
             with urllib.request.urlopen(req, timeout=20, context=ssl_context()) as r:
                 code = r.status
         except urllib.error.HTTPError as e:
@@ -610,7 +612,7 @@ def build_payload(job):
             dur = int(now() - int(job["dispatch_ts"]))
     except ValueError:
         pass
-    return {
+    payload = {
         "bot": job["bot"], "task": job["task"], "issue": job.get("issue", ""),
         "machine": socket.gethostname(), "exit_code": None, "status": job["status"],
         "log_tail": tail(job.get("message", "")), "duration_s": dur,
@@ -620,6 +622,14 @@ def build_payload(job):
         "orca_terminal": job.get("orca_terminal", ""), "note": job.get("note", ""),
         "wake_version": VERSION,
     }
+    if job["bot"] == "ops-system":
+        # Static Paperclip fences cannot quote arbitrary delimiters. Replace every
+        # delimiter character, including inline/indented fences; flatten scalar fields.
+        for key, value in payload.items():
+            if isinstance(value, str):
+                value = value.replace("`", "｀").replace("~", "～").replace("\r", "")
+                payload[key] = value if key in ("note", "log_tail") else value.replace("\n", "\\n")
+    return payload
 
 
 def make_job(st, status, seq, message, note, source="wake-hook"):
