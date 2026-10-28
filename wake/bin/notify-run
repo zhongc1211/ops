@@ -72,9 +72,16 @@ build_json() {
         jq -n --arg bot "$bot" --arg task "$task" --arg issue "$issue" \
             --arg machine "$machine" --arg status "$status" --arg log_tail "$tail_text" \
             --argjson exit_code "$code" --argjson duration_s "$duration" --arg kind "${kind:-}" --arg note "${note:-}" \
+            --arg dedup_key "${dedup_key:-}" \
             '{bot: $bot, task: $task, issue: $issue, machine: $machine, exit_code: $exit_code,
               status: $status, log_tail: $log_tail, duration_s: $duration_s, source: "notify-run"}
-             + (if $kind == "" then {} else {kind: $kind, note: $note} end)'
+             + (if $kind == "" then {} else {kind: $kind, note: $note} end)
+             | if $bot == "ops-system" then . + {dedup_key: $dedup_key}
+               | with_entries(if (.value | type) == "string" then
+                   .value |= (gsub("`"; "｀") | gsub("~"; "～") | gsub("\\r"; ""))
+                   | if .key != "note" and .key != "log_tail" then .value |= gsub("\\n"; "\\\\n") else . end
+                 else . end)
+               else . end'
     else
         python3 -c 'import json, sys
 a = sys.argv[1:]
@@ -82,8 +89,14 @@ d = {"bot": a[0], "task": a[1], "issue": a[2], "machine": a[3], "exit_code": int
      "status": a[5], "log_tail": a[6], "duration_s": int(a[7]), "source": "notify-run"}
 if a[8]:
     d.update(kind=a[8], note=a[9])
+if a[0] == "ops-system":
+    d["dedup_key"] = a[10]
+    for key, value in d.items():
+        if isinstance(value, str):
+            value = value.replace("`", "｀").replace("~", "～").replace("\r", "")
+            d[key] = value if key in ("note", "log_tail") else value.replace("\n", "\\n")
 print(json.dumps(d))' \
-            "$bot" "$task" "$issue" "$machine" "$code" "$status" "$tail_text" "$duration" "${kind:-}" "${note:-}"
+            "$bot" "$task" "$issue" "$machine" "$code" "$status" "$tail_text" "$duration" "${kind:-}" "${note:-}" "${dedup_key:-}"
     fi
 }
 
@@ -104,6 +117,11 @@ say() { /bin/echo "$1" >&2 2>/dev/null || true; }
 # 在子 shell 里读 env 文件，KEY 不留在主进程里。
 send_webhook() (
     set +x
+    # A process can emit a startup warning AND a final result. Retry identity
+    # belongs to that event, not merely to the process invocation.
+    event=${1:-}
+    case "$event" in startup-warning|final) ;; *) exit 2 ;; esac
+    payload_file="$tmpd/payload-${event}.json"
     env_file="$HOME/.config/grokbot/webhooks/$bot.env"
     [ -r "$env_file" ] || env_file="/home/box/.config/grokbot/webhooks/$bot.env"
     if [ ! -r "$env_file" ]; then
@@ -119,16 +137,20 @@ send_webhook() (
         exit 1
     fi
     machine=$(hostname)
-    if ! build_json >"$tmpd/payload.json"; then
+    # Fixed before the retry loop: warning/final differ; retries of either don't.
+    dedup_key="notify-run:${machine}:${start}:${tmpd##*/}:${event}:${status}"
+    if ! build_json >"$payload_file"; then
         say "notify-run: 生成 JSON 失败（需要 jq 或 python3），未发送"
         exit 1
     fi
     tries=${NOTIFY_RUN_TRIES:-3}
     n=1
     while :; do
-        http=$(printf 'Authorization: Bearer %s\n' "$KEY" | curl -sS -o /dev/null -w '%{http_code}' \
+        http=$({ printf 'Authorization: Bearer %s\n' "$KEY"
+                 if [ "$bot" = ops-system ]; then printf 'Idempotency-Key: %s\n' "$dedup_key"; fi
+               } | curl -sS -o /dev/null -w '%{http_code}' \
             --max-time 20 -X POST -H @- -H 'Content-Type: application/json' \
-            --data-binary @"$tmpd/payload.json" "$URL" 2>/dev/null)
+            --data-binary @"$payload_file" "$URL" 2>/dev/null)
         say "notify-run: webhook bot=$bot status=$status exit_code=$code http=${http:-无响应} 第${n}次"
         log_send "${http:-none}" "$n"
         case "$http" in 2??) exit 0 ;; esac
@@ -168,10 +190,10 @@ start_watch() (  # 后台子 shell：到时间 agent 还在、还没走到第 1 
     agent_started && exit 0
     status=stuck code=0 kind=agent_not_started duration=$(( $(date +%s) - start ))
     note="notify-run 起了 ${agent_name}（pid ${child}）已 ${NOTIFY_RUN_START_MIN:-5} 分钟，orca-wake 里还没有它的第 1 个回合（UserPromptSubmit）：可能卡在启动对话框、登录或信任目录，或者没装 hook。去终端看一眼"
-    send_webhook && exit 0
+    send_webhook startup-warning && exit 0
     [ "$bot" = coding-assistant ] && exit 0
     note="${note}（原本发给 ${bot}，没发出去）" bot=coding-assistant
-    send_webhook
+    send_webhook startup-warning
 )
 
 finish() {
@@ -186,7 +208,7 @@ finish() {
         status=failed code=$cmd_rc
     fi
     duration=$(( $(date +%s) - start ))
-    send_webhook
+    send_webhook final
     rm -rf "$tmpd"
     exit "$code"
 }

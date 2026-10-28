@@ -1,0 +1,50 @@
+{
+  "disableAllHooks": true,
+  "permissions": {
+    "defaultMode": "dontAsk",
+    "disableBypassPermissionsMode": "disable",
+    "allow": [
+      "Bash(/Users/jiawenwang/.local/share/paperclip-ops/ops-system-host/linear-safe.py read)",
+      "Bash(/Users/jiawenwang/.local/share/paperclip-ops/ops-system-host/linear-safe.py log *)",
+      "Bash(/Users/jiawenwang/.local/share/paperclip-ops/ops-system-host/linear-safe.py comment *)"
+    ],
+    "deny": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Edit",
+      "Write",
+      "NotebookEdit",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "mcp__*",
+      "Bash(curl *)",
+      "Bash(python*)",
+      "Bash(node *)",
+      "Bash(ssh *)",
+      "Bash(gh *)",
+      "Bash(git *)",
+      "Bash(orca *)",
+      "Bash(orca-agent-launch *)",
+      "Bash(/Users/jiawenwang/.local/share/paperclip-ops/ops-system-host/host.py*)",
+      "Bash(/Users/jiawenwang/.local/share/paperclip-ops/ops-system-host/install*)",
+      "Read(//Users/jiawenwang/.local/share/paperclip-ops/ops-system-host/**)",
+      "Read(//Users/jiawenwang/.paperclip/**)",
+      "Read(//Users/jiawenwang/ops-archive/travel-1026/**)",
+      "Read(//Users/jiawenwang/.config/paperclip-ops/triggers/**)",
+      "Read(//Users/jiawenwang/.config/grokbot/**)",
+      "Write(//Users/jiawenwang/.local/share/paperclip-ops/ops-system-host/**)",
+      "Write(//Users/jiawenwang/.paperclip/**)",
+      "Write(//Users/jiawenwang/ops-archive/travel-1026/**)",
+      "Write(//Users/jiawenwang/.config/paperclip-ops/triggers/**)",
+      "Write(//Users/jiawenwang/.config/grokbot/**)",
+      "Edit(//Users/jiawenwang/.local/share/paperclip-ops/ops-system-host/**)",
+      "Edit(//Users/jiawenwang/.paperclip/**)",
+      "Edit(//Users/jiawenwang/ops-archive/travel-1026/**)",
+      "Edit(//Users/jiawenwang/.config/paperclip-ops/triggers/**)",
+      "Edit(//Users/jiawenwang/.config/grokbot/**)"
+    ]
+  }
+}

@@ -3,7 +3,7 @@
 ## 原则
 
 - ops 仓库 main 是唯一来源。`docs/bot-rules/<skill>/` 里是什么，各落点就该是什么。
-- dev-bot-rules 的内容归 dr eggbot：改内容走 PR，由 dr eggbot 定稿，Zack 批合并。
+- dev-bot-rules 的内容归 dr eggbot：改内容走 PR，由 dr eggbot 定稿，Zack 批合并。**决定 36A 的出行例外：至 2026-11-08，“由 dr eggbot 定稿”不适用，改由另起的、不是作者的 coding agent 定稿；11-09 起恢复。合并仍须 Zack 批准，出行期间执行只认批准台账（决定 35A）。**
 - `scripts/sync-bot-rules` 只把 main 的内容原样拷到落点，不改内容、不合并、不格式化。
 - 按目录整体同步：源目录下所有文件都同步（含子目录）。dr eggbot 以后把 dev-bot-rules 拆成「核心 + 附录」时，只要文件都在 `docs/bot-rules/dev-bot-rules/` 下，脚本和目标表都不用改。新增一个 skill 目录，就在 `targets.tsv` 加一行。
 
