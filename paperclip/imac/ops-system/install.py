@@ -99,8 +99,8 @@ def run_snapshot(api, cid, aid, label, expected=None):
     return result
 
 
-def load_cleanup():
-    spec = importlib.util.spec_from_file_location('ops_cleanup', HERE / 'close-failed-e2e.py')
+def load_cleanup(filename='close-failed-e2e.py'):
+    spec = importlib.util.spec_from_file_location('ops_cleanup', HERE / filename)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -110,17 +110,20 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--apply', action='store_true')
     p.add_argument('--inspect', action='store_true', help='Read-only paused/run-history plan; no key check or writes')
-    p.add_argument('--cleanup-backup', type=Path, help='Completed cleanup backup; required for this failed-host upgrade')
+    p.add_argument('--cleanup-backup', type=Path, help='Completed OPS-1 cleanup backup')
+    p.add_argument('--precheck-cleanup-backup', type=Path, help='Completed OPS-3 cleanup backup; do not use the OPS-1 receipt')
     p.add_argument('--claude', type=Path)
     p.add_argument('--linear-author', help='Expected shared Linear account, supplied by operator; never committed')
     p.add_argument('--rollback', type=Path, help='Backup directory; still requires --apply')
     a = p.parse_args()
     root = Path.home() / '.local/share/paperclip-ops/ops-system-host'
     target = Path(os.environ['AGENT_SETTINGS'])
-    print('PLAN: cleanup FIRST for failed E2E; then backup/install; paused; terminal history preserved; no triggers')
+    print('PLAN: cleanup FIRST for failed incident; then backup/install; paused; terminal history preserved; no triggers')
     print('PLAN: rollback' if a.rollback else 'PLAN: install', str(root))
     host.require(not (a.apply and a.inspect), 'choose_inspect_or_apply')
-    host.require(not (a.rollback and a.cleanup_backup), 'cleanup_receipt_is_for_install')
+    host.require(not (a.cleanup_backup and a.precheck_cleanup_backup), 'choose_one_cleanup_receipt')
+    receipt_backup = a.precheck_cleanup_backup or a.cleanup_backup
+    host.require(not (a.rollback and receipt_backup), 'cleanup_receipt_is_for_install')
     if not a.apply and not a.inspect:
         print('PLAN_RUNS: not read in offline mode; --inspect or --apply prints actual IDs/statuses')
         print('DRY RUN: no API calls, no files changed; execution approval is checked by operator')
@@ -146,11 +149,17 @@ def main():
         # carry the completed cleanup receipt, not a manually deleted fuse.
         host.require(not os.path.lexists(root / 'state/FUSED.json') and not os.path.lexists(root / 'state/INFLIGHT.json'),
                      'cleanup_required_before_install')
-        old_failed_host = (root / 'host.py').exists() and digest(root / 'host.py') == cleanup.FAILED_HOST_SHA256
+        installed_sha = digest(root / 'host.py') if (root / 'host.py').exists() else None
+        old_failed_host = installed_sha == cleanup.FAILED_HOST_SHA256
         host.require(not (runs and old_failed_host) or a.cleanup_backup is not None, 'cleanup_receipt_required')
-        if a.cleanup_backup:
-            a.cleanup_backup = a.cleanup_backup.resolve(strict=True)
-            receipt_digest = cleanup.verify_completed(root, a.cleanup_backup, aid, cid)
+        precheck = load_cleanup('close-precheck.py')
+        host.require(not precheck.needs_receipt(installed_sha, runs) or a.precheck_cleanup_backup is not None,
+                     'precheck_cleanup_receipt_required')
+        if a.precheck_cleanup_backup:
+            cleanup = precheck
+        if receipt_backup:
+            receipt_backup = receipt_backup.resolve(strict=True)
+            receipt_digest = cleanup.verify_completed(root, receipt_backup, aid, cid)
     bundle_route = '/agents/' + aid + '/instructions-bundle/file'
     old_instruction = api('GET', bundle_route + '?path=AGENTS.md')
     if a.rollback:
@@ -195,7 +204,7 @@ def main():
     # Recheck after potentially slow preflight, before any backup/deployment write.
     run_snapshot(api, cid, aid, 'PREWRITE_RUNS', runs)
     if receipt_digest is not None:
-        host.require(cleanup.verify_completed(root, a.cleanup_backup, aid, cid) == receipt_digest, 'cleanup_receipt_changed')
+        host.require(cleanup.verify_completed(root, receipt_backup, aid, cid) == receipt_digest, 'cleanup_receipt_changed')
     # Back up before any installed file or API mutation, including repeated apply.
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     host.require(root.resolve() == root, 'host_root_symlink')
@@ -206,7 +215,8 @@ def main():
     write(backup / 'settings.json', target.read_bytes())
     fields = ('description', 'concurrencyPolicy', 'catchUpPolicy')
     host.store(backup / 'snapshot.json', {'agent': aid, 'company': cid, 'runs': runs,
-        'cleanupBackup': str(a.cleanup_backup) if a.cleanup_backup else None,
+        'cleanupBackup': str(receipt_backup) if receipt_backup else None,
+        'cleanupKind': 'ops3' if a.precheck_cleanup_backup else 'ops1' if a.cleanup_backup else None,
         'cleanupSnapshotSha256': receipt_digest,
         'adapterConfig': agent['adapterConfig'], 'instructions': old_instruction['content'],
         'routines': {r['id']: {k: r[k] for k in fields} for r in selected}})
@@ -257,7 +267,7 @@ def main():
     host.require(target.read_text() == expected and stat.S_IMODE(target.stat().st_mode) == 0o600, 'settings_mismatch')
     run_snapshot(api, cid, aid, 'READBACK_RUNS', runs)
     if receipt_digest is not None:
-        host.require(cleanup.verify_completed(root, a.cleanup_backup, aid, cid, after_install=True) == receipt_digest,
+        host.require(cleanup.verify_completed(root, receipt_backup, aid, cid, after_install=True) == receipt_digest,
                      'cleanup_receipt_changed')
     print('PASS: full adapterConfig/two routines/instructions revision/hashes/settings mode/paused/unchanged terminal history; backup:', backup)
     print('Instructions sha256:', hashlib.sha256(content.encode()).hexdigest())

@@ -1,4 +1,8 @@
-# S12 ③：宿主收尾草案（第 5 轮安装／顺序修复待验收）
+# S12 ③：宿主收尾（第6轮无 issue 路径修复，未部署）
+
+**当前：#83 已合并。本轮从 main 新分支修复 S12 ④ 的 OPS-3 失败。** 正常 notify-run 不带 --issue 时，Paperclip 保留 `{{issue}}`；新 host 只在固定 issue 槽位将该精确占位符映射到 PER-67，并强化模板结构／重复 issue 行拒绝。默认值本来就是 `-`，显式空串会遮住它，改空默认值不能修复。
+
+完整安装版本源码结论、19个字段的空值行为、防伪造边界及 **OPS-3 收尾→重装**步骤见 [EMPTY-FIELDS.md](EMPTY-FIELDS.md)。OPS-3 使用 `close-precheck.py` 与安装参数 `--precheck-cleanup-backup`，账本仅400→200，保留旧 E2E 的回执和预留；不要套用下面旧 OPS-1 的清零流程。本轮不部署、不触发、不清状态。
 
 第3轮版本已由独立验收方安装；第89条及收尾批准后执行的一次 E2E **失败，未重跑**：adapter 注入 MCP 参数，旧 host 在起模型前熔断。报告为私有归档 `E2E-s12-3.md` 的「最终续办」。该次触发额度已经用掉，不能因没启动模型而再次使用。
 
@@ -74,7 +78,7 @@ python3 -I paperclip/imac/ops-system/check-adapter-argv.py
 ## 什么算写成
 
 1. 从服务端核 run/company/agent/task、issue executionRunId 和指定 routine 归属；不相信模型输出中的标识。同时读本次 issue/agent 的 runner-goal projection，要求 goal、pendingAction 明确为空；启动前与 done PATCH 前各核一次，未知／404／缺字段拒绝。即使 goal 已 complete 也拒绝，不扩展到带 goal 的任务。检查与 PATCH 不是原子事务，外部管理员并发改 goal 仍可能使 PATCH 失败或取消当前 run；不得声称消除了这种竞态。
-2. 从模板顶部唯一的 issue 字段选 PER 卡；空／缺省值归 PER-67 汇总，非 PER 或多义值拒绝。note/log_tail 中的目标不算。
+2. 核固定模板唯一结构标记、17个标量字段顺序及全描述唯一 issue 行，只取该槽位。空串、`-`、精确 `{{issue}}` 归 PER-67 汇总；其它值必须匹配合法 PER 卡号，未知占位符不通配回落。note/log_tail 不能选目标，重复 issue 行即使是引用也保守拒绝，不能用提前 note 边界伪造头部。
 3. 宿主生成随机一次性标记，含本次 run；读目标卡已有评论，保存旧评论集合；在私有 active.json 保存本次上下文。
 4. helper 只对该目标写一次，正文最后一行须精确标记、禁止 [Zack答]，先持久写意图。超时／不明响应不重试。
 5. helper 只有 Orca 返回成功才写私有回执。宿主再次读目标卡，要求新的、未截断的评论，正文完整等于回执、标记精确一致、创建时间不早于本次启动、作者等于安装时确认的共享账号。
@@ -120,7 +124,7 @@ bash paperclip/imac/ops-system/install.sh --rollback '<本次备份目录>' --ap
 - 回滚只有在完整 API 可见 adapterConfig 与备份完全相等、两条 routine 三字段与备份相等、指令／revision／settings 摘要与600／paused 都读回符合时才打印成功；任一差异即失败，不能只核 paused。保留宿主文件和状态作证据不等于仍允许执行宿主；不恢复、不触发。
 - 脚本故障后保持暂停，检查本次备份再回滚；不是跨 API／文件系统事务，未声称部分失败自动全部回滚。
 
-## 第 4 轮：仅本次失败演练的收尾脚本（未 apply）
+## 第4/5轮：旧 OPS-1 收尾流程（历史，不能用于 OPS-3）
 
 `close-failed-e2e.py` 是人工宿主维护工具，不安装给模型、不加 allowlist。默认只打印计划，连 incident／已装状态文件也不读；仅 `--apply` 才进入管理 API 和状态修改。
 

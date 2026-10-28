@@ -75,6 +75,9 @@ FIELDS = [
     "agent", "session_id", "seq", "dedup_key", "worktree", "orca_worktree_id", "orca_terminal",
     "wake_version", "note", "log_tail",
 ]
+# Paperclip 2026.1012.0: '-' is used only when a value is absent. Explicit
+# empty/null/whitespace overrides this default, is skipped, and leaves {{field}}.
+# An empty default cannot fix that; host handles only the exact issue-slot sentinel.
 VARIABLES = [
     {"name": f, "label": f, "type": "text", "required": False, "defaultValue": "-", "options": []}
     for f in FIELDS
