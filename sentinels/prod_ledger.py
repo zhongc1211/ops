@@ -1,218 +1,266 @@
 #!/usr/bin/env python3
-"""prod_ledger.py — 生产台账（ops · 23 生产版本哨兵的 box 这一半）。
-
-  prod_ledger.py apply [--fetch-rc N] [--ledger PATH] [--drill] < prod_fetch.py 的 JSON
-      iMac 的预检脚本 prod-watch.sh 通过 ssh 调用。拿每个 Worker 在线的 deployment 和台账里该 Worker 最后一行比：
-      不同就追加一行（状态「未报」），并用 notify-run --bot coding-assistant 叫醒 Coding助手（Worker、旧→新版本、时间）。
-      每次运行在 /workspace/ops/reports/prod-watch-YYYYMMDD.log 记一行；同一行也打印到 stdout，iMac 存一份镜像。
-      --drill：叫醒的标题加「【演练】」，日志写到 reports/drills/，用来对着一份故意过期的台账副本演练。
-  prod_ledger.py latest [--ledger PATH]
-      打印每个 Worker 最后一行（看台账用）。
-
-台账：/workspace/ops/reports/prod-ledger.md（box 上这份为准）。每个生产变更一行。Coding助手 报完生产状态后
-把「未报」改成「已报」并填上 Linear；哨兵只认 deployment id 列，不看状态列。
-抓取失败（fetch-rc 非 0、Worker 缺失）只记日志；同一种失败连续 4 次（约 1 小时）才叫醒一次，之后 6 小时内不再叫。
-不碰 Cloudflare，不读任何令牌。退出码：0 = 已处理（有没有变化都是 0）；2 = 输入不是合法 JSON。
+"""iMac local production ledger. run fetches; apply reads fetch JSON; latest is read-only.
+Missing ledgers require --init-baseline. Notifications never imply a completed report.
+State must be local, not shared between machines. Human edits must take ledger.lock.
 """
 import argparse
 import datetime as dt
 import fcntl
 import json
 import os
+from pathlib import Path
 import re
 import shutil
 import subprocess
 import sys
 
-REPORTS = "/workspace/ops/reports"
-LEDGER = os.path.join(REPORTS, "prod-ledger.md")
-STATE = os.path.expanduser("~/.orca-state/prod-watch")
-# ssh 进来的非交互 shell 的 PATH 里没有 ~/.local/bin
-NOTIFY_RUN = shutil.which("notify-run") or os.path.expanduser("~/.local/bin/notify-run")
+from local_state import atomic_write, maintain_logs
+from prod_fetch import WORKERS
+
 SGT = dt.timezone(dt.timedelta(hours=8))
-COLS = ["时间 SGT", "Worker", "版本", "version id", "deployment id", "commit", "报告人", "Linear", "状态", "备注"]
-HEADER = """# 生产台账
+COLS = ['时间 SGT', 'Worker', '版本', 'version id', 'deployment id', 'commit', '报告人', 'Linear', '状态', '备注']
+HEADER = '''# 生产台账
 
-每个生产 Worker 的每一次生产变更一行。由 ops · 23 生产版本哨兵（iMac，每 15 分钟）维护，Coding助手 报生产状态以这份为准。
-- 「时间 SGT」是 Cloudflare 上 deployment 的创建时间。
-- 哨兵发现在线 deployment 和该 Worker 最后一行不同，就追加一行，状态「未报」，并叫醒 Coding助手。
-- Coding助手 报完后把「未报」改成「已报」，补上 Linear 和 commit。哨兵只比 deployment id 列，改其他列不会触发。
-- 脚本：ops 仓库 `sentinels/`；运行日志：`reports/prod-watch-YYYYMMDD.log`。
+本机正本：~/.orca-state/prod-watch/prod-ledger.md；日志同目录 prod-watch-YYYYMMDD.log。
+基线版本为「已知」，不叫醒；box 历史「已报」和 Linear 列未恢复。
+后续变更为「未报」；叫醒尝试不等于送达，更不等于报告完成。
+人工核实报告后持 prod-ledger.md.lock 排他锁，原子改为「已报」并填写 Linear。
+生产哨兵只在 iMac 运行，此目录不得同步到另一台机器。
 
-"""
+'''
 
 
-def now_sgt():
+def now():
     return dt.datetime.now(SGT)
 
 
-def to_sgt(iso):
-    if not iso:
-        return "?"
-    t = dt.datetime.fromisoformat(iso.replace("Z", "+00:00"))
-    return t.astimezone(SGT).strftime("%Y-%m-%d %H:%M")
-
-
 def table_line(cells):
-    return "| " + " | ".join(str(c).replace("|", "/").replace("\n", " ") for c in cells) + " |"
+    return '| ' + ' | '.join(str(c).replace('|', '/').replace('\n', ' ') for c in cells) + ' |'
 
 
 def read_rows(path):
+    text = path.read_text(encoding='utf-8')
     rows = []
-    try:
-        lines = open(path, encoding="utf-8").read().splitlines()
-    except FileNotFoundError:
-        return rows
-    for ln in lines:
-        if not ln.startswith("| ") or ln.startswith("| 时间") or set(ln) <= set("|- "):
+    for line in text.splitlines():
+        if not line.startswith('|'):
             continue
-        cells = [c.strip() for c in ln.strip().strip("|").split("|")]
-        if len(cells) >= len(COLS):
-            rows.append(dict(zip(COLS, cells)))
+        cells = [c.strip() for c in line.strip().strip('|').split('|')]
+        if cells == COLS or all(c == '---' for c in cells):
+            continue
+        if len(cells) != len(COLS):
+            raise ValueError('台账表格损坏')
+        row = dict(zip(COLS, cells))
+        if not row['deployment id'] or row['状态'] not in ('已知', '未报', '已报'):
+            raise ValueError('台账字段损坏')
+        rows.append(row)
+    if not rows or set(r['Worker'] for r in rows) != {w[0] for w in WORKERS}:
+        raise ValueError('台账缺少 Worker 或含未知 Worker')
     return rows
 
 
-def latest(rows):
-    last = {}
-    for r in rows:
-        last[r["Worker"]] = r
-    return last
+def save_rows(path, rows):
+    atomic_write(path, HEADER + table_line(COLS) + '\n' + table_line(['---'] * len(COLS)) + '\n' +
+                 ''.join(table_line([r[c] for c in COLS]) + '\n' for r in rows))
 
 
-def ensure_ledger(path):
-    if not os.path.exists(path):
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(HEADER + table_line(COLS) + "\n" + table_line(["---"] * len(COLS)) + "\n")
+def log(args, message):
+    path = maintain_logs(args.state_dir, 'prod-watch')
+    line = now().strftime('%Y-%m-%d %H:%M:%S') + ' ' + message
+    with path.open('a', encoding='utf-8') as f:
+        f.write(line + '\n')
+    print(line, flush=True)
 
 
-def version_cells(w):
-    vs = w.get("versions") or []
-    nums = "+".join("v%s%s" % (v.get("number", "?"), "" if v.get("percentage") in (100, 100.0, None) else "(%s%%)" % v["percentage"]) for v in vs)
-    ids = "+".join(v["id"] for v in vs)
-    return nums or "?", ids or "?"
-
-
-def guess_commit(w):
-    for text in [w.get("message")] + [v.get("message") for v in w.get("versions") or []]:
-        m = re.search(r"\b[0-9a-f]{7,40}\b", text or "")
-        if m:
-            return m.group(0)
-    return "未知"
-
-
-def wake(task, body, drill):
-    title = ("【演练】" if drill else "") + task
-    try:
-        p = subprocess.run([NOTIFY_RUN, "--bot", "coding-assistant", "--no-tty", "--task", title, "--",
-                            "sh", "-c", 'printf "%s\\n" "$1"', "sh", body],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, timeout=180)
-        return (p.stderr or "").strip().splitlines()[-1:] or ["notify-run rc=%s" % p.returncode]
-    except Exception as e:
-        return ["notify-run 调用失败: %s" % type(e).__name__]
-
-
-def alert_failure(kind, detail, drill, logf):
-    """同一种失败连续 4 次才叫醒，叫过之后 6 小时内不再叫。成功时由 clear_failures 清零。"""
-    os.makedirs(STATE, exist_ok=True)
-    f = os.path.join(STATE, "fail.json")
-    try:
-        st = json.load(open(f))
-    except Exception:
-        st = {}
-    e = st.setdefault(kind, {"count": 0, "alerted": 0})
-    e["count"] += 1
-    now = int(now_sgt().timestamp())
-    if e["count"] >= 4 and now - e["alerted"] >= 6 * 3600:
-        res = wake("ops · 23 生产版本哨兵连续 %d 次查询失败（%s）" % (e["count"], kind),
-                   "生产版本哨兵查不到生产版本：%s。日志 %s" % (detail, logf), drill)
-        e["alerted"] = now
-        log_line(logf, "叫醒 coding-assistant（查询失败）：%s" % " ".join(res))
-    json.dump(st, open(f, "w"))
-
-
-def clear_failures(kinds_seen):
-    f = os.path.join(STATE, "fail.json")
-    try:
-        st = json.load(open(f))
-    except Exception:
+def wake(args, title, body):
+    if args.no_wake:
+        log(args, 'NO_WAKE：只打印，不发送：' + title)
         return
-    for k in list(st):
-        if k not in kinds_seen:
-            del st[k]
-    json.dump(st, open(f, "w"))
-
-
-def log_line(logf, msg):
-    line = "%s %s" % (now_sgt().strftime("%Y-%m-%d %H:%M:%S"), msg)
-    with open(logf, "a", encoding="utf-8") as f:
-        f.write(line + "\n")
-    print(line)
-
-
-def apply(args):
-    raw = sys.stdin.read()
-    logdir = os.path.join(REPORTS, "drills") if args.drill else REPORTS
-    os.makedirs(logdir, exist_ok=True)
-    logf = os.path.join(logdir, "prod-watch-%s%s.log" % (now_sgt().strftime("%Y%m%d"), "-drill" if args.drill else ""))
+    nr = shutil.which('notify-run') or os.path.expanduser('~/.local/bin/notify-run')
     try:
-        data = json.loads(raw)
-    except ValueError:
-        log_line(logf, "输入不是 JSON（fetch rc=%s，%d 字节），这次不比对" % (args.fetch_rc, len(raw)))
-        alert_failure("bad-json", "prod_fetch.py 输出不是 JSON（rc=%s）" % args.fetch_rc, args.drill, logf)
+        p = subprocess.run([nr, '--bot', 'coding-assistant', '--no-tty', '--task', title,
+                            '--', 'sh', '-c', 'printf "%s\\n" "$1"', 'sh', body],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, timeout=180)
+        # notify-run may exit zero even if delivery failed. Never mark a row reported.
+        codes = re.findall(r'http=(\d{3})', p.stderr or '')
+        log(args, '叫醒尝试 rc=%s http=%s；送达/已报均未确认' % (p.returncode, ','.join(codes) or '未知'))
+    except (OSError, subprocess.TimeoutExpired) as e:
+        log(args, '叫醒失败：' + type(e).__name__ + '；仍未报')
+
+
+def parse_created_on(value):
+    """Accept RFC3339 fractional seconds on macOS Python 3.9 too.
+
+    Python 3.9 fromisoformat only accepts certain fractional widths; Cloudflare
+    can return other widths. Normalize to microseconds before parsing, without
+    accepting missing timestamps, invalid calendar values, or missing offsets.
+    The ledger displays minutes, so sub-microsecond truncation loses no display data.
+    """
+    if not isinstance(value, str):
+        raise ValueError('deployment 时间字段不是字符串')
+    match = re.fullmatch(r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})', value)
+    if not match:
+        raise ValueError('deployment 时间字段不是 RFC3339')
+    base, fraction, zone = match.groups()
+    normalized = base + ('.' + (fraction + '000000')[:6] if fraction else '')
+    return dt.datetime.fromisoformat(normalized + ('+00:00' if zone == 'Z' else zone))
+
+
+def validate(data, rc):
+    if rc != 0 or not isinstance(data, dict) or data.get('errors'):
+        raise ValueError('Cloudflare 查询失败')
+    workers = data.get('workers')
+    if not isinstance(workers, list) or len(workers) != len(WORKERS):
+        raise ValueError('Worker 数目不完整')
+    if {w['worker'] for w in workers} != {w[0] for w in WORKERS}:
+        raise ValueError('Worker 名单不完整或重复')
+    for w in workers:
+        if not isinstance(w['deployment_id'], str) or not w['deployment_id'] or not w['versions']:
+            raise ValueError('缺 deployment 或版本')
+        parse_created_on(w['created_on'])
+        for v in w['versions']:
+            if not v.get('id') or v.get('error') or v.get('number') is None:
+                raise ValueError('版本查询不完整')
+    return workers
+
+
+def row_for(w, baseline):
+    versions = w['versions']
+    number = '+'.join('v%s%s' % (v['number'], '' if v.get('percentage') in (100, 100.0, None)
+                               else '(%s%%)' % v['percentage']) for v in versions)
+    commit = '未知'
+    for text in [w.get('message')] + [v.get('message') for v in versions]:
+        m = re.search(r'\b[0-9a-f]{7,40}\b', text or '')
+        if m:
+            commit = m.group(0)
+            break
+    cells = [parse_created_on(w['created_on']).astimezone(SGT).strftime('%Y-%m-%d %H:%M'),
+             w['worker'], number, '+'.join(v['id'] for v in versions), w['deployment_id'], commit,
+             'ops · 23 哨兵', '—', '已知' if baseline else '未报',
+             '本机基线；不追溯报告历史' if baseline else '通知不代表已报']
+    return dict(zip(COLS, cells))
+
+
+def process(args):
+    exists = args.ledger.exists()
+    if args.init_baseline and exists:
+        log(args, '拒绝重建：台账已经存在')
         return 2
-    ensure_ledger(args.ledger)
-    lock = open(args.ledger + ".lock", "w")
-    fcntl.flock(lock, fcntl.LOCK_EX)
-    last = latest(read_rows(args.ledger))
-    changes, same = [], []
-    for w in data.get("workers", []):
-        prev = last.get(w["worker"])
-        if prev and prev["deployment id"] == w["deployment_id"]:
-            same.append("%s=%s" % (w["worker"], prev["版本"]))
-            continue
-        nums, ids = version_cells(w)
-        row = [to_sgt(w.get("created_on")), w["worker"], nums, ids, w["deployment_id"], guess_commit(w),
-               "ops · 23 哨兵", "—", "未报",
-               "%s 发现；来源 %s%s" % (now_sgt().strftime("%m-%d %H:%M"), w.get("source") or "?",
-                                    "；上一行 %s" % prev["版本"] if prev else "；台账里原来没有这个 Worker")]
-        with open(args.ledger, "a", encoding="utf-8") as f:
-            f.write(table_line(row) + "\n")
-        changes.append((w, prev, nums, row[0]))
-    fcntl.flock(lock, fcntl.LOCK_UN)
-    errors = data.get("errors") or []
-    if args.fetch_rc not in (0, None) or errors:
-        kind = "fetch-rc-%s" % args.fetch_rc
-        log_line(logf, "查询有错（rc=%s）：%s" % (args.fetch_rc, "；".join(errors)[:600]))
-        alert_failure(kind, "；".join(errors)[:300], args.drill, logf)
-        clear_failures({kind})
-    else:
-        clear_failures(set())
-    for w, prev, nums, when in changes:
-        old = prev["版本"] if prev else "（台账里没有）"
-        task = "生产变更未报：%s %s→%s（%s SGT）" % (w["worker"], old, nums, when)
-        body = ("%s 生产版本变了：%s → %s，deployment %s，%s SGT，commit %s。已在台账追加一行（状态「未报」）：%s"
-                % (w["worker"], old, nums, w["deployment_id"], when, guess_commit(w), args.ledger))
-        res = wake(task, body, args.drill)
-        log_line(logf, "变化 %s %s→%s deployment %s；叫醒 coding-assistant：%s" % (
-            w["worker"], old, nums, w["deployment_id"], " ".join(res)))
-    log_line(logf, "完成：%d 个 Worker 未变（%s），%d 个变化，%d 个查询错误；台账 %s" % (
-        len(same), ", ".join(same), len(changes), len(errors), args.ledger))
+    if not args.init_baseline and not exists:
+        log(args, '缺本机台账：请先显式 --init-baseline；本轮不比对、不叫醒')
+        return 2
+    rows = read_rows(args.ledger) if exists else []
+    state_path = args.state_dir / 'delivery.json'
+    # Broken delivery state is an error, not permission to send again immediately.
+    state = json.loads(state_path.read_text()) if state_path.exists() else {}
+    try:
+        if args.cmd == 'run':
+            p = subprocess.run([sys.executable, str(Path(__file__).with_name('prod_fetch.py'))],
+                               capture_output=True, text=True, timeout=240)
+            data, rc = json.loads(p.stdout), p.returncode
+        else:
+            data, rc = json.load(sys.stdin), args.fetch_rc
+        workers = validate(data, rc)
+        new_rows = [row_for(w, args.init_baseline) for w in workers]
+    except (ValueError, KeyError, TypeError, AttributeError, OSError, subprocess.TimeoutExpired) as e:
+        log(args, '查询失败/不完整：%s；不比对，原台账不动' % type(e).__name__)
+        if not args.init_baseline:
+            state['failures'] = state.get('failures', 0) + 1
+            due = now().timestamp() - state.get('failure_attempt', 0) >= 21600
+            if state['failures'] >= 4 and due:
+                state['failure_attempt'] = now().timestamp()
+                atomic_write(state_path, json.dumps(state))
+                wake(args, '生产版本哨兵连续查询失败', '查不到不等于版本没变，请查看本机 prod-watch 日志。')
+            atomic_write(state_path, json.dumps(state))
+        return 3
+    if args.init_baseline:
+        save_rows(args.ledger, new_rows)
+        log(args, '基线完成：%d 个已知，0 个未报；不叫醒' % len(new_rows))
+        return 0
+    last = {r['Worker']: r for r in rows}
+    changes = [r for r in new_rows if r['deployment id'] != last[r['Worker']]['deployment id']]
+    if changes:
+        rows.extend(changes)
+        save_rows(args.ledger, rows)
+    state['failures'] = 0
+    state.pop('failure_attempt', None)
+    pending = [r for r in rows if r['状态'] == '未报']
+    if pending and (changes or now().timestamp() - state.get('pending_attempt', 0) >= 21600):
+        # Write before sending: a crash leaves pending intact and delays retry at most six hours.
+        state['pending_attempt'] = now().timestamp()
+        atomic_write(state_path, json.dumps(state))
+        body = '\n'.join('%s %s %s SGT' % (r['Worker'], r['版本'], r['时间 SGT']) for r in pending[-20:])
+        wake(args, '生产变更未报：共 %d 条' % len(pending), body + '\n完整本机台账：' + str(args.ledger))
+    atomic_write(state_path, json.dumps(state))
+    log(args, '完成：%d 个未变，%d 个变化，%d 个未报，0 个查询错误' % (len(workers) - len(changes), len(changes), len(pending)))
     return 0
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["apply", "latest"])
-    ap.add_argument("--ledger", default=LEDGER)
-    ap.add_argument("--fetch-rc", type=int, default=None)
-    ap.add_argument("--drill", action="store_true")
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('cmd', choices=['run', 'apply', 'latest'])
+    ap.add_argument('--state-dir', type=Path, default=Path(os.environ.get('PROD_WATCH_STATE_DIR', '~/.orca-state/prod-watch')).expanduser())
+    ap.add_argument('--ledger', type=Path, default=os.environ.get('PROD_LEDGER'))
+    ap.add_argument('--fetch-rc', type=int, default=0)
+    ap.add_argument('--init-baseline', action='store_true')
+    ap.add_argument('--no-wake', action='store_true', help='仅允许固定 /tmp 下的隔离目录（macOS 为 /private/tmp）；只打印不发送')
     args = ap.parse_args()
-    if args.cmd == "latest":
-        for k, r in latest(read_rows(args.ledger)).items():
-            print("%-28s %-8s %s  %s  %s" % (k, r["版本"], r["deployment id"], r["时间 SGT"], r["状态"]))
-        return 0
-    return apply(args)
+    args.state_dir = args.state_dir.expanduser().resolve()
+    args.ledger = (args.ledger or args.state_dir / 'prod-ledger.md').expanduser().resolve()
+    if args.ledger.parent != args.state_dir:
+        ap.error('台账必须位于 --state-dir 内；隔离运行请显式指定状态目录')
+    if args.no_wake:
+        # Independent production deny, including symlink aliases into /tmp.
+        production = (Path.home() / '.orca-state/prod-watch').resolve()
+        paths = (args.state_dir, args.ledger)
+        if any(p == production or production in p.parents for p in paths):
+            ap.error('--no-wake 拒绝正式状态目录及其子路径')
+        # Never use tempfile.gettempdir(): TMPDIR/TEMP/TMP can widen that root,
+        # and its writable-directory probe can write before we reject a path.
+        # Darwin's per-user confstr temp query may also create a directory;
+        # deliberately support only the fixed system root, not that directory.
+        root = Path('/private/tmp' if sys.platform == 'darwin' else '/tmp').resolve()
+        if not all(root in p.parents for p in paths):
+            ap.error('--no-wake 只允许状态和台账都在固定系统临时目录的子目录')
+    if args.cmd == 'latest':
+        try:
+            for r in {r['Worker']: r for r in read_rows(args.ledger)}.values():
+                print('%s %s %s' % (r['Worker'], r['版本'], r['状态']))
+            return 0
+        except (OSError, ValueError) as e:
+            print('台账不可读：' + type(e).__name__, file=sys.stderr)
+            return 2
+    os.umask(0o077)
+    args.state_dir.mkdir(parents=True, exist_ok=True)
+    args.ledger.parent.mkdir(parents=True, exist_ok=True)
+    with open(str(args.ledger) + '.lock', 'a') as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            print('已有生产哨兵持锁，本轮不运行', file=sys.stderr)
+            return 4
+        try:
+            result = process(args)
+            if result == 0:
+                atomic_write(args.state_dir / 'local-errors.json', '{}')
+            return result
+        except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
+            log(args, '本机状态错误：%s；停止比对' % type(e).__name__)
+            if not args.init_baseline:
+                error_path = args.state_dir / 'local-errors.json'
+                try:
+                    errors = json.loads(error_path.read_text())
+                except (OSError, ValueError):
+                    errors = {}
+                errors['count'] = errors.get('count', 0) + 1
+                due = now().timestamp() - errors.get('attempt', 0) >= 21600
+                send = errors['count'] >= 4 and due
+                if send:
+                    errors['attempt'] = now().timestamp()
+                atomic_write(error_path, json.dumps(errors))
+                if send:
+                    wake(args, '生产版本哨兵本机状态连续出错', '未比对生产版本，请人工核查本机台账和状态；不要重建基线掩盖未报。')
+            return 2
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     sys.exit(main())
