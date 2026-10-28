@@ -4,7 +4,7 @@
   S12 ② Paperclip 实例 ops 的 LaunchAgent 模板。由 launchagent.sh 渲染到 ~/Library/LaunchAgents/，
   @…@ 是占位符。不手改渲染后的文件，改这里再用 apply 模式重跑 launchagent.sh。
   - 用 /usr/bin/env -u 去掉 Orca 派活变量：就算有人 launchctl setenv 过，也不会带进 Paperclip。
-  - 只听 127.0.0.1；PAPERCLIP_API_URL 显式写本机地址，免得被 PAPERCLIP_PUBLIC_URL 推成 Serve 地址。
+  - 只听 127.0.0.1；PAPERCLIP_API_URL 显式写本机地址，免得被 PAPERCLIP_PUBLIC_URL 推成对外地址（转发程序的地址）。
   - 崩溃才重起（SuccessfulExit=false），两次之间至少 60 秒。
 -->
 <plist version="1.0">

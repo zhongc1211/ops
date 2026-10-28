@@ -122,4 +122,4 @@ cat "${AGENT_SETTINGS}"
 
 say "== Serve =="
 /usr/local/bin/tailscale serve status 2>&1 | mask
-[ -f "${SERVE_URL_FILE}" ] && say "serve-url 文件: 有" || say "serve-url 文件: 没有"
+[ -f "${PUBLIC_URL_FILE}" ] && say "public-url 文件: 有" || say "public-url 文件: 没有"

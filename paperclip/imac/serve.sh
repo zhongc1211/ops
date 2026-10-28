@@ -1,5 +1,8 @@
 #!/bin/bash
-# S12 ② 第 2 步：tailscale serve 只把 /api/routine-triggers/public/ 转到本机 Paperclip。
+# 【现在不用】这个 headscale 下 Serve 用不了（README「对外怎么开」、FAILURE-MODES.md C1、C2），对外改由 forwarder/ 的
+# 转发程序负责。留着这个脚本只为将来 headscale 改了 DNS 配置以后还能回到 Serve；不要和转发程序同时用（都占 8110，
+# serve.sh 写 public-url，转发程序不设 PUBLIC_URL、见到 public-url 会停下）。--apply 在转发程序已加载或 8110 有人听时停下。
+# S12 ② 第 2 步（原计划）：tailscale serve 只把 /api/routine-triggers/public/ 转到本机 Paperclip。
 # 先试 HTTPS，不行走 HTTP。配置用 --bg，写进 tailscaled 的状态，重启后还在。
 # 用法（在 iMac 上）：serve.sh          只打印要做什么
 #                     serve.sh --apply  照做
@@ -9,7 +12,6 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 . "${here}/config.sh"
 
-TS=/usr/local/bin/tailscale
 mode=${1:-plan}
 target="http://${SERVER_HOST}:${SERVER_PORT}${SERVE_PATH}"
 
@@ -22,7 +24,7 @@ if [ "${mode}" = --off ]; then
     say "关 serve: https:${SERVE_HTTPS_PORT} 和 http:${SERVE_HTTP_PORT} 上的 ${SERVE_PATH}"
     "${TIMEOUT}" 60 "${TS}" serve --https="${SERVE_HTTPS_PORT}" --set-path "${SERVE_PATH}" off 2>&1 | mask || true
     "${TIMEOUT}" 60 "${TS}" serve --http="${SERVE_HTTP_PORT}" --set-path "${SERVE_PATH}" off 2>&1 | mask || true
-    rm -f "${SERVE_URL_FILE}"
+    rm -f "${PUBLIC_URL_FILE}"
     serve_status
     exit 0
 fi
@@ -38,15 +40,22 @@ case "${dns}" in *.*) dns_note="有完整域名" ;; "") dns_note="为空" ;; *) 
 say "   成功则地址是 https://<本机 DNS 名>（本机 DNS 名${dns_note}）"
 say "2) 不行就撤掉第 1 步，改 tailscale serve --bg --http=${SERVE_HTTP_PORT} --set-path ${SERVE_PATH} ${target}"
 say "   地址是 http://<tailnet-ip>:${SERVE_HTTP_PORT}"
-say "地址写进 ${SERVE_URL_FILE}（权限 600），launchagent.sh 读它设 PAPERCLIP_PUBLIC_URL 和 allowedHostnames"
+say "地址写进 ${PUBLIC_URL_FILE}（权限 600），launchagent.sh 读它设 PAPERCLIP_PUBLIC_URL（主机名在运行时自动并进 allowedHostnames）"
 say "现状:"; serve_status
 
 [ "${mode}" = --apply ] || { say "（只打印，未执行。加 --apply 照做）"; exit 0; }
 
+# 转发程序和 Serve 都要 8110，不能同时用（第 1 轮验收新风险第 8 条）。
+if launchctl print "gui/$(id -u)/${FWD_LABEL}" >/dev/null 2>&1 \
+    || [ -n "$(/usr/sbin/lsof -nP -iTCP:"${SERVE_HTTP_PORT}" -sTCP:LISTEN 2>/dev/null)" ]; then
+    say "serve: 转发程序已加载，或 ${SERVE_HTTP_PORT} 有人在听，停下。要换回 Serve 先跑 forwarder/install.sh --off" >&2
+    exit 1
+fi
+
 write_url() {
     umask 077
-    printf '%s\n' "$1" >"${SERVE_URL_FILE}"
-    chmod 600 "${SERVE_URL_FILE}"
+    printf '%s\n' "$1" >"${PUBLIC_URL_FILE}"
+    chmod 600 "${PUBLIC_URL_FILE}"
 }
 
 https_off() { "${TIMEOUT}" 60 "${TS}" serve --https="${SERVE_HTTPS_PORT}" --set-path "${SERVE_PATH}" off >/dev/null 2>&1 || true; }
@@ -81,5 +90,5 @@ if [ -z "${url}" ]; then
 fi
 
 write_url "${url}"
-say "Serve 地址已写入 ${SERVE_URL_FILE}: $(printf '%s' "${url}" | mask)"
+say "Serve 地址已写入 ${PUBLIC_URL_FILE}: $(printf '%s' "${url}" | mask)"
 say "现状:"; serve_status

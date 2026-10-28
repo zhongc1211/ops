@@ -5,6 +5,11 @@
 - agent 建好就暂停；触发器建成 setupPending=true，带对 bearer 也只记测试回执，不起运行。
 - 触发器密钥只在建触发器的响应里出现一次，这里直接写进 600 文件；屏幕只打印长度。
 - 屏幕上不打印任何 ID：写名字，ID 用 README 里的查法读。
+- 收紧（S12 ② 验收新风险第 1 条）：company 的 requireBoardApprovalForNewAgents 设 true，ops-system 的 canCreateAgents
+  设 false。验收方点名的 4 个授权按 Zack 第 80 条选的 C 不动，也不设 trustPreset（README「已定的事」）。
+用法：provision.py           只打印计划
+      provision.py --apply   照做（建缺的，再收紧）
+      provision.py --check   只读：收紧以后的读回
 """
 import json
 import os
@@ -15,7 +20,10 @@ import urllib.request
 
 E = os.environ
 API = E["API_URL"].rstrip("/") + "/api"
-APPLY = len(sys.argv) > 1 and sys.argv[1] == "--apply"
+MODE = sys.argv[1] if len(sys.argv) > 1 else "plan"
+if MODE not in ("plan", "--apply", "--check"):
+    raise SystemExit("用法: provision.sh [--apply | --check]")
+APPLY = MODE == "--apply"
 
 COMPANY_NAME = E["COMPANY_NAME"]
 AGENT_NAME = E["AGENT_NAME"]
@@ -157,7 +165,93 @@ def settings_file():
     say("写入最小默认拒绝设置:", AGENT_SETTINGS)
 
 
+# 1012.0 给新建的普通 agent 的 14 个默认授权（server/src/services/agent-permissions.ts:4-19）。
+# 第二列：ops 系统要不要用（按 1012.0 源码判断，S12 ③ 定）；第三列：依据。
+GRANTS = [
+    ("agents:configure", "不用，验收方点名要去掉", "直接改 agent 配置和指令（authorization.ts:1568-1580、:2284-2297）"),
+    ("agents:suggest-changes", "不用", "提议改 agent 配置，也算能读配置（authorization.ts:1583-1595、:2294）"),
+    ("skills:create", "不用，验收方点名要去掉", "直接改 skill（authorization.ts:2299-2303）"),
+    ("skills:suggest-changes", "不用", "提议改 skill（authorization.ts:2301）"),
+    ("tools:manage_connections", "不用，验收方点名要去掉", "管工具连接（tool-access.ts:565-575）"),
+    ("tools:manage_profiles", "不用", "源码里除默认列表外没找到单独的检查点"),
+    ("tools:view_audit", "不用", "看工具网关审计（tool-gateway.ts:353-359）"),
+    ("audit:view_agent_actions", "不用", "看 agent 操作记录（activity.ts:128-133）"),
+    ("tools:use", "看 S12 ③ 用不用网关工具", "没有策略允许或拒绝时，凭它调工具（tool-access-policy.ts:1201-1215）"),
+    ("tools:manage_runtime", "不用，验收方点名要去掉", "管工具运行时（tool-access.ts:786）"),
+    ("inbox:manage", "大概不用", "管负责人的收件箱，默认范围只限自己负责的（authorization.ts:2011-2120）"),
+    ("tasks:assign", "看 S12 ③ 要不要它派任务；验收方提过可被用来叫起别的 agent", "派任务（agents.ts:5116-5126）"),
+    ("tasks:assign_scope", "同上", "在自己下属范围里派任务（authorization.ts:1556-1564）"),
+    ("tasks:manage_active_checkouts", "不用", "抢别的 agent 正在做的任务（issues.ts:5214-5222）"),
+]
+DROP_GRANTS = ["agents:configure", "skills:create", "tools:manage_runtime", "tools:manage_connections"]
+
+
+def say_hardening_plan():
+    say("收紧: company「%s」requireBoardApprovalForNewAgents -> true（PATCH /companies/:id）" % COMPANY_NAME)
+    say("收紧: agent %s canCreateAgents -> false（PATCH /agents/:id/permissions，tasks:assign 保持原样）" % AGENT_NAME)
+    say("不动的授权: %s —— Zack 第 80 条选了 C：不删、不设 trustPreset、不改数据库；"
+        "条件是 S12 ③ 的允许清单不放行能访问本机 3110 的工具" % "、".join(DROP_GRANTS))
+    say("14 个默认授权，ops 系统要不要用（留给 S12 ③ 定）:")
+    for key, need, why in GRANTS:
+        say("  %-30s %s；%s" % (key, need, why))
+
+
+def harden(cid, aid):
+    company = call("GET", "/companies/%s" % cid)
+    if company.get("requireBoardApprovalForNewAgents") is True:
+        say("company 已要求建 agent 走批准")
+    else:
+        call("PATCH", "/companies/%s" % cid, {"requireBoardApprovalForNewAgents": True})
+        say("company requireBoardApprovalForNewAgents 设成 true")
+    agent = call("GET", "/agents/%s" % aid)
+    if (agent.get("permissions") or {}).get("canCreateAgents") is False:
+        say("agent canCreateAgents 已是 false")
+    else:
+        keys = {g.get("permissionKey") for g in (agent.get("access") or {}).get("grants") or []}
+        # canAssignTasks 是必填项；按现有的 tasks:assign 授权填，不顺手改它。
+        call("PATCH", "/agents/%s/permissions" % aid, {"canCreateAgents": False, "canAssignTasks": "tasks:assign" in keys})
+        say("agent canCreateAgents 设成 false")
+
+
+def check():
+    """只读：company 要求批准，company 下只有 ops-system 一个 agent，canCreateAgents=false，没设 trustPreset。
+    4 个授权按 Zack 第 80 条 C 保留，只列出来，不算 FAIL。"""
+    ok_all = True
+
+    def item(ok, text):
+        nonlocal ok_all
+        ok_all = ok_all and ok
+        say("%s  %s" % ("PASS" if ok else "FAIL", text))
+
+    company = next((c for c in call("GET", "/companies") if c.get("name") == COMPANY_NAME), None)
+    if not company:
+        raise SystemExit("找不到 company「%s」" % COMPANY_NAME)
+    cid = company["id"]
+    company = call("GET", "/companies/%s" % cid)
+    item(company.get("requireBoardApprovalForNewAgents") is True,
+         "company requireBoardApprovalForNewAgents = %s" % company.get("requireBoardApprovalForNewAgents"))
+    agents = call("GET", "/companies/%s/agents" % cid)
+    item([a.get("name") for a in agents] == [AGENT_NAME], "company 下的 agent: %s" % [a.get("name") for a in agents])
+    me = next((a for a in agents if a.get("name") == AGENT_NAME), None)
+    if not me:
+        raise SystemExit("找不到 agent %s" % AGENT_NAME)
+    agent = call("GET", "/agents/%s" % me["id"])
+    perms = agent.get("permissions") or {}
+    item(perms.get("canCreateAgents") is False, "agent canCreateAgents = %s" % perms.get("canCreateAgents"))
+    keys = sorted({g.get("permissionKey") for g in (agent.get("access") or {}).get("grants") or []})
+    present = [k for k in DROP_GRANTS if k in keys]
+    item(perms.get("trustPreset") in (None, "standard"), "agent trustPreset = %s（没设低信任）" % perms.get("trustPreset"))
+    say("INFO  4 个授权按 Zack 第 80 条 C 保留，现在还在的: %s" % (present or "没有"))
+    say("agent 现有授权（%d 个）: %s" % (len(keys), " ".join(keys)))
+    say("agent status: %s；canCreateSkills: %s" % (agent.get("status"), perms.get("canCreateSkills")))
+    if not ok_all:
+        raise SystemExit(1)
+
+
 def main():
+    if MODE == "--check":
+        check()
+        return
     say("== 计划 ==")
     say("company:", COMPANY_NAME)
     say("agent:", AGENT_NAME, "claude_local engine=cli dangerouslySkipPermissions=false model=" + E["AGENT_MODEL"],
@@ -167,6 +261,7 @@ def main():
     for r in ROUTINES:
         say("routine:", r["title"], "| 并发策略保留默认 | 变量 %d 个全部非必填 | 触发器 bearer、setupPending=true | 密钥文件 %s/%s.bearer"
             % (len(VARIABLES), SECRETS_DIR, r["slug"]))
+    say_hardening_plan()
     health = call("GET", "/health")
     say("health:", health.get("status", health) if isinstance(health, dict) else health)
     if not APPLY:
@@ -181,8 +276,6 @@ def main():
     else:
         company = call("POST", "/companies", {"name": COMPANY_NAME, "description": "S12：ops 系统在 Paperclip 上的公司"})
         say("建好 company:", COMPANY_NAME)
-    if company.get("requireBoardApprovalForNewAgents"):
-        raise SystemExit("company 要求建 agent 走批准（requireBoardApprovalForNewAgents），停下，不自己改")
     cid = company["id"]
 
     # agent
@@ -193,6 +286,9 @@ def main():
     if agent:
         say("agent 已存在:", AGENT_NAME)
     else:
+        # 收紧以后直接建 agent 会 409（routes/agents.ts:4931-4935），这时停下，不自己改回去。
+        if call("GET", "/companies/%s" % cid).get("requireBoardApprovalForNewAgents"):
+            raise SystemExit("company 要求建 agent 走批准（requireBoardApprovalForNewAgents），停下，不自己改")
         agent = call("POST", "/companies/%s/agents" % cid, AGENT_BODY)
         say("建好 agent:", AGENT_NAME)
     aid = agent["id"]
@@ -201,6 +297,7 @@ def main():
         call("POST", "/agents/%s/pause" % aid)
         agent = call("GET", "/agents/%s" % aid)
     say("agent 状态:", agent.get("status"))
+    harden(cid, aid)
 
     # routines + triggers
     existing = call("GET", "/companies/%s/routines" % cid)
