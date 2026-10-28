@@ -1,5 +1,5 @@
 """Offline plan by default; --inspect reads history; --apply needs operator approval.
-S12 r5: cleanup first on failed host, then receipt-bound reinstall; retain history.
+S12 r7: incident-specific cleanup first, then receipt-bound reinstall; retain history.
 No trigger, resume, grant changes, secret files, DB access, or LaunchAgent changes.
 """
 import argparse
@@ -112,6 +112,7 @@ def main():
     p.add_argument('--inspect', action='store_true', help='Read-only paused/run-history plan; no key check or writes')
     p.add_argument('--cleanup-backup', type=Path, help='Completed OPS-1 cleanup backup')
     p.add_argument('--precheck-cleanup-backup', type=Path, help='Completed OPS-3 cleanup backup; do not use the OPS-1 receipt')
+    p.add_argument('--injection-cleanup-backup', type=Path, help='Completed paid OPS-6 cleanup backup; do not reuse OPS-1/3 cleanup')
     p.add_argument('--claude', type=Path)
     p.add_argument('--linear-author', help='Expected shared Linear account, supplied by operator; never committed')
     p.add_argument('--rollback', type=Path, help='Backup directory; still requires --apply')
@@ -121,8 +122,9 @@ def main():
     print('PLAN: cleanup FIRST for failed incident; then backup/install; paused; terminal history preserved; no triggers')
     print('PLAN: rollback' if a.rollback else 'PLAN: install', str(root))
     host.require(not (a.apply and a.inspect), 'choose_inspect_or_apply')
-    host.require(not (a.cleanup_backup and a.precheck_cleanup_backup), 'choose_one_cleanup_receipt')
-    receipt_backup = a.precheck_cleanup_backup or a.cleanup_backup
+    host.require(sum(x is not None for x in (a.cleanup_backup, a.precheck_cleanup_backup,
+                                            a.injection_cleanup_backup)) <= 1, 'choose_one_cleanup_receipt')
+    receipt_backup = a.injection_cleanup_backup or a.precheck_cleanup_backup or a.cleanup_backup
     host.require(not (a.rollback and receipt_backup), 'cleanup_receipt_is_for_install')
     if not a.apply and not a.inspect:
         print('PLAN_RUNS: not read in offline mode; --inspect or --apply prints actual IDs/statuses')
@@ -155,8 +157,13 @@ def main():
         precheck = load_cleanup('close-precheck.py')
         host.require(not precheck.needs_receipt(installed_sha, runs) or a.precheck_cleanup_backup is not None,
                      'precheck_cleanup_receipt_required')
+        injection = load_cleanup('close-injection.py')
+        host.require(not injection.needs_receipt(installed_sha, runs) or a.injection_cleanup_backup is not None,
+                     'injection_cleanup_receipt_required')
         if a.precheck_cleanup_backup:
             cleanup = precheck
+        elif a.injection_cleanup_backup:
+            cleanup = injection
         if receipt_backup:
             receipt_backup = receipt_backup.resolve(strict=True)
             receipt_digest = cleanup.verify_completed(root, receipt_backup, aid, cid)
@@ -216,7 +223,8 @@ def main():
     fields = ('description', 'concurrencyPolicy', 'catchUpPolicy')
     host.store(backup / 'snapshot.json', {'agent': aid, 'company': cid, 'runs': runs,
         'cleanupBackup': str(receipt_backup) if receipt_backup else None,
-        'cleanupKind': 'ops3' if a.precheck_cleanup_backup else 'ops1' if a.cleanup_backup else None,
+        'cleanupKind': ('ops6' if a.injection_cleanup_backup else 'ops3' if a.precheck_cleanup_backup
+                        else 'ops1' if a.cleanup_backup else None),
         'cleanupSnapshotSha256': receipt_digest,
         'adapterConfig': agent['adapterConfig'], 'instructions': old_instruction['content'],
         'routines': {r['id']: {k: r[k] for k in fields} for r in selected}})

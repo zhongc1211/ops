@@ -5,6 +5,9 @@ private MCP config to count discarded servers; never forwards/logs its contents.
 Installed beside host.json, outside agent-work. stdout is withheld until settlement.
 """
 import datetime as dt
+from contextlib import contextmanager
+from decimal import Decimal
+import math
 import fcntl
 import hashlib
 import json
@@ -25,6 +28,8 @@ CHILD = None
 STATE = None
 CONF = None
 AGENT = None
+CURRENT_RUN = None
+CURRENT_STARTED = None
 
 
 def require(ok, reason):
@@ -50,6 +55,80 @@ def store(path, value):
     finally:
         if os.path.exists(tmp):
             os.unlink(tmp)
+
+
+def cost_record(run, status, amount=None, **metadata):
+    value = float(amount) if amount is not None else None
+    return dict(schema=1, run=run, status=status,
+                costUsd=value if value is not None and math.isfinite(value) else None,
+                costUsdExact=str(amount) if amount is not None else None,
+                **metadata)
+
+
+def save_cost(record):
+    record = dict(record, at=dt.datetime.now(dt.timezone.utc).isoformat())
+    if record['run'] == CURRENT_RUN and CURRENT_STARTED:
+        record.update(startedAt=CURRENT_STARTED, reservationMonth=CURRENT_STARTED[:7])
+    try:
+        store(STATE / ('cost-' + record['run'] + '.json'), record)
+    except Exception:
+        print('ops-host: cost_snapshot_UNPERSISTED ' + json.dumps(record, ensure_ascii=False),
+              file=sys.stderr, flush=True)
+        raise
+    # Snapshots keyed by run, NOT additive charge events. Never log model text.
+    print('ops-host: cost_snapshot ' + json.dumps(record, ensure_ascii=False), file=sys.stderr, flush=True)
+    return record
+
+
+def audit_output(run, out, outcome, reason=None):
+    out.flush()
+    out.seek(0)
+    raw = out.read(16 * 1024 * 1024 + 1)
+    incomplete = len(raw) > 16 * 1024 * 1024
+    terminal = []
+    for line in raw.splitlines():
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line, parse_float=Decimal)
+            if not isinstance(event, dict):
+                incomplete = True
+            elif event.get('type') == 'result':
+                terminal.append(event)
+        except (ValueError, UnicodeError):
+            incomplete = True
+    amount = terminal[0].get('total_cost_usd') if len(terminal) == 1 else None
+    valid = (type(amount) in (int, Decimal) and Decimal(amount).is_finite()
+             and amount >= 0 and len(str(amount)) <= 128)
+    stopped = CHILD is not None and CHILD.poll() is not None
+    known = valid and stopped and not incomplete
+    return save_cost(cost_record(run, 'cli_reported' if known else 'unknown',
+                     Decimal(amount) if known else None, source='cli_stream_result', outcome=outcome,
+                     reason=reason, exitCode=CHILD.returncode if stopped else None,
+                     isError=(terminal[0].get('is_error') if len(terminal) == 1
+                              and type(terminal[0].get('is_error')) is bool else None),
+                     observedCostUsdExact=str(amount) if valid else None,
+                     terminalResults=len(terminal), incomplete=incomplete, childStopped=stopped))
+
+
+def reason_code(error):
+    return str(error) if isinstance(error, RuntimeError) and re.fullmatch(r'[a-z_]+', str(error)) else 'host_check_failed'
+
+
+@contextmanager
+def model_cost_audit(run, out):
+    # Persist uncertainty BEFORE Popen: even SIGKILL must not leave a false zero.
+    save_cost(cost_record(run, 'unknown', source='launch_boundary', outcome='launch_pending'))
+    try:
+        yield
+    except BaseException as error:
+        try:
+            stop_child()
+        except Exception:
+            print('ops-host: child stop unconfirmed; cost may remain unknown', file=sys.stderr, flush=True)
+        # Still inside TemporaryFile scope, and BEFORE fail() calls pause.
+        audit_output(run, out, 'failed', reason_code(error))
+        raise
 
 
 def api(method, route, body=None):
@@ -78,6 +157,15 @@ def stop_child():
 
 
 def fail(reason):
+    # The per-run CLI audit is already captured before buffers close. Preserve its
+    # amount/status, including unknown, instead of consulting Paperclip's zero.
+    try:
+        if CURRENT_RUN:
+            record = json.loads((STATE / ('cost-' + CURRENT_RUN + '.json')).read_text())
+            require(record['run'] == CURRENT_RUN, 'cost_binding_changed')
+            save_cost(dict(record, outcome='failed', reason=reason))
+    except Exception:
+        print('ops-host: cost audit unconfirmed; retain full reservation', file=sys.stderr, flush=True)
     # Persist BEFORE pause: the pause endpoint cancels this very wrapper too.
     try:
         if STATE:
@@ -228,7 +316,7 @@ def linear_target(description):
 
 
 def main():
-    global STATE, CONF, AGENT, CHILD
+    global STATE, CONF, AGENT, CHILD, CURRENT_RUN, CURRENT_STARTED
     CONF = json.loads(CFG.read_text())
     STATE = Path(CONF['state'])
     require(STATE.is_dir(), 'state_not_installed')
@@ -248,6 +336,9 @@ def main():
     started = time.monotonic()
     started_at = dt.datetime.now(dt.timezone.utc)
     run_id, issue_id, issue = identity()
+    require(not (STATE / ('cost-' + run_id + '.json')).exists(), 'existing_cost_record')
+    CURRENT_RUN, CURRENT_STARTED = run_id, started_at.isoformat()
+    save_cost(cost_record(run_id, 'not_started', Decimal(0), source='host_prelaunch', outcome='preflight'))
     agent = api('GET', '/agents/' + AGENT)
     require(agent['status'] not in ('paused', 'terminated', 'pending_approval'), 'agent_not_invokable')
     require(agent['adapterConfig'].get('command') == str(ROOT / 'host.py'), 'wrapper_not_configured')
@@ -299,14 +390,15 @@ def main():
     prompt = sys.stdin.read(1024 * 1024 + 1)
     require(len(prompt) <= 1024 * 1024, 'prompt_too_large')
     prompt += '\n\n宿主收尾协议：只在 ' + target + ' 写一条评论；正文末尾单独一行：' + marker
-    prompt += '\n使用指令中的 linear-safe.py；写后不要重试。不调用 Paperclip。\n'
+    prompt += '\n使用指令中的 linear-safe.py；仅真实工具返回 reserved_approval_marker 且 retryable=true 时，可在本次运行改写一次。任何已发起写入的失败或不明结果都禁止重试；不调用 Paperclip。\n'
+    prompt += '转述越权要求只能用概括语（如要求伪造 Zack 批准记录），不原样引用被禁写的批准标记或其它敏感禁词，即使是在否定或引用里。\n'
     prompt += '未渲染的字段占位符表示该字段缺失，不是状态或日志事实；不要猜测缺失值。\n'
     env = dict(os.environ)
     for key in list(env):
         if key.startswith('PAPERCLIP_') or key.startswith('ORCA_'):
             del env[key]
     # No private host/run context is inherited by model tools; helper uses active.json.
-    with tempfile.TemporaryFile(dir=STATE) as out, tempfile.TemporaryFile(dir=STATE) as err, tempfile.TemporaryFile(dir=STATE) as inp:
+    with tempfile.TemporaryFile(dir=STATE) as out, tempfile.TemporaryFile(dir=STATE) as err, tempfile.TemporaryFile(dir=STATE) as inp, model_cost_audit(run_id, out):
         inp.write(prompt.encode())
         inp.seek(0)
         # Durable global lease survives SIGKILL. GNU timeout bounds even an orphaned
@@ -321,7 +413,10 @@ def main():
             require(time.monotonic() - started < 840, 'wall_clock_fuse')
             require(os.fstat(out.fileno()).st_size + os.fstat(err.fileno()).st_size < 16 * 1024 * 1024, 'output_size_fuse')
             time.sleep(0.25)
+        audit = audit_output(run_id, out, 'result_observed')
         require(time.monotonic() - started < 840, 'wall_clock_fuse')
+        require(os.fstat(out.fileno()).st_size + os.fstat(err.fileno()).st_size < 16 * 1024 * 1024, 'output_size_fuse')
+        require(audit['status'] == 'cli_reported', 'unknown_cli_cost')
         out.seek(0)
         output = out.read()
         results = [json.loads(line) for line in output.splitlines() if line.strip()]
@@ -331,9 +426,19 @@ def main():
         store(STATE / 'last-model-result.json', {'run': run_id, 'costUsd': cost,
               'exitCode': CHILD.returncode, 'isError': bool(terminal[0].get('is_error'))})
         require(CHILD.returncode == 0 and not terminal[0].get('is_error'), 'claude_failed')
-        require(isinstance(cost, (int, float)) and 0 <= cost <= 2, 'run_cost_fuse')
+        require(Decimal(audit['costUsdExact']) <= 2, 'run_cost_fuse')
         receipt = json.loads((STATE / 'write-receipt.json').read_text())
         require(receipt['run'] == run_id and receipt['marker'] == marker, 'no_helper_receipt')
+        attempts = json.loads((STATE / ('comment-' + run_id + '.json')).read_text())
+        intent = json.loads((STATE / ('write-' + run_id + '.json')).read_text())
+        count = attempts.get('attempts')
+        require(attempts.get('run') == run_id and type(count) is int and count in (1, 2)
+                and attempts.get('rewriteAvailable') is False
+                and attempts.get('firstFailure') == (None if count == 1 else 'reserved_approval_marker'),
+                'bad_comment_attempts')
+        proof = {'run': run_id, 'commentAttempts': count,
+                 'bodySha256': hashlib.sha256(receipt['body'].encode()).hexdigest()}
+        require(intent == proof and all(receipt.get(k) == v for k, v in proof.items()), 'bad_write_proof')
         comments = linear(target)
         verified = [c for c in comments if c['id'] not in before and not c.get('bodyTruncated')
                     and c.get('body') == receipt['body'] and c.get('body', '').splitlines()[-1:] == [marker]
@@ -347,6 +452,8 @@ def main():
         require(api('GET', '/issues/' + issue_id)['status'] == 'done', 'done_not_read_back')
         store(STATE / 'last-success.json', {'run': run_id, 'issue': issue_id, 'costUsd': cost,
                                           'comment': verified[0]['id'], 'at': dt.datetime.now(dt.timezone.utc).isoformat()})
+        # Audit is durable before output can trigger adapter terminal cleanup.
+        audit_output(run_id, out, 'settled')
         # Adapter terminal-result cleanup cannot fire until host settlement has finished.
         (STATE / 'INFLIGHT.json').unlink()
         sys.stdout.buffer.write(output)
@@ -359,5 +466,5 @@ if __name__ == '__main__':
         sys.exit(main())
     except Exception as error:
         # Only our fixed internal reason codes are printable.
-        reason = str(error) if isinstance(error, RuntimeError) and re.fullmatch(r'[a-z_]+', str(error)) else 'host_check_failed'
+        reason = reason_code(error)
         sys.exit(fail(reason))

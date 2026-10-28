@@ -1,4 +1,12 @@
-# S12 ③：宿主收尾（第6轮无 issue 路径修复，未部署）
+# S12 ③：宿主收尾（第7轮改写／失败费用修复，未部署）
+
+**当前：从 main `863794d`（#85）新分支交付第7轮代码。** 第97条批准的后续收尾／安装／续跑仍须独立复验通过，由对应执行方进行；作者本轮不安装、不apply、不触发。
+
+本轮 AGENTS 要求转述不照抄保留批准标记；helper仅首次禁词预检拒绝允许同run改写一次，禁词不放松，写intent后仍绝不重试。host核次数／正文摘要／真实回执，并在失败、超时等路径从CLI保存每run私有费用快照；无结果记unknown，不取Paperclip的0冒充免费。
+
+详见 [REWRITE-AND-COST.md](REWRITE-AND-COST.md)。OPS-6用 **`close-injection.py` → `--injection-cleanup-backup`**，导入实际$0.064206、保留800预留，仅清本次claim/INFLIGHT/FUSED。不能套用OPS-1/3的未启动模型清理。
+
+## 第6轮记录（历史，之后已合并并由独立方部署）
 
 **当前：#83 已合并。本轮从 main 新分支修复 S12 ④ 的 OPS-3 失败。** 正常 notify-run 不带 --issue 时，Paperclip 保留 `{{issue}}`；新 host 只在固定 issue 槽位将该精确占位符映射到 PER-67，并强化模板结构／重复 issue 行拒绝。默认值本来就是 `-`，显式空串会遮住它，改空默认值不能修复。
 
