@@ -45,7 +45,7 @@ if [ "$MODE" = check ]; then
     IFS='|' read -r name url sha manifest id <<<"$it"
     d="$P/$name"
     head=$(git -C "$d" rev-parse HEAD 2>/dev/null || echo 缺失)
-    if [ "$head" = "$sha" ]; then echo "一致  $name HEAD $sha"; else echo "不符  $name HEAD $head（期望 $sha）"; bad=1; fi
+    if [ "$head" = "$sha" ]; then echo "一致  $name HEAD $sha"; else echo "不符  $name HEAD ${head}（期望 ${sha}）"; bad=1; fi
   done
   python3 - "$C" "$P" "$RULE_KEY" "${PINS[@]}" <<'PY' || bad=1
 import json, os, subprocess, sys

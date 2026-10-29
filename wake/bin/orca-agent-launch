@@ -218,5 +218,5 @@ PY
     fi
     echo "orca-agent-launch: $msg" >&2
 fi
-[ "$agent" != claude ] || echo "orca-agent-launch: 本会话设置 $session_settings_file（0600；macOS 系统延迟清理，会话结束后可提前删除）" >&2
+[ "$agent" != claude ] || echo "orca-agent-launch: 本会话设置 ${session_settings_file}（0600；macOS 系统延迟清理，会话结束后可提前删除）" >&2
 exec "${cmd[@]}"
