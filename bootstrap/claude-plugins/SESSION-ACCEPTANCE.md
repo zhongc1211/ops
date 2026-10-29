@@ -190,25 +190,41 @@ printf 'review-noslop\t%s\n' "$rc" >> "$out/rc.tsv"
 ## 5. 收尾、hash 与临时文件
 
 1. 正常跑完或因 `set -e` 提前退出，都必须收尾。从 `cleanup-paths.txt` 或创建时的 stderr 取本轮确切路径，不能用通配符，也不要直接 source 这个记录文件。前置安装失败且尚未起模型时，可以在取完脱敏日志后删本轮目录；起过模型/peer 时，先核所有本轮进程已结束（不停止别的会话），再删设置/沙箱。核 GitHub head 仍是本轮 head，否则这份证据不能用于新 head。
-2. 逐行写结果表，包含登录/额度/timeout/缺字段/未获授权的所有失败及没跑，不挑重跑；需重跑必须保留失败首轮、说明原因并整轮执行。
-3. 再跑隔离 `pin --check`；对真 settings / 两份 plugin metadata 和候选沙箱 settings 计算 hash，与前面比较：
+2. 逐行写结果表，包含登录/额度/timeout/缺字段/未获授权的所有失败及没跑，不挑重跑；需重跑必须保留失败首轮、说明原因并整轮执行。下面收尾块的检查结果以 `cleanup-paths.txt` 里的 `final_checks_fail` 和 stdout 打出的失败信息为准，逐项写进结果表。
+3. 再跑隔离 `pin --check`；对真 settings / 两份 plugin metadata 和候选沙箱 settings 计算 hash，与前面比较。下面这块依赖前面同一个 shell 里的 `T`、`realhome`、`out`、`head`、`src`、`sandbox`、`session` 和 `iso`。shell 已经因 `set -e` 退出、要在新 shell 收尾时，先按第 1 节重新设 `T`、`realhome`、`out`、`head`（读 `$out/head.txt`），从 `cleanup-paths.txt` 手抄 `sandbox`、`session` 的确切路径，设 `src="$sandbox/src"`，再照第 1 节定义 `iso`，然后执行：
 
 ```bash
-iso bash "$src/bootstrap/claude-plugins/pin-claude-plugins.sh" --check > "$out/final-check.log" 2>&1
+# 比较失败只记进 fail，不在 set -e 下提前退出，保证下面的清理一定执行到。
+# 前面中途失败时这几个变量可能还没赋值；先给空值，免得 set -u 在清理前中止。
+fail=0; src=${src:-}; sandbox=${sandbox:-}; session=${session:-}
+iso bash "$src/bootstrap/claude-plugins/pin-claude-plugins.sh" --check > "$out/final-check.log" 2>&1 \
+  || { echo 'FINAL PIN CHECK FAILED'; fail=1; }
 for f in settings.json plugins/installed_plugins.json plugins/known_marketplaces.json; do
   "$T" 840 shasum -a 256 "$realhome/.claude/$f"
-done > "$out/live-after.sha"
-"$T" 840 cmp "$out/live-before.sha" "$out/live-after.sha"
-"$T" 840 shasum -a 256 "$sandbox/home/.claude/settings.json" > "$out/sandbox-after.sha"
-"$T" 840 cmp "$out/sandbox-before.sha" "$out/sandbox-after.sha"
-current=$("$T" 840 gh pr view 48 --repo zhongc1211/ops --json headRefOid --jq .headRefOid)
-[ "$current" = "$head" ] || { echo 'HEAD CHANGED: evidence stale'; exit 1; }
-# 即使上面的比较失败，也要在记录失败、取完脱敏证据且本轮会话退出后执行下面清理。
-"$T" 840 rm -f -- "$session"
-"$T" 840 test ! -e "$session"
-"$T" 840 rm -rf -- "$sandbox"
-"$T" 840 test ! -e "$sandbox"
-printf 'cleanup=confirmed absent\n' >> "$out/cleanup-paths.txt"
+done > "$out/live-after.sha" || { echo 'LIVE HASH READ FAILED'; fail=1; }
+"$T" 840 cmp "$out/live-before.sha" "$out/live-after.sha" || { echo 'LIVE FILES CHANGED'; fail=1; }
+"$T" 840 shasum -a 256 "$sandbox/home/.claude/settings.json" > "$out/sandbox-after.sha" \
+  || { echo 'SANDBOX HASH READ FAILED'; fail=1; }
+"$T" 840 cmp "$out/sandbox-before.sha" "$out/sandbox-after.sha" || { echo 'SANDBOX SETTINGS CHANGED'; fail=1; }
+current=$("$T" 840 gh pr view 48 --repo zhongc1211/ops --json headRefOid --jq .headRefOid) || current=unknown
+[ "$current" = "$head" ] || { echo 'HEAD CHANGED: evidence stale'; fail=1; }
+printf 'final_checks_fail=%s\n' "$fail" >> "$out/cleanup-paths.txt" || { echo 'RECORD WRITE FAILED'; fail=1; }
+# 记录失败、取完脱敏证据且本轮会话退出后执行下面清理；比较失败也照样清理。
+# 两个路径各自删、各自核，一个失败不影响另一个。
+cleanup_fail=0
+if [ -n "$session" ]; then
+  { "$T" 840 rm -f -- "$session" && "$T" 840 test ! -e "$session"; } || { echo 'SESSION CLEANUP FAILED'; cleanup_fail=1; }
+fi
+if [ -n "$sandbox" ]; then
+  { "$T" 840 rm -rf -- "$sandbox" && "$T" 840 test ! -e "$sandbox"; } || { echo 'SANDBOX CLEANUP FAILED'; cleanup_fail=1; }
+fi
+if [ "$cleanup_fail" -eq 0 ]; then
+  printf 'cleanup=confirmed absent\n' >> "$out/cleanup-paths.txt" || { echo 'RECORD WRITE FAILED'; fail=1; }
+else
+  printf 'cleanup=FAILED, see stdout\n' >> "$out/cleanup-paths.txt" || echo 'RECORD WRITE FAILED'
+  fail=1
+fi
+[ "$fail" -eq 0 ] || exit 1             # 清理完再按比较和清理结果返回非零
 ```
 
 如果超时后 Claude/peer 仍活着，不提前删除它依赖的设置，不扩大到停止其他进程；交主会话收尾。本手册会话结束后确切路径删除是主动收尾，系统 tmp_cleaner 是无人值守/异常退出情况下的延迟兜底；**本轮没有等待几天证明系统实际删除，也没有证明真实成功 launcher 会话的加载/退出行为**，这些不能写成已通过。
