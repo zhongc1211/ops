@@ -113,6 +113,7 @@ def main():
     p.add_argument('--cleanup-backup', type=Path, help='Completed OPS-1 cleanup backup')
     p.add_argument('--precheck-cleanup-backup', type=Path, help='Completed OPS-3 cleanup backup; do not use the OPS-1 receipt')
     p.add_argument('--injection-cleanup-backup', type=Path, help='Completed paid OPS-6 cleanup backup; do not reuse OPS-1/3 cleanup')
+    p.add_argument('--switch-cleanup-backup', type=Path, help='Completed OPS-10 cleanup backup')
     p.add_argument('--claude', type=Path)
     p.add_argument('--linear-author', help='Expected shared Linear account, supplied by operator; never committed')
     p.add_argument('--rollback', type=Path, help='Backup directory; still requires --apply')
@@ -123,8 +124,8 @@ def main():
     print('PLAN: rollback' if a.rollback else 'PLAN: install', str(root))
     host.require(not (a.apply and a.inspect), 'choose_inspect_or_apply')
     host.require(sum(x is not None for x in (a.cleanup_backup, a.precheck_cleanup_backup,
-                                            a.injection_cleanup_backup)) <= 1, 'choose_one_cleanup_receipt')
-    receipt_backup = a.injection_cleanup_backup or a.precheck_cleanup_backup or a.cleanup_backup
+                                            a.injection_cleanup_backup, a.switch_cleanup_backup)) <= 1, 'choose_one_cleanup_receipt')
+    receipt_backup = a.switch_cleanup_backup or a.injection_cleanup_backup or a.precheck_cleanup_backup or a.cleanup_backup
     host.require(not (a.rollback and receipt_backup), 'cleanup_receipt_is_for_install')
     if not a.apply and not a.inspect:
         print('PLAN_RUNS: not read in offline mode; --inspect or --apply prints actual IDs/statuses')
@@ -160,7 +161,12 @@ def main():
         injection = load_cleanup('close-injection.py')
         host.require(not injection.needs_receipt(installed_sha, runs) or a.injection_cleanup_backup is not None,
                      'injection_cleanup_receipt_required')
-        if a.precheck_cleanup_backup:
+        switch = load_cleanup('close-switch.py')
+        host.require(not switch.needs_receipt(installed_sha, runs) or a.switch_cleanup_backup is not None,
+                     'switch_cleanup_receipt_required')
+        if a.switch_cleanup_backup:
+            cleanup = switch
+        elif a.precheck_cleanup_backup:
             cleanup = precheck
         elif a.injection_cleanup_backup:
             cleanup = injection
@@ -223,7 +229,7 @@ def main():
     fields = ('description', 'concurrencyPolicy', 'catchUpPolicy')
     host.store(backup / 'snapshot.json', {'agent': aid, 'company': cid, 'runs': runs,
         'cleanupBackup': str(receipt_backup) if receipt_backup else None,
-        'cleanupKind': ('ops6' if a.injection_cleanup_backup else 'ops3' if a.precheck_cleanup_backup
+        'cleanupKind': ('ops10' if a.switch_cleanup_backup else 'ops6' if a.injection_cleanup_backup else 'ops3' if a.precheck_cleanup_backup
                         else 'ops1' if a.cleanup_backup else None),
         'cleanupSnapshotSha256': receipt_digest,
         'adapterConfig': agent['adapterConfig'], 'instructions': old_instruction['content'],

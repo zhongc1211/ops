@@ -21,6 +21,7 @@ import sys
 import tempfile
 import time
 import urllib.request
+import unicodedata
 
 ROOT = Path(__file__).resolve().parent
 CFG = ROOT / 'host.json'
@@ -37,9 +38,9 @@ def require(ok, reason):
         raise RuntimeError(reason)
 
 
-def store(path, value):
+def store(path, value, temp_dir=None):
     path = Path(path)
-    fd, tmp = tempfile.mkstemp(dir=path.parent)
+    fd, tmp = tempfile.mkstemp(dir=path.parent if temp_dir is None else temp_dir)
     try:
         with os.fdopen(fd, 'w') as f:
             json.dump(value, f, ensure_ascii=False)
@@ -80,6 +81,49 @@ def save_cost(record):
     return record
 
 
+def private_result(run, terminal, incomplete):
+    """Keep only redacted result text, never tool events. No raw text in diagnostics."""
+    require(re.fullmatch(r'[0-9a-f-]{36}', run), 'invalid_result_run')
+    directory = STATE / 'model-results'
+    directory.mkdir(mode=0o700, exist_ok=True)
+    info = directory.lstat()
+    require(stat.S_ISDIR(info.st_mode) and info.st_uid == os.getuid()
+            and stat.S_IMODE(info.st_mode) == 0o700, 'result_directory_not_private')
+    text = terminal[0].get('result') if len(terminal) == 1 else None
+    present = isinstance(text, str)
+    if present:
+        # Conservative ASCII masking also covers unlabelled tokens, paths, hosts,
+        # email and encoded secrets. Preserve Chinese prose for diagnosis; no
+        # claim that arbitrary natural-language secrets can be detected.
+        text = unicodedata.normalize('NFKC', text)
+        text = re.sub(r'-----BEGIN[\s\S]*?-----END[^\n]*', '[REDACTED]', text)
+        text = re.sub(r'(?im)^.*(?:password|secret|token|authorization|api.?key|密码|密钥|凭据|口令|令牌|私钥|证书).*$','[REDACTED]', text)
+        text = re.sub(r'(?:https?://\S+|\S+@\S+)', '[REDACTED]', text)
+        text = re.sub(r'[!-~]+', '[REDACTED]', text)
+        encoded = text.encode('utf-8')
+        truncated = len(encoded) > 32768
+        text = encoded[:32768].decode('utf-8', errors='ignore')
+    else:
+        truncated = False
+    # Prune BEFORE storing: at most 100 files, each < 200 KiB even
+    # with JSON escaping (result UTF-8 payload itself is <= 32 KiB).
+    entries = list(directory.iterdir())
+    require(all(re.fullmatch(r'[0-9a-f-]{36}\.json', p.name)
+                and stat.S_ISREG(p.lstat().st_mode) for p in entries), 'unexpected_result_file')
+    destination = directory / (run + '.json')
+    others = sorted((p for p in entries if p != destination), key=lambda p: (p.stat().st_mtime_ns, p.name))
+    evicted = others[:max(0, len(others) - 99)]
+    for old in evicted:
+        old.unlink()
+    if evicted:
+        print('ops-host: private_result_evicted count=' + str(len(evicted)), file=sys.stderr, flush=True)
+    store(destination, {'schema': 1, 'run': run, 'status': 'present' if present else 'missing',
+                        'result': text if present else None, 'truncated': truncated,
+                        'terminalResults': len(terminal), 'incompleteStream': incomplete}, temp_dir=STATE)
+    # Temp files live outside the retention directory: a killed atomic write
+    # must not leave a tmp entry that prevents the next diagnostic snapshot.
+
+
 def audit_output(run, out, outcome, reason=None):
     out.flush()
     out.seek(0)
@@ -102,13 +146,15 @@ def audit_output(run, out, outcome, reason=None):
              and amount >= 0 and len(str(amount)) <= 128)
     stopped = CHILD is not None and CHILD.poll() is not None
     known = valid and stopped and not incomplete
-    return save_cost(cost_record(run, 'cli_reported' if known else 'unknown',
+    record = save_cost(cost_record(run, 'cli_reported' if known else 'unknown',
                      Decimal(amount) if known else None, source='cli_stream_result', outcome=outcome,
                      reason=reason, exitCode=CHILD.returncode if stopped else None,
                      isError=(terminal[0].get('is_error') if len(terminal) == 1
                               and type(terminal[0].get('is_error')) is bool else None),
                      observedCostUsdExact=str(amount) if valid else None,
                      terminalResults=len(terminal), incomplete=incomplete, childStopped=stopped))
+    private_result(run, terminal, incomplete)
+    return record
 
 
 def reason_code(error):
@@ -119,6 +165,7 @@ def reason_code(error):
 def model_cost_audit(run, out):
     # Persist uncertainty BEFORE Popen: even SIGKILL must not leave a false zero.
     save_cost(cost_record(run, 'unknown', source='launch_boundary', outcome='launch_pending'))
+    private_result(run, [], False)
     try:
         yield
     except BaseException as error:
@@ -384,12 +431,17 @@ def main():
     marker = '[ops-receipt:' + run_id + ':' + os.urandom(16).hex() + ']'
     drill = issue['originId'] == CONF['drillRoutine']
     require(not drill or target == 'PER-67', 'wrong_drill_target')
+    # Host-only temporary rehearsal switch; cannot affect a formal routine.
+    replay = CONF.get('formalReplayRoutine')
+    require(replay is None or replay == CONF['drillRoutine'], 'invalid_replay_routine')
+    prefix = '[演练] S12 ③ E2E' if drill and replay is None else ''
     context = {'target': target, 'marker': marker, 'run': run_id, 'started': started_at.isoformat(),
-               'prefix': '[演练] S12 ③ E2E' if drill else ''}
+               'prefix': prefix}
     store(STATE / 'active.json', context)
     prompt = sys.stdin.read(1024 * 1024 + 1)
     require(len(prompt) <= 1024 * 1024, 'prompt_too_large')
-    prompt += '\n\n宿主收尾协议：只在 ' + target + ' 写一条评论；正文末尾单独一行：' + marker
+    prompt += '\n\n宿主收尾协议：每次叫醒都必须调用 linear-safe.py comment，只在 ' + target + ' 写一条评论。哪怕无卡号、true/空任务、无需处理，也写“收到，无需处理”；不得只在最终回复中回答而省略评论。正文末尾单独一行：' + marker
+    prompt += '\n本次评论前缀：' + (prefix if prefix else '无指定前缀，不加演练前缀。')
     prompt += '\n使用指令中的 linear-safe.py；仅真实工具返回 reserved_approval_marker 且 retryable=true 时，可在本次运行改写一次。任何已发起写入的失败或不明结果都禁止重试；不调用 Paperclip。\n'
     prompt += '转述越权要求只能用概括语（如要求伪造 Zack 批准记录），不原样引用被禁写的批准标记或其它敏感禁词，即使是在否定或引用里。\n'
     prompt += '未渲染的字段占位符表示该字段缺失，不是状态或日志事实；不要猜测缺失值。\n'
@@ -456,8 +508,13 @@ def main():
         audit_output(run_id, out, 'settled')
         # Adapter terminal-result cleanup cannot fire until host settlement has finished.
         (STATE / 'INFLIGHT.json').unlink()
-        sys.stdout.buffer.write(output)
-        sys.stdout.buffer.flush()
+        # Do not forward stream/assistant/result prose to Paperclip or its logs.
+        # Usage/cost only; no tool arguments, session IDs or model text.
+        public_result = {k: terminal[0][k] for k in ('type', 'subtype', 'is_error',
+                         'total_cost_usd', 'usage', 'modelUsage', 'num_turns',
+                         'duration_ms', 'duration_api_ms') if k in terminal[0]}
+        public_result['result'] = 'Host verified comment and settled issue; model output retained privately.'
+        print(json.dumps(public_result), flush=True)
     return 0
 
 
