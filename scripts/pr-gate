@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+# pr-gate：弹合并卡之前的机器检查（骨架，检查项随后补上）
+import sys
+
+if __name__ == "__main__":
+    sys.stderr.write("pr-gate: not implemented yet\n")
+    sys.exit(2)
