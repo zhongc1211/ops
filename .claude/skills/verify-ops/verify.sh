@@ -28,6 +28,8 @@ ARCHIVE=${VERIFY_OPS_ARCHIVE:-$REAL_HOME/ops-archive/verify-ops}
 ALL_FEATURES="wake-chain agent-launch-gate stuck-check drift-checks night-review-gate wake-tla"
 FAKE_KEY=e2e-fake   # migration-1020 的假端点只认这个 KEY（记 auth_ok）；不是任何真实凭据
 unset ORCA_DISPATCH_PID ORCA_DISPATCH_BOT ORCA_TASK_ID ORCA_DISPATCH_ISSUE ORCA_DISPATCH_TS ORCA_PANE_KEY STUCK_FORCE_BOT
+# 沙箱 HOME 自带 .claude；外面设的 CLAUDE_CONFIG_DIR 会让 pin-claude-plugins.sh 直接拒绝（Ubuntu 的 Orca 终端里就设了）
+unset CLAUDE_CONFIG_DIR
 
 say() { printf '%s\n' "$*"; }
 

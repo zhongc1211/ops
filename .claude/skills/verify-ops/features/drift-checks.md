@@ -31,4 +31,5 @@ Preconditions: 沙箱 HOME；本机 `~/.claude/pinned-marketplaces/cursor-plugin
 - `make-prompts.py --check` 比的是脚本所在目录里的已提交文件，没有「换目录」的参数；漂移只能在复制出来的目录里造。
 - `pin-claude-plugins.sh` 安装模式在插件版本不对时会调真的 `claude plugin marketplace update / install`（联网、改 `~/.claude`），而且仓库不在时会从 GitHub clone。verify 预写 `installed_plugins.json`（这是 `claude plugin install` 的产物，属于外部 CLI 边界）并预放本地克隆，让它走「已是钉的版本，跳过 claude plugin update」那条路。
 - 本机没有那两个插件仓库时，DC4 报失败（`pin-claude-plugins：缺前置条件`），不跳过：离线做不出干净状态，也不去联网 clone。
+- `pin-claude-plugins.sh` 见到 `CLAUDE_CONFIG_DIR`（且不等于 `$HOME/.claude`）就退出码 2、报「暂不支持独立 CLAUDE_CONFIG_DIR」。Ubuntu 的 Orca 终端里设了这个变量，verify.sh 开头会 unset，沙箱 HOME 用自己的 `.claude`。
 - `wake/install.sh` 有 `~/.pi/agent/extensions/` 时还会装 Pi 扩展；沙箱 HOME 里没有这个目录，所以只核对 6 个脚本。
