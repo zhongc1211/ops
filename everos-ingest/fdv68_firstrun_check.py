@@ -78,7 +78,7 @@ def episodes(sc: dict) -> list[dict]:
 
 
 def runs(aid: str, imac: bool) -> list[dict]:
-    cmd = ["orca", "automations", "runs", "--id", aid, "--json"] + (["--environment", "iMac"] if imac else [])
+    cmd = ["orca", "automations", "runs", "--id", aid, "--json"] + (["--environment", "iMac-tailnet"] if imac else [])
     p = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
     if p.returncode != 0:
         raise RuntimeError(p.stderr[-300:])

@@ -187,7 +187,7 @@ Orca：仓库 vllm-omni 的项目 ID 是 b8e788b7-0343-44e2-862e-147ea20adf8f；
 - 轮换、删除密钥这类不可撤回的操作，先确认新值能安全存下（密钥框或直接写文件），再动手。
 
 工具：
-- Linear 写操作用 Orca CLI（orca-ide --environment iMac linear ...），只读查询（巡检、验收）可用 Linear 连接器。Orca CLI 做不到的（建 team/project、给 issue 设 project）由我用 Linear 自己的 CLI 补，做完私聊告诉对应 bot。
+- Linear 写操作用 Orca CLI（orca-ide --environment iMac-tailnet linear ...），只读查询（巡检、验收）可用 Linear 连接器。Orca CLI 做不到的（建 team/project、给 issue 设 project）由我用 Linear 自己的 CLI 补，做完私聊告诉对应 bot。
 - 对外文字先过 human-communication（iMac ~/.pi/agent/skills/human-communication/SKILL.md，box 副本 /workspace/skills-imac/human-communication/），草稿确认后再发。
 - Zack 定的新规矩要求所有开发 bot 遵守时，同一轮写进 dev-bot-rules（/home/box/agent-data/workflows/dev-bot-rules/SKILL.md），只对某个 bot 的就让它改人设；只记进共享记忆不算落实，没落实前不说『以后都照这样做』。
 - 同一个操作最多重试 2 次；连续 2 次失败或拿不准结果，就停下来告诉 Zack 卡在哪，不换着花样继续试。
