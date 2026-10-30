@@ -134,7 +134,13 @@ want drill_install_peer_drift_ignored "$RC/$(cases fail '对端全局 AGENTS 不
   "演练：副本里不一致不再判 drift → 新加的对端用例挂"
 
 # ---------- 回退测试 ----------
-OLD=$WORK/old; mkdir -p "$OLD"; git archive "$BASE_SHA" .claude/skills/verify-ops | tar -x -C "$OLD"
+OLD=$WORK/old; mkdir -p "$OLD"
+BASE_GIT=$ROOT
+if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then   # 只取了 PR head 的临时仓库里没有 base，拉到 $WORK，不进仓库
+  BASE_GIT=$WORK/base.git
+  git init -q --bare "$BASE_GIT" && git -C "$BASE_GIT" fetch -q --depth 1 https://github.com/zhongc1211/ops.git "$BASE_SHA"
+fi
+git -C "$BASE_GIT" archive "$BASE_SHA" .claude/skills/verify-ops | tar -x -C "$OLD"
 OV=$OLD/$V
 H=$(fake_home "$WORK/h-old1")
 verify "$OUT/revert/old-dc4-no-repos.log" HOME="$H" WAKE_CHECK_PEERS= VERIFY_OPS_SUT="$ROOT" -- "$OV" drift-checks
