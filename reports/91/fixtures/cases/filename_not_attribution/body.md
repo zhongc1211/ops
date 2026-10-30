@@ -3,7 +3,7 @@
 ## 做了什么
 改了一个脚本。
 
-规则写在 `CLAUDE.md` 和 CLAUDE.local.md，装在 `~/.claude/skills/`，仓库里是 .claude/skills/demo/SKILL.md。
+规则写在 `CLAUDE.md` 和 CLAUDE.local.md，装在 `~/.claude/skills/`，仓库里是 .claude/skills/demo/SKILL.md，锁版本用 `bootstrap/claude-plugins/pin-claude-plugins.sh`。
 
 ## 为什么安全
 只读，不改现网。

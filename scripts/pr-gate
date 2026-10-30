@@ -33,11 +33,11 @@ import sys
 import tempfile
 import time
 
-# 工具名的边界：前面不是 / . ~ 或字母数字，后面不是字母，也不是接着 .md 的文件名。
-# 所以 CLAUDE.md、CLAUDE.local.md、~/.claude/…、.claude/skills/、skills/claude-api/ 都不算署名；
+# 工具名的边界：前面不是 / . ~ - 或字母数字，后面不是字母，也不是接着 .md 的文件名。
+# 所以 CLAUDE.md、CLAUDE.local.md、~/.claude/…、.claude/skills/、skills/claude-api/、pin-claude-plugins.sh 都不算署名；
 # 「Claude/Codex」「Claude4」算。
 _TOOLS = r"(?:claude|codex|chatgpt|copilot|anthropic|openai)"
-_PRE = r"(?<![/.~A-Za-z0-9_])"
+_PRE = r"(?<![/.~A-Za-z0-9_-])"
 _POST = r"(?![A-Za-z_])(?![.A-Za-z0-9_-]*\.md)"
 
 # AI 署名词表：(正则, 命中时打印的说明)。不区分大小写，逐行匹配。
