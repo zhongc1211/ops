@@ -7,7 +7,7 @@ Linear sync（v2，2026-10-18 Zack 批）：把 Linear team personal（PER）和
 - Done：合进 main 或上生产、验收通过、外部依赖（如 key）到位，三条都满足。只进 staging / testing 不算 Done。
 
 ## 范围和证据
-- 列 issue：`orca-ide --environment iMac linear list-issues --team PER --json` 和 `--team FDV`（不带 --limit，拿全部），跳过 Canceled。
+- 列 issue：`orca-ide --environment iMac-tailnet linear list-issues --team PER --json` 和 `--team FDV`（不带 --limit，拿全部），跳过 Canceled。
 - 每条看：GitHub PR/分支状态（合进了哪个分支：main 还是 staging/testing）、Linear 评论（`linear issue <ID> --comments --json`，所有 issue 并行取，如 `xargs -P6`，每条存一个文件；返回按新→旧排；最新一条按 createdAt 取最大值，换成 SGT 再写）、对应项目的 status.md。
 - 项目 → 仓库：
   - PER / 心月网站 → zhongc1211/xinyue-site（box /workspace/repos/xinyue-site，主分支 feat/xinyue-site）
@@ -18,7 +18,7 @@ Linear sync（v2，2026-10-18 Zack 批）：把 Linear team personal（PER）和
 - status.md：先找 box 仓库里的；找不到就以 PR 和 Linear 评论为准。
 
 ## 怎么改
-- Linear 读写一律用 `orca-ide --environment iMac linear ...`；iMac 不在线（命令连不上）时改用 box 的 `orca linear ...`。
+- Linear 读写一律用 `orca-ide --environment iMac-tailnet linear ...`；iMac 不在线（命令连不上）时改用 box 的 `orca linear ...`。
 - 证据清楚的直接改：`linear status set <ID> --to "<新状态>"`，紧接着 `linear comment add <ID> --body "Linear sync：<旧>→<新>｜<依据>｜<链接>"`。包括把不满足新 Done 定义的 Done 重开为 In Progress（例如只合进 staging、生产没验收、key 没到位）。
 - 带「等 Zack」标签的 issue：不改状态、不加评论，只在本次记录里记一笔。
 - 拿不准的不改，叫醒负责的项目 bot 核实（每个 bot 每次运行最多叫一次，把它负责的待核实 issue 合并到一条里）：

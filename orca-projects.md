@@ -1,7 +1,26 @@
 # Orca 项目与工作区（iMac，2026-10-12 02:45 SGT 核对，共 27 个工作区）
 
 规则：项目按 repo 分，不按 bot 分；每个 Linear 任务一个工作区；显示名「<bot 简称> · <Linear编号> 中文简述」。详见 dev-bot-rules。
-来源：`orca-ide --environment iMac repo list / worktree list`。
+来源：`orca-ide --environment iMac-tailnet repo list / worktree list`。
+
+## Orca 版本（钉）
+
+对应 PER-131（MBA/iMac/box 版本统一）。任何再升级先给 Zack 弹卡，批了再动。
+
+| 机器 | Orca 版本 | 日期 | 旧版本 |
+|---|---|---|---|
+| iMac | 1.4.244 | 2026-10-29 | 1.4.237 |
+| MBA | 1.4.244 | 2026-10-29 | 1.4.240 |
+| box（Linux CLI） | 1.4.237 | — | 不在这次升级范围，没升 |
+
+升级方法（两台 Mac 一样，Orca 没有 CLI 升级命令，是手动换 `/Applications/Orca.app`）：
+1. 下载 `Orca-1.4.244-arm64-mac.zip`，sha256 对上 GitHub release 的 digest。
+2. `ditto -x -k` 解到暂存目录，`codesign --verify --deep --strict` 通过。
+3. TERM 退出 Orca 和 headless runtime（terminal-host 守护进程保着 PTY，终端不丢）。
+4. 旧 app 挪到本机 `~/ops-archive/orca-upgrade-20261029/`（iMac 是 `Orca-1.4.237.app`，MBA 是 `Orca-1.4.240.app`）。
+5. `ditto` 新 app 进 `/Applications`，`open -a Orca`。
+
+回滚：退出 Orca，把 `~/ops-archive/orca-upgrade-20261029/` 里的旧 app 挪回 `/Applications/Orca.app`，再 `open -a Orca`。
 
 ## 1. Repo → Orca 项目 ID（`--repo id:<ID>`）
 
@@ -146,7 +165,7 @@ Box 与 iMac 是两套独立 Orca runtime；同名仓库在 box 上另有项目 
 
 ## 7. MBA（MacBook Air）Orca 项目（2026-10-18 16:00 SGT 建，box 上的 Claude Code 经 iMac `ssh mba` 做）
 
-MBA：Apple M2 / 8 核 / 8 GB，macOS 26.6.2，Orca 1.4.229，用户 jiawenwang，tailnet 100.64.0.7。iMac 上 `orca --environment mba …`（环境名小写 mba）。
+MBA：Apple M2 / 8 核 / 8 GB，macOS 26.6.2，Orca 1.4.244（2026-10-29 升，旧 1.4.240），用户 jiawenwang，tailnet 100.64.0.7。iMac 上 `orca --environment mba …`（环境名小写 mba）。
 MBA 是第三套独立 Orca runtime，同名仓库在 MBA 上另有项目 ID。主 checkout 放 `~/orca/projects/<repo>`（ops 和 iMac 一样放 `~/orca/workspaces/ops`），工作区按 Orca 默认建在 `~/orca/workspaces/<repo>/…`。
 
 | Repo | Orca 项目 | 项目 ID | 路径 | 分支 |

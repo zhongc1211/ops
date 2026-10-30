@@ -15,7 +15,7 @@ Never wakes anyone itself: stuck-check.sh appends this output to its next wake-u
   naming-check.py --all      print every current violation (no marking)
   --json                     machine-readable output (violations / warnings / legacy / errors + counts)
   --input FILE               read {"<host>": {"worktrees": [], "automations": [], "terminals": []}} instead of querying Orca
-Hosts: this machine, plus the iMac via `orca --environment iMac` (or $NAMING_IMAC_ENV; set to "" to skip).
+Hosts: this machine, plus the iMac via `orca --environment iMac-tailnet` (or $NAMING_IMAC_ENV; set to "" to skip).
 Exit 1 if any current violation is not in the legacy allowlist (in every mode, reported before or not);
 exit 2 if the host query failed on every host; else 0. Warnings and legacy never change the exit code.
 """
@@ -73,7 +73,7 @@ def check_host(label, env):
 
 def main():
     hosts = [("box", None)]
-    imac = os.environ.get("NAMING_IMAC_ENV", "iMac")
+    imac = os.environ.get("NAMING_IMAC_ENV", "iMac-tailnet")
     if INPUT:
         hosts = [(h, None) for h in json.load(open(INPUT, encoding="utf-8"))]
     elif imac:

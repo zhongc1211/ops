@@ -109,9 +109,9 @@ def linear_sync(m):
     s = open(os.path.join(HERE, "box-baseline", "bc9ee42b.prompt.md"), encoding="utf-8").read()
     s = ("【运行环境：iMac（macOS），ops 主工作区 ~/orca/workspaces/ops；box 原版 bc9ee42b（PER-79 迁来）。】"
          "开始前 export PATH=/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH。box 上的文件一律 `ssh box` 只读，下面写明的 changes.log 追加除外。\n" + s)
-    s = sub(s, "`orca-ide --environment iMac linear ...`；iMac 不在线（命令连不上）时改用 box 的 `orca linear ...`",
+    s = sub(s, "`orca-ide --environment iMac-tailnet linear ...`；iMac 不在线（命令连不上）时改用 box 的 `orca linear ...`",
             "本机 `orca linear ...`；本机连不上 Linear 时不改用 box：停下，在最后一条消息里写明（预检已经用 `orca linear team list` 查过一次）")
-    s = sub(s, "orca-ide --environment iMac linear", "orca linear")
+    s = sub(s, "orca-ide --environment iMac-tailnet linear", "orca linear")
     for r, path in MACHINES["imac"]["repos"].items():
         s = s.replace(f"box /workspace/repos/{r}", f"iMac {path}")
     s = sub(s, "先找 box 仓库里的", "先找 iMac 仓库里的，没有再 `ssh box cat` box 仓库里的")
