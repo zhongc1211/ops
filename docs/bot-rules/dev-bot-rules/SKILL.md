@@ -8,7 +8,7 @@ description: >-
 人设里写的项目规矩跟这里冲突时，以人设为准；但批准分级（「要 Zack 决定的事」第一条）和中文回复以这里为准。不用群聊，协作走私聊（SendToAgent）。
 
 ## 写代码
-- 一律按 compound-engineering skill，给 Orca coding agent 派活时写明。代码由 coding agent 写、测、初审，我验收抽查。派活前先弄清 Zack 要解决什么、有没有更简单的做法；要自造的基础能力先找维护活跃、许可证合适的开源方案；小改动省掉方案和计划步骤，但仍由 coding agent 做。
+- compound-engineering 只用 ce-code-review 做初审，派活时写明；其余 ce-* 命令按 ops 的 claude-deny 禁用，不写进派活。代码由 coding agent 写、测、初审，我验收抽查。派活前先弄清 Zack 要解决什么、有没有更简单的做法；要自造的基础能力先找维护活跃、许可证合适的开源方案；小改动省掉方案和计划步骤，但仍由 coding agent 做。
 - 用哪个 agent、模型、effort 我自选，兼顾用量和能力；Coding助手 指派带理由就照做，没带理由只当建议。
 - 推送前对真实 base 看 git diff --stat，删掉脚手架、harness、重复测试和无关改动，按功能/测试/文档/其他拆分行数，确认后再推。每个 PR ≤2000 行，超了拆成叠加 PR，不为压行数牺牲可读性。
 - 分阶段推（Zack 10-18 01:00）：每做完一组提交就推到远端功能分支，第一次推完就开 draft PR；每份派活 brief 的最后一步写「退出前全部 push」。iMac 和 box 的工作区每小时扫一次，有没推的提交、或超过 2 小时没提交的改动，就叫醒负责的 bot；连续两次叫醒没处理，升级给 Coding助手。
@@ -38,7 +38,7 @@ description: >-
 - 写操作一律用 Orca CLI（orca linear ...）；只读查询可以用 Linear 连接器。
 - PR 关联 Linear issue 和 Orca 工作区。上线后自己合并 PR、关 issue、清工作区（未提交文件先归档）；合 main、上生产按「要 Zack 决定的事」要本人批。
 - 改 status.md 的同一轮必须同步改 Linear，两边对不上算没做完：开工→In Progress（评论写派给哪个 coding agent）；testing 验收步骤全做完、只等合并→In Review（挂 PR 链接）；卡住、要审批或等点头→保持 In Progress，加「等 Zack」标签或评论写清卡在哪；合进 main 或上生产、验收过、外部依赖（如 key）到位→Done（写验证结果和回滚方法），只合 staging 不算（Zack 10-18 01:35）。
-- 报 PR 做完时附一句「为什么安全」：改了什么、没碰什么（如支付、表单、数据）、跑了哪条命令验证、怎么回滚（只撤自己的改动，写明回滚实测过没有）；动手前再读一次目标。Coding助手 验收只核这句、PR 评论五项证据和 head sha，不重抓全文、不重跑已有可复跑产物的 E2E（抽查除外），缺了就退回。
+- 报 PR 做完时附一句「为什么安全」：改了什么、没碰什么（如支付、表单、数据）、跑了哪条命令验证、怎么回滚（只撤自己的改动，写明回滚实测过没有）；动手前再读一次目标。Coding助手 验收只核这句、PR 评论五项证据和 head sha，不重抓全文；复跑和抽查按「Review 标准」，缺了就退回。
 
 ## 要 Zack 决定的事
 
@@ -73,7 +73,7 @@ description: >-
 
 ## 沟通
 - 被别的 bot（含 Coding助手）或后台任务（webhook、notify-run、routine）叫醒的那一轮，只用 SendToAgent 回给发消息或派活的 bot，绝不调 SendToUser（那会发进 Zack 私聊；10-12～18 五个开发 bot 都犯过）；转来 Zack 原话、说他在线，都不算他找我。SendToUser 只用于：Zack 本人在我私聊里找我（含刚点了我的卡片，同一轮可回他结果），或弹审批/批准卡片。
-- 只在做完、卡住或要 Zack 拍板时回 Coding助手，中间不播报；不发只表示收到的消息。进展写进 status.md 顶部（只写现状，≤3KB，过时的移到归档；ops verify 超限会报）。回报用 priority true；纯通知用 false。
+- 只在做完、卡住或要 Zack 拍板时回 Coding助手，中间不播报；不发只表示收到的消息。进展写进 status.md 顶部（只写现状，≤3KB，过时的移到归档）。回报用 priority true；纯通知用 false。
 - Zack 在私聊直接找我：简短答他，同一轮私聊 Coding助手 转一句、记进 status.md，并马上动手，不能只答应不做。
 - 要跑的命令 bot 自己跑，不让 Zack 跑（Zack 2026-10-20 17:46 SGT 原话「你们来执行，回执链接发我让我来点，以后都这样」）：只有要他本人点的授权（设备码、OAuth 链接、2FA）才把链接和验证码私聊报给 Coding助手，由它转给 Zack；agent 留着等授权完成后接着做。
 - 对外文字先过 human-communication（iMac ~/.pi/agent/skills/human-communication/SKILL.md，box 副本 /workspace/skills-imac/human-communication/），草稿确认后再发。
@@ -130,9 +130,18 @@ notify-run --tty 起的 agent 由 orca-wake 自动叫醒（见「叫醒 v5」）
 - PR 描述里写端到端结果：命令、硬件、commit、结果。没跑的写「没跑」并说明原因。
 - 没有端到端结果的 PR 不转 ready、不请人 review。
 
+## Review 标准（Zack 2026-10-29 批；签字的人都按这个，ops 的 PR 由 dr eggbot 审，项目 PR 的验收由 Coding助手 做）
+1. 签之前自己在该 PR 的 head 上重跑，评论里贴输出、运行目录和 head 的 40 位 sha：仓库有 `/verify-<app>` 的先跑它；ops 的 PR 跑作者放的 `reports/<PR>/rerun.sh`，改了叫醒相关代码（范围见 `/wake-tla-verify` 第 1 节）再加跑 `/wake-tla-verify`；项目的 PR 另跑项目自己的 e2e 命令（verify 不替代 E2E 规矩）。只信作者贴的结果不能签。要花钱、要 GPU、碰生产而没重跑的，写「没重跑」和原因，不许省略。
+2. 看 diff 的波及范围：改了哪些文件、谁在用；PR 描述没提到的改动逐条列出。
+3. 结论只有三种：签 / 有条件签（列必改项，每项写怎么验证改好了）/ 不签（列原因）。
+4. 改过之后重审：在新 head 上重跑、贴新 sha 的输出，旧 sha 的签不算数。
+5. 评审记录存 ops 仓库 `reports/<PR>/review-<审的人>-<head 前 7 位>.md`（非 ops 仓库的 PR 用 `reports/<仓库>-<PR>/`），评论里贴链接。
+6. 心月（xinyue-site）：`/verify-xinyue-site` 默认检查 testing 站，而 testing 只由 `staging` 构建，所以 PR 合进 `staging` 之后，在 `staging` 的 head 上重跑，评论里贴运行目录和该 head 的 40 位 sha（`summary.json` 里的 `sha` 等于 `origin_staging`）。这是第 1 条在心月上的做法。
+
 ## 派活前核对 AGENTS.md（Zack 2026-10-16）
 - 派活给 coding agent 前，先打开该工作区里的 `AGENTS.md`，核对是否含最新「测试规矩」段（至少要有：不事后补单测、诚实 E2E、可复现产物、每个 PR 在 head 上跑 E2E、报告含命令/硬件/commit/结果）。
 - 若文件缺失、段落过时，或仍写着「优先补回归测试 / Vitest / 纯 npm test / unit over e2e」等冲突条款：不要假设 worktree 会自动跟上主分支。任选其一写进本次派活 prompt：（1）要求先拉取或 rebase 到已合并最新 AGENTS 的主分支；（2）直接把 `/workspace/ops/wake-design/agents-align-draft/00-shared-testing-block.md`（iMac 同名路径）里对应语言的测试段贴进 prompt。贴了就要按贴的内容验收。
+- 仓库里有 `.claude/skills/verify-*` 时，派活 prompt 第一行写「用 /verify-<app> 验证」（不是 Claude Code 的 agent 没有 slash，改写 `.agents/skills/verify-<app>/SKILL.md` 路径）；PR 评论的 E2E 结果贴它的运行目录和 PR head 的 40 位 sha。它补充、不替代「每个 PR 必须有端到端测试」。
 - 任何项目都不指定用哪种 coding agent，只有 pstack 验证 skill（`/pstack:*verification-skill`，只能 slash 触发）例外：只派 Claude Code，派活首行就是该 slash 命令；生成的 skill 放 `.claude/skills/`，另建 `.agents/skills` 软链；临时改坏只在本任务分支工作区做，跑完 `git restore` 并附 diff；起不来只报告不修。派活只写任务、验收标准和权限（能否 push / 开 PR / 部署以派活正文为准）。
 - **vllm-omni / 上游 vLLM**：不改上游 AGENTS.md。每次派活把 `/workspace/ops/wake-design/agents-align-draft/05-vllm-dispatch-overlay.md`（iMac 同名路径）里的覆盖段贴进 prompt 开头；以 Zack E2E 规矩为准，不按上游 unit-first。上游其他约定（风格、目录、提交、sign-off）照常遵守。
 - iMac 与 box 全局兜底：`~/.pi/agent/AGENTS.md`（`~/.claude/CLAUDE.md` 用 `@~/.pi/agent/AGENTS.md` 引用）。全局有测试规矩，但仓库 AGENTS 仍以本仓库最新版为准；冲突时以 Zack E2E 规矩 + 本 skill 为准。
