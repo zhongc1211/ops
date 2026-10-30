@@ -19,8 +19,8 @@
 ## 证明和 skipped
 
 - 每条断言看两样：退出码，以及副作用（假端点收到的请求、notify-run.log 的 http 字段、状态文件、存储目录、假 Linear 的调用记录）。
-- 缺前置条件的路径报失败，原因写进那个 feature 的 Gotchas；不为了通过而放松断言。
-- skipped 不算通过，在报告里逐条列出。
+- 缺前置条件的路径报失败，原因写进那个 feature 的 Gotchas；不为了通过而放松断言。例外是本机没有、又不该联网去拿的东西：DC4 的插件仓库和 wake-tla 的工具，这两项记 skipped。
+- skipped 不算通过，也不算失败，在报告里逐条列出。`VERIFY-OPS PASS` 只说明没有失败，最后一行括号里是 skipped 条数。
 
 ## Feature
 

@@ -9,7 +9,7 @@
 #   bash .claude/skills/verify-ops/verify.sh list              列出 feature 名
 #
 # feature：wake-chain agent-launch-gate stuck-check drift-checks night-review-gate wake-tla
-# 退出码：0 全部通过（最后一行 VERIFY-OPS PASS）；1 有失败（VERIFY-OPS FAIL）；2 体检不过或用法错；3 一个用例都没跑（VERIFY-OPS EMPTY）。
+# 退出码：0 没有失败（最后一行 VERIFY-OPS PASS（skipped N））；1 有失败（VERIFY-OPS FAIL（skipped N））；2 体检不过或用法错；3 一个用例都没跑（VERIFY-OPS EMPTY（0 个用例，skipped N））。
 # 运行目录：${VERIFY_OPS_ARCHIVE:-$HOME/ops-archive/verify-ops}/<UTC 时间>/（summary.json、report.md、features/、webhook/），
 #   清理时保留。仓库里不写任何运行产物。
 # VERIFY_OPS_SUT=<目录>：换一份 ops 树当被测代码（故意改坏的副本就这样跑）；不设 = 本次 checkout。
@@ -28,12 +28,33 @@ ARCHIVE=${VERIFY_OPS_ARCHIVE:-$REAL_HOME/ops-archive/verify-ops}
 ALL_FEATURES="wake-chain agent-launch-gate stuck-check drift-checks night-review-gate wake-tla"
 FAKE_KEY=e2e-fake   # migration-1020 的假端点只认这个 KEY（记 auth_ok）；不是任何真实凭据
 unset ORCA_DISPATCH_PID ORCA_DISPATCH_BOT ORCA_TASK_ID ORCA_DISPATCH_ISSUE ORCA_DISPATCH_TS ORCA_PANE_KEY STUCK_FORCE_BOT
+# 这两个会改 orca-agent-launch 和 install.sh --check 看的文件和机器
+unset PI_CODING_AGENT_DIR WAKE_CHECK_PEERS
 # 沙箱 HOME 自带 .claude；外面设的 CLAUDE_CONFIG_DIR 会让 pin-claude-plugins.sh 直接拒绝（Ubuntu 的 Orca 终端里就设了）
 unset CLAUDE_CONFIG_DIR
 
 say() { printf '%s\n' "$*"; }
 
 # ---------- Launch ----------
+# agents_fixture <沙箱>：orca-agent-launch 要指令链里有标记句，install.sh --check 要三台 ~/.pi/agent/AGENTS.md 一致。
+# 沙箱 HOME 和三个假对端都拷被测仓库的 AGENTS.md（标记句不在这里再写一份）；假 ssh 把 $SB/peers/<机器> 当对端的 HOME。
+agents_fixture() {
+    local sb=$1 h
+    for h in "$sb/home" "$sb/peers/imac" "$sb/peers/mba" "$sb/peers/box"; do
+        mkdir -p "$h/.pi/agent" "$h/.claude"
+        cp "$SUT/AGENTS.md" "$h/.pi/agent/AGENTS.md"
+        echo '@~/.pi/agent/AGENTS.md' >"$h/.claude/CLAUDE.md"
+    done
+    cat >"$sb/bin/ssh" <<'EOF'
+#!/bin/sh
+# 假 ssh：只答 install.sh --check 的 agents-probe，别的命令一律连不上
+for a in "$@"; do peer=$cmd; cmd=$a; done
+case "$cmd" in *agents-probe*) [ -d "$VO_SANDBOX/peers/$peer" ] && HOME="$VO_SANDBOX/peers/$peer" exec sh -c "$cmd" ;; esac
+echo "verify-ops 假 ssh：不答 ${peer}" >&2
+exit 255
+EOF
+}
+
 # launch：建沙箱，起两个假 webhook，写假 env 文件。沙箱目录打印到 stdout 最后一行。
 launch() {
     local sb p1 p2 i
@@ -66,6 +87,7 @@ launch() {
     printf '#!/bin/sh\nexec python3 -I "%s" orca "$@"\n' "$VO" >"$sb/bin/orca"
     printf '#!/bin/sh\nexec python3 -I "%s" linear "$@"\n' "$VO" >"$sb/bin/fake-linear-ok"
     cp "$sb/bin/orca" "$sb/bin/orca-ide"   # stuck-check 先找 orca-ide
+    agents_fixture "$sb"
     chmod +x "$sb/bin/"*
     # stuck-check 用 python 跑 STUCK_PROBE，所以假 agent-probe 是个 python 文件
     printf 'import runpy, sys\nsys.argv = ["vo.py", "probe"]\nrunpy.run_path("%s", run_name="__main__")\n' "$VO" >"$sb/bin/agent-probe.py"
@@ -136,6 +158,7 @@ doctor_in() {
         else say "BAD  $f 解析到 ${got:-无}，不是被测目录"; bad=1; fi
     done
     ( . "$sb/env.sh"; [ "$(command -v pi)" = "$sb/bin/pi" ] ) && say "ok   pi 是沙箱里的假 agent" || { say "BAD  pi 不是假 agent"; bad=1; }
+    ( . "$sb/env.sh"; [ "$(command -v ssh)" = "$sb/bin/ssh" ] ) && say "ok   ssh 是沙箱里的假 ssh，连不到真机器" || { say "BAD  ssh 不是假 ssh"; bad=1; }
     if [ "$SUT" = "$REPO" ]; then say "ok   被测代码 = 本次 checkout（$(git -C "$REPO" rev-parse --short=12 HEAD)，dirty=$(dirty)）"
     else say "note 被测代码 = VERIFY_OPS_SUT 指定的副本（不是 checkout；结果不能当 PR 的证据）"; fi
     say "info bash：${BASH_VERSION}（/bin/bash：$(/bin/bash -c 'echo $BASH_VERSION')）"
@@ -201,6 +224,8 @@ f_wake_chain() {
 f_agent_launch_gate() {
     local OAL="$SUT/wake/bin/orca-agent-launch" rc n0 log="$SB/linear.log"
     export ORCA_AGENT_LAUNCH_NOTIFY_RUN="$SUT/wake/bin/notify-run"
+    # 在空目录里起：checkout 的 AGENTS.md 有标记句，cwd 在仓库里就测不到沙箱 HOME 这一路
+    mkdir -p "$SB/ws"; cd "$SB/ws" || return 1
     rej() {  # rej <名字> <期望退出码> <参数...>：拒绝，且拒绝原因叫醒了一次（发给 bot 或 coding-assistant）
         local name=$1 want=$2 before; shift 2
         before=$(cnt "$(A)" kind=agent_not_started source=orca-agent-launch)
@@ -237,6 +262,19 @@ f_agent_launch_gate() {
     expect "带 --issue --eta：退出码 0，叫醒 1 次" "$rc/$(cnt "$(A)" task=gate-issue-ok source=notify-run issue=PER-9)" "0/1"
     expect "带 --issue --eta：写了 due=2026-11-02" "$(grep -c '"due-date", "set", "PER-9", "--to", "2026-11-02"' "$log")" 1
     expect "带 --issue --eta：描述补了「负责 bot：verify-bot」" "$(grep '"save-issue"' "$log" | grep -c '负责 bot：verify-bot')" 1
+    # 启动前检查：上面放行的 3 次都靠沙箱全局 AGENTS；改成没有标记句、再删掉，都要拒绝
+    expect "启动前检查：放行的 3 次标记句都在沙箱 ~/.pi/agent/AGENTS.md" \
+        "$(grep -c '启动检查：pi 指令链 1 个文件，标记句在 .*/\.pi/agent/AGENTS\.md$' "$SB/oal.err")" 3
+    local g="$HOME/.pi/agent/AGENTS.md"
+    printf '# 沙箱：没有标记句\n' >"$g"
+    rej "指令链文件没有标记句" 2 --bot verify-bot --task gate-no-marker -- pi
+    expect "指令链文件没有标记句：报「都没有标记句」，没起 agent" \
+        "$(grep -c '拒绝：启动检查：pi 指令链 1 个文件都没有标记句' "$SB/oal.err")/$(cnt "$(A)" task=gate-no-marker source=notify-run)" "1/0"
+    rm -f "$g"
+    rej "指令链一个文件都没有" 2 --bot verify-bot --task gate-no-chain -- pi
+    expect "指令链一个文件都没有：报「一个文件都没有」，没起 agent" \
+        "$(grep -c '拒绝：启动检查：pi 指令链里一个文件都没有' "$SB/oal.err")/$(cnt "$(A)" task=gate-no-chain source=notify-run)" "1/0"
+    cp "$SUT/AGENTS.md" "$g"   # 后面的 feature 共用这个沙箱 HOME
     unset ORCA_AGENT_LAUNCH_NOTIFY_RUN
     cat "$SB/oal.err"
 }
@@ -281,14 +319,23 @@ f_stuck_check() {
 
 # ---------- feature：drift-checks ----------
 f_drift_checks() {
-    local rc out
-    # 1. wake/install.sh --check：先在沙箱 HOME 装一遍，再改坏一个已装文件
+    local rc out h n=4 sha
+    # 1. wake/install.sh --check：先在沙箱 HOME 装一遍，再让对端的全局 AGENTS 不一致，最后改坏一个已装文件
     "$SUT/wake/install.sh" >"$SB/install.out" 2>&1 || cat "$SB/install.out"
     "$SUT/wake/install.sh" --check >"$SB/d1.out" 2>&1; rc=$?; cat "$SB/d1.out"
-    expect "install.sh --check 干净：退出码 0" "$rc" 0
+    # 台数写死：默认对端 imac mba box 去掉本机再加上本机，本机是这三台之一时 3 台，否则 4 台。对端被悄悄少探一台时这条要挂
+    case "$(hostname | cut -d. -f1 | tr '[:upper:]' '[:lower:]')" in imac|mba|box|grok-bot-vm-*) n=3 ;; esac
+    sha=$( (shasum -a 256 "$HOME/.pi/agent/AGENTS.md" 2>/dev/null || sha256sum "$HOME/.pi/agent/AGENTS.md") | cut -c1-12)
+    expect "install.sh --check 干净：退出码 0，${n} 台全局 AGENTS 一致" \
+        "$rc/$(grep -cE "^PASS  全局 AGENTS 一致（${n} 台：[^ ]+=${sha}( [^ ]+=${sha}){$((n - 1))}）$" "$SB/d1.out")" "0/1"
+    for h in imac mba box; do echo "# verify-ops drift" >>"$SB/peers/$h/.pi/agent/AGENTS.md"; done
+    "$SUT/wake/install.sh" --check >"$SB/d1b.out" 2>&1; rc=$?; cat "$SB/d1b.out"
+    expect "install.sh --check 对端全局 AGENTS 不一致：退出码 1，报不一致" "$rc/$(grep -c '^FAIL  全局 AGENTS 不一致：' "$SB/d1b.out")" "1/1"
+    for h in imac mba box; do cp "$HOME/.pi/agent/AGENTS.md" "$SB/peers/$h/.pi/agent/AGENTS.md"; done
     echo "# verify-ops drift" >>"$HOME/.local/bin/notify-run"
     "$SUT/wake/install.sh" --check >"$SB/d2.out" 2>&1; rc=$?; cat "$SB/d2.out"
-    expect "install.sh --check 漂移：退出码 1，指出 notify-run「不同」" "$rc/$(grep -c '^不同  .*/\.local/bin/notify-run$' "$SB/d2.out")" "1/1"
+    expect "install.sh --check 漂移：退出码 1，指出 notify-run「不同」，全局 AGENTS 仍一致" \
+        "$rc/$(grep -c '^不同  .*/\.local/bin/notify-run$' "$SB/d2.out")/$(grep -c '^PASS  全局 AGENTS 一致（' "$SB/d2.out")" "1/1/1"
 
     # 2. scripts/sync-bot-rules --check：沙箱里克隆一份仓库，targets.tsv 加一行指向沙箱目录，ref=HEAD，不 fetch
     local R="$SB/repo-clone" T="$SB/bot-rules-target"
@@ -317,15 +364,28 @@ f_drift_checks() {
     expect "make-prompts.py --check 漂移：退出码 1，指出 ${out}" "$rc/$(grep -c "$out differs" "$SB/d6.out")" "1/1"
 
     # 4. bootstrap/claude-plugins/pin-claude-plugins.sh --check --home 沙箱
-    local P="$HOME/.claude/pinned-marketplaces" n ok_src=1
+    # 预检：两个插件仓库在本机、且含钉的 commit，否则离线做不出干净状态，记 skipped（见 features/drift-checks.md Gotchas）
+    local P="$HOME/.claude/pinned-marketplaces" PIN="$SUT/bootstrap/claude-plugins/pin-claude-plugins.sh" src n v sha miss="" ok_src=1
+    for n in cursor-plugins=PSTACK_SHA compound-engineering-plugin=CE_SHA; do
+        v=${n#*=}; n=${n%=*}; src="$REAL_HOME/.claude/pinned-marketplaces/$n"
+        sha=$(sed -n "s/^${v}=\([0-9a-f]\{40\}\).*/\1/p" "$PIN")
+        if [ -z "$sha" ]; then
+            bad "pin-claude-plugins：读不到钉的 commit" "$PIN 里没有 ${v}"
+            return
+        elif [ ! -d "$src/.git" ]; then miss="$miss 没有 ${n}"
+        elif ! git -C "$src" cat-file -e "$sha^{commit}" 2>/dev/null; then miss="$miss ${n} 缺 $(printf %.12s "$sha")"
+        fi
+    done
+    if [ -n "$miss" ]; then
+        skip "pin-claude-plugins --check" "缺前置条件：~/.claude/pinned-marketplaces/${miss}"
+        return
+    fi
     mkdir -p "$P" "$HOME/.claude/plugins"
     for n in cursor-plugins compound-engineering-plugin; do
-        if [ -d "$REAL_HOME/.claude/pinned-marketplaces/$n/.git" ]; then
-            git clone -q --shared "$REAL_HOME/.claude/pinned-marketplaces/$n" "$P/$n" 2>/dev/null || ok_src=0
-        else ok_src=0; fi
+        git clone -q --shared "$REAL_HOME/.claude/pinned-marketplaces/$n" "$P/$n" 2>/dev/null || ok_src=0
     done
     if [ "$ok_src" = 0 ]; then
-        bad "pin-claude-plugins：缺前置条件" "本机没有 ~/.claude/pinned-marketplaces/ 下的两个插件仓库，沙箱没法离线做出干净状态（见 features/drift-checks.md Gotchas）"
+        bad "pin-claude-plugins：预检过了但 git clone --shared 失败"
         return
     fi
     # installed_plugins.json 是 `claude plugin install` 写的（外部 CLI 边界）：按钉的版本写进沙箱，安装脚本就不去调 claude
@@ -405,7 +465,7 @@ f_wake_tla() {
 run_features() {
     local sel="" f fn rc ts
     if [ $# -eq 0 ]; then sel=$ALL_FEATURES; else
-        for f in "$@"; do case " $ALL_FEATURES " in *" $f "*) sel="$sel $f" ;; *) say "verify-ops: 没有这个 feature：${f}（verify.sh list 看名字）；一个用例都不跑"; say "VERIFY-OPS EMPTY（0 个用例）"; exit 3 ;; esac; done
+        for f in "$@"; do case " $ALL_FEATURES " in *" $f "*) sel="$sel $f" ;; *) say "verify-ops: 没有这个 feature：${f}（verify.sh list 看名字）；一个用例都不跑"; say "VERIFY-OPS EMPTY（0 个用例，skipped 0）"; exit 3 ;; esac; done
     fi
     ts=$(date -u +%Y%m%dT%H%M%SZ)
     RUN="$ARCHIVE/$ts"
@@ -473,17 +533,20 @@ json.dump({
         "heartbeat-watch 读的运行记录 → wake/tests/hb-replay/orca 回放",
         "夜审存储机（ssh 到 box）→ NR_STORE_HOST=local + 沙箱目录",
         "claude plugin install 写的 installed_plugins.json → 沙箱里按钉的版本预写；插件仓库从本机 ~/.claude/pinned-marketplaces 本地克隆",
+        "全局规矩文件 → 沙箱 HOME 和假对端的 ~/.pi/agent/AGENTS.md 拷被测仓库的 AGENTS.md，~/.claude/CLAUDE.md 是一行 @ 引用",
+        "ssh 到对端（install.sh --check 读全局 AGENTS）→ 沙箱里的假 ssh，对端是 $SB/peers/<机器>/",
         "agent（claude/pi/codex）→ 沙箱里的假 pi 脚本"],
 }, open(out, "w"), indent=1, ensure_ascii=False)
 PY
-    local res
+    local res skipped
     res=$(python3 -I "$VO" summary "$RUN")
+    skipped=$(echo "$res" | cut -d' ' -f4)
     say "== 运行目录：$RUN"
     say "   summary.json：${res}；沙箱已删=$([ -d "$SB" ] && echo 否 || echo 是)，残留进程 ${left}，真实 HOME 守卫 ${guard_ok}"
     case "$res" in
-        *PASS) say "VERIFY-OPS PASS"; exit 0 ;;
-        *EMPTY) say "VERIFY-OPS EMPTY（0 个用例）"; exit 3 ;;
-        *) say "VERIFY-OPS FAIL"; exit 1 ;;
+        *PASS) say "VERIFY-OPS PASS（skipped ${skipped}）"; exit 0 ;;
+        *EMPTY) say "VERIFY-OPS EMPTY（0 个用例，skipped ${skipped}）"; exit 3 ;;
+        *) say "VERIFY-OPS FAIL（skipped ${skipped}）"; exit 1 ;;
     esac
 }
 
