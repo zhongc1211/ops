@@ -14,7 +14,9 @@ bash .claude/skills/verify-ops/verify.sh run wake-chain drift-checks   # 子集
 bash .claude/skills/verify-ops/verify.sh list                # feature 名
 ```
 
-退出码：0 全部通过，最后一行 `VERIFY-OPS PASS`；1 有失败（`VERIFY-OPS FAIL`）；2 体检不过或用法错；3 一个用例都没跑（`VERIFY-OPS EMPTY`：feature 名有一个写错就直接退出、不起沙箱；或选到的全是 skipped）。skipped 不算通过，汇报时逐条列出来。
+退出码：0 没有失败，最后一行 `VERIFY-OPS PASS`；1 有失败（`VERIFY-OPS FAIL`）；2 体检不过或用法错；3 一个用例都没跑（`VERIFY-OPS EMPTY`：feature 名有一个写错就直接退出、不起沙箱；或选到的全是 skipped）。
+
+`VERIFY-OPS PASS` 不等于每条都跑过：它只说明没有失败，可能带 skipped（例如通过 64、skipped 1）。skipped 不算通过，也不算失败，汇报时看 `summary.json` 的 `cases_skipped`，逐条列出来。
 
 功能地图在 `features/README.md`，每个 feature 一个文件。先读地图再改断言。每个 feature 文件的 Sub-features 列的是驱动过的入口；地图里标了「没测」的入口（见下面 Drive 后的「没覆盖的入口」）这次没驱动，改到那些代码时 PASS 不能当证据，要补用例或另外验证。
 
@@ -35,7 +37,8 @@ SB=$(bash .claude/skills/verify-ops/verify.sh launch | tail -1)   # 打印沙箱
 - 两个假端点的 pid 写进 `$SB/pids`（每行 `pid 标签`），清理只认这个文件。
 - `$SB/bin`（PATH 最前面）：假 agent `pi`、假 `orca` / `orca-ide`（`vo.py orca`）、成功路径的假 Linear `fake-linear-ok`、假 agent-probe `agent-probe.py`。PATH 第二位是被测目录的 `wake/bin`，第三位是 `wake/tests/fake-orca`，不含 `~/.local/bin`。
 - `$SB/env.sh`：`HOME`、`PATH`、`NOTIFY_RUN_LOG`、`ORCA_WAKE_STATE_DIR`、`ORCA_WAKE_CONFIG_DIR` 都指进沙箱。
-- 例外：drift-checks 的 DC4（pin-claude-plugins）会从真 HOME 的 `~/.claude/pinned-marketplaces/` 把两个插件仓库 `git clone --shared` 进沙箱。这一步只读真 HOME，不写；其余 feature 不读真 HOME（真实 webhook 文件只在守卫里算 sha 和字节数）。
+- 全局规矩：沙箱 HOME 和 `$SB/peers/{imac,mba,box}` 各有一份 `~/.pi/agent/AGENTS.md`（拷被测仓库根的 `AGENTS.md`，标记句不在 verify.sh 里再写一份）和引用它的 `~/.claude/CLAUDE.md`。`$SB/bin/ssh` 是假 ssh，只答 `install.sh --check` 的 agents-probe，把 `$SB/peers/<机器>` 当对端的 HOME，不连真机器。
+- 例外：drift-checks 的 DC4（pin-claude-plugins）会从真 HOME 的 `~/.claude/pinned-marketplaces/` 把两个插件仓库 `git clone --shared` 进沙箱。这一步只读真 HOME，不写；两个仓库不在或缺钉的 commit 时，这一项记 skipped 并写原因（不算通过）。其余 feature 不读真 HOME（真实 webhook 文件只在守卫里算 sha 和字节数）。
 
 就绪的判据：`a.port` 非空、假端点 B 对一次 POST 有响应，然后 Doctor 全是 `ok`。两个沙箱可以并排跑（端口随机、目录各自独立）。
 
@@ -52,7 +55,7 @@ bash .claude/skills/verify-ops/verify.sh doctor "$SB"    # 查一个已经 launc
 
 - `HOME` 是沙箱的 `home`，不是真 HOME。
 - 两个假端点的端口由 `$SB/pids` 里对应的 pid 监听：有 `lsof` 用 `lsof -iTCP:<端口> -sTCP:LISTEN`，没有就用 `ss -ltnp`（Linux）；两样都没有时打印 `warn 缺 lsof 和 ss，无法确认端口归属`，只确认 pidfile 里的进程还活着，不算端口冲突。
-- `notify-run`、`orca-agent-launch`、`orca-wake` 在沙箱 PATH 里解析到被测目录的 `wake/bin/`，不是装在 `~/.local/bin` 的那份；`pi` 是假 agent。
+- `notify-run`、`orca-agent-launch`、`orca-wake` 在沙箱 PATH 里解析到被测目录的 `wake/bin/`，不是装在 `~/.local/bin` 的那份；`pi` 是假 agent；`ssh` 是假 ssh。
 - 被测代码是本次 checkout（打印短 sha 和 dirty），或 `VERIFY_OPS_SUT` 指的副本（这时会注明「不能当 PR 的证据」）。
 - `info`：当前 bash 和 `/bin/bash` 的版本；有没有 Java + `tla2tools.jar`（没有时 wake-tla 记 skipped）。
 
@@ -63,9 +66,9 @@ bash .claude/skills/verify-ops/verify.sh doctor "$SB"    # 查一个已经 launc
 | feature | 驱动的真实脚本 | 替身 | 文件 |
 |---|---|---|---|
 | `wake-chain` | `wake/bin/notify-run` 包 `true`、`exit 7`、`false`、被 TERM 的 `sleep`，以及对 503 端点的重试 | 假端点 A、B | `features/wake-chain.md` |
-| `agent-launch-gate` | `wake/bin/orca-agent-launch` 的拒绝规则和合法路径（`exec notify-run --tty -- pi`） | 假 `pi`、假 Linear、`wake/tests/fake-orca/orca` | `features/agent-launch-gate.md` |
+| `agent-launch-gate` | `wake/bin/orca-agent-launch` 的拒绝规则、启动前检查（缺标记句拒绝）和合法路径（`exec notify-run --tty -- pi`） | 假 `pi`、假 Linear、`wake/tests/fake-orca/orca`、沙箱全局 AGENTS | `features/agent-launch-gate.md` |
 | `stuck-check` | `scripts/stuck-check.sh`（不带参数，直接发）两次，`scripts/heartbeat-watch.sh` 三次 | `wake/tests/fake_orca.py` + 生成的夹具、假 agent-probe、`wake/tests/hb-replay/orca`；`orca-wake` 用被测目录的真脚本 | `features/stuck-check.md` |
-| `drift-checks` | `wake/install.sh --check`、`scripts/sync-bot-rules --check`、`make-prompts.py --check`、`pin-claude-plugins.sh --check`，各自先干净再造一处漂移 | 沙箱 HOME、沙箱里的仓库克隆、预写的 `installed_plugins.json` | `features/drift-checks.md` |
+| `drift-checks` | `wake/install.sh --check`、`scripts/sync-bot-rules --check`、`make-prompts.py --check`、`pin-claude-plugins.sh --check`，各自先干净再造一处漂移 | 沙箱 HOME、假 ssh 和假对端、沙箱里的仓库克隆、预写的 `installed_plugins.json` | `features/drift-checks.md` |
 | `night-review-gate` | `scripts/night-review-gate.sh finish`（有 / 没有「状态：完成」） | `NR_STORE_HOST=local` + 沙箱目录代替存储机 | `features/night-review-gate.md` |
 | `wake-tla` | 调现成的 `wake/tla/check.sh w0 h0`（`wake-tla-verify` skill 的命令，不复制） | 无 | `features/README.md` |
 
@@ -105,7 +108,7 @@ rm -rf "$M"
 
 - 走真实入口：被测脚本都是被测目录里的那份，按用户的命令行参数调用；不调内部函数，不用测试专用开关（`ORCA_AGENT_LAUNCH_DRY=1` 这类不用）。
 - 记动作和结果：每条断言同时看退出码和副作用（假端点收到几条、哪个 bot、什么 status；notify-run.log 的 http 字段；状态文件；存储目录里的文件；假 Linear 的调用记录）。
-- 替身只放在外部边界（列表写在 summary.json 的 `stand_ins`）：webhook 接收端、Orca CLI、Linear、agent-probe 的进程表、heartbeat 读的运行记录、夜审存储机、`claude plugin install` 写的已装清单、agent 本身。被测脚本一行不改。
+- 替身只放在外部边界（列表写在 summary.json 的 `stand_ins`）：webhook 接收端、Orca CLI、Linear、agent-probe 的进程表、heartbeat 读的运行记录、夜审存储机、`claude plugin install` 写的已装清单、ssh 到对端、全局规矩文件、agent 本身。被测脚本一行不改。
 - 真实 HOME 守卫：`run` 前后各算一次真实 `~/.config/grokbot/webhooks/` 里每个文件的 sha256 前 8 位和字节数（只算哈希，不读内容），以及真实 `notify-run.log` 的行数和 `bot=verify-` 开头的行数；webhook 有变化或出现 `bot=verify-` 行就判 FAIL。真实 notify-run.log 的总行数可能因为本机别的 agent 在跑而变化，不算失败。
 - 用例为 0 时退出码 3，不能当通过。报告 PR 证据时 `sha` 必须等于 PR head，`dirty` 必须是 false。
 
