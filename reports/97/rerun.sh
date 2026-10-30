@@ -133,8 +133,8 @@ verify "$OUT/drills/install-peer-drift-ignored.log" VERIFY_OPS_SUT="$WORK/m-peer
 want drill_install_peer_drift_ignored "$RC/$(cases fail '对端全局 AGENTS 不一致')" "1/1" \
   "演练：副本里不一致不再判 drift → 新加的对端用例挂"
 
-# 去掉一台不是本机的对端，N 台的断言才有东西可抓
-case "$(hostname | cut -d. -f1 | tr '[:upper:]' '[:lower:]')" in mba) PEERS="imac box" ;; *) PEERS="imac mba" ;; esac
+# 去掉一台不是本机的对端（本机本来就不探测，去掉它什么也不变），台数断言才有东西可抓
+case "$(hostname | cut -d. -f1 | tr '[:upper:]' '[:lower:]')" in box|grok-bot-vm-*) PEERS="imac box" ;; *) PEERS="imac mba" ;; esac
 copy_git "$WORK/m-onepeer"
 sed -i.orig "s/WAKE_CHECK_PEERS-imac mba box/WAKE_CHECK_PEERS-$PEERS/" "$WORK/m-onepeer/wake/install.sh"
 verify "$OUT/drills/install-peer-dropped.log" VERIFY_OPS_SUT="$WORK/m-onepeer" -- "$ROOT/$V" drift-checks
