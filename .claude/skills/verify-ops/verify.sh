@@ -19,6 +19,8 @@ set -u
 SKILL_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$SKILL_DIR/../../.." && pwd)
 VO="$SKILL_DIR/helpers/vo.py"
+# 运行目录里的掩码：真实 HOME → ~，主机名和用户名 → <host>（notify-run 的 payload 带 machine=主机名）
+export VO_REAL_HOME="$HOME" VO_MASK_WORDS="${VO_MASK_WORDS:-$(hostname):$(hostname -s):$(id -un)}"
 REAL_HOME=$HOME
 SUT=${VERIFY_OPS_SUT:-$REPO}
 SUT=$(cd "$SUT" && pwd) || { echo "verify-ops: VERIFY_OPS_SUT 不存在" >&2; exit 2; }
@@ -346,19 +348,26 @@ f_night_review_gate() {
     mkdir -p "$SB/nr-dir"
     nr() { env NR_STATE="$SB/nr-state" NR_DIR="$SB/nr-dir" NR_STORE_HOST=local NR_STORE_DIR="$SB/nr-store" \
         HEAVY_LOCK_DIR="$SB/heavy.lock" "$G" "$@"; }
+    lock() {  # 像夜审 precheck 一样先拿锁，finish 必须把它放掉
+        HEAVY_LOCK_DIR="$SB/heavy.lock" bash "$SUT/scripts/heavy-lock.sh" acquire night-review-xinyue >/dev/null
+        expect "$1：finish 之前 heavy-lock 被占着" "$([ -d "$SB/heavy.lock" ] && echo held || echo free)" held
+    }
     printf '# 心月夜审 2026-10-28\n\n状态：完成\n' >"$SB/nr-dir/2026-10-28-xinyue.md"
     echo '{}' >"$SB/nr-dir/2026-10-28-xinyue-ledger.jsonl"
+    lock "有「状态：完成」"
     nr finish xinyue 2026-10-28 mba ok; rc=$?
+    expect "有「状态：完成」：finish 之后 heavy-lock 已释放" "$([ -e "$SB/heavy.lock" ] && echo held || echo free)" free
     expect "摘要有「状态：完成」：finish 退出码 0" "$rc" 0
     expect "有「状态：完成」：摘要和 ledger 拷进存储目录后读回到了" \
         "$(grep -c '^状态：完成' "$SB/nr-store/2026-10-28-xinyue.md" 2>/dev/null)/$([ -f "$SB/nr-store/2026-10-28-xinyue-ledger.jsonl" ] && echo y)" "1/y"
     expect "有「状态：完成」：状态文件记 state=done" "$(tail -1 "$SB/nr-state/xinyue/2026-10-28.status" | grep -c 'state=done machine=mba reason=ok files=2')" 1
     printf '# 心月夜审 2026-10-27\n\n状态：进行中\n' >"$SB/nr-dir/2026-10-27-xinyue.md"
+    lock "没有「状态：完成」"
     nr finish xinyue 2026-10-27 mba ok; rc=$?
     expect "摘要没有「状态：完成」：finish 退出码 3" "$rc" 3
     expect "没有「状态：完成」：没拷进存储，状态记 failed detail=no_done_line" \
         "$([ -e "$SB/nr-store/2026-10-27-xinyue.md" ] && echo copied || echo none)/$(tail -1 "$SB/nr-state/xinyue/2026-10-27.status" | grep -c 'state=failed.*detail=no_done_line')" "none/1"
-    expect "两次都释放了 heavy-lock" "$([ -e "$SB/heavy.lock" ] && echo held || echo free)" free
+    expect "没有「状态：完成」：finish 之后 heavy-lock 也已释放" "$([ -e "$SB/heavy.lock" ] && echo held || echo free)" free
 }
 
 # ---------- feature：wake-tla（调用 wake-tla-verify，不复制） ----------
@@ -381,7 +390,7 @@ f_wake_tla() {
 run_features() {
     local sel="" f fn rc ts
     if [ $# -eq 0 ]; then sel=$ALL_FEATURES; else
-        for f in "$@"; do case " $ALL_FEATURES " in *" $f "*) sel="$sel $f" ;; *) say "verify-ops: 没有这个 feature：${f}（verify.sh list 看名字）" ;; esac; done
+        for f in "$@"; do case " $ALL_FEATURES " in *" $f "*) sel="$sel $f" ;; *) say "verify-ops: 没有这个 feature：${f}（verify.sh list 看名字）；一个用例都不跑"; say "VERIFY-OPS EMPTY（0 个用例）"; exit 3 ;; esac; done
     fi
     ts=$(date -u +%Y%m%dT%H%M%SZ)
     RUN="$ARCHIVE/$ts"

@@ -14,7 +14,7 @@ bash .claude/skills/verify-ops/verify.sh run wake-chain drift-checks   # 子集
 bash .claude/skills/verify-ops/verify.sh list                # feature 名
 ```
 
-退出码：0 全部通过，最后一行 `VERIFY-OPS PASS`；1 有失败（`VERIFY-OPS FAIL`）；2 体检不过或用法错；3 一个用例都没通过也没失败（`VERIFY-OPS EMPTY`：feature 名全写错，或选到的全是 skipped）。skipped 不算通过，汇报时逐条列出来。
+退出码：0 全部通过，最后一行 `VERIFY-OPS PASS`；1 有失败（`VERIFY-OPS FAIL`）；2 体检不过或用法错；3 一个用例都没跑（`VERIFY-OPS EMPTY`：feature 名有一个写错就直接退出、不起沙箱；或选到的全是 skipped）。skipped 不算通过，汇报时逐条列出来。
 
 功能地图在 `features/README.md`，每个 feature 一个文件。先读地图再改断言；地图写着的入口都要覆盖，只驱动一个方便的入口不算验证完。
 
@@ -86,7 +86,7 @@ rm -rf "$M"
 - `summary.json`：`status`（PASS / FAIL / EMPTY）、`sha`（checkout 的 HEAD）、`dirty`、`sut_kind`、`machine`（macOS 版本 + CPU 架构，不写主机名）、`bash`、`cases_total` / `cases_pass` / `cases_fail` / `cases_skipped`、`features`（每个的命令、退出码、用例数）、`cases`（逐条）、`guard_before` / `guard_after` / `guard_ok`、`sandbox_removed`、`processes_left`、`skipped_by_policy`、`stand_ins`。
 - `report.md`：同样的内容给人看。
 - `doctor.txt`、`features/<feature>.log`（每个 feature 的原始输出，掩码后）、`webhook/requests-a.jsonl` / `requests-b.jsonl`（假端点收到的请求原文，掩码后）、`webhook/notify-run.log`（沙箱里的发送日志）。
-- 掩码（`vo.py mask`）：真实 HOME 换成 `~`，IPv4 地址换成 `<ip>`，`VO_MASK_WORDS`（冒号分隔）里的词换成 `<host>`。notify-run 的 payload 带 `machine`（主机名）：把本机主机名放进 `VO_MASK_WORDS` 再跑，或者只在 PR 里贴 sha 和计数，不贴原文。
+- 掩码（`vo.py mask`，verify.sh 自动设好）：真实 HOME 换成 `~`，`VO_MASK_WORDS`（冒号分隔，默认本机 `hostname`、`hostname -s` 和用户名）里的词换成 `<host>`，IPv4 地址换成 `<ip>`。notify-run 的 payload 带 `machine`（主机名），掩码后是 `<host>`；对外仍只贴 sha 和计数。
 
 证明标准：
 

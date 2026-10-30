@@ -6,7 +6,7 @@
 
 - `NR1` 摘要有「状态：完成」→ 退出码 0；摘要和 ledger 出现在存储目录里，并且读回到「状态：完成」；状态文件最后一行 `state=done machine=mba reason=ok files=2`。
 - `NR2` 摘要是「状态：进行中」→ 退出码 3；存储目录里没有这一晚的摘要；状态文件最后一行 `state=failed … detail=no_done_line`。
-- `NR3` 两种情况都释放 heavy-lock（锁目录不存在）。
+- `NR3` 两种情况下，finish 之前先用 `scripts/heavy-lock.sh acquire night-review-xinyue` 拿锁（像夜审 precheck 那样），断言锁被占着；finish 之后锁目录不在了。
 
 ## How to get to it (user POV)
 
@@ -19,7 +19,7 @@ Preconditions: 沙箱目录 `$SB/nr-dir` 放摘要（`<D>-xinyue.md`）和 ledge
 - 跑：`bash .claude/skills/verify-ops/verify.sh run night-review-gate`（1 秒）。
 - NR1：`night-review-gate.sh finish xinyue 2026-10-28 mba ok`，摘要含 `状态：完成`。
 - NR2：`night-review-gate.sh finish xinyue 2026-10-27 mba ok`，摘要含 `状态：进行中`。
-- 改坏验证：副本里把 `finish)` 分支第一行的 `grep -Eq "$done_line" "$NRD/$summary"` 改成恒真，`VERIFY_OPS_SUT=<副本> … run night-review-gate` 必须 FAIL（NR2 应退出码 3 却得 0）。
+- 改坏验证：副本里把 `finish)` 分支第一行的 `grep -Eq "$done_line" "$NRD/$summary"` 改成恒真，`VERIFY_OPS_SUT=<副本> … run night-review-gate` 必须 FAIL：NR2 应退出码 3，实际得到 4（不检查就去拷，拷进存储后读回找不到「状态：完成」，走「拷贝失败」分支），摘要也被拷进了存储。
 
 ## Gotchas
 
