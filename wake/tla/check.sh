@@ -4,7 +4,7 @@
 #   不带名字：全部跑；带前缀（如 w15 h0）：只跑名字以它开头的。
 #   每个检查的 TLC 原文写到 DIR/<名字>.out（默认 wake/tla/out，已在 .gitignore），汇总写 DIR/summary.tsv。
 # 期望：pass = TLC 跑完没发现错误；violated = TLC 报性质被违反（现有代码的发现，或故意改坏的变体）。
-# 退出码：0 全部和期望一致；1 有不一致（结果变了：先读 README「结果变了怎么办」）；2 环境问题（没装 Java/TLA+、资源不够）。
+# 退出码：0 全部和期望一致；1 有不一致（结果变了：先读 README「结果变了怎么办」），或被建模的代码和 SOURCES.sha256 对不上（这时不跑 TLC）；2 环境问题（没装 Java/TLA+、资源不够）。
 # 资源：每次 -workers 2、-Xmx1500m、timeout 1200 秒；开跑前可用内存 < 2G 或 load > 8 就等 5 分钟（最多等 3 次）。
 # 工具（装在用户目录，见 README「安装」）：TLA_JAVA、TLA_JAR 可改路径。
 set -u
@@ -57,18 +57,19 @@ RUNS=(
   "l03_p6_no_fallback_mutant Launch violated P6 改坏：只发派活 bot，发不出去不改发 Coding助手"
 )
 
+# 被建模的代码变了没有：变了模型就是过期的，结果没有意义，直接失败，不跑 TLC。
+# --strict：SOURCES.sha256 里有格式不对的行也算失败。文件不存在、读不了时 sha256sum 本身非 0。
+if ! drift=$(cd "$repo" && sha256sum -c --quiet --strict "$here/SOURCES.sha256" 2>&1); then
+    echo "check.sh: FAIL：模型对应的代码和建模时不一样了（SOURCES.sha256），不跑 TLC："
+    echo "$drift" | sed 's/^/  /'
+    echo "  按 README「代码变了怎么办」对一遍行号和动作，再更新 SOURCES.sha256。"
+    exit 1
+fi
+
 [ -x "$JAVA" ] || { echo "check.sh: 找不到 Java：${JAVA}（见 README「安装」）" >&2; exit 2; }
 [ -r "$JAR" ] || { echo "check.sh: 找不到 tla2tools.jar：${JAR}（见 README「安装」）" >&2; exit 2; }
 jar_sha=$(sha256sum "$JAR" | cut -c1-64)
 [ "$jar_sha" = "$JAR_SHA" ] || echo "check.sh: 注意：tla2tools.jar 的 sha256 不是 v1.7.4（${jar_sha}），结果可能和记录的不同" >&2
-
-# 被建模的代码变了没有：变了就要先对一遍模型（README「代码变了怎么办」），结果照常跑出来。
-drift=$(cd "$repo" && sha256sum -c --quiet "$here/SOURCES.sha256" 2>&1)
-if [ -n "$drift" ]; then
-    echo "check.sh: 注意：模型对应的代码和建模时不一样了（SOURCES.sha256）："
-    echo "$drift" | sed 's/^/  /'
-    echo "  模型可能已经过时：按 README「代码变了怎么办」对一遍行号和动作，再更新 SOURCES.sha256。"
-fi
 
 wait_resources() {
     local n=0 avail load
