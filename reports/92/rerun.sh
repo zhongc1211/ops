@@ -2,7 +2,7 @@
 # PR #92（rerun.sh 约定：模板和说明）的复跑脚本，从 scripts/rerun-template.sh 复制改出来。
 # 用例全是演练：把模板复制进沙箱仓库、填入构造好的用例，用 /bin/bash 跑，核对退出码、最后一行、results.tsv、
 # 启动目录、产物位置和清理。约定见 docs/rerun-convention.md。
-# 退出码：0 = 全部 PASS 且用例数 > 0；1 = 有 FAIL；3 = 用例数 0；2 = PR_NUMBER 没改或找不到仓库根。
+# 退出码：0 = 全部 PASS 且用例数 > 0；1 = 有 FAIL；3 = 用例数 0；2 = PR_NUMBER 没改、找不到仓库根或仓库还没有提交（不写产物）。
 # 最后一行：RERUN pr=<N> head=<40 位 sha> pass=<p> total=<t>
 # bash 3.2 兼容（macOS /bin/bash）。
 set -u
@@ -13,13 +13,13 @@ case "$PR_NUMBER" in ''|*[!0-9]*) echo "rerun: 先把 PR_NUMBER 改成 PR 号" >
 if [ -n "${RERUN_OUT:-}" ]; then
   case "$RERUN_OUT" in /*) ;; *) RERUN_OUT="$PWD/$RERUN_OUT";; esac   # 相对路径按启动目录算，不落进仓库
 fi
-CDPATH= cd "$(dirname "$0")" && CDPATH= cd "$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "rerun: 找不到仓库根" >&2; exit 2; }
-HEAD_SHA=$(git rev-parse HEAD)
+ROOT=$(CDPATH= cd "$(dirname "$0")" && git rev-parse --show-toplevel 2>/dev/null) || ROOT=
+[ -n "$ROOT" ] && CDPATH= cd "$ROOT" || { echo "rerun: 找不到仓库根" >&2; exit 2; }
+HEAD_SHA=$(git rev-parse --verify -q HEAD) || { echo "rerun: 仓库还没有提交" >&2; exit 2; }
 OUT=${RERUN_OUT:-$HOME/.orca-state/e2e/pr${PR_NUMBER}-$(printf %.12s "$HEAD_SHA")}
-mkdir -p "$OUT" || exit 2
-printf 'case\tstatus\tdetail\n' > "$OUT/results.tsv"
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/rerun-pr${PR_NUMBER}.XXXXXX") || exit 2
 trap 'rm -rf "$WORK"' EXIT
+mkdir -p "$OUT" && printf 'case\tstatus\tdetail\n' > "$OUT/results.tsv" || exit 2
 PASS=0; TOTAL=0
 
 _row(){   # 名字和说明里的 TAB、换行换成空格，保证一行三列
@@ -111,6 +111,13 @@ if [ "$rc" -eq 0 ] && [ "$(awk -F '\t' 'NR == 2 { print $3 }' "$tsv")" = "$RROOT
 
 run 9009 "$SB/elsewhere" ""
 if [ "$rc" -eq 2 ] && [ ! -e "$SB/home/.orca-state/e2e/pr__PR_NUMBER__-${RH:0:12}" ]; then case_pass placeholder_refused "PR_NUMBER 没改：退出码 2，不写产物"; else case_fail placeholder_refused "rc=${rc}，$(ls "$SB/home/.orca-state/e2e" 2>/dev/null | tr '\n' ' ')"; fi
+
+NR="$SB/norepo"; mkdir -p "$NR"; cp "$R/reports/9001/rerun.sh" "$NR/rerun.sh"   # 不在任何 git 仓库里
+run 9001 "$SB/elsewhere" "$SB/out/norepo" "$NR/rerun.sh"
+if [ "$rc" -eq 2 ] && ! grep -q '^RERUN ' "$SB/log.9001" && [ ! -e "$SB/out/norepo" ]; then case_pass no_repo_root_refused "仓库外：退出码 2，没有 RERUN 行，不写产物"; else case_fail no_repo_root_refused "rc=${rc}，最后一行：${last}"; fi
+E="$SB/empty"; mkdir -p "$E/reports/9001"; HOME="$SB/home" git -C "$E" init -q; cp "$R/reports/9001/rerun.sh" "$E/reports/9001/rerun.sh"
+run 9001 "$SB/elsewhere" "$SB/out/empty" "$E/reports/9001/rerun.sh"
+if [ "$rc" -eq 2 ] && ! grep -q '^RERUN ' "$SB/log.9001" && [ ! -e "$SB/out/empty" ]; then case_pass no_commit_refused "仓库没有提交：退出码 2，没有 RERUN 行，不写产物"; else case_fail no_commit_refused "rc=${rc}，最后一行：${last}"; fi
 
 if [ -z "$(G status --porcelain --untracked-files=all)" ]; then case_pass repo_tree_clean "跑完沙箱仓库工作树干净"; else case_fail repo_tree_clean "$(G status --porcelain --untracked-files=all | head -n 3 | tr '\n' ' ')"; fi
 REAL_REPORTS_AFTER=$(git status --porcelain --untracked-files=all -- reports; git ls-files -s reports | git hash-object --stdin)

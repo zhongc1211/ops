@@ -3,7 +3,7 @@
 # 起步：mkdir -p reports/<N> && cp scripts/rerun-template.sh reports/<N>/rerun.sh，
 # 改下面的 PR_NUMBER，在「在这里写你的 E2E 步骤」段落里写用例。
 # 从哪个目录启动都行；产物写到仓库外：${RERUN_OUT:-$HOME/.orca-state/e2e/pr<N>-<head 前 12 位>}/results.tsv。
-# 退出码：0 = 全部 PASS 且用例数 > 0；1 = 有 FAIL；3 = 用例数 0；2 = PR_NUMBER 没改或找不到仓库根。
+# 退出码：0 = 全部 PASS 且用例数 > 0；1 = 有 FAIL；3 = 用例数 0；2 = PR_NUMBER 没改、找不到仓库根或仓库还没有提交（不写产物）。
 # 最后一行：RERUN pr=<N> head=<40 位 sha> pass=<p> total=<t>
 # bash 3.2 兼容（macOS /bin/bash）。
 set -u
@@ -14,13 +14,13 @@ case "$PR_NUMBER" in ''|*[!0-9]*) echo "rerun: 先把 PR_NUMBER 改成 PR 号" >
 if [ -n "${RERUN_OUT:-}" ]; then
   case "$RERUN_OUT" in /*) ;; *) RERUN_OUT="$PWD/$RERUN_OUT";; esac   # 相对路径按启动目录算，不落进仓库
 fi
-CDPATH= cd "$(dirname "$0")" && CDPATH= cd "$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "rerun: 找不到仓库根" >&2; exit 2; }
-HEAD_SHA=$(git rev-parse HEAD)
+ROOT=$(CDPATH= cd "$(dirname "$0")" && git rev-parse --show-toplevel 2>/dev/null) || ROOT=
+[ -n "$ROOT" ] && CDPATH= cd "$ROOT" || { echo "rerun: 找不到仓库根" >&2; exit 2; }
+HEAD_SHA=$(git rev-parse --verify -q HEAD) || { echo "rerun: 仓库还没有提交" >&2; exit 2; }
 OUT=${RERUN_OUT:-$HOME/.orca-state/e2e/pr${PR_NUMBER}-$(printf %.12s "$HEAD_SHA")}
-mkdir -p "$OUT" || exit 2
-printf 'case\tstatus\tdetail\n' > "$OUT/results.tsv"
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/rerun-pr${PR_NUMBER}.XXXXXX") || exit 2
 trap 'rm -rf "$WORK"' EXIT
+mkdir -p "$OUT" && printf 'case\tstatus\tdetail\n' > "$OUT/results.tsv" || exit 2
 PASS=0; TOTAL=0
 
 _row(){   # 名字和说明里的 TAB、换行换成空格，保证一行三列
