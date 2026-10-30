@@ -1,7 +1,533 @@
 #!/usr/bin/env python3
-# pr-gate：弹合并卡之前的机器检查（骨架，检查项随后补上）
+# pr-gate：弹合并卡之前的机器检查。只做机器能判的，每项打印 PASS/FAIL。
+#
+# 用法：
+#   scripts/pr-gate [--repo OWNER/NAME] <PR 号> [--run] [--timeout 秒]
+#   离线演练（不连 gh）：scripts/pr-gate <PR 号> --body-file F --head-sha SHA --commits-file F --tree-dir D
+#     commits 文件每个提交一段，段之间一行 ---COMMIT---；段首可写一行 "commit <sha>"。tree-dir 是模拟的 PR head 文件树。
+#
+# 六项检查（输出里的名字固定）：
+#   E2E_SHA            描述的「E2E（PR head）」块里的 40 位 sha 等于 PR head
+#   ARTIFACT           块里「产物」列出的每个路径都存在，且 results.tsv 的用例数（PASS+FAIL 行）> 0
+#                      路径：绝对路径或 ~/ 在本机；imac:/mba: 用 ssh 只读查（主机就是本机时直接查本机）；其余在 PR head 的文件树里
+#   FIELDS             描述有「为什么安全」「回滚」「没跑的」三个标题
+#   NO_AI_ATTRIBUTION  描述里没有 AI 署名行（词表见下面 AI_ATTRIBUTION）
+#   NO_COAUTHOR        每个提交信息都没有 Co-Authored-By trailer，也不命中同一词表
+#   RERUN              PR head 里 reports/<N>/rerun.sh 存在且是 100755；带 --run 时在临时 worktree 里真跑它，
+#                      要求退出 0、最后一行 RERUN pr=<N> head=<PR head> pass=<p> total=<t> 且 total>0、pass==total
+#
+# 退出码：0 六项全 PASS；1 有 FAIL；2 用法错，或 gh/git/ssh 出错（读不到 PR、网络断了），这时不打 RESULT 行。
+# 词表只在下面 AI_ATTRIBUTION 一处改。
+import argparse
+import base64
+import json
+import os
+import posixpath
+import re
+import shlex
+import shutil
+import signal
+import socket
+import subprocess
 import sys
+import tempfile
+import time
+
+# 工具名的边界：前面不是 / . ~ 或字母数字，后面不是字母数字、/，也不是接着 .md 的文件名。
+# 所以 CLAUDE.md、CLAUDE.local.md、~/.claude/…、.claude/skills/、skills/claude-api/ 都不算署名。
+_TOOLS = r"(?:claude|codex|chatgpt|copilot|anthropic|openai)"
+_PRE = r"(?<![/.~A-Za-z0-9_])"
+_POST = r"(?![A-Za-z0-9_/])(?![.A-Za-z0-9_-]*\.md)"
+
+# AI 署名词表：(正则, 命中时打印的说明)。不区分大小写，逐行匹配。
+AI_ATTRIBUTION = [
+    (r"co-authored-by", "Co-Authored-By 署名行"),
+    (r"generated\s+(?:with|by)", "Generated with/by 生成署名"),
+    (r"\U0001F916", "🤖 表情（自动生成署名常带）"),
+    (r"noreply@anthropic\.com", "Anthropic 的署名邮箱"),
+    (r"claude\.ai/code", "AI 会话链接"),
+    (r"(?:执行|派活|生成|作者)\s*[:：].*" + _PRE + _TOOLS + _POST, "执行：/派活：/生成：/作者： 后面跟工具名"),
+    (_PRE + r"claude" + _POST, "工具名 Claude"),
+    (_PRE + r"codex" + _POST, "工具名 Codex"),
+    (_PRE + r"chatgpt" + _POST, "工具名 ChatGPT"),
+    (_PRE + r"copilot" + _POST, "工具名 Copilot"),
+    (_PRE + r"anthropic" + _POST, "公司名 Anthropic"),
+    (_PRE + r"openai" + _POST, "公司名 OpenAI"),
+]
+_AI_RE = [(re.compile(p, re.IGNORECASE), why) for p, why in AI_ATTRIBUTION]
+
+CHECKS = ["E2E_SHA", "ARTIFACT", "FIELDS", "NO_AI_ATTRIBUTION", "NO_COAUTHOR", "RERUN"]
+FIELD_TITLES = ["为什么安全", "回滚", "没跑的"]
+HEADING = re.compile(r"^\s{0,3}#{1,6}\s")
+SHA40 = re.compile(r"(?<![0-9a-fA-F])[0-9a-fA-F]{40}(?![0-9a-fA-F])")
+RERUN_LINE = re.compile(r"^RERUN pr=(\d+) head=([0-9a-f]{40}) pass=(\d+) total=(\d+)$")
+SSH_HOSTS = ("imac", "mba")
+
+
+class GateError(Exception):
+    """不是检查结果，是 gate 自己跑不下去（退出 2）。"""
+
+
+def run(cmd, **kw):
+    try:
+        return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kw)
+    except OSError as e:
+        raise GateError(f"{cmd[0]} 跑不起来：{e}")
+
+
+def gh_json(args):
+    p = run(["gh"] + args)
+    if p.returncode != 0:
+        err = p.stderr.decode(errors="replace").strip().splitlines()
+        raise GateError(f"gh {' '.join(args[:2])} 失败：{err[-1] if err else 'rc=%d' % p.returncode}")
+    return json.loads(p.stdout)
+
+
+# ---- PR head 的文件树：离线是目录，在线走 gh api 的 git trees ----
+
+class LocalTree:
+    def __init__(self, root):
+        self.root = os.path.abspath(root)
+
+    def _p(self, rel):
+        rel = posixpath.normpath(rel.strip("/")) if rel.strip("/") else "."
+        if rel.startswith(".."):
+            return None
+        return os.path.join(self.root, rel)
+
+    def mode(self, rel):
+        p = self._p(rel)
+        if p is None or not os.path.lexists(p):
+            return None
+        if os.path.islink(p):
+            return "120000"
+        if os.path.isdir(p):
+            return "040000"
+        return "100755" if os.stat(p).st_mode & 0o111 else "100644"
+
+    def read(self, rel):
+        with open(self._p(rel), "rb") as f:
+            return f.read()
+
+
+class GhTree:
+    def __init__(self, repo, sha):
+        self.repo = repo
+        self.root = gh_json(["api", f"repos/{repo}/git/commits/{sha}"])["tree"]["sha"]
+        self._cache = {}
+
+    def _entries(self, tsha):
+        if tsha not in self._cache:
+            t = gh_json(["api", f"repos/{self.repo}/git/trees/{tsha}"])
+            self._cache[tsha] = {e["path"]: e for e in t["tree"]}
+        return self._cache[tsha]
+
+    def _entry(self, rel):
+        rel = posixpath.normpath(rel.strip("/")) if rel.strip("/") else "."
+        if rel == ".":
+            return {"mode": "040000", "type": "tree", "sha": self.root}
+        if rel.startswith(".."):
+            return None
+        cur = self.root
+        parts = rel.split("/")
+        for part in parts[:-1]:
+            e = self._entries(cur).get(part)
+            if not e or e["type"] != "tree":
+                return None
+            cur = e["sha"]
+        return self._entries(cur).get(parts[-1])
+
+    def mode(self, rel):
+        e = self._entry(rel)
+        return e["mode"] if e else None
+
+    def read(self, rel):
+        e = self._entry(rel)
+        b = gh_json(["api", f"repos/{self.repo}/git/blobs/{e['sha']}"])
+        return base64.b64decode(b["content"])
+
+
+# ---- 描述解析 ----
+
+def e2e_block(body):
+    """返回「E2E（PR head）」标题下到下一个标题之间的行；没有这个块返回 None。"""
+    lines = body.splitlines()
+    for i, line in enumerate(lines):
+        if HEADING.match(line) and "E2E" in line and re.search(r"PR\s*head", line, re.IGNORECASE):
+            block = []
+            for nxt in lines[i + 1:]:
+                if HEADING.match(nxt):
+                    break
+                block.append(nxt)
+            return block
+    return None
+
+
+def block_sha(block):
+    for line in block:
+        m = re.search(r"sha\s*[:：]", line, re.IGNORECASE)
+        if m:
+            s = SHA40.search(line, m.end())
+            if s:
+                return s.group(0).lower()
+    for line in block:
+        s = SHA40.search(line)
+        if s:
+            return s.group(0).lower()
+    return None
+
+
+def block_artifacts(block):
+    paths = []
+    for line in block:
+        m = re.match(r"^\s*(?:[-*+]\s*)?产物\s*[:：](.*)$", line)
+        if not m:
+            continue
+        ticks = re.findall(r"`([^`]+)`", m.group(1))
+        if ticks:
+            paths += [t.strip() for t in ticks if t.strip()]
+        elif m.group(1).split():
+            paths.append(m.group(1).split()[0])
+    return paths
+
+
+def count_cases(text):
+    """results.tsv 的用例数：第二列是 PASS 或 FAIL 的行。表头行、SKIP 不算；run-e2e.sh 的 5 列格式也是第二列。"""
+    n = 0
+    for line in text.splitlines():
+        cols = line.split("\t")
+        if len(cols) > 1 and cols[1].strip() in ("PASS", "FAIL"):
+            n += 1
+    return n
+
+
+def ai_hits(text):
+    hits = []
+    for i, line in enumerate(text.splitlines(), 1):
+        for rx, why in _AI_RE:
+            if rx.search(line):
+                hits.append((i, why, line.strip()[:80]))
+                break
+    return hits
+
+
+# ---- 产物路径 ----
+
+def local_short_host():
+    return socket.gethostname().split(".")[0].lower()
+
+
+def artifact_local(path):
+    p = os.path.expanduser(path)
+    if not os.path.exists(p):
+        return f"{path} 不存在"
+    f = os.path.join(p, "results.tsv") if os.path.isdir(p) else p
+    if not os.path.isfile(f):
+        return f"{path} 里没有 results.tsv"
+    with open(f, encoding="utf-8", errors="replace") as fh:
+        n = count_cases(fh.read())
+    return None if n > 0 else f"{path} 的用例数是 0"
+
+
+def artifact_ssh(host, path, label):
+    q = '"$HOME"/' + shlex.quote(path[2:]) if path.startswith("~/") else shlex.quote(path)
+    script = (f'p={q}; if [ -d "$p" ]; then f="$p/results.tsv"; elif [ -e "$p" ]; then f="$p"; '
+              f'else exit 44; fi; [ -f "$f" ] || exit 45; cat "$f"')
+    cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=20", host, script]
+    for attempt in (1, 2):
+        try:
+            p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=90)
+        except subprocess.TimeoutExpired:
+            rc = 255
+        else:
+            rc = p.returncode
+        if rc != 255:
+            break
+    if rc == 255:
+        raise GateError(f"ssh {host} 连不上（重试过一次），查不了 {label}")
+    if rc == 44:
+        return f"{label} 在 {host} 上不存在"
+    if rc == 45:
+        return f"{label} 里没有 results.tsv"
+    if rc != 0:
+        raise GateError(f"ssh {host} 读 {label} 出错 rc={rc}")
+    n = count_cases(p.stdout.decode("utf-8", errors="replace"))
+    return None if n > 0 else f"{label} 的用例数是 0"
+
+
+def artifact_tree(tree, path):
+    m = tree.mode(path)
+    if m is None:
+        return f"{path} 在 PR head 的文件树里不存在"
+    f = path.rstrip("/") + "/results.tsv" if m == "040000" else path
+    if m == "040000" and tree.mode(f) is None:
+        return f"{path} 里没有 results.tsv"
+    n = count_cases(tree.read(f).decode("utf-8", errors="replace"))
+    return None if n > 0 else f"{path} 的用例数是 0"
+
+
+def check_artifact(block, tree):
+    if block is None:
+        return False, "没有「E2E（PR head）」块，也就没有产物", []
+    paths = block_artifacts(block)
+    if not paths:
+        return False, "块里没写产物", []
+    problems = []
+    for path in paths:
+        m = re.match(r"^([A-Za-z]+):(.+)$", path)
+        if m and m.group(1).lower() in SSH_HOSTS:
+            host, rp = m.group(1).lower(), m.group(2)
+            if host == local_short_host():
+                err = artifact_local(rp)
+                err = err and err.replace(rp, path, 1)
+            else:
+                err = artifact_ssh(host, rp, path)
+        elif path.startswith("/") or path.startswith("~/"):
+            err = artifact_local(path)
+        else:
+            err = artifact_tree(tree, path)
+        if err:
+            problems.append(err)
+    if problems:
+        return False, "；".join(problems), []
+    return True, f"{len(paths)} 个产物路径都在，用例数 > 0", []
+
+
+# ---- RERUN ----
+
+def run_rerun(cwd, script, n, head, timeout, out_dir):
+    os.makedirs(out_dir, exist_ok=True)
+    env = dict(os.environ, RERUN_OUT=out_dir)
+    p = subprocess.Popen([script], cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                         start_new_session=True)
+    try:
+        out, err = p.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL)
+        out, err = p.communicate()
+        timed_out = True
+    else:
+        timed_out = False
+    with open(os.path.join(out_dir, "pr-gate-rerun.log"), "wb") as f:
+        f.write(b"== stdout\n" + out + b"\n== stderr\n" + err)
+    if timed_out:
+        return False, f"rerun.sh 超过 {timeout} 秒，已杀掉；日志 {out_dir}"
+    lines = [x for x in out.decode("utf-8", errors="replace").splitlines() if x.strip()]
+    last = lines[-1].strip() if lines else ""
+    m = RERUN_LINE.match(last)
+    bad = []
+    if p.returncode != 0:
+        bad.append(f"退出码 {p.returncode}")
+    if not m:
+        bad.append(f"最后一行不是 RERUN 格式：{last[:80]!r}")
+    else:
+        rpr, rhead, rp, rt = int(m.group(1)), m.group(2), int(m.group(3)), int(m.group(4))
+        if rpr != n:
+            bad.append(f"pr={rpr} 不是 {n}")
+        if rhead != head:
+            bad.append(f"head={rhead[:12]} 不是 PR head {head[:12]}")
+        if rt <= 0:
+            bad.append("total=0")
+        elif rp != rt:
+            bad.append(f"pass={rp} total={rt}")
+    if bad:
+        return False, "跑了 rerun.sh：" + "，".join(bad) + f"；日志 {out_dir}"
+    return True, f"跑了 rerun.sh：{last}；日志 {out_dir}"
+
+
+def fetch_worktree(repo, n, head, tmp):
+    """把 PR head 取到 tmp 下的临时仓库，再 git worktree add --detach。返回 worktree 路径。"""
+    gitdir = os.path.join(tmp, "repo")
+    wt = os.path.join(tmp, "wt")
+    steps = [
+        ["git", "init", "-q", gitdir],
+        ["git", "-C", gitdir, "-c", "credential.helper=", "-c", "credential.helper=!gh auth git-credential",
+         "fetch", "-q", "--depth=1", "--no-tags", f"https://github.com/{repo}.git", f"pull/{n}/head"],
+    ]
+    for cmd in steps:
+        p = run(cmd)
+        if p.returncode != 0:
+            raise GateError(f"{' '.join(cmd[:2])} … 失败：{p.stderr.decode(errors='replace').strip()[-200:]}")
+    got = run(["git", "-C", gitdir, "rev-parse", "FETCH_HEAD"]).stdout.decode().strip()
+    if got != head:
+        raise GateError(f"取到的 pull/{n}/head 是 {got[:12]}，不是 PR head {head[:12]}（PR 刚被 push？）")
+    p = run(["git", "-C", gitdir, "worktree", "add", "-q", "--detach", wt, got])
+    if p.returncode != 0:
+        raise GateError(f"git worktree add 失败：{p.stderr.decode(errors='replace').strip()[-200:]}")
+    return gitdir, wt
+
+
+def check_rerun(args, tree, head, offline):
+    rel = f"reports/{args.pr}/rerun.sh"
+    mode = tree.mode(rel)
+    if mode is None:
+        return False, f"{rel} 不存在", []
+    if mode != "100755":
+        return False, f"{rel} 不可执行（mode {mode}，要 100755）", []
+    if not args.run:
+        return True, f"{rel} 存在且可执行；没跑（没带 --run）", []
+    owner_name = args.repo.replace("/", "-")
+    out_dir = os.path.expanduser(
+        f"~/.orca-state/e2e/pr-gate-runs/{owner_name}-pr{args.pr}-{head[:12]}-{time.strftime('%Y%m%d-%H%M%S')}")
+    if offline:
+        ok, d = run_rerun(tree.root, os.path.join(tree.root, rel), args.pr, head, args.timeout, out_dir)
+        return ok, d, []
+    tmp = tempfile.mkdtemp(prefix="pr-gate-")
+    gitdir = None
+    try:
+        gitdir, wt = fetch_worktree(args.repo, args.pr, head, tmp)
+        ok, d = run_rerun(wt, os.path.join(wt, rel), args.pr, head, args.timeout, out_dir)
+    finally:
+        if gitdir and os.path.isdir(os.path.join(tmp, "wt")):
+            run(["git", "-C", gitdir, "worktree", "remove", "--force", os.path.join(tmp, "wt")])
+        shutil.rmtree(tmp, ignore_errors=True)
+    return ok, d, []
+
+
+# ---- 其余检查 ----
+
+def check_e2e_sha(block, head):
+    if block is None:
+        return False, f"描述里没有「E2E（PR head）」块（head {head[:12]}）", []
+    sha = block_sha(block)
+    if sha is None:
+        return False, f"块里没有 40 位 sha（head {head[:12]}）", []
+    if sha != head:
+        return False, f"块里的 sha {sha[:12]} 不是 head {head[:12]}", []
+    return True, "块里的 sha 与 head 一致", []
+
+
+def check_fields(body):
+    titles = [line for line in body.splitlines() if HEADING.match(line)]
+    missing = [t for t in FIELD_TITLES if not any(t in line for line in titles)]
+    if missing:
+        return False, "缺标题：" + "、".join(f"「{t}」" for t in missing), []
+    return True, "「为什么安全」「回滚」「没跑的」都在", []
+
+
+def check_no_ai(body):
+    hits = ai_hits(body)
+    if hits:
+        return False, f"描述里有 {len(hits)} 行像 AI 署名", [f"第 {i} 行（{why}）：{s}" for i, why, s in hits]
+    return True, "描述里没有 AI 署名", []
+
+
+def check_no_coauthor(commits):
+    extra = []
+    bad = set()
+    trailer = re.compile(r"^\s*co-authored-by\s*:", re.IGNORECASE | re.MULTILINE)
+    for cid, msg in commits:
+        if trailer.search(msg):
+            extra.append(f"提交 {cid}：带 Co-Authored-By trailer")
+            bad.add(cid)
+            continue
+        for i, why, s in ai_hits(msg):
+            extra.append(f"提交 {cid} 第 {i} 行（{why}）：{s}")
+            bad.add(cid)
+    if extra:
+        return False, f"{len(commits)} 个提交里有 {len(bad)} 个带署名", extra
+    return True, f"{len(commits)} 个提交都没有署名", []
+
+
+def parse_commits_file(path):
+    with open(path, encoding="utf-8") as f:
+        segs = re.split(r"^---COMMIT---[ \t]*$", f.read(), flags=re.MULTILINE)
+    commits = []
+    for i, seg in enumerate(segs, 1):
+        seg = seg.strip("\n")
+        if not seg.strip():
+            continue
+        m = re.match(r"commit ([0-9a-fA-F]{7,40})\n?", seg)
+        cid = m.group(1)[:12] if m else f"#{i}"
+        commits.append((cid, seg[m.end():] if m else seg))
+    return commits
+
+
+def main(argv):
+    ap = argparse.ArgumentParser(
+        prog="pr-gate",
+        description="弹合并卡之前的机器检查：E2E_SHA、ARTIFACT、FIELDS、NO_AI_ATTRIBUTION、NO_COAUTHOR、RERUN。"
+                    "退出码 0 全过，1 有 FAIL，2 用法错或 gh/git/ssh 出错。",
+        epilog="注意：--run 会在本机执行 PR 里的 reports/<N>/rerun.sh。只对已经看过 diff 的 PR 用。")
+    ap.add_argument("pr", type=int, help="PR 号")
+    ap.add_argument("--repo", default="zhongc1211/ops", help="OWNER/NAME，默认 zhongc1211/ops")
+    ap.add_argument("--run", action="store_true", help="在临时 worktree 里真跑 reports/<N>/rerun.sh（会执行 PR 里的代码）")
+    ap.add_argument("--timeout", type=int, default=1800, help="--run 的超时秒数，默认 1800")
+    off = ap.add_argument_group("离线演练（只给演练用，不连 gh；四个一起给）")
+    off.add_argument("--body-file")
+    off.add_argument("--head-sha")
+    off.add_argument("--commits-file")
+    off.add_argument("--tree-dir")
+    args = ap.parse_args(argv)
+
+    offline_args = [args.body_file, args.head_sha, args.commits_file, args.tree_dir]
+    offline = any(x is not None for x in offline_args)
+    if offline and not all(x is not None for x in offline_args):
+        ap.error("离线演练要 --body-file、--head-sha、--commits-file、--tree-dir 四个一起给")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", args.repo):
+        ap.error(f"--repo 要写成 OWNER/NAME：{args.repo}")
+    if args.timeout <= 0:
+        ap.error("--timeout 要大于 0")
+
+    try:
+        if offline:
+            if not re.fullmatch(r"[0-9a-fA-F]{40}", args.head_sha):
+                ap.error("--head-sha 要 40 位")
+            if not os.path.isdir(args.tree_dir):
+                ap.error(f"--tree-dir 不是目录：{args.tree_dir}")
+            head = args.head_sha.lower()
+            with open(args.body_file, encoding="utf-8") as f:
+                body = f.read()
+            commits = parse_commits_file(args.commits_file)
+            tree = LocalTree(args.tree_dir)
+            print(f"pr-gate {args.repo}#{args.pr} head={head[:12]} （离线演练）")
+        else:
+            pr = gh_json(["pr", "view", str(args.pr), "--repo", args.repo, "--json", "headRefOid,body,commits"])
+            head = pr["headRefOid"].lower()
+            body = pr.get("body") or ""
+            commits = []
+            for c in pr.get("commits") or []:
+                msg = c.get("messageHeadline", "")
+                if c.get("messageBody"):
+                    msg += "\n\n" + c["messageBody"]
+                commits.append((c["oid"][:12], msg))
+            print(f"pr-gate {args.repo}#{args.pr} head={head[:12]}")
+            sys.stdout.flush()
+            tree = GhTree(args.repo, head)
+
+        block = e2e_block(body)
+        results = [
+            ("E2E_SHA",) + check_e2e_sha(block, head),
+            ("ARTIFACT",) + check_artifact(block, tree),
+            ("FIELDS",) + check_fields(body),
+            ("NO_AI_ATTRIBUTION",) + check_no_ai(body),
+            ("NO_COAUTHOR",) + check_no_coauthor(commits),
+        ]
+        for name, ok, detail, extra in results:
+            print(f"{'PASS' if ok else 'FAIL':<6}{name:<21}{detail}")
+            for x in extra:
+                print(f"{'':<27}{x}")
+        sys.stdout.flush()
+        name = "RERUN"
+        ok, detail, extra = check_rerun(args, tree, head, offline)
+        results.append((name, ok, detail, extra))
+        print(f"{'PASS' if ok else 'FAIL':<6}{name:<21}{detail}")
+    except GateError as e:
+        sys.stdout.flush()
+        print(f"pr-gate: 出错，不是检查结果：{e}", file=sys.stderr)
+        return 2
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError) as e:
+        sys.stdout.flush()
+        print(f"pr-gate: 出错，不是检查结果：{type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+    failed = sum(1 for _, ok, _, _ in results if not ok)
+    if failed:
+        print(f"RESULT: FAIL ({failed} of {len(CHECKS)} checks failed)")
+        return 1
+    print(f"RESULT: PASS ({len(CHECKS)} of {len(CHECKS)} checks passed)")
+    return 0
+
 
 if __name__ == "__main__":
-    sys.stderr.write("pr-gate: not implemented yet\n")
-    sys.exit(2)
+    sys.exit(main(sys.argv[1:]))
