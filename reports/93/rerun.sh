@@ -5,6 +5,7 @@
 # 不装到线上、不碰真实家目录、不写仓库里的文件。产物：${RERUN_OUT:-$HOME/.orca-state/e2e/pr93-<HEAD 前 12 位>}/results.tsv
 # 退出码：全部 PASS 0；有 FAIL 1；一个用例都没有 3。
 set -u
+case "${RERUN_OUT:-}" in ""|/*) ;; *) RERUN_OUT=$PWD/$RERUN_OUT ;; esac  # 相对路径按调用时的目录算，不写进仓库
 cd "$(dirname "$0")/../.." || exit 3
 REPO=$(pwd)
 HEAD=$(git rev-parse HEAD) || exit 3
@@ -48,10 +49,11 @@ newcase() {  # $1=用例名 → 建 $SB/<用例>/home 和 $SB/<用例>/ws，打�
     mkdir -p "$SB/$1/home" "$SB/$1/ws"
     echo "$SB/$1"
 }
-launch() {  # case agent home ws dry(1/空) [agent 参数...] → 打印退出码；输出写 logs/<case>.log
+launch() {  # case agent home ws dry(1/空) [agent 参数...]；LENV="K=V ..." 给 agent 加环境变量 → 打印退出码；输出写 logs/<case>.log
     local c=$1 ag=$2 h=$3 w=$4 dry=$5 log="$OUT/logs/$1.log"
     shift 5
     ( cd "$w" && env -u PI_CODING_AGENT_DIR -u CODEX_HOME -u CLAUDE_CONFIG_DIR -u ORCA_DISPATCH_PID \
+        -u CLAUDE_CODE_DISABLE_CLAUDE_MDS -u CLAUDE_CODE_SIMPLE ${LENV:-} \
         HOME="$h" PATH="$SB/fakebin:$PATH" ORCA_AGENT_LAUNCH_DRY="$dry" \
         ORCA_AGENT_LAUNCH_WEBHOOK_DIR="$SB/webhooks" ORCA_AGENT_LAUNCH_NOTIFY_RUN="$SB/fakebin/notify-run" \
         "$REPO/wake/bin/orca-agent-launch" --bot drill-bot --task "PR93 演练 ${c}" -- "$ag" "$@" ) >"$log" 2>&1
@@ -151,6 +153,44 @@ d=$(newcase L4k-pi-no-context-files); H=$d/home; W=$d/ws
 global_ok "$H"
 rc=$(launch L4k-pi-no-context-files pi "$H" "$W" 1 -nc)
 check L4k-pi-no-context-files 2 "$rc" "$OUT/logs/L4k-pi-no-context-files.log" "-nc" "不读 AGENTS.md"
+
+# Claude Code 自己的「不读 CLAUDE.md」开关：环境变量和 --bare=…（评审第 2 轮补）
+d=$(newcase L4l-claude-env-disable-mds); H=$d/home; W=$d/ws
+global_ok "$H"
+rc=$(LENV=CLAUDE_CODE_DISABLE_CLAUDE_MDS=1 launch L4l-claude-env-disable-mds claude "$H" "$W" 1)
+check L4l-claude-env-disable-mds 2 "$rc" "$OUT/logs/L4l-claude-env-disable-mds.log" "CLAUDE_CODE_DISABLE_CLAUDE_MDS"
+d=$(newcase L4m-claude-env-simple); H=$d/home; W=$d/ws
+global_ok "$H"
+rc=$(LENV=CLAUDE_CODE_SIMPLE=true launch L4m-claude-env-simple claude "$H" "$W" 1)
+check L4m-claude-env-simple 2 "$rc" "$OUT/logs/L4m-claude-env-simple.log" "CLAUDE_CODE_SIMPLE"
+d=$(newcase L4n-claude-bare-eq); H=$d/home; W=$d/ws
+global_ok "$H"
+rc=$(launch L4n-claude-bare-eq claude "$H" "$W" 1 --bare=true)
+check L4n-claude-bare-eq 2 "$rc" "$OUT/logs/L4n-claude-bare-eq.log" "--bare=true"
+# 值为 0 或空不算打开，不能误拒
+d=$(newcase L4o-claude-env-off); H=$d/home; W=$d/ws
+global_ok "$H"
+rc=$(LENV="CLAUDE_CODE_SIMPLE=0 CLAUDE_CODE_DISABLE_CLAUDE_MDS=" launch L4o-claude-env-off claude "$H" "$W" 1)
+check L4o-claude-env-off 0 "$rc" "$OUT/logs/L4o-claude-env-off.log" "标记句在 $H/.pi/agent/AGENTS.md"
+
+# 标记句的匹配：区分大小写、要整个前缀（评审第 2 轮补，守 M2、M3 变异）
+d=$(newcase L5a-marker-lowercase); H=$d/home; W=$d/ws
+global_ok "$H"; printf '# 全局\n\n- never write unit tests after you write code.\n' > "$H/.pi/agent/AGENTS.md"
+rc=$(launch L5a-marker-lowercase claude "$H" "$W" 1)
+check L5a-marker-lowercase 2 "$rc" "$OUT/logs/L5a-marker-lowercase.log" "都没有标记句" "应当包含标记句的文件：$H/.pi/agent/AGENTS.md"
+d=$(newcase L5b-only-unit-tests-word); H=$d/home; W=$d/ws
+global_ok "$H"; printf '# 全局\n\n- Add unit tests where useful.\n' > "$H/.pi/agent/AGENTS.md"
+rc=$(launch L5b-only-unit-tests-word claude "$H" "$W" 1)
+check L5b-only-unit-tests-word 2 "$rc" "$OUT/logs/L5b-only-unit-tests-word.log" "都没有标记句" "应当包含标记句的文件：$H/.pi/agent/AGENTS.md"
+# 一个读不了、另一个有标记句：照样拒绝，而且原因是「读不了」（守 M5 变异）
+d=$(newcase L5c-unreadable-plus-marker); H=$d/home; W=$d/ws
+if [ "$(id -u)" = 0 ]; then
+    record L5c-unreadable-plus-marker SKIP "root 下 chmod 000 照样读得到，造不出读不了的文件"
+else
+    global_ok "$H"; printf '@extra.md\n' > "$W/CLAUDE.md"; printf '# 读不了的规矩\n' > "$W/extra.md"; chmod 000 "$W/extra.md"
+    rc=$(launch L5c-unreadable-plus-marker claude "$H" "$W" 1)
+    check L5c-unreadable-plus-marker 2 "$rc" "$OUT/logs/L5c-unreadable-plus-marker.log" "$W/extra.md 读不了" "!都没有标记句"
+fi
 
 # ---------- B. install.sh --check ----------
 IH=$SB/install-home

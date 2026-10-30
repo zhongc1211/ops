@@ -1,6 +1,6 @@
 # PR 93 失败方式清单（写代码之前列的）
 
-演练用例名和 `rerun.sh` 里的 case 一一对应。每条断言都先在没改代码的版本上跑过一次并挂掉，证据：`~/.orca-state/e2e/pr93-prefail-264289e1a98c/`（前 20 条，0/20）和 `~/.orca-state/e2e/pr93-prefail2-6d489449d4ea/`（评审后补的 3 条，在未修的 6d48944 上挂）。
+演练用例名和 `rerun.sh` 里的 case 一一对应。每条断言都先在没改代码的版本上跑过一次并挂掉，证据：`~/.orca-state/e2e/pr93-prefail-264289e1a98c/`（前 20 条，0/20）和 `~/.orca-state/e2e/pr93-prefail2-6d489449d4ea/`（评审后补的 3 条，在未修的 6d48944 上挂）和 `~/.orca-state/e2e/pr93-prefail3-6757c0f887b3/`（第 2 轮补的 L4l、L4m、L4n 在未修的 6757c0f 上挂）。L5a–L5c 在 6757c0f 上本来就过，它们守的是变异：把对应的判断改坏（M2、M3、M5）后整套重跑会挂，记录在 PR 描述里。
 
 ## A. orca-agent-launch 启动前检查
 
@@ -21,6 +21,13 @@
 | L4h-codex-missing | codex 读不到规矩却放行 | 退出码 2；点名 <沙箱>/.codex/AGENTS.md |
 | L4j-claude-bare | 规矩文件都在，但 `claude --bare` 跳过 CLAUDE.md 自动发现，却放行（评审第 1 轮补） | 退出码 2；stderr 点名 `--bare` |
 | L4k-pi-no-context-files | 同上，`pi -nc` 不读 AGENTS.md / CLAUDE.md，却放行（评审第 1 轮补） | 退出码 2；stderr 点名 `-nc` |
+| L4l-claude-env-disable-mds | 规矩文件都在，但环境里 `CLAUDE_CODE_DISABLE_CLAUDE_MDS=1`，Claude Code 不读 CLAUDE.md，却放行（评审第 2 轮补） | 退出码 2；stderr 点名这个变量 |
+| L4m-claude-env-simple | 同上，`CLAUDE_CODE_SIMPLE=true`（评审第 2 轮补） | 退出码 2；stderr 点名这个变量 |
+| L4n-claude-bare-eq | `claude --bare=true` 绕过只认完整 `--bare` 的比较（评审第 2 轮补） | 退出码 2；stderr 点名 `--bare=true` |
+| L4o-claude-env-off | 上面两个变量值为 `0` 或空时被误拒（评审第 2 轮补） | 退出码 0 |
+| L5a-marker-lowercase | 标记句只有全小写，匹配不分大小写时被放行（守 M2 变异，评审第 2 轮补） | 退出码 2；「都没有标记句」 |
+| L5b-only-unit-tests-word | 只有 `unit tests` 一词、没有标记句，前缀写松时被放行（守 M3 变异，评审第 2 轮补） | 退出码 2；「都没有标记句」 |
+| L5c-unreadable-plus-marker | 一个文件读不了、另一个有标记句，「读不了就拒绝」失效时被放行（守 M5 变异，评审第 2 轮补） | 退出码 2；拒绝原因是「读不了」，不是「都没有标记句」 |
 | L4i-reject-not-dry | 非 dry-run 拒绝后仍 exec notify-run（agent 照样起来） | 退出码 2；假 notify-run 没被调用 |
 
 ## B. install.sh --check 全局 AGENTS 三机一致

@@ -10,7 +10,10 @@
 #     否则 orca-wake 按 parent_mismatch 跳过）；
 #   - 已经在一个 notify-run 里（ORCA_DISPATCH_PID 还活着）：嵌套起的 agent 不会被当成派出的主会话；
 #   - 启动前检查（PER-80）：agent 起来后会加载的指令文件里没有一个含标记句「NEVER write unit tests」，
-#     或者链上有文件读不了、一个文件都没有。stderr 列出查过的每个文件，并写明应当包含标记句的文件。没有绕过开关。
+#     或者链上有文件读不了、一个文件都没有；或者带了让 agent 不读指令文件的参数和环境变量（claude --bare[=…]、
+#     CLAUDE_CODE_DISABLE_CLAUDE_MDS / CLAUDE_CODE_SIMPLE 非空且不是 0；pi --no-context-files / -nc）。
+#     stderr 列出查过的每个文件，并写明应当包含标记句的文件。本脚本没有跳过检查的开关；不经本脚本起的 agent 不受这道检查。
+#     只看标记句「出现没有」（区分大小写的固定字符串），写在否定句、注释、代码块里也算出现。
 # 带 --issue 时（PER-66）：起 agent 之前顺手给 Linear issue 写负责 bot 和 due，卡住检查的 due 对账才有东西可查：
 #   - due = --eta 的日期（新加坡时间；只写日期，Linear 的 due 没有时刻）。带 --issue 必须带 --eta，否则拒绝（退出码 2）；
 #   - 负责 bot：描述里没有「负责 bot：<bot>」这一行就在末尾补一行；写着别的 bot 时改成这次的（stuck-check 的 due_bot 认这一行）。
@@ -92,13 +95,19 @@ case "$agent" in
     *) die "只起 claude / pi / codex，不认识：$agent" ;;
 esac
 command -v -- "$1" >/dev/null 2>&1 || die "找不到命令：$1"
-# 启动前检查的一部分：这些参数让 agent 不加载指令文件，规矩文件再全也读不到（已装版本 --help 里核实过）
+# 启动前检查的一部分：这些参数和环境变量让 agent 不加载指令文件，规矩文件再全也读不到（已装版本 --help 里核实过）
 for a in "$@"; do
     case "$agent:$a" in
-        claude:--bare) die "claude --bare 跳过 CLAUDE.md 自动发现，agent 起来读不到规矩；去掉 --bare" ;;
+        claude:--bare|claude:--bare=*) die "claude ${a} 跳过 CLAUDE.md 自动发现，agent 起来读不到规矩；去掉 ${a}" ;;
         pi:--no-context-files|pi:-nc) die "pi ${a} 不读 AGENTS.md / CLAUDE.md，agent 起来读不到规矩；去掉 ${a}" ;;
     esac
 done
+if [ "$agent" = claude ]; then  # Claude Code 文档里的开关；非空且不是 0 就算打开
+    for v in CLAUDE_CODE_DISABLE_CLAUDE_MDS CLAUDE_CODE_SIMPLE; do
+        val=$(printenv "$v" || true)
+        case "$val" in ""|0) ;; *) die "环境变量 ${v}=${val} 让 Claude Code 不读 CLAUDE.md，agent 起来读不到规矩；unset ${v} 再起" ;; esac
+    done
+fi
 if [ -n "${ORCA_DISPATCH_PID:-}" ] && kill -0 "$ORCA_DISPATCH_PID" 2>/dev/null; then
     die "已经在 notify-run（pid ${ORCA_DISPATCH_PID}）里面，嵌套起的 agent 不算派出的主会话；请在新终端里起"
 fi
