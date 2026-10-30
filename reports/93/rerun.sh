@@ -12,7 +12,8 @@ OUT=${RERUN_OUT:-$HOME/.orca-state/e2e/pr93-${HEAD:0:12}}
 mkdir -p "$OUT/logs" || exit 3
 TSV=$OUT/results.tsv
 printf 'case\tstatus\tdetail\n' > "$TSV"
-SB=$(mktemp -d "${TMPDIR:-/tmp}/pr93-drill.XXXXXX") || exit 3
+tmpbase=${TMPDIR:-/tmp}
+SB=$(mktemp -d "${tmpbase%/}/pr93-drill.XXXXXX") || exit 3
 trap 'chmod -R u+rwx "$SB" 2>/dev/null; rm -rf "$SB"' EXIT
 MARKER_LINE='- NEVER write unit tests after you write code.'
 

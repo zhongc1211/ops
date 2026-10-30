@@ -8,7 +8,9 @@
 #   - bot 名不合法，或没有它的 webhook 配置（~/.config/grokbot/webhooks/<bot>.env，叫醒发不出去）；
 #   - 要起的不是 claude / pi / codex，或者经 bash -c、env、nohup 之类转一层（agent 必须是 notify-run 的直接子进程，
 #     否则 orca-wake 按 parent_mismatch 跳过）；
-#   - 已经在一个 notify-run 里（ORCA_DISPATCH_PID 还活着）：嵌套起的 agent 不会被当成派出的主会话。
+#   - 已经在一个 notify-run 里（ORCA_DISPATCH_PID 还活着）：嵌套起的 agent 不会被当成派出的主会话；
+#   - 启动前检查（PER-80）：agent 起来后会加载的指令文件里没有一个含标记句「NEVER write unit tests」，
+#     或者链上有文件读不了、一个文件都没有。stderr 列出查过的每个文件，并写明应当包含标记句的文件。没有绕过开关。
 # 带 --issue 时（PER-66）：起 agent 之前顺手给 Linear issue 写负责 bot 和 due，卡住检查的 due 对账才有东西可查：
 #   - due = --eta 的日期（新加坡时间；只写日期，Linear 的 due 没有时刻）。带 --issue 必须带 --eta，否则拒绝（退出码 2）；
 #   - 负责 bot：描述里没有「负责 bot：<bot>」这一行就在末尾补一行；写着别的 bot 时改成这次的（stuck-check 的 due_bot 认这一行）。
@@ -166,6 +168,211 @@ PY
 else
     cmd+=(--tty -- "$@")
 fi
+# 启动前检查（PER-80，审计缺口 G3）：agent 起来后实际会加载的指令文件里至少一个有标记句，否则拒绝。
+# 只读，dry-run 也做；家目录一律用 $HOME，工作区用 $PWD。各 agent 读什么（10-30 在 iMac 上查的已装版本）：
+#   claude（2.1.312，实测）：$CLAUDE_CONFIG_DIR 或 ~/.claude 下的 CLAUDE.md 和 rules/*.md、
+#     工作区往上每一级（不含 /）的 CLAUDE.md、.claude/CLAUDE.md、.claude/rules/*.md、CLAUDE.local.md，
+#     再展开里面的 @路径 引用（相对引用它的文件，~/ 是家目录，最多 5 层，代码块里的不算）。默认不读 AGENTS.md。
+#   pi（1.4.0，dist/core/resource-loader.js）：$PI_CODING_AGENT_DIR 或 ~/.pi/agent，和工作区往上每一级（含 /），
+#     每个目录取 AGENTS.override.md、AGENTS.md、AGENTS.MD、CLAUDE.md、CLAUDE.MD 里第一个存在的；
+#     嵌套 worktree 里，主检出里被 worktree 同名文件遮住的那个不读。不展开 @。
+#   codex（0.161.0）：$CODEX_HOME 或 ~/.codex，和从 git 根（最近一个有 .git 的上级）到工作区的每一级；
+#     不在 git 里时只看工作区。每个目录取 AGENTS.override.md、AGENTS.md 里第一个存在的。
+MARKER_PREFIX='NEVER write unit tests'  # 标记句前缀，以 iMac ~/.pi/agent/AGENTS.md 第 42 行为准；只在这里写一次
+lc_out=$(mktemp "${TMPDIR:-/tmp}/orca-agent-launch.XXXXXX") || die "建不了临时文件"
+python3 - "$agent" "$PWD" "$HOME" "$MARKER_PREFIX" >"$lc_out" <<'PY'
+import os, re, sys
+agent, cwd, home, marker = sys.argv[1:5]
+cwd = os.path.abspath(cwd)
+env = os.environ.get
+files, seen = [], set()  # files: [路径, 状态, 来源, 是否加载]
+
+def add(path, why):
+    """记一个 agent 会加载的文件，返回内容；不存在、读不了、已记过返回 None。"""
+    key = os.path.realpath(path)
+    if key in seen:
+        return None
+    seen.add(key)
+    if not os.path.isfile(path):
+        files.append([path, "不存在", why, False])
+        return None
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            text = f.read()
+    except OSError as e:
+        files.append([path, "读不了（%s）" % (e.strerror or e), why, True])
+        return None
+    files.append([path, "有标记句" if marker in text else "没有标记句", why, True])
+    return text
+
+def first(d, names):
+    for n in names:
+        if os.path.isfile(os.path.join(d, n)):
+            return os.path.join(d, n)
+    return None
+
+def ancestors(d, stop_at_root):  # 工作区往上，由近到远
+    out = []
+    while True:
+        parent = os.path.dirname(d)
+        if parent == d:
+            if not stop_at_root:
+                out.append(d)
+            return out
+        out.append(d)
+        d = parent
+
+skipped = 0
+if agent == "claude":
+    cfg = env("CLAUDE_CONFIG_DIR") or os.path.join(home, ".claude")
+    rx = re.compile(r"(?:^|\s)@((?:[^\s\\]|\\ )+)")
+
+    def imports(text, base):
+        out, fence = [], None
+        for line in text.splitlines():
+            s = line.lstrip()
+            if fence:
+                if s.startswith(fence):
+                    fence = None
+                continue
+            if s.startswith("```") or s.startswith("~~~"):
+                fence = s[:3]
+                continue
+            for m in rx.finditer(re.sub(r"`[^`]*`", "", line)):
+                p = m.group(1).replace("\\ ", " ")
+                if p.startswith("~/"):
+                    p = os.path.join(home, p[2:])
+                elif not os.path.isabs(p):
+                    p = os.path.join(base, p)
+                out.append(os.path.normpath(p))
+        return out
+
+    def load(path, why, depth=0):
+        text = add(path, why)
+        if text is None or depth >= 5:
+            return
+        for p in imports(text, os.path.dirname(path)):
+            load(p, "@ 引用自 %s" % path, depth + 1)
+
+    def rules(d, why):  # rules/**/*.md，带 paths: 的按需加载，启动时不读
+        for root, dirs, names in sorted(os.walk(os.path.join(d, "rules"))):
+            for n in sorted(names):
+                p = os.path.join(root, n)
+                if not n.endswith(".md"):
+                    continue
+                try:
+                    with open(p, encoding="utf-8", errors="replace") as f:
+                        head = f.read(4096)
+                except OSError:
+                    head = ""
+                if head.startswith("---") and re.search(r"^paths\s*:", head[3:head.find("\n---", 3)], re.M):
+                    continue
+                load(p, why)
+
+    for p in ("/Library/Application Support/ClaudeCode/CLAUDE.md", "/etc/claude-code/CLAUDE.md"):
+        if os.path.exists(p):
+            load(p, "Claude Code 托管策略")
+    load(os.path.join(cfg, "CLAUDE.md"), "Claude Code 用户级")
+    rules(cfg, "Claude Code 用户级 rules")
+    for d in reversed(ancestors(cwd, True)):
+        for n in ("CLAUDE.md", os.path.join(".claude", "CLAUDE.md"), "CLAUDE.local.md"):
+            p = os.path.join(d, n)
+            if os.path.exists(p):
+                load(p, "工作区或上级目录")
+            else:
+                skipped += 1
+        rules(os.path.join(d, ".claude"), "工作区或上级目录的 .claude/rules")
+    pi_global = os.path.join(home, ".pi", "agent", "AGENTS.md")
+    try:
+        with open(pi_global, encoding="utf-8", errors="replace") as f:
+            pi_has = marker in f.read()
+    except OSError:
+        pi_has = False
+    if pi_has and os.path.realpath(pi_global) not in seen:
+        expect = "%s（加一行 @~/.pi/agent/AGENTS.md，引用全局 AGENTS）" % os.path.join(cfg, "CLAUDE.md")
+    else:
+        expect = "%s（全局规矩；%s 里用 @~/.pi/agent/AGENTS.md 引用它）" % (pi_global, os.path.join(cfg, "CLAUDE.md"))
+    cands = "工作区往上各级的 CLAUDE.md、.claude/CLAUDE.md、CLAUDE.local.md"
+elif agent == "pi":
+    names = ["AGENTS.override.md", "AGENTS.md", "AGENTS.MD", "CLAUDE.md", "CLAUDE.MD"]
+    agent_dir = env("PI_CODING_AGENT_DIR") or os.path.join(home, ".pi", "agent")
+    g = first(agent_dir, names)
+    expect = g or os.path.join(agent_dir, "AGENTS.md")
+    add(expect, "pi 全局")
+
+    def shadowed():  # 照 pi 的 findShadowedContextFile
+        d = cwd
+        while not os.path.exists(os.path.join(d, ".git")):
+            if os.path.dirname(d) == d:
+                return None
+            d = os.path.dirname(d)
+        g = os.path.join(d, ".git")
+        try:
+            content = open(g).read().strip() if os.path.isfile(g) else ""
+        except OSError:
+            return None
+        if not content.startswith("gitdir: "):
+            return None
+        gitdir = os.path.normpath(os.path.join(d, content[8:].strip()))
+        cd = os.path.join(gitdir, "commondir")
+        common = os.path.normpath(os.path.join(gitdir, open(cd).read().strip())) if os.path.exists(cd) else gitdir
+        common, wt = os.path.realpath(common), os.path.realpath(d)
+        main = os.path.dirname(common)
+        if not wt.startswith(main + os.sep) or os.path.realpath(os.path.join(main, ".git")) != common:
+            return None
+        f = first(wt, names)
+        return os.path.join(main, os.path.basename(f)) if f else None
+
+    sh = shadowed()
+    for d in reversed(ancestors(cwd, False)):
+        p = first(d, names)
+        if not p:
+            skipped += 1
+        elif sh and os.path.join(os.path.realpath(d), os.path.basename(p)) == sh:
+            files.append([p, "pi 不读（被 worktree 里的同名文件遮住）", "工作区或上级目录", False])
+        else:
+            add(p, "工作区或上级目录")
+    cands = "工作区往上各级的 AGENTS.override.md、AGENTS.md、CLAUDE.md"
+else:  # codex
+    names = ["AGENTS.override.md", "AGENTS.md"]
+    codex_home = env("CODEX_HOME") or os.path.join(home, ".codex")
+    expect = first(codex_home, names) or os.path.join(codex_home, "AGENTS.md")
+    add(expect, "codex 全局")
+    dirs = ancestors(cwd, False)
+    root = next((i for i, d in enumerate(dirs) if os.path.exists(os.path.join(d, ".git"))), None)
+    for d in reversed(dirs[:root + 1] if root is not None else dirs[:1]):
+        p = first(d, names)
+        if p:
+            add(p, "git 根到工作区")
+        else:
+            skipped += 1
+    cands = "git 根到工作区各级的 AGENTS.override.md、AGENTS.md"
+
+loaded = [f for f in files if f[3]]
+hits = [f[0] for f in loaded if f[1] == "有标记句"]
+bad = [f for f in loaded if f[1].startswith("读不了")]
+err = sys.stderr.write
+err("启动检查：%s 在 %s 会加载的指令文件（标记句前缀「%s」）：\n" % (agent, cwd, marker))
+for path, state, why, _ in files:
+    err("  %-6s %s（%s）\n" % (state, path, why))
+if skipped:
+    err("  另查了 %d 个不存在的候选（%s）\n" % (skipped, cands))
+if bad:
+    print("启动检查：%s 指令链里 %s 读不了，agent 起来读不到它；应当包含标记句的文件：%s" % (agent, "、".join(f[0] for f in bad), expect))
+    sys.exit(1)
+if not loaded:
+    print("启动检查：%s 指令链里一个文件都没有，agent 起来读不到任何规矩；应当包含标记句的文件：%s" % (agent, expect))
+    sys.exit(1)
+if not hits:
+    print("启动检查：%s 指令链 %d 个文件都没有标记句「%s」；应当包含标记句的文件：%s" % (agent, len(loaded), marker, expect))
+    sys.exit(1)
+more = "（另有 %d 个文件也有）" % (len(hits) - 1) if len(hits) > 1 else ""
+print("启动检查：%s 指令链 %d 个文件，标记句在 %s%s" % (agent, len(loaded), hits[0], more))
+PY
+lc_rc=$?
+lc_msg=$(cat "$lc_out"); rm -f "$lc_out"
+[ "$lc_rc" -eq 0 ] || die "${lc_msg:-启动检查出错（python3 退出码 ${lc_rc}）}"
+echo "orca-agent-launch: $lc_msg" >&2
 if [ "${ORCA_AGENT_LAUNCH_DRY:-}" = 1 ]; then
     [ -n "$issue" ] && [ -z "$no_linear" ] && echo "（会写 Linear ${issue}：due ${due}，负责 bot：${bot}）"
     printf '%q ' "${cmd[@]}"; echo
