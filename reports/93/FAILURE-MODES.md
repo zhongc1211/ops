@@ -1,6 +1,6 @@
 # PR 93 失败方式清单（写代码之前列的）
 
-演练用例名和 `rerun.sh` 里的 case 一一对应。每条断言都先在没改代码的版本上跑过一次并挂掉，证据在产物目录的 `prefail/`。
+演练用例名和 `rerun.sh` 里的 case 一一对应。每条断言都先在没改代码的版本上跑过一次并挂掉，证据：`~/.orca-state/e2e/pr93-prefail-264289e1a98c/`（前 20 条，0/20）和 `~/.orca-state/e2e/pr93-prefail2-6d489449d4ea/`（评审后补的 3 条，在未修的 6d48944 上挂）。
 
 ## A. orca-agent-launch 启动前检查
 
@@ -19,6 +19,8 @@
 | L4f-empty-chain | 链上一个文件都没有，却放行或报错不清 | 退出码 2；stderr 有「一个文件都没有」 |
 | L4g-codex-global-ok | codex 的全局文件位置弄错（`~/.codex/AGENTS.md`） | 退出码 0；标记句在 <沙箱>/.codex/AGENTS.md |
 | L4h-codex-missing | codex 读不到规矩却放行 | 退出码 2；点名 <沙箱>/.codex/AGENTS.md |
+| L4j-claude-bare | 规矩文件都在，但 `claude --bare` 跳过 CLAUDE.md 自动发现，却放行（评审第 1 轮补） | 退出码 2；stderr 点名 `--bare` |
+| L4k-pi-no-context-files | 同上，`pi -nc` 不读 AGENTS.md / CLAUDE.md，却放行（评审第 1 轮补） | 退出码 2；stderr 点名 `-nc` |
 | L4i-reject-not-dry | 非 dry-run 拒绝后仍 exec notify-run（agent 照样起来） | 退出码 2；假 notify-run 没被调用 |
 
 ## B. install.sh --check 全局 AGENTS 三机一致
@@ -32,4 +34,5 @@
 | I3-unreachable | 连不上的对端被跳过、算通过 | 退出码 1；有「无法核对」；对端被试了 2 次 |
 | I4-flaky | 第一次连不上就判 FAIL（没有重试一次） | 退出码 0；对端被试了 2 次 |
 | I5-claude-no-ref | 对端 `~/.claude/CLAUDE.md` 没引用全局 AGENTS 不报 | 退出码 1；有「peer-b 的 ~/.claude/CLAUDE.md 没有引用」 |
+| I7-claude-ref-not-import | `~/.claude/CLAUDE.md` 只在注释里提到 `@~/.pi/agent/AGENTS.md.bak` 也算引用（评审第 1 轮补） | 退出码 1；有「peer-b 的 ~/.claude/CLAUDE.md 没有引用」 |
 | I6-no-peers | `WAKE_CHECK_PEERS=""` 时仍去连对端或报错 | 退出码 0；假 ssh 没被调用 |

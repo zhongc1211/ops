@@ -66,7 +66,7 @@ if [ "$MODE" = check ]; then
   # 还不行算 FAIL（无法核对）。对端默认 imac mba box 去掉本机；WAKE_CHECK_PEERS 可改（设成空就只看本机）。
   AGENTS_PROBE='f="$HOME/.pi/agent/AGENTS.md"; c="$HOME/.claude/CLAUDE.md"
 if [ -r "$f" ]; then s=$( (shasum -a 256 "$f" 2>/dev/null || sha256sum "$f") | cut -c1-64); b=$(wc -c < "$f" | tr -d " "); else s=missing; b=0; fi
-if [ ! -r "$c" ]; then r=nofile; elif grep -qF -e "@~/.pi/agent/AGENTS.md" -e "@$HOME/.pi/agent/AGENTS.md" "$c"; then r=yes; else r=no; fi
+if [ ! -r "$c" ]; then r=nofile; elif grep -qE "(^|[[:space:]])@(~|$HOME)/[.]pi/agent/AGENTS[.]md([[:space:]]|$)" "$c"; then r=yes; else r=no; fi
 echo "agents-probe sha=$s bytes=$b claude_ref=$r"'
   self=$(hostname 2>/dev/null | cut -d. -f1 | tr '[:upper:]' '[:lower:]')
   case "$self" in grok-bot-vm-*) self=box ;; esac

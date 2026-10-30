@@ -92,6 +92,13 @@ case "$agent" in
     *) die "只起 claude / pi / codex，不认识：$agent" ;;
 esac
 command -v -- "$1" >/dev/null 2>&1 || die "找不到命令：$1"
+# 启动前检查的一部分：这些参数让 agent 不加载指令文件，规矩文件再全也读不到（已装版本 --help 里核实过）
+for a in "$@"; do
+    case "$agent:$a" in
+        claude:--bare) die "claude --bare 跳过 CLAUDE.md 自动发现，agent 起来读不到规矩；去掉 --bare" ;;
+        pi:--no-context-files|pi:-nc) die "pi ${a} 不读 AGENTS.md / CLAUDE.md，agent 起来读不到规矩；去掉 ${a}" ;;
+    esac
+done
 if [ -n "${ORCA_DISPATCH_PID:-}" ] && kill -0 "$ORCA_DISPATCH_PID" 2>/dev/null; then
     die "已经在 notify-run（pid ${ORCA_DISPATCH_PID}）里面，嵌套起的 agent 不算派出的主会话；请在新终端里起"
 fi
@@ -183,7 +190,7 @@ lc_out=$(mktemp "${TMPDIR:-/tmp}/orca-agent-launch.XXXXXX") || die "建不了临
 python3 - "$agent" "$PWD" "$HOME" "$MARKER_PREFIX" >"$lc_out" <<'PY'
 import os, re, sys
 agent, cwd, home, marker = sys.argv[1:5]
-cwd = os.path.abspath(cwd)
+cwd = os.path.realpath(cwd)  # agent 的 process.cwd() 是解析过符号链接的物理路径
 env = os.environ.get
 files, seen = [], set()  # files: [路径, 状态, 来源, 是否加载]
 
@@ -323,7 +330,10 @@ elif agent == "pi":
         f = first(wt, names)
         return os.path.join(main, os.path.basename(f)) if f else None
 
-    sh = shadowed()
+    try:
+        sh = shadowed()
+    except (OSError, ValueError):  # .git / commondir 读不了：当没有遮挡，多列不少列
+        sh = None
     for d in reversed(ancestors(cwd, False)):
         p = first(d, names)
         if not p:

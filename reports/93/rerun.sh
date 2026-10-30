@@ -15,6 +15,7 @@ printf 'case\tstatus\tdetail\n' > "$TSV"
 tmpbase=${TMPDIR:-/tmp}
 SB=$(mktemp -d "${tmpbase%/}/pr93-drill.XXXXXX") || exit 3
 trap 'chmod -R u+rwx "$SB" 2>/dev/null; rm -rf "$SB"' EXIT
+SB=$(cd "$SB" && pwd -P) || exit 3
 MARKER_LINE='- NEVER write unit tests after you write code.'
 
 record() {  # case status detail
@@ -47,12 +48,13 @@ newcase() {  # $1=用例名 → 建 $SB/<用例>/home 和 $SB/<用例>/ws，打�
     mkdir -p "$SB/$1/home" "$SB/$1/ws"
     echo "$SB/$1"
 }
-launch() {  # case agent home ws dry(1/空) → 打印退出码；输出写 logs/<case>.log
-    local log="$OUT/logs/$1.log"
-    ( cd "$4" && env -u PI_CODING_AGENT_DIR -u CODEX_HOME -u CLAUDE_CONFIG_DIR -u ORCA_DISPATCH_PID \
-        HOME="$3" PATH="$SB/fakebin:$PATH" ORCA_AGENT_LAUNCH_DRY="$5" \
+launch() {  # case agent home ws dry(1/空) [agent 参数...] → 打印退出码；输出写 logs/<case>.log
+    local c=$1 ag=$2 h=$3 w=$4 dry=$5 log="$OUT/logs/$1.log"
+    shift 5
+    ( cd "$w" && env -u PI_CODING_AGENT_DIR -u CODEX_HOME -u CLAUDE_CONFIG_DIR -u ORCA_DISPATCH_PID \
+        HOME="$h" PATH="$SB/fakebin:$PATH" ORCA_AGENT_LAUNCH_DRY="$dry" \
         ORCA_AGENT_LAUNCH_WEBHOOK_DIR="$SB/webhooks" ORCA_AGENT_LAUNCH_NOTIFY_RUN="$SB/fakebin/notify-run" \
-        "$REPO/wake/bin/orca-agent-launch" --bot drill-bot --task "PR93 演练 $1" -- "$2" ) >"$log" 2>&1
+        "$REPO/wake/bin/orca-agent-launch" --bot drill-bot --task "PR93 演练 ${c}" -- "$ag" "$@" ) >"$log" 2>&1
     echo $?
 }
 global_ok() {  # $1=home：全局 AGENTS 有标记句，~/.claude/CLAUDE.md 引用它
@@ -106,15 +108,19 @@ check L4c-marker-in-imported-file 0 "$rc" "$OUT/logs/L4c-marker-in-imported-file
 d=$(newcase L4d-import-cycle); H=$d/home; W=$d/ws
 printf '@b.md\n' > "$W/a.md"; printf '@a.md\n' > "$W/b.md"; printf '@a.md\n' > "$W/CLAUDE.md"
 ( launch L4d-import-cycle claude "$H" "$W" 1 > "$SB/L4d.rc" ) & lp=$!
-( sleep 20; kill "$lp" 2>/dev/null ) & kp=$!
-wait "$lp" 2>/dev/null; kill "$kp" 2>/dev/null; wait "$kp" 2>/dev/null
+n=0; while kill -0 "$lp" 2>/dev/null && [ "$n" -lt 200 ]; do sleep 0.1; n=$((n + 1)); done
+kill "$lp" 2>/dev/null; wait "$lp" 2>/dev/null
 rc=$(cat "$SB/L4d.rc" 2>/dev/null); [ -n "$rc" ] || rc="超时"
 check L4d-import-cycle 2 "$rc" "$OUT/logs/L4d-import-cycle.log" "$W/b.md"
 
 d=$(newcase L4e-unreadable); H=$d/home; W=$d/ws
-global_ok "$H"; chmod 000 "$H/.pi/agent/AGENTS.md"
-rc=$(launch L4e-unreadable claude "$H" "$W" 1)
-check L4e-unreadable 2 "$rc" "$OUT/logs/L4e-unreadable.log" "读不了" "$H/.pi/agent/AGENTS.md"
+if [ "$(id -u)" = 0 ]; then
+    record L4e-unreadable SKIP "root 下 chmod 000 照样读得到，造不出读不了的文件"
+else
+    global_ok "$H"; chmod 000 "$H/.pi/agent/AGENTS.md"
+    rc=$(launch L4e-unreadable claude "$H" "$W" 1)
+    check L4e-unreadable 2 "$rc" "$OUT/logs/L4e-unreadable.log" "读不了" "$H/.pi/agent/AGENTS.md"
+fi
 
 d=$(newcase L4f-empty-chain); H=$d/home; W=$d/ws
 rc=$(launch L4f-empty-chain claude "$H" "$W" 1)
@@ -135,6 +141,16 @@ rm -f "$SB/notify-run.calls"
 rc=$(launch L4i-reject-not-dry claude "$H" "$W" "")
 [ -e "$SB/notify-run.calls" ] && echo "假 notify-run 被调用了：$(cat "$SB/notify-run.calls")" >> "$OUT/logs/L4i-reject-not-dry.log"
 check L4i-reject-not-dry 2 "$rc" "$OUT/logs/L4i-reject-not-dry.log" "应当包含标记句的文件" "!假 notify-run 被调用了"
+
+# 规矩文件都在，但参数让 agent 不加载指令文件
+d=$(newcase L4j-claude-bare); H=$d/home; W=$d/ws
+global_ok "$H"
+rc=$(launch L4j-claude-bare claude "$H" "$W" 1 --bare -p hi)
+check L4j-claude-bare 2 "$rc" "$OUT/logs/L4j-claude-bare.log" "--bare"
+d=$(newcase L4k-pi-no-context-files); H=$d/home; W=$d/ws
+global_ok "$H"
+rc=$(launch L4k-pi-no-context-files pi "$H" "$W" 1 -nc)
+check L4k-pi-no-context-files 2 "$rc" "$OUT/logs/L4k-pi-no-context-files.log" "-nc" "不读 AGENTS.md"
 
 # ---------- B. install.sh --check ----------
 IH=$SB/install-home
@@ -195,6 +211,10 @@ reset_peers
 rc=$(icheck I6-no-peers "")
 echo "假 ssh 被调用的次数：$(grep -c . "$SB/peers/calls" 2>/dev/null || echo 0)" >> "$OUT/logs/I6-no-peers.log"
 check I6-no-peers 0 "$rc" "$OUT/logs/I6-no-peers.log" "PASS  全局 AGENTS 一致" "假 ssh 被调用的次数：0"
+
+reset_peers; printf '# 以前这里写过 @~/.pi/agent/AGENTS.md.bak，已删\n' > "$SB/peers/peer-b/.claude/CLAUDE.md"
+rc=$(icheck I7-claude-ref-not-import "peer-a peer-b")
+check I7-claude-ref-not-import 1 "$rc" "$OUT/logs/I7-claude-ref-not-import.log" "FAIL  peer-b 的 ~/.claude/CLAUDE.md 没有引用"
 
 # ---------- 汇总 ----------
 pass=$(awk -F'\t' 'NR>1 && $2=="PASS"' "$TSV" | wc -l | tr -d ' ')
