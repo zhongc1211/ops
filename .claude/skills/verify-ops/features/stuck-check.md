@@ -33,4 +33,7 @@ Preconditions: 沙箱 PATH 里 `orca` / `orca-ide` 是 `vo.py orca`（`terminal 
 - 映射文件按 `~/orca/workspaces/ops/orca-projects.md` 读，沙箱 HOME 里没有，日志会说「bot 一律记为未映射」，消息都转给 coding-assistant。断言因此只看 kind / task / worktree，不看派活 bot。
 - agent_idle 必须真的经过 orca-wake：`STUCK_ORCA_WAKE=/usr/bin/false`（wake/tests 里的写法）会让 recheck 失败、这次不报。用被测目录的真 orca-wake + 沙箱的 `ORCA_WAKE_STATE_DIR`，它回 `no_state_for_pid`。
 - 夹具里的时间是「现在 − 2 小时」，阈值用默认（gone 10 分钟、idle 30 分钟），不改阈值。
+- 没测：`stuck-check.sh --scan` 和 `--send`。线上自动任务走的是 `--scan` 当 precheck、复核后 `--send`；verify-ops 只驱动不带参数（查一遍直接发）这条。造法：同样的沙箱环境和夹具，加 `STUCK_NO_GATE=1`（跳过「满 15 分钟才查」的闸门）跑 `--scan`，断言退出码 0、agent_* 嫌疑写进 `$SB/stuck-state/pending.json`、假端点 A 没收到这几条；再 `--send`（可加 `--dismiss S<n>=原因`），断言没被 dismiss 的恰好各 1 条，再 `--send` 不重复。
+- 没测：经 `orca-wake` 发送的路径。现在只驱动 `orca-wake recheck` 回 `no_state_for_pid` 后由 stuck-check 自己发；orca-wake 认识这个 pid、由它发的那条没走到（评审里的变异 W1–W4 没被抓到）。造法：在沙箱 `ORCA_WAKE_STATE_DIR` 里预写 idle agent 那个 `sleep` 进程的会话状态，让 recheck 走发送分支，断言消息来源和条数。
+- 没测：webhook 回非 2xx。假端点 A 永远回 200，所以「非 2xx 当成功」这种改坏抓不到（评审变异 S1 没被抓到）。造法：沙箱里没有项目映射，消息都发给 coding-assistant；把沙箱 `coding-assistant.env` 指向假端点 B，放 `$SB/mock/b.jsonl.fail-coding-assistant`，设 `STUCK_BACKOFF=0,0,0` 免得等重试，断言退出码 3、这次不记成已通知、下次检查还会报。
 - 这些是外部边界替身：Orca CLI（假 orca + 夹具）、agent-probe 读的进程表、heartbeat 读的运行记录（回放）。stuck-check.sh、heartbeat-watch.sh、orca-wake 都是真脚本。

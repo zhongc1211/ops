@@ -4,7 +4,7 @@
 
 ## 基线前提
 
-- 在 ops 仓库的 checkout 里跑，macOS（`/bin/bash` 3.2 也行）或 Linux；要有 `python3`、`curl`、`git`、`lsof`、`jq`（没有 jq 时 notify-run 退回 python3）。
+- 在 ops 仓库的 checkout 里跑，macOS（`/bin/bash` 3.2 也行）或 Linux；要有 `python3`、`curl`、`git`、`lsof`（Linux 上没有 lsof 时用 `ss`）、`jq`（没有 jq 时 notify-run 退回 python3）。
 - `verify.sh launch` 建的沙箱：自己的 `HOME`、PATH 最前面是 `$SB/bin`（假 `pi`、假 `orca` / `orca-ide`、假 Linear）和被测目录的 `wake/bin`，两个本机假 webhook（端口随机，pid 在 `$SB/pids`）。
 - 先过 Doctor（`verify.sh doctor`）：HOME 是沙箱、端口归本次进程、被测脚本是这份 checkout。有 `BAD` 就不驱动。
 - 不驱动不是本次起的实例：不连真 Orca、真 Linear、真 bot。

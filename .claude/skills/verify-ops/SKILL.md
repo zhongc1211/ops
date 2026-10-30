@@ -16,7 +16,7 @@ bash .claude/skills/verify-ops/verify.sh list                # feature 名
 
 退出码：0 全部通过，最后一行 `VERIFY-OPS PASS`；1 有失败（`VERIFY-OPS FAIL`）；2 体检不过或用法错；3 一个用例都没跑（`VERIFY-OPS EMPTY`：feature 名有一个写错就直接退出、不起沙箱；或选到的全是 skipped）。skipped 不算通过，汇报时逐条列出来。
 
-功能地图在 `features/README.md`，每个 feature 一个文件。先读地图再改断言；地图写着的入口都要覆盖，只驱动一个方便的入口不算验证完。
+功能地图在 `features/README.md`，每个 feature 一个文件。先读地图再改断言。每个 feature 文件的 Sub-features 列的是驱动过的入口；地图里标了「没测」的入口（见下面 Drive 后的「没覆盖的入口」）这次没驱动，改到那些代码时 PASS 不能当证据，要补用例或另外验证。
 
 ## Launch
 
@@ -35,6 +35,7 @@ SB=$(bash .claude/skills/verify-ops/verify.sh launch | tail -1)   # 打印沙箱
 - 两个假端点的 pid 写进 `$SB/pids`（每行 `pid 标签`），清理只认这个文件。
 - `$SB/bin`（PATH 最前面）：假 agent `pi`、假 `orca` / `orca-ide`（`vo.py orca`）、成功路径的假 Linear `fake-linear-ok`、假 agent-probe `agent-probe.py`。PATH 第二位是被测目录的 `wake/bin`，第三位是 `wake/tests/fake-orca`，不含 `~/.local/bin`。
 - `$SB/env.sh`：`HOME`、`PATH`、`NOTIFY_RUN_LOG`、`ORCA_WAKE_STATE_DIR`、`ORCA_WAKE_CONFIG_DIR` 都指进沙箱。
+- 例外：drift-checks 的 DC4（pin-claude-plugins）会从真 HOME 的 `~/.claude/pinned-marketplaces/` 把两个插件仓库 `git clone --shared` 进沙箱。这一步只读真 HOME，不写；其余 feature 不读真 HOME（真实 webhook 文件只在守卫里算 sha 和字节数）。
 
 就绪的判据：`a.port` 非空、假端点 B 对一次 POST 有响应，然后 Doctor 全是 `ok`。两个沙箱可以并排跑（端口随机、目录各自独立）。
 
@@ -47,10 +48,10 @@ bash .claude/skills/verify-ops/verify.sh doctor          # 新起一个沙箱来
 bash .claude/skills/verify-ops/verify.sh doctor "$SB"    # 查一个已经 launch 的沙箱
 ```
 
-只读，逐行打印 `ok` / `BAD` / `info`，有 `BAD` 退出 2，`run` 也就不驱动：
+只读，逐行打印 `ok` / `BAD` / `warn` / `info`，有 `BAD` 退出 2，`run` 也就不驱动：
 
 - `HOME` 是沙箱的 `home`，不是真 HOME。
-- 两个假端点的端口由 `$SB/pids` 里对应的 pid 监听（`lsof -iTCP:<端口> -sTCP:LISTEN`）。
+- 两个假端点的端口由 `$SB/pids` 里对应的 pid 监听：有 `lsof` 用 `lsof -iTCP:<端口> -sTCP:LISTEN`，没有就用 `ss -ltnp`（Linux）；两样都没有时打印 `warn 缺 lsof 和 ss，无法确认端口归属`，只确认 pidfile 里的进程还活着，不算端口冲突。
 - `notify-run`、`orca-agent-launch`、`orca-wake` 在沙箱 PATH 里解析到被测目录的 `wake/bin/`，不是装在 `~/.local/bin` 的那份；`pi` 是假 agent。
 - 被测代码是本次 checkout（打印短 sha 和 dirty），或 `VERIFY_OPS_SUT` 指的副本（这时会注明「不能当 PR 的证据」）。
 - `info`：当前 bash 和 `/bin/bash` 的版本；有没有 Java + `tla2tools.jar`（没有时 wake-tla 记 skipped）。
@@ -76,6 +77,18 @@ sed -i.orig 's/case "$http" in 2??) exit 0/case "$http" in *) exit 0/' "$M/wake/
 VERIFY_OPS_SUT="$M" bash .claude/skills/verify-ops/verify.sh run wake-chain   # 应 FAIL，退出码 1
 rm -rf "$M"
 ```
+
+### 没覆盖的入口
+
+下面这些入口 verify-ops 没驱动（没测），改到相关代码时要补用例或另外验证。细节在对应的 feature 文件里。
+
+| 入口 | 状态 | 怎么造 |
+|---|---|---|
+| `scripts/stuck-check.sh --scan`（自动任务的 precheck） | 没测 | 同 stuck-check 的沙箱环境和夹具，加 `STUCK_NO_GATE=1` 跑 `--scan`，断言退出码 0、agent_* 嫌疑进了 `$SB/stuck-state/pending.json`（`--list` 列出 S1…），假端点 A 没收到这几条。 |
+| `scripts/stuck-check.sh --send`（复核后发送） | 没测 | 接着上一步跑 `--send`（可加 `--dismiss S<n>=原因`），断言假端点 A 收到没被 dismiss 的那几条、被 dismiss 的没发，再跑一次 `--send` 不重复。 |
+| stuck-check 经 `orca-wake` 发送的路径 | 没测 | 现在只驱动 recheck 回 `no_state_for_pid` 后按老办法报；要在沙箱 `ORCA_WAKE_STATE_DIR` 里预写 idle agent 的 pid 状态，让 orca-wake 自己发，断言来源和条数。 |
+| stuck-check 对 webhook 非 2xx 的处理 | 没测 | 假端点 A 只会回 200；把沙箱里 coding-assistant 的 env 指向假端点 B 并放 `$SB/mock/b.jsonl.fail-coding-assistant` 让它回 503，`STUCK_BACKOFF=0,0,0`，断言退出码 3、不记成已通知、下次还会报。 |
+| `scripts/night-review-gate.sh finish` 退出码 4（拷到存储机失败） | 没测 | `NR_STORE_DIR` 指到一个普通文件下面（如 `$SB/somefile/x`），断言退出码 4、状态文件 `state=failed detail=rsync_failed`、heavy-lock 已释放。 |
 
 `VERIFY_OPS_SUT` 只换被测脚本和替身脚本的来源；verify.sh、helpers 和运行目录仍用 checkout 里的。summary.json 的 `sut_kind` 会写「VERIFY_OPS_SUT 副本」。改坏永远在副本里做，不在 checkout 里做。
 

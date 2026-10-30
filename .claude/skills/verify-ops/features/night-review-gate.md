@@ -26,5 +26,5 @@ Preconditions: 沙箱目录 `$SB/nr-dir` 放摘要（`<D>-xinyue.md`）和 ledge
 - brief 写的是「夜审写 EverOS 后读回，用本机假 EverOS 读回端点」。代码里 `night-review-gate.sh` 不碰 EverOS：`finish` 读回的是**存储机上的摘要**（`store_done`：本地 grep 或 ssh 到 box grep「状态：完成」）。EverOS 写入和 `everos_readback.py` 在夜审 prompt 里由模型执行，不在这个脚本里。所以这里的替身是存储机（`NR_STORE_HOST=local` + 沙箱目录，代替 ssh 到 box），没有假 EverOS 端点。
 - `NR_STORE_HOST` 不设时默认 `box`，会真的 ssh；一定要设成 `local`。
 - 「状态：完成」也接受半角冒号（`^状态(：|:)[[:space:]]*完成`），必须在行首。
-- 退出码 4（拷到存储机失败）这里没测：要造一个写不进的存储目录，留给地图后续补。
+- 没测：退出码 4（拷到存储机失败）这条路径 verify-ops 没驱动。造法：`NR_STORE_DIR` 指到一个普通文件下面（例如先 `touch $SB/somefile`，再设 `NR_STORE_DIR=$SB/somefile/x`），摘要含「状态：完成」时 finish 应退出码 4，状态文件最后一行 `state=failed … detail=rsync_failed`，heavy-lock 已释放。
 - 脚本开头会 `export PATH=/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH`；沙箱 HOME 下的 `.local/bin` 是 drift-checks 装进去的被测脚本副本，不影响这里（finish 只用 `scripts/heavy-lock.sh`）。

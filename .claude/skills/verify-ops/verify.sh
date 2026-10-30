@@ -98,9 +98,20 @@ cleanup() {
 }
 
 # ---------- Doctor ----------
+# port_owner <端口>：打印监听这个端口的 pid。macOS 用 lsof；Linux 没装 lsof 时用 ss。两样都没有返回 3。
+port_owner() {
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2>/dev/null | head -1
+    elif command -v ss >/dev/null 2>&1; then
+        ss -ltnp "sport = :$1" 2>/dev/null | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1
+    else
+        return 3
+    fi
+}
+
 # doctor_in <沙箱>：只读。0 = 值得驱动；2 = 不健康（HOME 不是沙箱、端口不归我们、被测脚本不是这份）。
 doctor_in() {
-    local sb=$1 bad=0 pid label port owner f
+    local sb=$1 bad=0 pid label port owner f rc
     ( . "$sb/env.sh"
       [ "$HOME" = "$sb/home" ] && [ "$HOME" != "$REAL_HOME" ] ) \
         && say "ok   HOME 是沙箱（\$TMPDIR 下的 verify-ops.*/home），不是真 HOME" \
@@ -108,8 +119,10 @@ doctor_in() {
     for f in a b; do
         port=$(cat "$sb/mock/$f.port" 2>/dev/null)
         pid=$(awk -v l="mock-$f" '$2 == l {print $1}' "$sb/pids")
-        owner=$(lsof -nP -iTCP:"${port:-0}" -sTCP:LISTEN -t 2>/dev/null | head -1)
-        if [ -n "$port" ] && [ -n "$pid" ] && [ "$owner" = "$pid" ]; then
+        owner=$(port_owner "${port:-0}"); rc=$?
+        if [ "$rc" = 3 ] && [ -n "$port" ] && [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+            say "warn 缺 lsof 和 ss，无法确认端口归属：假端点 $f 端口 ${port}，pidfile 里的进程 ${pid} 还活着（不算端口冲突）"
+        elif [ -n "$port" ] && [ -n "$pid" ] && [ "$owner" = "$pid" ]; then
             say "ok   假端点 $f 端口 ${port} 由本次起的进程 ${pid} 监听"
         else
             say "BAD  假端点 $f 端口 ${port:-?} 的监听进程 ${owner:-无} 不是 pidfile 里的 ${pid:-?}"; bad=1
@@ -419,7 +432,7 @@ run_features() {
     [ -f "$SB/home/.orca-state/notify-run/notify-run.log" ] && python3 -I "$VO" mask "$SB/home/.orca-state/notify-run/notify-run.log" "$RUN/webhook/notify-run.log"
     cleanup "$SB"; trap - EXIT
     local left
-    left=$(ps -axo pid=,command= | grep -F "$SB" | grep -v grep | wc -l | tr -d ' ')
+    left=$(ps ax -o pid=,command= | grep -F "$SB" | grep -v grep | wc -l | tr -d ' ')
     g1=$(python3 -I "$VO" guard "$REAL_HOME/.config/grokbot/webhooks" "$REAL_HOME/.orca-state/notify-run/notify-run.log")
     python3 -I - "$g0" "$g1" <<'PY' || guard_ok=false
 import json, sys
@@ -430,10 +443,19 @@ PY
 import json, platform, subprocess, sys
 out, g0, g1, guard_ok, ts, sut, repo, dirty, bashv, left, removed = sys.argv[1:12]
 sha = subprocess.run(["git", "-C", repo, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
-mac = subprocess.run(["sw_vers", "-productVersion"], capture_output=True, text=True).stdout.strip()
+if platform.system() == "Darwin":
+    machine = "macOS %s %s" % (subprocess.run(["sw_vers", "-productVersion"], capture_output=True, text=True).stdout.strip(), platform.machine())
+else:
+    machine = "%s %s" % (platform.system(), platform.machine())
+    try:
+        rel = dict(l.rstrip("\n").split("=", 1) for l in open("/etc/os-release", encoding="utf-8") if "=" in l)
+        if rel.get("PRETTY_NAME"):
+            machine = "%s %s %s" % (platform.system(), rel["PRETTY_NAME"].strip('"'), platform.machine())
+    except OSError:
+        pass
 json.dump({
     "run_dir": ts, "sha": sha, "dirty": dirty == "true", "sut_kind": "checkout" if sut == repo else "VERIFY_OPS_SUT 副本",
-    "machine": "macOS %s %s" % (mac, platform.machine()), "bash": bashv,
+    "machine": machine, "bash": bashv,
     "guard_before": json.loads(g0), "guard_after": json.loads(g1), "guard_ok": guard_ok == "true",
     "sandbox_removed": removed == "yes", "processes_left": int(left),
     "skipped_by_policy": [
