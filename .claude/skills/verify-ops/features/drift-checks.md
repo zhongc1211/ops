@@ -4,7 +4,7 @@ ops 有几处「装出去的东西和仓库不一致」的只读检查：叫醒�
 
 ## Sub-features
 
-- `DC1` `wake/install.sh --check`：沙箱 HOME 装一遍后 0（`PASS  全局 AGENTS 一致`）；假对端的全局 AGENTS 改一行后 1（`FAIL  全局 AGENTS 不一致`）；改回去，再往已装的 `notify-run` 末尾加一行后 1，输出 `不同  …/.local/bin/notify-run`。
+- `DC1` `wake/install.sh --check`：沙箱 HOME 装一遍后 0，且整行是 `PASS  全局 AGENTS 一致（3 台：<机器>=<sha> …）`：台数写死（本机是 imac、mba、box 之一时 3 台，否则 4 台），每台的 sha 都等于沙箱 AGENTS.md，对端被悄悄少探一台时这条会挂；假对端的全局 AGENTS 改一行后 1（`FAIL  全局 AGENTS 不一致`）；改回去，再往已装的 `notify-run` 末尾加一行后 1，输出 `不同  …/.local/bin/notify-run`。
 - `DC2` `scripts/sync-bot-rules --check`：沙箱目标目录 `--apply` 后 0（至少 1 行 `same`）；改一个文件、加一个多余文件后 1，分别是 `drift` 和 `extra`。
 - `DC3` `automations/migration-1020/make-prompts.py --check`：对被测目录 0（`up to date`）；在沙箱副本里改一个已提交的 prompt 后 1，输出 `<文件> differs from the generated version`。
 - `DC4` `bootstrap/claude-plugins/pin-claude-plugins.sh --check --home <沙箱 HOME>`：沙箱装好后 0（`全部一致。`）；从沙箱 settings.json 删掉 `Skill(pstack:tdd)` 这条 deny 后 1，输出 `不符  settings.json deny Skill(pstack:tdd)`。
@@ -30,7 +30,7 @@ Preconditions: 沙箱 HOME；沙箱全局 AGENTS 和假 ssh（`launch` 写好，
 - `sync-bot-rules` 的目标表只有 box 和 MBA 的行，目标是那两台机器上的绝对路径，本机 `--check` 会报「没有目标」。所以在沙箱克隆里加一行指向沙箱目录；被测的是 checkout 里的脚本，表来自克隆的 HEAD。
 - `make-prompts.py --check` 比的是脚本所在目录里的已提交文件，没有「换目录」的参数；漂移只能在复制出来的目录里造。
 - `pin-claude-plugins.sh` 安装模式在插件版本不对时会调真的 `claude plugin marketplace update / install`（联网、改 `~/.claude`），而且仓库不在时会从 GitHub clone。verify 预写 `installed_plugins.json`（这是 `claude plugin install` 的产物，属于外部 CLI 边界）并预放本地克隆，让它走「已是钉的版本，跳过 claude plugin update」那条路。
-- 本机没有那两个插件仓库或缺钉的 commit 时，DC4 记 skipped 并在报告里列出原因，不当通过：离线做不出干净状态，也不去联网 clone，而且这说的是这台机器没准备好，不是被测脚本有问题，报失败会盖住真失败。预检过了之后 DC4 的失败仍然是失败。读不到钉的 commit（变量改名、格式变了）算失败，不算缺前置。
-- `install.sh --check` 还核对各台全局 AGENTS，对端走 ssh。沙箱 HOME 改不了 ssh 读的配置，不换掉 ssh 就会连到真机器（10-30 main 上的跑次真的连了），而且本机没有这个文件时干净用例必挂。所以用假 ssh 和 `$SB/peers/`，检查本身不关；真机器上三台是否一致，verify-ops 不证明。
+- 本机没有那两个插件仓库或缺钉的 commit 时，DC4 记 skipped 并在报告里列出原因，不当通过：离线做不出干净状态，也不去联网 clone，而且这说的是这台机器没准备好，不是被测脚本有问题，报失败会盖住真失败。预检过了之后 DC4 的失败仍然是失败。最后一行的 `（skipped N）` 能看出这一项没跑；N 大于 0 而本机本该有插件仓库时，先查预检。读不到钉的 commit（变量改名、格式变了）算失败，不算缺前置。
+- `install.sh --check` 还核对各台全局 AGENTS，对端走 ssh。沙箱 HOME 改不了 ssh 读的配置，不换掉 ssh 就会连到真机器（10-30 main 上的跑次真的连了），而且本机没有这个文件时干净用例必挂。所以用假 ssh 和 `$SB/peers/`，检查本身不关；真机器上三台是否一致，verify-ops 不证明，线上核对见 SKILL.md「没覆盖的入口」。
 - `pin-claude-plugins.sh` 见到 `CLAUDE_CONFIG_DIR`（且不等于 `$HOME/.claude`）就退出码 2、报「暂不支持独立 CLAUDE_CONFIG_DIR」。Ubuntu 的 Orca 终端里设了这个变量，verify.sh 开头会 unset，沙箱 HOME 用自己的 `.claude`。
 - `wake/install.sh` 有 `~/.pi/agent/extensions/` 时还会装 Pi 扩展；沙箱 HOME 里没有这个目录，所以只核对 6 个脚本。

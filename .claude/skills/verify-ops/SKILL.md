@@ -14,9 +14,9 @@ bash .claude/skills/verify-ops/verify.sh run wake-chain drift-checks   # 子集
 bash .claude/skills/verify-ops/verify.sh list                # feature 名
 ```
 
-退出码：0 没有失败，最后一行 `VERIFY-OPS PASS`；1 有失败（`VERIFY-OPS FAIL`）；2 体检不过或用法错；3 一个用例都没跑（`VERIFY-OPS EMPTY`：feature 名有一个写错就直接退出、不起沙箱；或选到的全是 skipped）。
+退出码：0 没有失败，最后一行 `VERIFY-OPS PASS（skipped N）`；1 有失败（`VERIFY-OPS FAIL（skipped N）`）；2 体检不过或用法错；3 一个用例都没跑（`VERIFY-OPS EMPTY（0 个用例，skipped N）`：feature 名有一个写错就直接退出、不起沙箱；或选到的全是 skipped）。
 
-`VERIFY-OPS PASS` 不等于每条都跑过：它只说明没有失败，可能带 skipped（例如通过 64、skipped 1）。skipped 不算通过，也不算失败，汇报时看 `summary.json` 的 `cases_skipped`，逐条列出来。
+`VERIFY-OPS PASS` 不等于每条都跑过：它只说明没有失败，括号里的 N 是 skipped 条数（例如通过 64、`VERIFY-OPS PASS（skipped 1）`）。N 大于 0 时看 `summary.json` 的 `cases_skipped` 和 `cases`。skipped 不算通过，也不算失败，汇报时逐条列出来。匹配最后一行时只认前缀 `VERIFY-OPS PASS`。
 
 功能地图在 `features/README.md`，每个 feature 一个文件。先读地图再改断言。每个 feature 文件的 Sub-features 列的是驱动过的入口；地图里标了「没测」的入口（见下面 Drive 后的「没覆盖的入口」）这次没驱动，改到那些代码时 PASS 不能当证据，要补用例或另外验证。
 
@@ -91,6 +91,7 @@ rm -rf "$M"
 | `scripts/stuck-check.sh --send`（复核后发送） | 没测 | 接着上一步跑 `--send`（可加 `--dismiss S<n>=原因`），断言假端点 A 收到没被 dismiss 的那几条、被 dismiss 的没发，再跑一次 `--send` 不重复。 |
 | stuck-check 经 `orca-wake` 发送的路径 | 没测 | 现在只驱动 recheck 回 `no_state_for_pid` 后按老办法报；要在沙箱 `ORCA_WAKE_STATE_DIR` 里预写 idle agent 的 pid 状态，让 orca-wake 自己发，断言来源和条数。 |
 | stuck-check 对 webhook 非 2xx 的处理 | 没测 | 假端点 A 只会回 200；把沙箱里 coding-assistant 的 env 指向假端点 B 并放 `$SB/mock/b.jsonl.fail-coding-assistant` 让它回 503，`STUCK_BACKOFF=0,0,0`，断言退出码 3、不记成已通知、下次还会报。 |
+| 三台真机的全局 AGENTS 是否一致 / CLAUDE.md 是否引用 / 对端是否可达 | 没测 | verify-ops 用假 ssh 和假对端，只证明 `install.sh --check` 的比对逻辑，PASS 不证明三台真机一致。改全局 AGENTS 或装完叫醒脚本后，由 ops 在线上跑 `wake/install.sh --check`，期望看到 `PASS  全局 AGENTS 一致（`。目前没有任何例行任务做这个线上核对。 |
 | `scripts/night-review-gate.sh finish` 退出码 4（拷到存储机失败） | 没测 | `NR_STORE_DIR` 指到一个普通文件下面（如 `$SB/somefile/x`），断言退出码 4、状态文件 `state=failed detail=rsync_failed`、heavy-lock 已释放。 |
 
 `VERIFY_OPS_SUT` 只换被测脚本和替身脚本的来源；verify.sh、helpers 和运行目录仍用 checkout 里的。summary.json 的 `sut_kind` 会写「VERIFY_OPS_SUT 副本」。改坏永远在副本里做，不在 checkout 里做。

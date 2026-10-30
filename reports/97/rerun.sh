@@ -91,7 +91,7 @@ grep -q '^total' "$WORK/e2e.tsv" || case_fail e2e_total "summary.json 读不出�
 # ---------- 演练：DC4 的 SKIP 口径 ----------
 H=$(fake_home "$WORK/h-none")
 verify "$OUT/drills/dc4-no-repos.log" HOME="$H" -- "$ROOT/$V" drift-checks
-want drill_dc4_no_repos "$RC/$(cases skipped 'pin-claude-plugins --check')/$(cases pass pin-claude-plugins)/$(cases fail pin-claude-plugins)/$(last "$OUT/drills/dc4-no-repos.log")" "0/1/0/0/VERIFY-OPS PASS" \
+want drill_dc4_no_repos "$RC/$(cases skipped 'pin-claude-plugins --check')/$(cases pass pin-claude-plugins)/$(cases fail pin-claude-plugins)/$(last "$OUT/drills/dc4-no-repos.log")" "0/1/0/0/VERIFY-OPS PASS（skipped 1）" \
   "演练：沙箱造没有 pinned-marketplaces → DC4 记 SKIP，整体退出码 0。原因：$(detail 'pin-claude-plugins --check')"
 
 H=$(fake_home "$WORK/h-nocommit"); fake_pins "$H"
@@ -132,6 +132,25 @@ sed -i.orig '/全局 AGENTS 不一致：/s/; drift=1//' "$WORK/m-peers/wake/inst
 verify "$OUT/drills/install-peer-drift-ignored.log" VERIFY_OPS_SUT="$WORK/m-peers" -- "$ROOT/$V" drift-checks
 want drill_install_peer_drift_ignored "$RC/$(cases fail '对端全局 AGENTS 不一致')" "1/1" \
   "演练：副本里不一致不再判 drift → 新加的对端用例挂"
+
+# 去掉一台不是本机的对端，N 台的断言才有东西可抓
+case "$(hostname | cut -d. -f1 | tr '[:upper:]' '[:lower:]')" in mba) PEERS="imac box" ;; *) PEERS="imac mba" ;; esac
+copy_git "$WORK/m-onepeer"
+sed -i.orig "s/WAKE_CHECK_PEERS-imac mba box/WAKE_CHECK_PEERS-$PEERS/" "$WORK/m-onepeer/wake/install.sh"
+verify "$OUT/drills/install-peer-dropped.log" VERIFY_OPS_SUT="$WORK/m-onepeer" -- "$ROOT/$V" drift-checks
+want drill_install_peer_dropped "$RC/$(cases fail 'install.sh --check 干净')/$(cases fail '对端全局 AGENTS 不一致')/$(last "$OUT/drills/install-peer-dropped.log")" "1/1/0/VERIFY-OPS FAIL（skipped 0）" \
+  "演练：副本的默认对端少一台 → 只有台数断言挂；FAIL 的最后一行带 skipped 数"
+
+# ---------- 演练：最后一行的 skipped 数 ----------
+PF=$WORK/precheck-flip; mkdir -p "$PF"; git archive HEAD .claude/skills/verify-ops | tar -x -C "$PF"
+sed -i.orig 's/elif ! git -C "\$src" cat-file/elif git -C "$src" cat-file/' "$PF/$V"
+verify "$OUT/drills/dc4-precheck-flipped.log" VERIFY_OPS_SUT="$ROOT" -- "$PF/$V" drift-checks
+want drill_last_line_skipped "$RC/$(last "$OUT/drills/dc4-precheck-flipped.log")" "0/VERIFY-OPS PASS（skipped 1）" \
+  "演练：副本 verify.sh 的 DC4 预检取反 → 退出码仍是 0，最后一行看得出 skipped 1"
+
+verify "$OUT/drills/no-such-feature.log" -- "$ROOT/$V" no-such-feature
+want drill_last_line_empty "$RC/$(last "$OUT/drills/no-such-feature.log")" "3/VERIFY-OPS EMPTY（0 个用例，skipped 0）" \
+  "演练：feature 名写错 → 退出码 3，最后一行带 skipped 数"
 
 # ---------- 回退测试 ----------
 OLD=$WORK/old; mkdir -p "$OLD"

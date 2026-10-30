@@ -9,7 +9,7 @@
 #   bash .claude/skills/verify-ops/verify.sh list              列出 feature 名
 #
 # feature：wake-chain agent-launch-gate stuck-check drift-checks night-review-gate wake-tla
-# 退出码：0 没有失败（最后一行 VERIFY-OPS PASS；可能带 skipped，看 summary.json）；1 有失败（VERIFY-OPS FAIL）；2 体检不过或用法错；3 一个用例都没跑（VERIFY-OPS EMPTY）。
+# 退出码：0 没有失败（最后一行 VERIFY-OPS PASS（skipped N））；1 有失败（VERIFY-OPS FAIL（skipped N））；2 体检不过或用法错；3 一个用例都没跑（VERIFY-OPS EMPTY（0 个用例，skipped N））。
 # 运行目录：${VERIFY_OPS_ARCHIVE:-$HOME/ops-archive/verify-ops}/<UTC 时间>/（summary.json、report.md、features/、webhook/），
 #   清理时保留。仓库里不写任何运行产物。
 # VERIFY_OPS_SUT=<目录>：换一份 ops 树当被测代码（故意改坏的副本就这样跑）；不设 = 本次 checkout。
@@ -319,11 +319,15 @@ f_stuck_check() {
 
 # ---------- feature：drift-checks ----------
 f_drift_checks() {
-    local rc out h
+    local rc out h n=4 sha
     # 1. wake/install.sh --check：先在沙箱 HOME 装一遍，再让对端的全局 AGENTS 不一致，最后改坏一个已装文件
     "$SUT/wake/install.sh" >"$SB/install.out" 2>&1 || cat "$SB/install.out"
     "$SUT/wake/install.sh" --check >"$SB/d1.out" 2>&1; rc=$?; cat "$SB/d1.out"
-    expect "install.sh --check 干净：退出码 0，全局 AGENTS 各台一致" "$rc/$(grep -c '^PASS  全局 AGENTS 一致（' "$SB/d1.out")" "0/1"
+    # 台数写死：默认对端 imac mba box 去掉本机再加上本机，本机是这三台之一时 3 台，否则 4 台。对端被悄悄少探一台时这条要挂
+    case "$(hostname | cut -d. -f1 | tr '[:upper:]' '[:lower:]')" in imac|mba|box|grok-bot-vm-*) n=3 ;; esac
+    sha=$( (shasum -a 256 "$HOME/.pi/agent/AGENTS.md" 2>/dev/null || sha256sum "$HOME/.pi/agent/AGENTS.md") | cut -c1-12)
+    expect "install.sh --check 干净：退出码 0，${n} 台全局 AGENTS 一致" \
+        "$rc/$(grep -cE "^PASS  全局 AGENTS 一致（${n} 台：[^ ]+=${sha}( [^ ]+=${sha}){$((n - 1))}）$" "$SB/d1.out")" "0/1"
     for h in imac mba box; do echo "# verify-ops drift" >>"$SB/peers/$h/.pi/agent/AGENTS.md"; done
     "$SUT/wake/install.sh" --check >"$SB/d1b.out" 2>&1; rc=$?; cat "$SB/d1b.out"
     expect "install.sh --check 对端全局 AGENTS 不一致：退出码 1，报不一致" "$rc/$(grep -c '^FAIL  全局 AGENTS 不一致：' "$SB/d1b.out")" "1/1"
@@ -461,7 +465,7 @@ f_wake_tla() {
 run_features() {
     local sel="" f fn rc ts
     if [ $# -eq 0 ]; then sel=$ALL_FEATURES; else
-        for f in "$@"; do case " $ALL_FEATURES " in *" $f "*) sel="$sel $f" ;; *) say "verify-ops: 没有这个 feature：${f}（verify.sh list 看名字）；一个用例都不跑"; say "VERIFY-OPS EMPTY（0 个用例）"; exit 3 ;; esac; done
+        for f in "$@"; do case " $ALL_FEATURES " in *" $f "*) sel="$sel $f" ;; *) say "verify-ops: 没有这个 feature：${f}（verify.sh list 看名字）；一个用例都不跑"; say "VERIFY-OPS EMPTY（0 个用例，skipped 0）"; exit 3 ;; esac; done
     fi
     ts=$(date -u +%Y%m%dT%H%M%SZ)
     RUN="$ARCHIVE/$ts"
@@ -534,14 +538,15 @@ json.dump({
         "agent（claude/pi/codex）→ 沙箱里的假 pi 脚本"],
 }, open(out, "w"), indent=1, ensure_ascii=False)
 PY
-    local res
+    local res skipped
     res=$(python3 -I "$VO" summary "$RUN")
+    skipped=$(echo "$res" | cut -d' ' -f4)
     say "== 运行目录：$RUN"
     say "   summary.json：${res}；沙箱已删=$([ -d "$SB" ] && echo 否 || echo 是)，残留进程 ${left}，真实 HOME 守卫 ${guard_ok}"
     case "$res" in
-        *PASS) say "VERIFY-OPS PASS"; exit 0 ;;
-        *EMPTY) say "VERIFY-OPS EMPTY（0 个用例）"; exit 3 ;;
-        *) say "VERIFY-OPS FAIL"; exit 1 ;;
+        *PASS) say "VERIFY-OPS PASS（skipped ${skipped}）"; exit 0 ;;
+        *EMPTY) say "VERIFY-OPS EMPTY（0 个用例，skipped ${skipped}）"; exit 3 ;;
+        *) say "VERIFY-OPS FAIL（skipped ${skipped}）"; exit 1 ;;
     esac
 }
 
