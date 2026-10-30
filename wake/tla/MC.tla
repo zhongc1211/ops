@@ -6,6 +6,7 @@ AnyDisp  == [Tasks -> Bots]                       \* 所有派活组合
 AnyKind  == [Tasks -> {"task", "main"}]           \* 任务工作区或 ops 主目录，所有组合
 OpsThenCA == {<<"ops-bot", "coding-assistant">>}  \* P5：任务 1 派给 ops-bot，任务 2 派给 Coding助手
 BothTask == {<<"task", "task">>}
+OneTask  == {<<"task">>}                         \* w18b：只看任务工作区
 AnyPhase == 0..FULL_TICKS
 AnyWork  == BOOLEAN
 WithWork == {TRUE}

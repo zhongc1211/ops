@@ -48,7 +48,8 @@ RUNS=(
   "w16_p5_fixed       MC pass     P5 假设修法 no_hol"
   "w17_p1h_cut        MC pass     P1h 扫描最多 2 次没判断到任务（PER-82）：下次接着查，最终有人收到"
   "w17a_p1_cut        MC pass     P1 同上，派活 bot 一直坏"
-  "w18_p4_cut1        MC pass     P4 扫描 1 次没判断到任务：1 小时内仍然到得了"
+  "w18_p4_cut1        MC violated P4 扫描 1 次没判断到任务，下一次赶上主目录 agent 刚退出、notify-run 还在重试：1 小时到不了（发现 F12）"
+  "w18b_p4_cut1_task  MC pass     P4 同上只看任务工作区：截断 1 次仍然 1 小时内到"
   "w18a_p4_cut2       MC violated P4 扫描 2 次没判断到任务：1 小时到不了（PER-82 之后 P4 的余量）"
   "w19_p1h_cut_forever MC violated P1h 每次都截断时排在后面的工作区一直没判断（发现 F9，第一类阶段内没有游标）"
   "w20_p1h_skip_dismiss_mutant MC violated P1h 改坏：跳过时记成已处理，不留着下次查"
@@ -79,6 +80,14 @@ if ! drift=$(cd "$repo" && sha256sum -c --quiet --strict "$here/SOURCES.sha256" 
     echo "  按 README「代码变了怎么办」对一遍行号和动作，再更新 SOURCES.sha256。"
     exit 1
 fi
+# 删掉 SOURCES 里的一行不能让对应的文件脱离比对。
+for f in wake/bin/notify-run wake/bin/orca-agent-launch wake/bin/orca-wake wake/bin/orca-wake-hooks wake/bin/agent-stop \
+         wake/pi/dispatch-wake.ts scripts/stuck-check.sh scripts/heartbeat-watch.sh scripts/agent-probe; do
+    grep -qE "^[0-9a-f]{64}  $f\$" "$here/SOURCES.sha256" || {
+        echo "check.sh: FAIL：SOURCES.sha256 里没有 ${f}，不跑 TLC。"
+        exit 1
+    }
+done
 
 [ -x "$JAVA" ] || { echo "check.sh: 找不到 Java：${JAVA}（见 README「安装」）" >&2; exit 2; }
 [ -r "$JAR" ] || { echo "check.sh: 找不到 tla2tools.jar：${JAR}（见 README「安装」）" >&2; exit 2; }
@@ -118,7 +127,9 @@ for r in "${RUNS[@]}"; do
     rc=$?
     secs=$(( $(date +%s) - t0 ))
     rm -rf "$meta"
-    if grep -q "No error has been found" "$out/$name.out"; then result=pass
+    # TypeOK、NoFalseAlarm 是模型自身的约束，不是任何检查要找的违反，算 error，不能冒充「期望 violated」。
+    if grep -qE "Invariant (TypeOK|NoFalseAlarm) is violated" "$out/$name.out"; then result=error
+    elif grep -q "No error has been found" "$out/$name.out"; then result=pass
     elif grep -qE "is violated|Temporal properties were violated" "$out/$name.out"; then result=violated
     elif [ $rc = 124 ]; then result=timeout
     else result=error; fi
