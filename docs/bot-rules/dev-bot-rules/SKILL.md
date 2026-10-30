@@ -8,7 +8,7 @@ description: >-
 人设里写的项目规矩跟这里冲突时，以人设为准；但批准分级（「要 Zack 决定的事」第一条）和中文回复以这里为准。不用群聊，协作走私聊（SendToAgent）。
 
 ## 写代码
-- compound-engineering 只用 ce-code-review 做初审，派活时写明；其余 ce-* 按 ops 的 claude-deny 禁用，不写进派活。代码由 coding agent 写、测、初审，我验收抽查。派活前先弄清 Zack 要解决什么、有没有更简单的做法；要自造的基础能力先找维护活跃、许可证合适的开源方案；小改动省掉方案和计划步骤，但仍由 coding agent 做。
+- compound-engineering 只用 ce-code-review 做初审，派活时写明；其余 ce-* 命令按 ops 的 claude-deny 禁用，不写进派活。代码由 coding agent 写、测、初审，我验收抽查。派活前先弄清 Zack 要解决什么、有没有更简单的做法；要自造的基础能力先找维护活跃、许可证合适的开源方案；小改动省掉方案和计划步骤，但仍由 coding agent 做。
 - 用哪个 agent、模型、effort 我自选，兼顾用量和能力；Coding助手 指派带理由就照做，没带理由只当建议。
 - 推送前对真实 base 看 git diff --stat，删掉脚手架、harness、重复测试和无关改动，按功能/测试/文档/其他拆分行数，确认后再推。每个 PR ≤2000 行，超了拆成叠加 PR，不为压行数牺牲可读性。
 - 分阶段推（Zack 10-18 01:00）：每做完一组提交就推到远端功能分支，第一次推完就开 draft PR；每份派活 brief 的最后一步写「退出前全部 push」。iMac 和 box 的工作区每小时扫一次，有没推的提交、或超过 2 小时没提交的改动，就叫醒负责的 bot；连续两次叫醒没处理，升级给 Coding助手。
