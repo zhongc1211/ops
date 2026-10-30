@@ -33,11 +33,12 @@ import sys
 import tempfile
 import time
 
-# 工具名的边界：前面不是 / . ~ 或字母数字，后面不是字母数字、/，也不是接着 .md 的文件名。
-# 所以 CLAUDE.md、CLAUDE.local.md、~/.claude/…、.claude/skills/、skills/claude-api/ 都不算署名。
+# 工具名的边界：前面不是 / . ~ 或字母数字，后面不是字母，也不是接着 .md 的文件名。
+# 所以 CLAUDE.md、CLAUDE.local.md、~/.claude/…、.claude/skills/、skills/claude-api/ 都不算署名；
+# 「Claude/Codex」「Claude4」算。
 _TOOLS = r"(?:claude|codex|chatgpt|copilot|anthropic|openai)"
 _PRE = r"(?<![/.~A-Za-z0-9_])"
-_POST = r"(?![A-Za-z0-9_/])(?![.A-Za-z0-9_-]*\.md)"
+_POST = r"(?![A-Za-z_])(?![.A-Za-z0-9_-]*\.md)"
 
 # AI 署名词表：(正则, 命中时打印的说明)。不区分大小写，逐行匹配。
 AI_ATTRIBUTION = [
@@ -68,11 +69,15 @@ class GateError(Exception):
     """不是检查结果，是 gate 自己跑不下去（退出 2）。"""
 
 
-def run(cmd, **kw):
+def run(cmd, timeout=300):
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0")
     try:
-        return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kw)
+        return subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              env=env, timeout=timeout)
     except OSError as e:
         raise GateError(f"{cmd[0]} 跑不起来：{e}")
+    except subprocess.TimeoutExpired:
+        raise GateError(f"{' '.join(cmd[:3])} 超过 {timeout} 秒没返回")
 
 
 def gh_json(args):
@@ -236,7 +241,8 @@ def artifact_ssh(host, path, label):
     cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=20", host, script]
     for attempt in (1, 2):
         try:
-            p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=90)
+            p = subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               timeout=90)
         except subprocess.TimeoutExpired:
             rc = 255
         else:
@@ -298,16 +304,25 @@ def check_artifact(block, tree):
 def run_rerun(cwd, script, n, head, timeout, out_dir):
     os.makedirs(out_dir, exist_ok=True)
     env = dict(os.environ, RERUN_OUT=out_dir)
-    p = subprocess.Popen([script], cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                         start_new_session=True)
+    try:
+        p = subprocess.Popen([script], cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, start_new_session=True)
+    except OSError as e:
+        return False, f"rerun.sh 起不来：{e}"
+    timed_out = False
     try:
         out, err = p.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
         os.killpg(p.pid, signal.SIGKILL)
         out, err = p.communicate()
         timed_out = True
-    else:
-        timed_out = False
+    except BaseException:
+        # Ctrl-C / SIGTERM：rerun.sh 在自己的进程组里，不杀会留在后台
+        try:
+            os.killpg(p.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        raise
     with open(os.path.join(out_dir, "pr-gate-rerun.log"), "wb") as f:
         f.write(b"== stdout\n" + out + b"\n== stderr\n" + err)
     if timed_out:
@@ -443,6 +458,10 @@ def parse_commits_file(path):
     return commits
 
 
+def _on_sigterm(signum, frame):
+    raise SystemExit(2)
+
+
 def main(argv):
     ap = argparse.ArgumentParser(
         prog="pr-gate",
@@ -469,6 +488,7 @@ def main(argv):
     if args.timeout <= 0:
         ap.error("--timeout 要大于 0")
 
+    signal.signal(signal.SIGTERM, _on_sigterm)
     try:
         if offline:
             if not re.fullmatch(r"[0-9a-fA-F]{40}", args.head_sha):
@@ -482,15 +502,18 @@ def main(argv):
             tree = LocalTree(args.tree_dir)
             print(f"pr-gate {args.repo}#{args.pr} head={head[:12]} （离线演练）")
         else:
-            pr = gh_json(["pr", "view", str(args.pr), "--repo", args.repo, "--json", "headRefOid,body,commits"])
+            pr = gh_json(["pr", "view", str(args.pr), "--repo", args.repo, "--json", "headRefOid,body"])
             head = pr["headRefOid"].lower()
             body = pr.get("body") or ""
-            commits = []
-            for c in pr.get("commits") or []:
-                msg = c.get("messageHeadline", "")
-                if c.get("messageBody"):
-                    msg += "\n\n" + c["messageBody"]
-                commits.append((c["oid"][:12], msg))
+            p = run(["gh", "api", "--paginate", f"repos/{args.repo}/pulls/{args.pr}/commits",
+                     "--jq", ".[] | {sha, message: .commit.message}"])
+            if p.returncode != 0:
+                raise GateError(f"gh api 取提交失败：{p.stderr.decode(errors='replace').strip()[-200:]}")
+            commits = [(c["sha"][:12], c["message"]) for c in map(json.loads, p.stdout.decode().splitlines())]
+            if not commits:
+                raise GateError("gh 没返回任何提交")
+            if len(commits) >= 250:
+                raise GateError(f"PR 有 {len(commits)} 个提交，GitHub 接口最多给 250 个，查不全")
             print(f"pr-gate {args.repo}#{args.pr} head={head[:12]}")
             sys.stdout.flush()
             tree = GhTree(args.repo, head)
@@ -516,7 +539,7 @@ def main(argv):
         sys.stdout.flush()
         print(f"pr-gate: 出错，不是检查结果：{e}", file=sys.stderr)
         return 2
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError) as e:
+    except Exception as e:
         sys.stdout.flush()
         print(f"pr-gate: 出错，不是检查结果：{type(e).__name__}: {e}", file=sys.stderr)
         return 2

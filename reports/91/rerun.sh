@@ -32,7 +32,7 @@ status_of(){ awk -v c="$2" '($1=="PASS"||$1=="FAIL") && $2==c {print $1; f=1; ex
 # E2E：真 PR，只断言 gate 正常跑完（退出 0/1、六项都有、有 RESULT 行），各项结果记在 detail
 for pr in $REAL_PRS; do
   o=$OUT/raw/real_pr$pr.txt
-  "$GATE" --repo zhongc1211/ops "$pr" > "$o" 2>&1; rc=$?
+  python3 -I "$GATE" --repo zhongc1211/ops "$pr" > "$o" 2>&1; rc=$?
   ok=1; d="rc=$rc"
   case $rc in 0|1) ;; *) ok=0 ;; esac
   for c in $CHECKS; do
@@ -57,7 +57,7 @@ for cdir in "$FX"/cases/*/; do
   expect=$(tr -d ' \n' < "$w/expect")
   o=$OUT/raw/drill_$name.txt
   # shellcheck disable=SC2086  # 参数里没有空格，按词拆开
-  HOME=$w/home "$GATE" $a > "$o" 2>&1; rc=$?
+  HOME=$w/home python3 -I "$GATE" $a > "$o" 2>&1; rc=$?
   ok=1; d="rc=$rc expect=$expect"
   if [ "$expect" = exit2 ]; then
     [ $rc = 2 ] || ok=0
@@ -71,10 +71,16 @@ for cdir in "$FX"/cases/*/; do
       [ "$s" = "$want" ] || { ok=0; d="$d $c=$s(want $want)"; }
     done
   fi
+  # want_text：每行一段必须出现在输出里的文字（证明 FAIL/PASS 的原因对，不只是状态对）
+  if [ -f "$w/want_text" ]; then
+    while IFS= read -r t; do
+      [ -n "$t" ] && { grep -qF -- "$t" "$o" || { ok=0; d="$d missing-text:$t"; }; }
+    done < "$w/want_text"
+  fi
   if [ $ok = 1 ]; then rec "drill_$name" PASS "$d"; else rec "drill_$name" FAIL "$d"; fi
 done
 
-shasum -a 256 "$R" > "$OUT/results.sha256"
+if command -v shasum >/dev/null; then shasum -a 256 "$R"; else sha256sum "$R"; fi > "$OUT/results.sha256"
 echo "out=$OUT"
 if [ $total = 0 ]; then code=3; elif [ $pass = $total ]; then code=0; else code=1; fi
 echo "RERUN pr=$N head=$HEAD pass=$pass total=$total"

@@ -22,6 +22,9 @@
 | A13 | `--run`：rerun.sh 退出 1 | `run_exit1` | 只有 RERUN FAIL |
 | A14 | `--run`：total=0 | `run_total0` | 只有 RERUN FAIL |
 | A15 | `--run`：RERUN 行的 head 不是 PR head | `run_head_mismatch` | 只有 RERUN FAIL |
+| A16 | 「Claude/Codex」这种斜杠连着的工具名漏掉（评审后补，第一版边界把 `/` 当成路径） | `body_slash_tools` | 只有 NO_AI_ATTRIBUTION FAIL |
+
+各用例可带 `want_text`：输出里必须出现的原因文字。`run_*` 四个都要求出现「跑了 rerun.sh」，这样没真跑的 gate 过不了 `run_pass`。
 
 ## B. gate 不该拦的（构造输入，演练）
 
