@@ -9,7 +9,7 @@ description: 叫醒系统（notify-run、orca-wake、orca-agent-launch、stuck-c
 
 ## 1. 这次改动要不要跑
 
-跑，如果 diff 碰到下面任何一处（行号是建模时的，代码变了以 `SOURCES.sha256` 不一致为准）：
+跑，如果 diff 碰到下面任何一处（代码变了以 `SOURCES.sha256` 不一致为准，这时 `check.sh` 直接失败，不跑 TLC）：
 
 | 代码 | 模型里的位置 |
 |---|---|
@@ -17,12 +17,13 @@ description: 叫醒系统（notify-run、orca-wake、orca-agent-launch、stuck-c
 | `wake/bin/orca-wake` 的 `dispatch_send`、`_send_now`（`ok = ...`、重试、`_mark_sent`、`mark_woken`）、`cmd_claude_hook` 的 Stop / idle_prompt、`cmd_recheck` / `candidate` / `_recheck_idle` | `AgentPause`、`OwAttempt`、`IdlePrompt`、`RecheckOW`/`RecheckKnown` |
 | `wake/pi/dispatch-wake.ts` 什么时候调 `orca-wake send` | `AgentPause`（同一条 idle 去重路径） |
 | `wake/bin/orca-agent-launch` 是否还强制 `notify-run --tty` | 模型前提：每个任务都经 notify-run 起 |
-| `wake/bin/orca-agent-launch` 的 `wake_reject`、`wake/bin/notify-run` 的 `start_watch` / `agent_started`（agent 没起来时叫醒） | `Launch.tla` 的 `RejectWake`、`WatchWake`（P6） |
-| `scripts/stuck-check.sh`：`post`、`send_all`（`broken`）、`check_agents` 里 agent_gone / agent_idle / 主目录 `main_seen`、`wake_recheck` 结果处理（`known[key]`）、`check_reported`（1 小时、放行干净工作区）、`gate`、`heartbeat`、`take_lock`、`main()` 的异常处理 | `Gone`、`IdleCand`、`RepCand`、`Scan`；`Heartbeat.tla` 的 `GateOpen`/`PrintsHB`/`nScan` |
-| `scripts/heartbeat-watch.sh` 的阈值和判断（`age > max`、`scan_age`、`UNREACH_MIN`、`alerted`） | `Heartbeat.tla` `Down`、`WatchNow` |
+| `wake/bin/orca-agent-launch` 的 `wake_reject`、启动前检查（`die`）、`wake/bin/notify-run` 的 `start_watch` / `agent_started`（agent 没起来时叫醒） | `Launch.tla` 的 `RejectWake`、`WatchWake`（P6） |
+| `scripts/stuck-check.sh`：`post`、`send_all`（`broken`）、`check_agents` 里 agent_gone / agent_idle / 主目录 `main_seen`、`wake_recheck` 结果处理（`known[key]`）、`check_reported`（1 小时、放行干净工作区）、`gate`、`heartbeat`、`take_lock`、`main()` 的异常处理、扫描时长防护（`STUCK_ORCA_CALL_TIMEOUT_S`、`STUCK_SCAN_BUDGET_S`、`scan_slow`） | `Gone`、`IdleCand`、`RepCand`、`Scan`、`CutChoices`；`Heartbeat.tla` 的 `GateOpen`/`PrintsHB`/`nDone`/`nSlow` |
+| `scripts/heartbeat-watch.sh` 的阈值和判断（`age > max`、`scan_age`、`UNREACH_MIN`、`alerted`）、收件 `BOT`、`post()` | `Heartbeat.tla` `Down`、`Step`、`HookOK` |
+| `scripts/agent-probe` 的 `wrapped_exit` 和 wake 字段 | `Wake.tla` `Gone`（主目录退出） |
 | 自动任务 ops · 01（439cd438）/ ops · 29（94e4b0bc、5c2d0575）的 precheck、`timeoutSeconds`、rrule | `Heartbeat.tla` 常量 `PRE_TIMEOUT`、`WATCH_EVERY`、`HB_MAX` |
 
-只改日志文案、注释、`agent-stop`、`orca-wake-hooks`（只要 hook 列表没变）、payload 里不影响判断的字段，不用跑。
+只改日志文案、注释、`agent-stop`、`orca-wake-hooks`（只要 hook 列表没变）、payload 里不影响判断的字段，模型不用改；但这些文件在 `SOURCES.sha256` 里的，哈希变了 `check.sh` 就失败，要对完改动后更新 `SOURCES.sha256`（第 4 节）。
 
 ## 2. 跑
 
@@ -34,11 +35,13 @@ wake/tla/check.sh w0 h0           # 只跑名字以 w0、h0 开头的（P2、P3�
 
 要先装好 Java 17 和 tla2tools.jar v1.7.4（README「安装」，装在 `~/.local/opt/`，不用 sudo）。脚本自己守资源：每次 `-workers 2 -Xmx1500m`、`timeout 1200`，可用内存 < 2G 或 load > 8 先等 5 分钟。TLC 原文在 `wake/tla/out/<名字>.out`，汇总 `wake/tla/out/summary.tsv`。
 
-退出码 0 = 每个检查都和 `check.sh` 表里的「期望」一致。注意「期望 violated」有两种：`*_mutant` 是故意改坏的变体（证明这条性质查得出问题），其余是**现有代码的已知发现**（README「发现」）。所以 0 不等于「叫醒系统没问题」，只等于「和上次记录的一样」。
+开跑前先比对 `SOURCES.sha256`（在找 Java 之前）：对不上、文件缺失、SOURCES 少了某个文件或格式不对，打印 `FAIL` 和不符的文件，退出码 1，不跑 TLC，没有跳过开关。
+
+退出码 0 = 哈希一致，且每个检查都和 `check.sh` 表里的「期望」一致；1 = 哈希不符或有检查和期望不一致；2 = 环境或资源问题。注意「期望 violated」有两种：`*_mutant` 是故意改坏的变体（证明这条性质查得出问题），其余是**现有代码的已知发现**（README「发现」）。所以 0 不等于「叫醒系统没问题」，只等于「和上次记录的一样」。
 
 ## 3. 结果变了怎么办
 
-先看开头有没有「模型对应的代码和建模时不一样了」：有就先做第 4 步，否则结果没意义。
+开头打印 `FAIL：模型对应的代码和建模时不一样了` 时 TLC 没有跑：先做第 4 步。
 
 - **期望 pass、变成 violated**：TLC 输出里 `Error: Invariant ... is violated` 或 `Temporal properties were violated` 下面是反例，一串 `State n: <动作名 ...>`。逐步对着 README「动作 ↔ 代码」表翻成代码的话（哪个进程、哪一行、webhook 当时通不通）。
   - 每一步都能在改过的代码里真的发生 → 真 bug，报出来（反例按「1. agent 停下 2. hook 发三次都 500 ……」写），不要改模型让它通过。
@@ -53,7 +56,7 @@ wake/tla/check.sh w0 h0           # 只跑名字以 w0、h0 开头的（P2、P3�
 1. `git diff` 看改动落在第 1 节表里哪个动作。
 2. 改 `Wake.tla` / `Heartbeat.tla` 对应动作，动作上方注释里的 `文件:行号` 一起改对（用 `grep -n` 找新行号）。一个动作只能是代码里一步不可分的事；新加的重试、分支、状态文件要有对应变量。
 3. 新的判断要能失败：给它加一个 `Mutant` 分支（模拟删掉这行检查），在 `cfg/` 加一份 `*_mutant.cfg`、在 `check.sh` 表里加一行「期望 violated」，跑一次看到它失败。
-4. `sha256sum <8 个文件> > wake/tla/SOURCES.sha256`（文件列表就是现在那份的第二列），再跑 `wake/tla/check.sh` 到退出码 0。
+4. `sha256sum <9 个文件> > wake/tla/SOURCES.sha256`（文件列表就是现在那份的第二列，`check.sh` 里也写了一份，加文件两边一起改），再跑 `wake/tla/check.sh` 到退出码 0。
 5. 结果和 README「结果」表不同的，更新 README。
 
 ## 5. 不要做

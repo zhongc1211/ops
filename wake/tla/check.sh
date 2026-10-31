@@ -4,7 +4,7 @@
 #   不带名字：全部跑；带前缀（如 w15 h0）：只跑名字以它开头的。
 #   每个检查的 TLC 原文写到 DIR/<名字>.out（默认 wake/tla/out，已在 .gitignore），汇总写 DIR/summary.tsv。
 # 期望：pass = TLC 跑完没发现错误；violated = TLC 报性质被违反（现有代码的发现，或故意改坏的变体）。
-# 退出码：0 全部和期望一致；1 有不一致（结果变了：先读 README「结果变了怎么办」）；2 环境问题（没装 Java/TLA+、资源不够）。
+# 退出码：0 全部和期望一致；1 有不一致（结果变了：先读 README「结果变了怎么办」），或被建模的代码和 SOURCES.sha256 对不上（这时不跑 TLC）；2 环境问题（没装 Java/TLA+、资源不够）。
 # 资源：每次 -workers 2、-Xmx1500m、timeout 1200 秒；开跑前可用内存 < 2G 或 load > 8 就等 5 分钟（最多等 3 次）。
 # 工具（装在用户目录，见 README「安装」）：TLA_JAVA、TLA_JAR 可改路径。
 set -u
@@ -46,29 +46,53 @@ RUNS=(
   "w15_p5             MC pass     P5 一个 bot 的 webhook 坏了只挡发给它自己的（F5 已修）"
   "w15b_p5_hol_mutant MC violated P5 改坏（F5、F4 修之前的 send_all）：一个 bot 坏了挡住 Coding助手 的叫醒"
   "w16_p5_fixed       MC pass     P5 假设修法 no_hol"
+  "w17_p1h_cut        MC pass     P1h 扫描最多 2 次没判断到任务（PER-82）：下次接着查，最终有人收到"
+  "w17a_p1_cut        MC pass     P1 同上，派活 bot 一直坏"
+  "w18_p4_cut1        MC violated P4 扫描 1 次没判断到任务，下一次赶上主目录 agent 刚退出、notify-run 还在重试：1 小时到不了（发现 F12）"
+  "w18b_p4_cut1_task  MC pass     P4 同上只看任务工作区：截断 1 次仍然 1 小时内到"
+  "w18a_p4_cut2       MC violated P4 扫描 2 次没判断到任务：1 小时到不了（PER-82 之后 P4 的余量）"
+  "w19_p1h_cut_forever MC violated P1h 每次都截断时排在后面的工作区一直没判断（发现 F9，第一类阶段内没有游标）"
+  "w20_p1h_skip_dismiss_mutant MC violated P1h 改坏：跳过时记成已处理，不留着下次查"
   "h01_p3_dead        Heartbeat pass     P3 自动任务不跑 / Orca 挂了：会告警，且 75 分钟内"
   "h02_p3_dead_mutant Heartbeat violated P3 改坏：查不到运行记录时不报"
   "h03_p3_hang        Heartbeat pass     P3 每次扫描超时被杀：会告警，且 75 分钟内（F7 已修：last_scan = 上次跑完的扫描）"
   "h04_p3_crash       Heartbeat pass     P3 每次扫描出错：会告警，且 75 分钟内（F8 已修）"
   "h05_p3_hang_mutant Heartbeat violated P3 改坏（修之前的代码）：last_scan 取扫描开始时间，超时被杀不告警"
   "h06_p3_crash_mutant Heartbeat violated P3 改坏（修之前的代码）：last_scan 取扫描开始时间，出错不告警"
+  "h07_p3_cut         Heartbeat pass     P3 每次扫描都到整轮时限：last_scan 照样前进，靠 scan_slow 告警（PER-82）"
+  "h08_p3_cut_mutant  Heartbeat violated P3 改坏：去掉 scan_slow，每次截断没人知道"
+  "h09_pw_peer        Heartbeat pass     看守机下线：盯它的那条报出来（iMac 5c2d0575 启用时）"
+  "h10_pw_no_peer     Heartbeat violated 看守机下线没人盯（发现 F11，10-31 现网 5c2d0575 停用）"
+  "h11_p3_alert_on_target Heartbeat violated P3 告警的 webhook 在被盯的 iMac 上：iMac 整台没了发不出去（发现 F10）"
+  "h12_p3w_down_peer  Heartbeat pass     看守机下线且扫描坏了（hang/crash/cut）：有人收到"
+  "h13_p3w_double_fault Heartbeat violated 看守机下线且 iMac Orca 挂了：两边一起没，没人知道（B1 已知限制）"
   "l01_p6             Launch    pass     P6 agent 没起来（被拒 / 一直没有第 1 个回合）：一定有 bot 收到，且 START+1 分钟内（第 6 组）"
   "l02_p6_old_mutant  Launch    violated P6 改坏（修之前的代码）：两处都不叫醒"
   "l03_p6_no_fallback_mutant Launch violated P6 改坏：只发派活 bot，发不出去不改发 Coding助手"
+  "l04_p6_pre_silent_mutant Launch violated P6 改坏：启动前检查没过时直接退出，不叫醒（PER-80）"
 )
+
+# 被建模的代码变了没有：变了模型就是过期的，结果没有意义，直接失败，不跑 TLC。
+# --strict：SOURCES.sha256 里有格式不对的行也算失败。文件不存在、读不了时 sha256sum 本身非 0。
+if ! drift=$(cd "$repo" && sha256sum -c --quiet --strict "$here/SOURCES.sha256" 2>&1); then
+    echo "check.sh: FAIL：模型对应的代码和建模时不一样了（SOURCES.sha256），不跑 TLC："
+    echo "$drift" | sed 's/^/  /'
+    echo "  按 README「代码变了怎么办」对一遍行号和动作，再更新 SOURCES.sha256。"
+    exit 1
+fi
+# 删掉 SOURCES 里的一行不能让对应的文件脱离比对。
+for f in wake/bin/notify-run wake/bin/orca-agent-launch wake/bin/orca-wake wake/bin/orca-wake-hooks wake/bin/agent-stop \
+         wake/pi/dispatch-wake.ts scripts/stuck-check.sh scripts/heartbeat-watch.sh scripts/agent-probe; do
+    grep -qE "^[0-9a-f]{64}  $f\$" "$here/SOURCES.sha256" || {
+        echo "check.sh: FAIL：SOURCES.sha256 里没有 ${f}，不跑 TLC。"
+        exit 1
+    }
+done
 
 [ -x "$JAVA" ] || { echo "check.sh: 找不到 Java：${JAVA}（见 README「安装」）" >&2; exit 2; }
 [ -r "$JAR" ] || { echo "check.sh: 找不到 tla2tools.jar：${JAR}（见 README「安装」）" >&2; exit 2; }
 jar_sha=$(sha256sum "$JAR" | cut -c1-64)
 [ "$jar_sha" = "$JAR_SHA" ] || echo "check.sh: 注意：tla2tools.jar 的 sha256 不是 v1.7.4（${jar_sha}），结果可能和记录的不同" >&2
-
-# 被建模的代码变了没有：变了就要先对一遍模型（README「代码变了怎么办」），结果照常跑出来。
-drift=$(cd "$repo" && sha256sum -c --quiet "$here/SOURCES.sha256" 2>&1)
-if [ -n "$drift" ]; then
-    echo "check.sh: 注意：模型对应的代码和建模时不一样了（SOURCES.sha256）："
-    echo "$drift" | sed 's/^/  /'
-    echo "  模型可能已经过时：按 README「代码变了怎么办」对一遍行号和动作，再更新 SOURCES.sha256。"
-fi
 
 wait_resources() {
     local n=0 avail load
@@ -103,7 +127,9 @@ for r in "${RUNS[@]}"; do
     rc=$?
     secs=$(( $(date +%s) - t0 ))
     rm -rf "$meta"
-    if grep -q "No error has been found" "$out/$name.out"; then result=pass
+    # TypeOK、NoFalseAlarm 是模型自身的约束，不是任何检查要找的违反，算 error，不能冒充「期望 violated」。
+    if grep -qE "Invariant (TypeOK|NoFalseAlarm) is violated" "$out/$name.out"; then result=error
+    elif grep -q "No error has been found" "$out/$name.out"; then result=pass
     elif grep -qE "is violated|Temporal properties were violated" "$out/$name.out"; then result=violated
     elif [ $rc = 124 ]; then result=timeout
     else result=error; fi

@@ -4,19 +4,19 @@
 (* 文件:行号（行号对应 wake/tla/README.md 里记的 commit 和 sha256）。     *)
 (*                                                                         *)
 (* 一个「任务」= orca-agent-launch 经 notify-run --tty 起的一个 agent 会话  *)
-(* （wake/bin/orca-agent-launch:77-79,131）。每个任务在模型里只停一次：     *)
+(* （wake/bin/orca-agent-launch:130,183,185）。每个任务在模型里只停一次：     *)
 (* 停在输入框（paused）或退出（exited），之后可以从 paused 再退出。         *)
 (* 叫醒有四条路：                                                          *)
-(*   NR  notify-run 退出时 POST（wake/bin/notify-run:119-131）             *)
+(*   NR  notify-run 退出时 POST（wake/bin/notify-run:118-161）             *)
 (*   OW  orca-wake 的 Stop / idle_prompt hook，detached _deliver 进程发     *)
-(*       （wake/bin/orca-wake:724-739,764-779,370-423,475-554）            *)
+(*       （wake/bin/orca-wake:734-749,774-789,370-423,475-556）            *)
 (*   RC  卡住检查调 orca-wake recheck 补叫醒（scripts/stuck-check.sh:      *)
-(*       996-1002,1027-1069 + orca-wake:990-1014），和 OW 共用去重键      *)
-(*   SC  卡住检查自己 POST：agent_gone 给派活 bot（stuck-check.sh:1057-1071,  *)
-(*       1599-1625），「报了没人验收」给 Coding助手（:1739-1757,1374-1468） *)
+(*       1235-1258,1267-1321 + orca-wake:1000-1024），和 OW 共用去重键    *)
+(*   SC  卡住检查自己 POST：agent_gone 给派活 bot（stuck-check.sh:1197-1207,  *)
+(*       1768-1795），「报了没人验收」给 Coding助手（:1944-1963,1986-1998,1522-1626） *)
 (*                                                                         *)
-(* 时间：一个 Tick = 15 分钟 = 一次卡住检查扫描（stuck-check.sh:141        *)
-(* INTERVAL_MIN，闸门 :1694）。一次 POST 连重试都在 1～2 分钟内（notify-run 20s+45s，   *)
+(* 时间：一个 Tick = 15 分钟 = 一次卡住检查扫描（stuck-check.sh:153        *)
+(* INTERVAL_MIN，闸门 :2107）。一次 POST 连重试都在 1～2 分钟内（notify-run 20s+45s，   *)
 (* orca-wake 20s+45s，stuck-check 5/15/45s），所以 Tick 要等在途的发送都结束 *)
 (* 才走。webhook 是否可用用 up[b] 表示，随时可以变；down 时每次 POST 返回 *)
 (* 0（curl 000 / 超时 / 连不上）或 500。                                    *)
@@ -25,12 +25,12 @@ EXTENDS Naturals, FiniteSets, Sequences
 
 CONSTANTS
     NT,            \* 任务数
-    NR_TRIES,      \* notify-run 的 NOTIFY_RUN_TRIES，默认 3（notify-run:119）
-    OW_TRIES,      \* orca-wake 非限流失败的总次数 = 1 + len(RETRY_DELAYS "20,45") = 3（orca-wake:79,539-543）
-    GONE_TICKS,    \* STUCK_GONE_MIN 10 分钟 → 至少 1 个 Tick（stuck-check.sh:115,1065）
-    IDLE_TICKS,    \* STUCK_IDLE_MIN 30 分钟 → 2 个 Tick（stuck-check.sh:114,1073；orca-wake --idle-min 30）
-    ACCEPT_TICKS,  \* 「标完成超过 1 小时」→ 4 个 Tick（stuck-check.sh:112 THRESH_H，check_reported）
-    FULL_TICKS,    \* 第二类约每小时查一次：NOW - last_full >= 55 分钟 → 每 4 次扫描（stuck-check.sh:1739）
+    NR_TRIES,      \* notify-run 的 NOTIFY_RUN_TRIES，默认 3（notify-run:146）
+    OW_TRIES,      \* orca-wake 非限流失败的总次数 = 1 + len(RETRY_DELAYS "20,45") = 3（orca-wake:79,541-545）
+    GONE_TICKS,    \* STUCK_GONE_MIN 10 分钟 → 至少 1 个 Tick（stuck-check.sh:127,1205）
+    IDLE_TICKS,    \* STUCK_IDLE_MIN 30 分钟 → 2 个 Tick（stuck-check.sh:126,1213；orca-wake --idle-min 30）
+    ACCEPT_TICKS,  \* 「标完成超过 1 小时」→ 4 个 Tick（stuck-check.sh:124 THRESH_H，check_reported）
+    FULL_TICKS,    \* 第二类约每小时查一次：NOW - last_full >= 55 分钟 → 每 4 次扫描（stuck-check.sh:1883）
     LATE_TICKS,    \* P4 的「超过 1 小时」：停下后第 5 个 Tick 起（60～75 分钟）
     CAP,           \* 计数器封顶，保持状态有限
     CA_ALWAYS_UP,  \* TRUE：Coding助手 的 webhook 一直可用（P4 用）
@@ -42,17 +42,19 @@ CONSTANTS
     MayPause,      \* 哪些任务可以停在输入框（场景限制，Tasks = 不限）
     MayComplete,   \* 哪些任务可以标 completed（场景限制，Tasks = 不限）
     HASWORK,       \* 任务工作区做完后有没有要验收的东西（PR / 提交 / 改动）的可选值
-    FailCodes      \* webhook 不可用时一次 POST 的 http：0 = curl 000 / 超时 / 连不上，500 = 非 2xx
+    FailCodes,     \* webhook 不可用时一次 POST 的 http：0 = curl 000 / 超时 / 连不上，500 = 非 2xx
+    CUT_MAX        \* 最多几次扫描没判断到任务（PER-82），0 = 不截断；CUT_FOREVER = 每次都可能
 
 CA   == "coding-assistant"
 Bots == {"ops-bot", CA}
 Tasks == 1..NT
 OK == 200
+CUT_FOREVER == 99
 
 VARIABLES
     disp,      \* 每个任务的派活 bot（--bot），整个行为里不变
     work,      \* 任务工作区有要验收的东西（PR、本地提交或未提交改动）；整个行为里不变
-    kind,      \* "task" = 任务工作区；"main" = ops 主目录里按终端查的 agent（stuck-check.sh:883-919）
+    kind,      \* "task" = 任务工作区；"main" = ops 主目录里按终端查的 agent（stuck-check.sh:1000-1044）
     agent,     \* "running" | "paused" | "exited"
     ws,        \* 工作区看板状态 "in-progress" | "completed"
     up,        \* 每个 bot 的 webhook 现在能不能收（2xx）
@@ -68,10 +70,11 @@ VARIABLES
     age,       \* 停下后过了几个 Tick（封顶 CAP）
     cage,      \* 标 completed 后过了几个 Tick
     fullAge,   \* 距上次第二类检查几个 Tick
-    scanned    \* 这个 Tick 里已经扫描过
+    scanned,   \* 这个 Tick 里已经扫描过
+    cutLeft    \* 还能有几次扫描没判断到任务
 
 vars == <<disp, work, kind, agent, ws, up, nr, ow, idlep, woken, known, scLast, seen2, esc,
-          accepted, age, cage, fullAge, scanned>>
+          accepted, age, cage, fullAge, scanned, cutLeft>>
 
 Inc(x) == IF x < CAP THEN x + 1 ELSE x
 Codes(b) == IF up[b] THEN {OK} ELSE FailCodes
@@ -107,45 +110,46 @@ Init ==
     /\ cage = [t \in Tasks |-> 0]
     /\ fullAge \in FULL0
     /\ scanned = FALSE
+    /\ cutLeft = CUT_MAX
 
 NewJob(src) == [ph |-> "inflight", n |-> 0, src |-> src, last |-> 0]
 
 (* ---------------------------------------------------------------- agent *)
 
 (* Claude 回合结束，停在输入框。Stop hook：没有后台任务、没有排队的后续回合时 *)
-(* 建 idle 任务（orca-wake:724-739），dispatch_send 认领去重键并起 detached   *)
+(* 建 idle 任务（orca-wake:734-749），dispatch_send 认领去重键并起 detached   *)
 (* 发送进程（orca-wake:370-423）。有后台任务 / queued_followup / hook 没跑到时 *)
-(* 不发（orca-wake:731-736），用 hookFired = FALSE 表示。                    *)
+(* 不发（orca-wake:741-746），用 hookFired = FALSE 表示。                    *)
 AgentPause(t) ==
     /\ agent[t] = "running" /\ t \in MayPause
     /\ agent' = [agent EXCEPT ![t] = "paused"]
     /\ \E hookFired \in BOOLEAN :
          ow' = [ow EXCEPT ![t] = IF hookFired THEN NewJob("hook") ELSE @]
     /\ age' = [age EXCEPT ![t] = 0]
-    /\ UNCHANGED <<disp, work, kind, ws, up, nr, idlep, woken, known, scLast, seen2, esc, accepted, cage, fullAge, scanned>>
+    /\ UNCHANGED <<disp, work, kind, ws, up, nr, idlep, woken, known, scLast, seen2, esc, accepted, cage, fullAge, scanned, cutLeft>>
 
 (* agent 进程退出（做完 /exit、崩溃、被 kill）。notify-run 的 wait 返回        *)
-(* （notify-run:196-205），EXIT trap → finish → send_webhook（notify-run:144-158）。*)
+(* （notify-run:259-268），EXIT trap → finish → send_webhook final（notify-run:199-214）。*)
 AgentExit(t) ==
     /\ agent[t] \in {"running", "paused"}
     /\ agent' = [agent EXCEPT ![t] = "exited"]
     /\ nr' = [nr EXCEPT ![t] = [ph |-> "sending", n |-> 0, last |-> 0]]
     /\ age' = [age EXCEPT ![t] = IF agent[t] = "running" THEN 0 ELSE @]
-    /\ UNCHANGED <<disp, work, kind, ws, up, ow, idlep, woken, known, scLast, seen2, esc, accepted, cage, fullAge, scanned>>
+    /\ UNCHANGED <<disp, work, kind, ws, up, ow, idlep, woken, known, scLast, seen2, esc, accepted, cage, fullAge, scanned, cutLeft>>
 
 (* agent 做完时把任务工作区标 completed（之后再停下 / 退出）。              *)
 MarkCompleted(t) ==
     /\ agent[t] = "running" /\ kind[t] = "task" /\ ws[t] = "in-progress" /\ t \in MayComplete
     /\ ws' = [ws EXCEPT ![t] = "completed"]
     /\ cage' = [cage EXCEPT ![t] = 0]
-    /\ UNCHANGED <<disp, work, kind, agent, up, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted, age, fullAge, scanned>>
+    /\ UNCHANGED <<disp, work, kind, agent, up, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted, age, fullAge, scanned, cutLeft>>
 
 (* ---------------------------------------------------------------- notify-run *)
 
-(* 一次 curl POST。notify-run:122-130：http=$(curl ... -w '%{http_code}')；     *)
-(* log_send 写一行 http=...（:126）；case "$http" in 2??) exit 0（:127）；       *)
-(* 第 NOTIFY_RUN_TRIES 次还不行 exit 1（:128）。                               *)
-(* Mutant "nr_any_http"：把 :127 的模式 2?? 换成 ?* ，任何非空（含 000）都算成功。 *)
+(* 一次 curl POST。notify-run:148-158：http=$(curl ... -w '%{http_code}')；     *)
+(* log_send 写一行 http=...（:155）；case "$http" in 2??) exit 0（:156）；       *)
+(* 第 NOTIFY_RUN_TRIES 次还不行 exit 1（:157）。                               *)
+(* Mutant "nr_any_http"：把 :156 的模式 2?? 换成 ?* ，任何非空（含 000）都算成功。 *)
 NrAttempt(t) ==
     /\ nr[t].ph = "sending"
     /\ \E code \in Codes(disp[t]) :
@@ -154,14 +158,14 @@ NrAttempt(t) ==
          IN /\ nr' = [nr EXCEPT ![t] = [ph |-> IF ok THEN "ok" ELSE IF n1 >= NR_TRIES THEN "failed" ELSE "sending",
                                         n |-> n1, last |-> code]]
             /\ accepted' = [accepted EXCEPT ![t] = IF code = OK THEN @ \cup {disp[t]} ELSE @]
-    /\ UNCHANGED <<disp, work, kind, agent, ws, up, ow, idlep, woken, known, scLast, seen2, esc, age, cage, fullAge, scanned>>
+    /\ UNCHANGED <<disp, work, kind, agent, ws, up, ow, idlep, woken, known, scLast, seen2, esc, age, cage, fullAge, scanned, cutLeft>>
 
 (* ---------------------------------------------------------------- orca-wake *)
 
-(* detached 发送进程的一次 POST（orca-wake:501-554）。ok = 200<=code<300（:518）；*)
-(* ok → _mark_sent：写 sent/<sha1> 和 woken[seq]（:525-528,450-453）；         *)
-(* 不 ok 且重试用完 → log failed（:541-548），inflight 文件删掉（:442-446）。   *)
-(* Mutant "ow_any_http"：把 :518 改成 ok = code is not None（任何 HTTP 回答都算）。*)
+(* detached 发送进程的一次 POST（orca-wake:501-556）。ok = 200<=code<300（:520）；*)
+(* ok → _mark_sent：写 sent/<sha1> 和 woken[seq]（:527-529,450-463）；         *)
+(* 不 ok 且重试用完 → log failed（:545-550），inflight 文件删掉（:442-446）。   *)
+(* Mutant "ow_any_http"：把 :520 改成 ok = code is not None（任何 HTTP 回答都算）。*)
 OwAttempt(t) ==
     /\ ow[t].ph = "inflight"
     /\ \E code \in Codes(disp[t]) :
@@ -171,53 +175,53 @@ OwAttempt(t) ==
                                         n |-> n1, src |-> ow[t].src, last |-> code]]
             /\ woken' = [woken EXCEPT ![t] = IF ok THEN TRUE ELSE @]
             /\ accepted' = [accepted EXCEPT ![t] = IF code = OK THEN @ \cup {disp[t]} ELSE @]
-    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, idlep, known, scLast, seen2, esc, age, cage, fullAge, scanned>>
+    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, idlep, known, scLast, seen2, esc, age, cage, fullAge, scanned, cutLeft>>
 
-(* Claude 约 60 秒没操作发 idle_prompt（orca-wake:764-779），同一个去重键再走  *)
+(* Claude 约 60 秒没操作发 idle_prompt（orca-wake:774-789），同一个去重键再走  *)
 (* dispatch_send：sent 已有 → already_sent（:378-380）；inflight 活着 → 跳过    *)
 (* （:390-397）；否则重新认领、再发。没有公平性：idle_prompt 可能不来。      *)
 IdlePrompt(t) ==
     /\ agent[t] = "paused" /\ ~idlep[t]
     /\ idlep' = [idlep EXCEPT ![t] = TRUE]
     /\ ow' = [ow EXCEPT ![t] = IF @.ph \in {"none", "failed"} THEN NewJob("hook") ELSE @]
-    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, woken, known, scLast, seen2, esc, accepted, age, cage, fullAge, scanned>>
+    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, woken, known, scLast, seen2, esc, accepted, age, cage, fullAge, scanned, cutLeft>>
 
 (* ---------------------------------------------------------------- webhook 环境 *)
 
 WebhookDown(b) ==
     /\ up[b] /\ ~(b = CA /\ CA_ALWAYS_UP)
     /\ up' = [up EXCEPT ![b] = FALSE]
-    /\ UNCHANGED <<disp, work, kind, agent, ws, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted, age, cage, fullAge, scanned>>
+    /\ UNCHANGED <<disp, work, kind, agent, ws, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted, age, cage, fullAge, scanned, cutLeft>>
 
 WebhookUp(b) ==
     /\ ~up[b]
     /\ up' = [up EXCEPT ![b] = TRUE]
-    /\ UNCHANGED <<disp, work, kind, agent, ws, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted, age, cage, fullAge, scanned>>
+    /\ UNCHANGED <<disp, work, kind, agent, ws, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted, age, cage, fullAge, scanned, cutLeft>>
 
 (* ---------------------------------------------------------------- stuck-check *)
 
-(* 第一类 agent_gone（stuck-check.sh:1057-1071）：任务工作区 in-progress、agent 进程 *)
-(* 不在、安静超过 STUCK_GONE_MIN、agents.json 里没有记录（:952-956）。          *)
+(* 第一类 agent_gone（stuck-check.sh:1197-1207）：任务工作区 in-progress、agent 进程 *)
+(* 不在、安静超过 STUCK_GONE_MIN、agents.json 里没有记录（:1076-1081）。          *)
 (* ops 主目录（kind = "main"）里退出的 agent：包了 notify-run 的，notify-run.log 里  *)
-(* 这个终端（pane）那次退出发送明确失败了才报（:963-987 → wrapped_exit，agent-probe *)
+(* 这个终端（pane）那次退出发送明确失败了才报（:1088-1112 → wrapped_exit，agent-probe *)
 (* 带回 notify-run.log；PER-67 F2）。Mutant "main_skip"：修之前的代码，包了的一律不报。*)
 Gone(t) ==
     /\ agent[t] = "exited" /\ age[t] >= GONE_TICKS /\ known[t] = "none"
     /\ \/ kind[t] = "task" /\ ws[t] = "in-progress"
        \/ Mutant # "main_skip" /\ kind[t] = "main" /\ nr[t].ph = "failed"
 
-(* 停在输入框超过 STUCK_IDLE_MIN，交给 orca-wake recheck（stuck-check.sh:1073-1097, *)
-(* wake_recheck :553-609）。主目录不看 workspaceStatus（:883-919,923-925）。     *)
+(* 停在输入框超过 STUCK_IDLE_MIN，交给 orca-wake recheck（stuck-check.sh:1213-1240, *)
+(* wake_recheck :657-713）。主目录不看 workspaceStatus（:1000-1044,1046-1051）。  *)
 IdleCand(t) ==
     /\ agent[t] = "paused" /\ age[t] >= IDLE_TICKS /\ known[t] = "none"
     /\ (kind[t] = "main" \/ ws[t] = "in-progress")
 
-(* 第二类「报了没人验收」（check_reported，stuck-check.sh:1374-1468；合并成一条 *)
-(* 发 Coding助手，cfg "stuck"，:1739-1757）：completed、标完成超过 1 小时、agent *)
+(* 第二类「报了没人验收」（check_reported，stuck-check.sh:1522-1626；合并成一条 *)
+(* 发 Coding助手，cfg "stuck"，:1986-1998）：completed、标完成超过 1 小时、agent *)
 (* 没在工作。「已验收」在模型里 = 有 bot 收到过这次停下（假设收到的 bot 一小时内 *)
 (* 会 review / 评论 / 归档）。                                                 *)
 (* 工作区干净、没有本地提交、没有 PR 的（work = FALSE）：只在最后一次停下送达过    *)
-(* 叫醒时放行（:1344-1356，GIT_FACTS 里的 WAKEPY :1183-1229 读 orca-wake 会话的     *)
+(* 叫醒时放行（:1607-1625，GIT_FACTS 里的 WAKEPY :1439-1485 读 orca-wake 会话的     *)
 (* woken[turn] 和之后 notify-run 的 2xx；PER-67 F3）。代码只认 orca-wake / notify-run *)
 (* 的送达，比 accepted 窄（不认 stuck-check 自己的 agent_gone），只会多报不会少报， *)
 (* 所以模型里按 accepted = {} 才报。                                            *)
@@ -252,12 +256,12 @@ EscCand(t) ==
     /\ \/ disp[t] # CA /\ ScTries(t)
        \/ Mutant \notin {"slow_escalate", "clean_pass"} /\ kind[t] = "task" /\ ws[t] = "completed"
 
-(* recheck 的结果（orca-wake cmd_recheck :938-987，candidate :893-910）：         *)
-(*   woken 有这次停顿 → already_woken → stuck-check 记 dismissed（:1161-1163）；  *)
-(*   去重键 inflight → skip (inflight)（:1019-1022）→ 下次再查（:1176-1177）；      *)
-(*   否则打印 "send idle" 并 gate_and_send（:1013-1014）→ 新的 detached 发送任务。   *)
-(* stuck-check 看到 "send" 只记 known[key] = {handed: NOW, via: orca-wake}（:1051-1068），*)
-(* 不算叫醒过；带 handed 的 key 下次扫描不跳过（:952-956），再 recheck：送达过就是     *)
+(* recheck 的结果（orca-wake cmd_recheck :948-997，candidate :903-920）：         *)
+(*   woken 有这次停顿 → already_woken → stuck-check 记 dismissed（:1305-1307）；  *)
+(*   去重键 inflight → skip (inflight)（orca-wake:1019-1022）→ 下次再查（stuck-check:1320-1321）； *)
+(*   否则打印 "send idle" 并 gate_and_send（orca-wake:1023-1024）→ 新的 detached 发送任务。   *)
+(* stuck-check 看到 "send" 只记 known[key] = {handed: NOW, via: orca-wake}（:1293-1295），*)
+(* 不算叫醒过；带 handed 的 key 下次扫描不跳过（:1079），再 recheck：送达过就是     *)
 (* already_woken → dismissed，发送失败就重新认领同一个去重键再发（PER-67 F1）。        *)
 (* 模型里 known 保持 none 即「下次再 recheck」。                                      *)
 (* Mutant "sc_handoff"：修之前的代码，看到 send 就记 notified，之后一直跳过。          *)
@@ -272,21 +276,37 @@ RecheckKnown(t) ==
     ELSE IF Mutant # "sc_handoff" THEN known[t]
     ELSE "notified_ow"
 
-(* send_all（stuck-check.sh:1544-1627）：先 direct（第二类合并的一条、以前没发出去的），*)
+(* send_all（stuck-check.sh:1704-1797）：先 direct（第二类合并的一条、以前没发出去的），*)
 (* 再 suspects（agent_gone）。一条 post 重试后仍失败 → 这次运行里发给同一个目标的不再发，    *)
-(* 发给别的目标的照发（broken 是目标的集合，:1574-1577,1618-1621；PER-67 F5），留到下次。     *)
-(* post（:295-309）：200<=code<300 才算成功。                                            *)
+(* 发给别的目标的照发（broken 是目标的集合，:1739-1743,1788-1794；PER-67 F5），留到下次。     *)
+(* post（:387-403）：200<=code<300 才算成功。                                            *)
 (* Mutant "old_send_all"：修之前的代码，一条失败其余全停，也没有 F4 的改发。               *)
 (* 一次 post 连 3 次重试约 65 秒：模型里按「这一刻 up[to] 决定」折叠成一步。        *)
-(* Mutant "sc_any_http"：把 :303 改成 ok = isinstance(code, int)。                    *)
+(* Mutant "sc_any_http"：把 :398 改成 ok = isinstance(code, int)。                    *)
 (* Fix "no_hol"：一条失败不挡后面的。                                              *)
+(* 截断（PER-82，CutChoices）：orca 调用超过 STUCK_ORCA_CALL_TIMEOUT_S 30 秒跳过这个工作区   *)
+(* （:284-289,1178-1183）、或整轮到 STUCK_SCAN_BUDGET_S（超时的 80%）停在阶段边界   *)
+(* （:1965-1971）：这次没判断到任务，记录留着（:1052-1054,1135-1138,keep :1129）。          *)
+(*   cut = "first"  第一类没判断到（check_agents、check_undelivered）                      *)
+(*   cut = "second" 第二类这一轮没查完（full_cycle 留着，下次接着查，:1883,1999-2000）        *)
+(*   cut = "all"    这次两类都没判断到                                                     *)
+(* 上次留在 pending 的 direct 其实照发（:1862,:2015），模型里不发，只会多报违反，不会少报。    *)
+(* 第一类在阶段内没有游标：下次从第一个工作区重新查（:1045），所以 CUT_FOREVER 真的可能发生，   *)
+(* 只要排在前面的工作区每次都用完时限。README 发现 F9。                                    *)
+(* Mutant "skip_dismiss"：跳过时把这个任务记成已处理（dismissed），不再留着下次查。          *)
+CutChoices == IF cutLeft > 0 THEN {"none", "first", "second", "all"} ELSE {"none"}
+
 Scan ==
     /\ ~scanned
-    /\ LET doFull == fullAge >= FULL_TICKS
+    /\ \E cut \in CutChoices :
+       LET see1 == cut \notin {"first", "all"}
+           doFull == fullAge >= FULL_TICKS /\ cut \notin {"second", "all"}
            rep == {t \in Tasks : RepCand(t, doFull)}
            RepItem == IF rep # {} THEN <<[k |-> "rep", t |-> 0, to |-> CA]>> ELSE <<>>
-           EscItems == SelectSeq([i \in Tasks |-> [k |-> "esc", t |-> i, to |-> CA]], LAMBDA x : EscCand(x.t))
-           GoneItems == SelectSeq([i \in Tasks |-> [k |-> "gone", t |-> i, to |-> disp[i]]], LAMBDA x : Gone(x.t))
+           EscItems == IF ~see1 THEN <<>>
+                       ELSE SelectSeq([i \in Tasks |-> [k |-> "esc", t |-> i, to |-> CA]], LAMBDA x : EscCand(x.t))
+           GoneItems == IF ~see1 THEN <<>>
+                        ELSE SelectSeq([i \in Tasks |-> [k |-> "gone", t |-> i, to |-> disp[i]]], LAMBDA x : Gone(x.t))
            items == RepItem \o EscItems \o GoneItems
            L == Len(items)
        IN \E fc \in [1..L -> FailCodes] :
@@ -302,9 +322,11 @@ Scan ==
               gotT(t, k) == {i \in 1..L : items[i].k = k /\ items[i].t = t}
               repI == {i \in 1..L : items[i].k = "rep"}
           IN
-          /\ ow' = [t \in Tasks |-> RecheckOW(t)]
+          /\ ow' = [t \in Tasks |-> IF see1 THEN RecheckOW(t) ELSE ow[t]]
           /\ known' = [t \in Tasks |->
-                IF \E i \in gotT(t, "gone") : good(i) THEN "notified" ELSE RecheckKnown(t)]
+                IF Mutant = "skip_dismiss" /\ ~see1 /\ agent[t] # "running" /\ known[t] = "none" THEN "dismissed"
+                ELSE IF \E i \in gotT(t, "gone") : good(i) THEN "notified"
+                ELSE IF see1 THEN RecheckKnown(t) ELSE known[t]]
           /\ scLast' = [t \in Tasks |->
                 IF \E i \in gotT(t, "gone") : posted(i) THEN code(CHOOSE i \in gotT(t, "gone") : TRUE) ELSE scLast[t]]
           /\ seen2' = [t \in Tasks |-> IF t \in rep /\ \E i \in repI : good(i) THEN TRUE ELSE seen2[t]]
@@ -313,6 +335,7 @@ Scan ==
                 \cup (IF \E i \in gotT(t, "gone") : real(i) THEN {disp[t]} ELSE {})
                 \cup (IF (t \in rep /\ \E i \in repI : real(i)) \/ (\E i \in gotT(t, "esc") : real(i)) THEN {CA} ELSE {})]
           /\ fullAge' = IF doFull THEN 0 ELSE fullAge
+          /\ cutLeft' = IF cut = "none" \/ CUT_MAX = CUT_FOREVER THEN cutLeft ELSE cutLeft - 1
     /\ scanned' = TRUE
     /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, idlep, woken, age, cage>>
 
@@ -324,7 +347,7 @@ Tick ==
     /\ age' = [t \in Tasks |-> IF agent[t] # "running" THEN Inc(age[t]) ELSE age[t]]
     /\ cage' = [t \in Tasks |-> IF ws[t] = "completed" THEN Inc(cage[t]) ELSE cage[t]]
     /\ fullAge' = IF fullAge < FULL_TICKS THEN fullAge + 1 ELSE fullAge
-    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted>>
+    /\ UNCHANGED <<disp, work, kind, agent, ws, up, nr, ow, idlep, woken, known, scLast, seen2, esc, accepted, cutLeft>>
 
 Next ==
     \/ Tick \/ Scan

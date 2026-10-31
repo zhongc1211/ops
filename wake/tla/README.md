@@ -35,41 +35,54 @@ tar -C ~/.local/opt -xzf OpenJDK17U-jre_x64_linux_hotspot_17.0.12_7.tar.gz
 
 问题是「几个独立进程（notify-run、orca-wake 的 hook 和 detached 发送进程、每 15 分钟的卡住检查、每 5 分钟的心跳互查）按什么顺序发生、webhook 什么时候通不通，会不会有一种顺序让停下的 agent 永远没人收到」。这是交错顺序和活性的问题，测试只能碰到想到的那几种顺序；TLC 在给定界限里把所有顺序穷举，活性性质（「最终会……」）还能给出无限循环的反例。工具就一个 jar 加 JRE，装在用户目录。
 
-## 模型对应的代码（建模时，已核对线上一致）
+## 模型对应的代码
 
-`SOURCES.sha256` 记着下面 8 个文件建模时的 sha256；check.sh 每次比对，变了就提示先对模型。
+`SOURCES.sha256` 记着下面 9 个文件建模时的 sha256（`scripts/agent-probe` 是 #96 加的，F2 依赖它）。check.sh 开跑前比对，对不上、文件缺失或 SOURCES 格式不对就打印 FAIL、退出码 1，不跑 TLC，没有跳过开关。逐提交对照见 [`reports/96/MODEL-DIFF.md`](../../reports/96/MODEL-DIFF.md)。
 
-| 文件 | sha256（前 16 位） | box `~/.local/bin` | iMac | MBA |
-|---|---|---|---|---|
-| wake/bin/notify-run | 4ce9845ef12349d4（F2 加了 pane、agent 字段，第 6 组加了起没起来的检查，bash 3.2 下改写 `${var}`、行号不变；建模时 72e01f954dc624ee） | 没核对 | 没核对 | 没核对 |
-| wake/bin/orca-agent-launch | 907611083b053b4b（第 6 组加了拒绝时叫醒，bash 3.2 下改写 `${var}`、行号不变；建模时 4355bc557b4876d0） | 没核对 | 没核对 | 没核对 |
-| wake/bin/orca-wake | ab75137c97142a40 | 一致 | 一致 | 一致 |
-| wake/bin/orca-wake-hooks | 1a5e66d777618c76 | 一致 | 一致 | 一致 |
-| wake/bin/agent-stop | 7cc0ebefd5b5c53a | 一致 | 一致 | 一致 |
-| scripts/agent-probe | af95da54bf99000a（F2/F6 加了 wake；建模时 0fb882eb340a8004） | 一致 | 一致 | 一致 |
-| scripts/stuck-check.sh | f7c44d4b864c3170（F7/F8、F3、F1、F5/F4、F2/F6 修过；建模时 c0bf9c6dad8c4a09） | — | `~/orca/workspaces/ops/scripts/`（ops · 01/02 跑的）一致 | **不一致**（d743f664…，MBA 上没有自动任务跑它） |
-| scripts/heartbeat-watch.sh | a36d3dc8a88702a8（F8 同类修过；建模时 682dfa079840cf2e。之后 main 只改过注释，B1 又改了第 13 行的部署说明，这里和 SOURCES.sha256 都没跟） | B1 上线后不用：box ops · 29 停用（10-21 还在跑 `~/.orca-state/bin/` 这份，一致） | `~/.orca-state/bin/`（iMac ops · 29 跑的，B1 后盯 MBA 那条）一致 | B1 上线时装到 `~/.orca-state/bin/`（MBA ops · 29 跑，经 `scripts/orca-via-ssh` 读 iMac 的运行记录）；10-21 还没装 |
-| wake/pi/dispatch-wake.ts | 350c898595552ed6 | 没核对（Pi 扩展装在各 agent 的扩展目录） | | |
+| 文件 | sha256（前 16 位） | 说明 |
+|---|---|---|
+| wake/bin/notify-run | d047ff8907733c25 | #83 加 Idempotency-Key 和清洗，重试和 2xx 判断没变 |
+| wake/bin/orca-agent-launch | 648017c2b8152e11 | #93 的启动前检查走 `die` → `wake_reject`（`rejected_pre`） |
+| wake/bin/orca-wake | c966b7c343ee0cb0 | #83 同上，`ok` 判断和 `_mark_sent` 没变 |
+| wake/bin/orca-wake-hooks | 1a5e66d777618c76 | 没变 |
+| wake/bin/agent-stop | 7cc0ebefd5b5c53a | 没变 |
+| scripts/agent-probe | af95da54bf99000a | 没变，新进 SOURCES |
+| scripts/stuck-check.sh | b444cc8b585a846b | PER-82 扫描时长防护（`CutChoices`、mode `cut`、scan_slow） |
+| scripts/heartbeat-watch.sh | f7fd401cc68536d2 | #75 告警发 ops-system |
+| wake/pi/dispatch-wake.ts | 350c898595552ed6 | 没变 |
 
-自动任务（`orca automations show`，只读）：iMac ops · 01 `439cd438` precheck `stuck-check.sh --scan`、rrule 每分钟、**precheck timeoutSeconds 300**；iMac ops · 02 `c7692ae9` codex 备用（`orca-fallback.sh stuck-check 25 60`，8–23 点每小时 53 分）；盯 ops · 01 的是 MBA「ops · 29 心跳互查 MBA（盯 iMac ops · 01）」`HB_ORCA=…/scripts/orca-via-ssh ORCA_SSH_HOST=imac /usr/bin/lockf -k -t 0 …/mba-hb-watch.lock heartbeat-watch.sh --precheck --target "iMac ops · 01 …||439cd438…|20"` 每 5 分钟、precheck 超时 330 秒；iMac ops · 29 `5c2d0575` 盯 MBA 这条（`--target "MBA ops · 29 心跳互查|mba|…|20"`）。这是 B1（`automations/heartbeat-1021/`）上线后的部署；10-21 现网还是 box ops · 29 `94e4b0bc`（`--target "iMac ops · 01 …|iMac|439cd438…|20"`）盯 ops · 01、`5c2d0575` 盯 box 那条，上线顺序和回滚见那个目录的 README。enabled-bots 三台都含全部真实 bot（coding-assistant、deepvision-ops、vllm-omni、xinyue、deepvision-ads、deepvision-marketing），所以模型里不建影子模式。
+这张表是仓库版本。**部署的版本和仓库不一定一致**：2026-10-31 只读核对，iMac 和 box 上部署的 heartbeat-watch.sh 都是旧版 `a36d3dc8…`（`BOT = "coding-assistant"`），和仓库不一样；其余脚本这次没逐机核对。
 
-B1（2026-10-21）只改了这页的文字，没跑 TLC。模型（P3 的 Heartbeat 部分）和 `SOURCES.sha256` 还是按 box 盯 iMac 建的，更新留给后续 wake-tla 批次。到时要对的：heartbeat-watch.sh 的 sha256；MBA 那条经 ssh 读 iMac（ssh 连不上时每次约 10 秒失败，走「运行记录查不到」）；MBA 睡着超过 20 分钟时 iMac ops · 29 报 MBA 那条中断，这段时间 ops · 01 没人盯；10-21 只读核对时 ops · 01 `439cd438` 的 precheck 超时是 600 秒，不是上面的 300；MBA 那条和 `5c2d0575` 并行版的 precheck 套了 `/usr/bin/lockf -k -t 0`，上一轮没跑完时这一轮退出 75，不起 heartbeat-watch，没有 `@@HB`（假设 4）。B1 第五轮也没跑 TLC：两台都没有 Java 17 和 tla2tools，`check.sh` 只能在 Linux 上跑，`SOURCES.sha256` 有两项和代码对不上。
+现网（2026-10-31，`orca automations`，只读）：
+
+| 自动任务 | 状态 | 说明 |
+|---|---|---|
+| iMac ops · 01 `439cd438` | 启用 | precheck `stuck-check.sh --scan`，rrule 每分钟，precheck 超时 600 秒 |
+| iMac ops · 02 `c7692ae9` | 停用 | codex 备用 |
+| box ops · 29 `94e4b0bc` | 启用 | 盯 iMac ops · 01，precheck 超时 240 秒 |
+| iMac ops · 29 `5c2d0575` | 停用 | 盯 box 那条；超时 240 秒，1 个 target，没有 lockf，没有 via-ssh |
+| MBA ops · 29 | 没有这个任务 | |
+
+也就是说 `automations/heartbeat-1021/` 写的 B1 部署（MBA↔iMac 互盯）没有上线，看守机还是 box，且没人盯 box（发现 F11）。enabled-bots 三台都含全部真实 bot（coding-assistant、deepvision-ops、vllm-omni、xinyue、deepvision-ads、deepvision-marketing）是 10-19 的核对结果，这次没重查；模型里不建影子模式。
+
+`Heartbeat.tla` 按现网建：`PRE_TIMEOUT` 600 秒，看守机是一台，`PEER = TRUE` 表示另一台盯看守机的任务启用。#96 跑过 TLC，B1 和 PER-82 都已进模型。
 
 ## 动作 ↔ 代码
 
 | 模型动作 | 代码 | 一步不可分的理由 |
 |---|---|---|
-| `AgentPause` | orca-wake `cmd_claude_hook` Stop 分支 724-739 → `dispatch_send` 370-423（`hookFired=FALSE` = 731-736 的 background_work / queued_followup，或 hook 没跑） | Session 文件锁内完成；发送交给 detached 进程 |
-| `IdlePrompt` | orca-wake 764-779 → `dispatch_send` 378-397 去重 | 同上 |
-| `OwAttempt` | orca-wake `_send_now` 一次 urlopen 501-554；ok 判断 518；`_mark_sent` 450-453 写 sent/ 和 woken | 一次 HTTP 请求的结果 |
-| `AgentExit` | notify-run wait 循环 196-205 → `finish` 144-158 | |
-| `NrAttempt` | notify-run 122-130（一次 curl），成功判断 127，日志 126 | 一次 curl |
+| `AgentPause` | orca-wake `cmd_claude_hook` Stop 分支 734-749 → `dispatch_send` 370-423（`hookFired=FALSE` = 741-746 的 background_work / queued_followup，或 hook 没跑） | Session 文件锁内完成；发送交给 detached 进程 |
+| `IdlePrompt` | orca-wake 774-789 → `dispatch_send` 378-397 去重 | 同上 |
+| `OwAttempt` | orca-wake `_send_now` 一次 urlopen 501-556；ok 判断 520；`_mark_sent` 450-463 写 sent/ 和 woken | 一次 HTTP 请求的结果 |
+| `AgentExit` | notify-run wait 循环 259-268 → `finish` 199-214 | |
+| `NrAttempt` | notify-run 148-158（一次 curl） | 一次 curl |
 | `MarkCompleted` | agent 把 Orca 工作区标 completed | |
-| `Scan` | stuck-check `main()` 一次扫描：`check_agents` 844-1179（agent_gone 1057-1071、主目录退出 959-987、idle → `wake_recheck` 1073-1097/553-609、结果处理 1124-1177）、第二类 1739-1757 / `check_reported` 1374-1468、`send_all` 1544-1627 | 一次扫描是一个进程顺序执行（run.lock 保证同时只有一个），别的进程在扫描中途的交错对这些性质没有影响（见「假设」） |
-| `Tick` | 15 分钟（`INTERVAL_MIN` 138，闸门 1694） | |
+| `Scan` | stuck-check `main()` 1821 一次扫描：`check_agents` 957（agent_gone 1197-1207、主目录退出 1088-1112、idle → `wake_recheck` 1213-1240/657-713、结果处理 1267-1321）、第二类 1944-1963 / `check_reported` 1522-1626、`send_all` 1704-1797；截断（PER-82）284-289、1178-1183、1965-1971 | 一次扫描是一个进程顺序执行（run.lock 保证同时只有一个），别的进程在扫描中途的交错对这些性质没有影响（见「假设」） |
+| `Tick` | 15 分钟（`INTERVAL_MIN` 153，闸门 2107） | |
 | `WebhookUp/Down` | 环境：bot 的 webhook 服务通不通 | |
-| Heartbeat `Step` | 每分钟一次 precheck（stuck-check 1908-1948：闸门关 1911-1915 打 `@@HB`，闸门开先写 gate.last 1930 再 `main()` 1935，异常 1936-1944，跑完才写 gate.done 1945-1946；@@HB 的 last_scan = done 1885）+ 每 5 分钟 heartbeat-watch `main()` 188-257 | |
-| Heartbeat `Fail` | 卡住检查出故障并一直坏：dead（自动任务不跑 / Orca 挂了）、crash（`main()` 每次抛异常）、hang（每次超过 300 秒被杀） | |
+| Heartbeat `Step` | 每分钟一次 precheck（stuck-check 2289-2329：闸门关 2290-2296 打 `@@HB`，闸门开先写 gate.last 2311 再 `main()`，异常 2317-2329，跑完才写 gate.done 2326-2327；@@HB 的 last_scan = done 2265）+ 每 5 分钟 heartbeat-watch `main()` 188-257 | |
+| Heartbeat `Fail` | 卡住检查出故障并一直坏：dead（自动任务不跑 / Orca 挂了）、crash（`main()` 每次抛异常）、hang（每次超过 600 秒被杀）、cut（每次到整轮时限，正常退出，PER-82） | |
+| Heartbeat `WatcherDown` | 环境：看守机下线（睡着、断电） | |
 
 ## 性质
 
@@ -78,7 +91,9 @@ B1（2026-10-21）只改了这页的文字，没跑 TLC。模型（P3 的 Heartb
 | P1 | 每个停下（退出或停在输入框）的任务，最终有一个 bot 收到（2xx），或者升级到 Coding助手 | agent 做完或卡住没人知道，任务一直挂着 | 扫描和时间一直往前走、在途的发送进程会跑完（WF）；前提：Coding助手 的 webhook 最终一直可用；派活 bot 可以一直坏 |
 | P1h | 同上，前提弱化成所有 bot 的 webhook 最终都一直可用（中断有限长） | 同上 | 同上 |
 | P2 | webhook 发送失败（非 2xx、超时、连不上）绝不被记成成功：notify-run 的 exit 0 / 日志（P2_NR）、orca-wake 的 sent/ 和 woken（P2_OW）、stuck-check 自己 POST 后的 agents.json notified（P2_SC_POST）、stuck-check 交给 orca-wake 后的 notified（P2_SC_RECHECK） | 以为叫醒了其实没有，之后也不会补 | 安全性，无前提 |
-| P3 | 卡住检查自己停了（自动任务不跑 / Orca 挂了 / 每次超时 / 每次出错），最终一定告警 Coding助手；P3_BOUND：最后一次跑完的扫描后 75 分钟内 | 兜底没了，没人知道 | Step 的 WF；假设 MBA 上的 heartbeat-watch 自己在跑（B1 之前是 box 上的）、Coding助手 webhook 可用 |
+| P3 | 卡住检查自己停了（自动任务不跑 / Orca 挂了 / 每次超时 / 每次出错），最终一定告警 ops-system；每次扫描都到时限（cut）时由 stuck-check 的 scan_slow 告警；P3_BOUND：最后一次跑完的扫描后 75 分钟内 | 兜底没了，没人知道 | Step 的 WF；假设看守机上的 heartbeat-watch 在跑（box）、告警 webhook 可用（h11 去掉这条假设） |
+| PW | 看守机下线，盯它的那条报出来 | 看守机下线后 P3 的前提没了，没人知道 | `PEER`：`5c2d0575` 启用才成立，10-31 现网停用（h10） |
+| P3W | 看守机可能下线时，卡住检查停了最终有告警（心跳告警或看守机下线告警） | 同 P3 | 看守机下线和被盯的 iMac 整机没了同时发生时不成立（h13，B1 已知限制） |
 | P4 | 没有任务停下超过 1 小时、没有任何 bot 收到、也没叫醒 Coding助手 | 同 P1，且时间有上限 | 安全性；前提 Coding助手 webhook 一直可用（`CA_ALWAYS_UP`） |
 | P5（代码里找到的） | 一个 bot 的 webhook 坏了，不挡派给 Coding助手 的任务被收到 | 一个坏掉的 bot 让所有卡住告警（含给 Coding助手 的）都发不出去 | 前提 Coding助手 webhook 最终一直可用 |
 | P6（第 6 组） | agent 没起来（orca-agent-launch 拒绝，或 notify-run 起了 claude 却一直没有第 1 个回合），最终有 bot 收到「没起来」（或者它后来起来了）；P6_BOUND：一直没起来的 START+1 分钟内 | 派活 bot 以为 agent 在干活，其实一个都没起（10-19 07:24 iMac term_b8179e9b） | `Launch.tla`；前提 Coding助手 webhook 一直可用 |
@@ -92,6 +107,7 @@ B1（2026-10-21）只改了这页的文字，没跑 TLC。模型（P3 的 Heartb
 - 失败码：P2 检查用 {0（curl 000/超时/连不上）, 500}；其余用 {500}（成败判断对两者一样）。
 - 只建模 idle（停在输入框）和退出；needs_input（对话框）、blocked、error、限流 429 的长重试（60/300/900 秒）没建模。
 - 每个任务只停一次（一次停顿 / 一次退出，停顿后可以再退出）；之后的新回合不建模。
+- 扫描截断（PER-82）折成三种：第一类没查（first）、第二类没查（second）、都没查（all），由 `CUT_MAX` 限制次数，`CUT_FOREVER` 表示每次都可能。按工作区顺序、单个 orca 调用超时不单独建模：模型只有 1 个任务，「排在后面」等于这次没判断到。`past_hard`（90% 后不重试）只少重试或留到下次，P2 不变，没建。
 - 主动停止标记（agent-stop）、mute 文件、影子模式、没经 notify-run 起的 agent、ws_broken、due 对账、box/MBA 连不上告警没建模。
 - 卡住检查的人工复核（Claude 读屏幕后 `--dismiss`）按「不误排除」算。
 
@@ -100,10 +116,12 @@ B1（2026-10-21）只改了这页的文字，没跑 TLC。模型（P3 的 Heartb
 1. 每个任务都经 `orca-agent-launch` → `notify-run --tty` 起，hook 已装（`orca-wake-hooks check` 全 ok）。
 2. 「bot 收到」= webhook 返回 2xx；收到的 bot 一小时内会处理（review / 评论 / 归档），所以第二类不再报（模型里用 ghost 变量 `accepted` 代替「PR 有人看过」）。
 3. 一次扫描内别的进程的交错不影响结论（扫描对 orca-wake 的影响只经 recheck 的 detached 发送，这个发送在模型里是独立动作）。
-4. Orca 不会让同一个自动任务的 precheck 重叠运行（假设成重叠只会多出心跳，不改变 P3 的结论）。B1 第五轮读两台 Orca 的代码（1.4.235、1.4.229），没看到这一条：预检超过 rrule 的间隔时，下一轮照常起（`automations/heartbeat-1021/FAILURE-MODES.md` F21、F28，没在真机上验证）。MBA 那条和 `5c2d0575` 并行版靠 precheck 外面的 lockf 挡住重叠，被挡的那一轮没有 `@@HB`，是少了一次心跳，不是多了。
-5. P3 里 MBA 上的 heartbeat-watch 在跑（它自己由 iMac ops · 29 盯，iMac 经 environment `mba` 读它的运行记录）。B1 之前这一条是 box 上的 heartbeat-watch。
+4. Orca 不会让同一个自动任务的 precheck 重叠运行（假设成重叠只会多出心跳，不改变 P3 的结论）。B1 第五轮读两台 Orca 的代码（1.4.235、1.4.229），没看到这一条：预检超过 rrule 的间隔时，下一轮照常起（`automations/heartbeat-1021/FAILURE-MODES.md` F21、F28，没在真机上验证）。那个目录写的 MBA 部署靠 precheck 外面的 lockf 挡重叠，没上线；10-31 现网的 `5c2d0575` 没有 lockf。
+5. P3 里看守机的 heartbeat-watch 在跑。10-31 现网是 box；盯 box 的 iMac `5c2d0575` 停用，所以这条假设现在没人检查（F11）。看守机下线的情况在 PW、P3W 里单独查。
+6. scan_slow 排在 direct 列表最后（stuck-check.sh:2243），模型里闸门开就告警。前面一条发给坏 bot 的重试可能耗到 `past_hard`，这次发不出，下次再发；前面那条的收件 webhook 一直坏且不改报时会一直发不出（读代码，没演练）。
+7. 告警 webhook 可用。仓库版 heartbeat-watch 只发 ops-system，它的 webhook 经 iMac 转发器（`paperclip/imac/ops-system/REQUIRED-COMMENT.md:38`，没读 env），iMac 整机没了发不出（F10，h11）。
 
-## 结果（commit 和原文见产物目录 /workspace/ops/reports/wake-tla-20261019/）
+## 结果（#96 的原文在 box `/workspace/ops/reports/wake-tla-refresh-1030/`，最早一次在 `/workspace/ops/reports/wake-tla-20261019/`）
 
 | 检查 | 期望 | 说明 |
 |---|---|---|
@@ -131,8 +149,18 @@ B1（2026-10-21）只改了这页的文字，没跑 TLC。模型（P3 的 Heartb
 | h01 P3（dead）+ P3_BOUND + NoFalseAlarm | pass | 自动任务停 / Orca 挂了会告警，75 分钟内 |
 | h02 改坏：查不到运行记录不报 | violated | |
 | h03 P3（hang） / h04 P3（crash） | pass（F7、F8 已修） | 加了 P3_BOUND：75 分钟内告警 |
+| w17 / w17a P1h / P1 + 扫描最多 2 次没判断到 | pass | PER-82：下次接着查，最终有人收到 |
+| w18 P4 + 截断 1 次（task 和 main） | violated | 发现 F12 |
+| w18b P4 + 截断 1 次（只看 task） / w18a 截断 2 次 | pass / violated | 任务工作区 1 小时的余量够 1 次截断，不够 2 次 |
+| w19 P1h + 每次都截断 | violated | 发现 F9 |
+| w20 改坏：跳过时记成已处理 | violated | |
+| h07 P3（cut） | pass | last_scan 照样前进，靠 scan_slow 告警 |
+| h08 改坏：去掉 scan_slow | violated | |
+| h09 PW（`PEER = TRUE`） / h10 PW（`PEER = FALSE`） | pass / violated | h10 是现网现状，发现 F11 |
+| h11 P3 + 告警 webhook 在被盯的机器上 | violated | 发现 F10 |
+| h12 P3W 看守机下线 + 有 peer / h13 同时 iMac 整机没了 | pass / violated | h13 是 B1 已知限制 |
 | l01 P6 + P6_BOUND | pass | 第 6 组：orca-agent-launch 拒绝时、notify-run 起的 claude 5 分钟没有第 1 个回合时叫醒派活 bot，发不出去改发 Coding助手 |
-| l02 改坏：两处都不叫醒（修之前的代码） / l03 改坏：不改发 Coding助手 | violated | |
+| l02 改坏：两处都不叫醒（修之前的代码） / l03 改坏：不改发 Coding助手 / l04 改坏：启动前检查没过时直接退出 | violated | |
 | h05 / h06 改坏：last_scan 取扫描开始时间（修之前的代码） | violated | |
 
 「修法」只在模型里（`Fixes` 常量），用来证明性质不是空的、模型不是怎么都失败；没有改任何产品代码。
@@ -149,6 +177,10 @@ B1（2026-10-21）只改了这页的文字，没跑 TLC。模型（P3 的 Heartb
 - **F6**（已修，同上 PR：改报从停下算；completed / in-review 工作区最后一次停下没送达的，每次扫描都查，45 分钟直接报 Coding助手）第二类「报了没人验收」最早 1 小时、按约每小时一次查，completed 任务最坏接近 2 小时才到 Coding助手，P4 的 1 小时在设计上就达不到。
 - **F7**（已修，PER-67 F7+F8 PR：`last_scan` 改成上次跑完的扫描 gate.done）扫描每次超过 300 秒被杀时心跳照样新鲜：`last_scan` 取的是扫描**开始**时写的 gate.last（stuck-check.sh:1720 在 1725 `main()` 之前），heartbeat-watch 不会报。iMac 日志 10-16～10-19 最长一次扫描 253 秒，10-16 03:03:55 有一次开始没结束。
 - **F8**（已修，同上；heartbeat-watch 自己出错时 last_scan 也不再前进）扫描每次出错时（`main()` 抛异常）`--scan` 返回 0、照打新心跳，只会起一个 Claude 复核 agent（它的报告只进 Orca 运行记录），codex 备用失败后只写 `~/orca-alerts/stuck-check.flag`，没有任何 webhook 告警。
+- **F9**（没修）扫描每次都被截断时，排在后面的工作区一直没判断：第一类阶段内没有游标，下次从头查（stuck-check.sh:1045）。整轮到时限时 scan_slow 每小时报 ops-system（w19 violated）。只有单项超时跳过、整轮不到 360 秒时连 scan_slow 都没有：`orca` 调用每次超过 30 秒的工作区 `keep` 后跳过（stuck-check.sh:1180-1183），`last_scan` 照样前进，只写日志和 scan-history，没人收到告警。h07 只覆盖到整轮时限的情况，这种情况模型里没有（读代码，没演练）。
+- **F10**（没修）仓库版 heartbeat-watch 告警只发 ops-system、没有改发，它的 webhook 经被盯的 iMac，iMac 整机没了发不出（h11 violated）。现网旧版还发 coding-assistant，部署新版后才生效。
+- **F12**（没修）主目录 agent 的 P4 没有截断余量：停下后 45 分钟那次扫描被截断，下一次扫描时 agent 刚退出、notify-run 还在重试（stuck-check.sh:1102 `retrying`，下次再看），要再等一次扫描，派活 bot 的 webhook 坏着时约 75 分钟才到 Coding助手（w18 violated）。P1 不受影响（w17a pass）。要同时满足：主目录、派活 bot 坏、一次截断、退出落在扫描前的约 65 秒内。
+- **F11**（现网状态）2026-10-31 只读核对：`5c2d0575` 停用，box 这台看守机没人盯（h10 violated）。
 
 ## 代码变了怎么办 / 结果变了怎么办
 

@@ -7,18 +7,19 @@ import re
 import sys
 
 CODE = {
-    "AgentPause": "Claude Stop hook → orca-wake cmd_claude_hook Stop（wake/bin/orca-wake:724-739）→ dispatch_send（:370-423）",
-    "AgentExit": "agent 退出 → notify-run wait 返回（wake/bin/notify-run:196-205）→ finish → send_webhook（:144-158）",
+    "AgentPause": "Claude Stop hook → orca-wake cmd_claude_hook Stop（wake/bin/orca-wake:734-749）→ dispatch_send（:370-423）",
+    "AgentExit": "agent 退出 → notify-run wait 返回（wake/bin/notify-run:259-268）→ finish → send_webhook（:199-214）",
     "MarkCompleted": "agent 把任务工作区标 completed（Orca 看板）",
-    "NrAttempt": "notify-run 一次 curl POST（wake/bin/notify-run:122-130，成功判断 :127）",
-    "OwAttempt": "orca-wake _deliver 一次 POST（wake/bin/orca-wake:501-554，成功判断 :518，_mark_sent :450-453）",
-    "IdlePrompt": "Claude idle_prompt hook（wake/bin/orca-wake:764-779）→ dispatch_send 去重（:378-397）",
+    "NrAttempt": "notify-run 一次 curl POST（wake/bin/notify-run:148-158）",
+    "OwAttempt": "orca-wake _deliver 一次 POST（wake/bin/orca-wake:501-556，成功判断 :520，_mark_sent :450-463）",
+    "IdlePrompt": "Claude idle_prompt hook（wake/bin/orca-wake:774-789）→ dispatch_send 去重（:378-397）",
     "WebhookDown": "派活 bot 的 webhook 开始不可用（环境）",
     "WebhookUp": "webhook 恢复（环境）",
-    "Scan": "卡住检查一次扫描：check_agents + wake_recheck + send_all（scripts/stuck-check.sh:844-1179,1544-1627,1739-1757）",
-    "Tick": "过 15 分钟（下一次扫描，stuck-check.sh:1847）",
-    "Step": "过 1 分钟：ops · 01 precheck（scripts/stuck-check.sh:1908-1948）+ 每 5 分钟 heartbeat-watch（scripts/heartbeat-watch.sh:188-257）",
-    "Fail": "卡住检查出故障（自动任务停 / 每次出错 / 每次超时）",
+    "Scan": "卡住检查一次扫描：check_agents + wake_recheck + send_all（scripts/stuck-check.sh:957,1522-1626,1704-1797）",
+    "Tick": "过 15 分钟（下一次扫描，stuck-check.sh:153）",
+    "Step": "过 1 分钟：ops · 01 precheck（scripts/stuck-check.sh:2289-2329）+ 每 5 分钟 heartbeat-watch（scripts/heartbeat-watch.sh:188-257）",
+    "Fail": "卡住检查出故障（自动任务停 / 每次出错 / 每次超时 / 每次到整轮时限）",
+    "WatcherDown": "看守机下线（环境）",
 }
 
 
