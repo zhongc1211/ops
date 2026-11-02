@@ -1,5 +1,17 @@
 # Orca 项目与工作区（iMac，2026-10-12 02:45 SGT 核对，共 27 个工作区）
 
+以下表格是 iMac 视角，10-12 核对，没跟着改。
+
+## 派活顺序（待 Zack 卡片确认）
+
+依据：Zack 11-03 02:54 / 02:56 SGT 的话「干活主力该成ubuntu」「然后mba替代imac先」，经 Coding助手 转述，还没有他本人在卡片上的确认。
+
+1. ubuntu：目标主力，未就绪，见 briefs/ubuntu-main-1102.md。
+2. MBA：现在实际接活。
+3. iMac：暂不派。自 11-02 06:28 PST 起离线。
+
+ubuntu 就绪前的做法：派 MBA，不派 iMac。
+
 规则：项目按 repo 分，不按 bot 分；每个 Linear 任务一个工作区；显示名「<bot 简称> · <Linear编号> 中文简述」。详见 dev-bot-rules。
 来源：`orca-ide --environment iMac repo list / worktree list`。
 
@@ -71,7 +83,7 @@ vllm-omni 工作区已于 2026-10-12 改成新格式（orca CLI）；其他仓�
 
 ## 5. Box（Grok Bot 电脑）Orca 项目与工作区（2026-10-12 03:20 SGT 核对）
 
-Box 与 iMac 是两套独立 Orca runtime；同名仓库在 box 上另有项目 ID。
+Box 与 iMac 是两套独立 Orca runtime；同名仓库在 box 上另有项目 ID。ubuntu、MBA 同样各是一套独立 runtime，同名仓库在各自上另有项目 ID。
 
 ### 5.1 Box Repo → Orca 项目
 
@@ -159,3 +171,13 @@ MBA 是第三套独立 Orca runtime，同名仓库在 MBA 上另有项目 ID。�
 
 另有 Zack 自己建的 `local`（25037673-35e6-4129-a963-7016a63d6101，~/orca/projects/local），不动。
 EverOS：上面 4 个业务仓库的主 checkout 都用 `claude mcp add -s local everos` 接好；pi 扩展 `everos.ts` 的根目录表加了 `~/orca/projects/<repo>`。
+
+iMac 暂不派时，MBA 的 Orca 用 box 上的 `MBA` 环境访问（`orca --environment MBA …`），不再经 iMac 的 `ssh mba` / `orca --environment mba`。MBA 自己的 Orca 没有保存任何环境（11-02 查过）。
+
+## 8. ubuntu（目标主力，未就绪）
+
+- 机器：tailnet 100.64.0.9；Ubuntu 24.04.5 LTS，aarch64，6 核，内存 15Gi，无 GPU。（2026-10-29 盘点，未复核）
+- Orca 1.4.240；目标 1.4.244，要用 arm64 的 deb，不是 amd64。（2026-10-29 盘点，未复核）
+- ops 项目：`/home/ubuntu/orca/workspaces/ops`，没有自动任务。（2026-10-29 盘点，未复核）
+- 状态：11-02 查过，box 和 MBA 都登录不进（没有授权钥匙）；主机钥匙指纹和 10-29 一致（ED25519 SHA256:+SNVvT/f3RRW1PXWhiQ7HYCPJ6i09Ybw83WZuMdOrYo），很可能还在安装盘的 live 会话里（推断，未核实）；Orca 的环境计划叫 `ubuntu-tailnet`。（2026-10-29 盘点，未复核）
+- 就绪前不派活；步骤见 briefs/ubuntu-main-1102.md。（2026-10-29 盘点，未复核）
