@@ -2,18 +2,18 @@
 
 以下表格是 iMac 视角，10-12 核对，没跟着改。
 
-## 派活顺序（待 Zack 卡片确认）
-
-依据：Zack 11-03 02:54 / 02:56 SGT 的话「干活主力该成ubuntu」「然后mba替代imac先」，经 Coding助手 转述，还没有他本人在卡片上的确认。
-
-1. ubuntu：目标主力，未就绪，见 briefs/ubuntu-main-1102.md。
-2. MBA：现在实际接活。
-3. iMac：暂不派。自 11-02 06:28 PST 起离线。
-
-ubuntu 就绪前的做法：派 MBA，不派 iMac。
-
 规则：项目按 repo 分，不按 bot 分；每个 Linear 任务一个工作区；显示名「<bot 简称> · <Linear编号> 中文简述」。详见 dev-bot-rules。
 来源：`orca-ide --environment iMac repo list / worktree list`。
+
+## 派活顺序
+
+规矩已经写进线上 dev-bot-rules（Zack 11-03 02:54 / 02:56 SGT 的话「干活主力该成ubuntu」「然后mba替代imac先」，经 Coding助手 转述，写进了 dev-bot-rules 的第 26–27 行）。本文档这一节的合并还待 Zack 在卡片上批准。
+
+1. ubuntu：目标主力。成为第一顺位的条件（「就绪」）：ops bot 在 ubuntu 上配好 Orca、orca-agent-launch 和各 bot 的 webhook，并经 Coding助手 验收。就绪前不是第一顺位。步骤见 /workspace/ops/briefs/ubuntu-main-1102.md（在 box 上，不在仓库）。
+2. MBA：现在实际接活。ubuntu 验收前，所有动手的活派 MBA。ubuntu 验收后，ubuntu 忙或不可用时也派 MBA。
+3. iMac：暂不派。自 11-02 06:28 PST 起离线（来源 /workspace/ops/briefs/mba-replace-imac-1102.md，在 box 上，不在仓库）。
+
+验收前的做法：派 MBA，不派 iMac。
 
 ## 1. Repo → Orca 项目 ID（`--repo id:<ID>`）
 
@@ -156,9 +156,11 @@ Box 与 iMac 是两套独立 Orca runtime；同名仓库在 box 上另有项目 
 | 心月 | PER-71 | MBA ~/orca/workspaces/xinyue-site/per-71-colorfigures-a | 心月 · PER-71 Colorfigures 框架与总入口 | 2026-10-19 |
 | 心月 | PER-75 | iMac ~/orca/workspaces/xinyue-site/per-75-oss-games | 心月 · PER-75 开源游戏候选调研 | 2026-10-19 |
 
-## 7. MBA（MacBook Air）Orca 项目（2026-10-18 16:00 SGT 建，box 上的 Claude Code 经 iMac `ssh mba` 做）
+## 7. MBA（MacBook Air）Orca 项目（2026-10-18 16:00 SGT 建；建的时候是 box 上的 Claude Code 经 iMac `ssh mba` 做的）
 
-MBA：Apple M2 / 8 核 / 8 GB，macOS 26.6.2，Orca 1.4.229，用户 jiawenwang，tailnet 100.64.0.7。iMac 上 `orca --environment mba …`（环境名小写 mba）。
+现在（iMac 离线）：用 box 上的 `MBA` 环境访问 MBA 的 Orca（`orca --environment MBA …`）。MBA 自己的 Orca 没有保存任何环境（11-02 查过）。
+
+MBA：Apple M2 / 8 核 / 8 GB，macOS 26.6.2，Orca 1.4.229，用户 jiawenwang，tailnet 100.64.0.7。旧路径（iMac 在线时）：iMac 上 `orca --environment mba …`（环境名小写 mba）。
 MBA 是第三套独立 Orca runtime，同名仓库在 MBA 上另有项目 ID。主 checkout 放 `~/orca/projects/<repo>`（ops 和 iMac 一样放 `~/orca/workspaces/ops`），工作区按 Orca 默认建在 `~/orca/workspaces/<repo>/…`。
 
 | Repo | Orca 项目 | 项目 ID | 路径 | 分支 |
@@ -172,12 +174,10 @@ MBA 是第三套独立 Orca runtime，同名仓库在 MBA 上另有项目 ID。�
 另有 Zack 自己建的 `local`（25037673-35e6-4129-a963-7016a63d6101，~/orca/projects/local），不动。
 EverOS：上面 4 个业务仓库的主 checkout 都用 `claude mcp add -s local everos` 接好；pi 扩展 `everos.ts` 的根目录表加了 `~/orca/projects/<repo>`。
 
-iMac 暂不派时，MBA 的 Orca 用 box 上的 `MBA` 环境访问（`orca --environment MBA …`），不再经 iMac 的 `ssh mba` / `orca --environment mba`。MBA 自己的 Orca 没有保存任何环境（11-02 查过）。
-
 ## 8. ubuntu（目标主力，未就绪）
 
 - 机器：tailnet 100.64.0.9；Ubuntu 24.04.5 LTS，aarch64，6 核，内存 15Gi，无 GPU。（2026-10-29 盘点，未复核）
 - Orca 1.4.240；目标 1.4.244，要用 arm64 的 deb，不是 amd64。（2026-10-29 盘点，未复核）
 - ops 项目：`/home/ubuntu/orca/workspaces/ops`，没有自动任务。（2026-10-29 盘点，未复核）
-- 状态：11-02 查过，box 和 MBA 都登录不进（没有授权钥匙）；主机钥匙指纹和 10-29 一致（ED25519 SHA256:+SNVvT/f3RRW1PXWhiQ7HYCPJ6i09Ybw83WZuMdOrYo），很可能还在安装盘的 live 会话里（推断，未核实）；Orca 的环境计划叫 `ubuntu-tailnet`。（2026-10-29 盘点，未复核）
-- 就绪前不派活；步骤见 briefs/ubuntu-main-1102.md。（2026-10-29 盘点，未复核）
+- 状态：11-02 查过，box 和 MBA 都登录不进（没有授权钥匙）；主机钥匙指纹和 10-29 一致（ED25519 SHA256:+SNVvT/f3RRW1PXWhiQ7HYCPJ6i09Ybw83WZuMdOrYo），很可能还在安装盘的 live 会话里（推断，未核实）；Orca 的环境计划叫 `ubuntu-tailnet`。（2026-11-02 PST 实测，未登录）
+- 就绪前不派活；步骤见 /workspace/ops/briefs/ubuntu-main-1102.md（在 box 上，不在仓库）。（2026-10-29 盘点，未复核）
