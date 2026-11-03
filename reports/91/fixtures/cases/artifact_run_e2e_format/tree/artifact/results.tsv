@@ -1,0 +1,3 @@
+L1	PASS	lock	two locks	cmd
+L2	FAIL	lock	concurrent	cmd
+P1	SKIP	prompt	skipped	cmd
